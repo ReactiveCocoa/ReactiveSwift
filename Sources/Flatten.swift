@@ -348,7 +348,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 		func startNextIfNeeded() {
 			while let producer = state.modify({ $0.dequeue() }) {
 				producer.startWithSignal { signal, inner in
-					let handle = disposable?.add(inner) ?? nil
+					let handle = disposable?.add(inner)
 
 					signal.observe { event in
 						switch event {
