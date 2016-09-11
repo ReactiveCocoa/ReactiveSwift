@@ -442,7 +442,7 @@ extension SignalProducerProtocol {
 }
 
 private final class ConcatState<Value, Error: Swift.Error> {
-	typealias SignalProducer = ReactiveCocoa.SignalProducer<Value, Error>
+	typealias SignalProducer = ReactiveSwift.SignalProducer<Value, Error>
 	
 	/// The active producer, if any.
 	var active: SignalProducer? = nil
