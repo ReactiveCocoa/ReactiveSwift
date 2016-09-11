@@ -247,9 +247,9 @@ extension DateSchedulerProtocol {
 }
 
 extension TestScheduler {
-	@available(*, unavailable, renamed:"advanced(by:)")
+	@available(*, unavailable, renamed:"advance(by:)")
 	public func advanceByInterval(_ interval: TimeInterval) { fatalError() }
 
-	@available(*, unavailable, renamed:"advanced(to:)")
+	@available(*, unavailable, renamed:"advance(to:)")
 	public func advanceToDate(_ date: Date) { fatalError() }
 }
