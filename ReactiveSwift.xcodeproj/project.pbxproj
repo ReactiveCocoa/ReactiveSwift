@@ -448,7 +448,8 @@
 				9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */,
 				D04725ED19E49ED7006002AA /* Supporting Files */,
 			);
-			path = ReactiveSwift;
+			name = ReactiveSwift;
+			path = Sources;
 			sourceTree = "<group>";
 		};
 		D04725ED19E49ED7006002AA /* Supporting Files */ = {
@@ -480,7 +481,8 @@
 				C79B64731CD38B2B003F2376 /* TestLogger.swift */,
 				D04725FA19E49ED7006002AA /* Supporting Files */,
 			);
-			path = ReactiveSwiftTests;
+			name = ReactiveSwiftTests;
+			path = Tests/ReactiveSwiftTests;
 			sourceTree = "<group>";
 		};
 		D04725FA19E49ED7006002AA /* Supporting Files */ = {
@@ -1044,7 +1046,7 @@
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
 				);
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Debug;
 		};
@@ -1059,7 +1061,7 @@
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
 				);
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Test;
 		};
@@ -1074,7 +1076,7 @@
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
 				);
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Release;
 		};
@@ -1089,7 +1091,7 @@
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
 				);
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Profile;
 		};
@@ -1102,7 +1104,7 @@
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1117,7 +1119,7 @@
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1132,7 +1134,7 @@
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1147,7 +1149,7 @@
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1164,7 +1166,7 @@
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
 				);
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Debug;
 		};
@@ -1179,7 +1181,7 @@
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
 				);
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Test;
 		};
@@ -1194,7 +1196,7 @@
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
 				);
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Release;
 		};
@@ -1209,7 +1211,7 @@
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
 				);
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Profile;
 		};
@@ -1260,7 +1262,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 			};
 			name = Debug;
@@ -1272,7 +1274,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 			};
 			name = Release;
@@ -1285,7 +1287,7 @@
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1299,7 +1301,7 @@
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1312,7 +1314,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 			};
 			name = Debug;
@@ -1324,7 +1326,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 			};
 			name = Release;
@@ -1337,7 +1339,7 @@
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1351,7 +1353,7 @@
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1383,7 +1385,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 			};
 			name = Profile;
@@ -1396,7 +1398,7 @@
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1409,7 +1411,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 			};
 			name = Profile;
@@ -1422,7 +1424,7 @@
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1454,7 +1456,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 			};
 			name = Test;
@@ -1467,7 +1469,7 @@
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
@@ -1480,7 +1482,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
-				INFOPLIST_FILE = ReactiveSwift/Info.plist;
+				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 			};
 			name = Test;
@@ -1493,7 +1495,7 @@
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
-				INFOPLIST_FILE = ReactiveSwiftTests/Info.plist;
+				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
