@@ -2,7 +2,10 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:ReactiveCocoa.xcodeproj">
+      location = "group:ReactiveSwift.playground">
+   </FileRef>
+   <FileRef
+      location = "group:ReactiveSwift.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:Carthage/Checkouts/Quick/Quick.xcodeproj">
@@ -12,8 +15,5 @@
    </FileRef>
    <FileRef
       location = "group:Carthage/Checkouts/Result/Result.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:ReactiveSwift.xcodeproj">
    </FileRef>
 </Workspace>

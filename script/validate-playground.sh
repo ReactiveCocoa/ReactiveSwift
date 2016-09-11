@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Bash script to lint the content of playgrounds
-# Heavily based on RxSwift's 
+# Heavily based on RxSwift's
 # https://github.com/ReactiveX/RxSwift/blob/master/scripts/validate-playgrounds.sh
 
 if [ -z "$BUILD_DIRECTORY" ]; then
@@ -17,7 +17,7 @@ fi
 
 PAGES_PATH=${BUILD_DIRECTORY}/Build/Products/${CONFIGURATION}/all-playground-pages.swift
 
-cat ReactiveCocoa.playground/Sources/*.swift ReactiveCocoa.playground/Pages/**/*.swift > ${PAGES_PATH}
+cat ReactiveSwift.playground/Sources/*.swift ReactiveSwift.playground/Pages/**/*.swift > ${PAGES_PATH}
 
 swift -v -target ${XCODE_PLAYGROUND_TARGET} -D NOT_IN_PLAYGROUND -F ${BUILD_DIRECTORY}/Build/Products/${CONFIGURATION} ${PAGES_PATH} > /dev/null
 result=$?
