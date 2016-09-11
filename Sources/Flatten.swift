@@ -384,9 +384,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 
 			case .completed:
 				state.modify { state in
-					state.queue.append(SignalProducer.empty.on(completed: {
-						observer.sendCompleted()
-					}))
+					state.queue.append(SignalProducer.empty.on(completed: observer.sendCompleted))
 				}
 				startNextIfNeeded()
 				
