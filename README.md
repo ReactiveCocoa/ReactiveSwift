@@ -6,7 +6,7 @@ ReactiveSwift is a Swift framework inspired by [Functional Reactive Programming]
 
  1. [Introduction](#introduction)
  1. [Example: online search](#example-online-search)
- 1. [How does ReactiveSwift relate to Rx?](#how-does-reactivecocoa-relate-to-rx)
+ 1. [How does ReactiveSwift relate to Rx?](#how-does-reactiveswift-relate-to-rx)
  1. [Getting started](#getting-started)
  1.  [Playground](#playground)
 
