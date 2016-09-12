@@ -234,3 +234,7 @@ scopedExample("`collect`") {
 	collectSignal.observe(subscriber)
 	observer.send(value: 1)
 	observer.send(value: 2)
+	observer.send(value: 3)
+	observer.send(value: 4)
+	observer.sendCompleted()
+}

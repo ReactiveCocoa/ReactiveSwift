@@ -759,4 +759,9 @@ Logs all events that the receiver sends.
 By default, it will print to the standard output.
 */
 scopedExample("`log events`") {
-	let baseProducer = SignalProducer<Int, NoError
+	let baseProducer = SignalProducer<Int, NoError>(values: [ 1, 2, 3, 4, 42 ])
+	
+ 	baseProducer
+ 		.logEvents(identifier: "Playground is fun!")
+ 		.start()
+ }
