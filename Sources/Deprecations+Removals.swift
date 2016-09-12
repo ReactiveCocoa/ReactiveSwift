@@ -63,7 +63,7 @@ extension ActionProtocol {
 // Renamed Enum cases
 
 extension Event {
-	@available(*, unavailable, renamed:"next")
+	@available(*, unavailable, renamed:"value")
 	public static var Next: Event<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"failed")
@@ -105,6 +105,24 @@ extension Bag {
 extension CompositeDisposable {
 	@available(*, unavailable, renamed:"add(_:)")
 	public func addDisposable(_ d: Disposable) -> DisposableHandle { fatalError() }
+}
+
+extension Observer {
+	@available(*, unavailable, renamed: "init(value:failed:completed:interrupted:)")
+	public convenience init(
+		next: ((Value) -> Void)? = nil,
+		failed: ((Error) -> Void)? = nil,
+		completed: (() -> Void)? = nil,
+		interrupted: (() -> Void)? = nil
+		) { fatalError() }
+}
+
+extension ObserverProtocol {
+	@available(*, unavailable, renamed: "send(value:)")
+	public func sendNext(_ value: Value) { fatalError() }
+	
+	@available(*, unavailable, renamed: "send(error:)")
+	public func sendFailed(_ error: Error) { fatalError() }
 }
 
 extension SignalProtocol {
@@ -151,6 +169,11 @@ extension SignalProtocol {
 extension SignalProtocol where Value: OptionalProtocol {
 	@available(*, unavailable, renamed:"skipNil()")
 	public func ignoreNil() -> SignalProducer<Value.Wrapped, Error> { fatalError() }
+}
+
+extension SignalProtocol where Error == NoError {
+	@available(*, unavailable, renamed: "observeValues")
+	public func observeNext(_ next: (Value) -> Void) -> Disposable? { fatalError() }
 }
 
 extension SignalProducerProtocol {
@@ -215,6 +238,11 @@ extension SignalProducerProtocol {
 extension SignalProducerProtocol where Value: OptionalProtocol {
 	@available(*, unavailable, renamed:"skipNil()")
 	public func ignoreNil() -> SignalProducer<Value.Wrapped, Error> { fatalError() }
+}
+
+extension SignalProducerProtocol where Error == NoError {
+	@available(*, unavailable, renamed: "startWithValues")
+	public func startWithNext(_ value: @escaping (Value) -> Void) -> Disposable { fatalError() }
 }
 
 extension SignalProducer {

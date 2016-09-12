@@ -25,7 +25,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				let producer = center.rac_notifications(forName: .racFirst)
 
 				var notif: Notification? = nil
-				let disposable = producer.startWithNext { notif = $0 }
+				let disposable = producer.startWithValues { notif = $0 }
 
 				center.post(name: .racAnother, object: nil)
 				expect(notif).to(beNil())

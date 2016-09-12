@@ -502,7 +502,7 @@ public final class Property<Value>: PropertyProtocol {
 		let producer = unsafeProducer.replayLazily(upTo: 1)
 
 		let atomic = Atomic<Value?>(nil)
-		disposable = producer.startWithNext { atomic.value = $0 }
+		disposable = producer.startWithValues { atomic.value = $0 }
 
 		// Verify that an initial is sent. This is friendlier than deadlocking
 		// in the event that one isn't.
@@ -575,10 +575,10 @@ public final class MutableProperty<Value>: MutablePropertyProtocol {
 		return SignalProducer { [atomic, weak self] producerObserver, producerDisposable in
 			atomic.withValue { value in
 				if let strongSelf = self {
-					producerObserver.sendNext(value)
+					producerObserver.send(value: value)
 					producerDisposable += strongSelf.signal.observe(producerObserver)
 				} else {
-					producerObserver.sendNext(value)
+					producerObserver.send(value: value)
 					producerObserver.sendCompleted()
 				}
 			}
@@ -599,7 +599,7 @@ public final class MutableProperty<Value>: MutablePropertyProtocol {
 		/// underlying producer prevents sending recursive events.
 		atomic = RecursiveAtomic(initialValue,
 		                          name: "org.reactivecocoa.ReactiveSwift.MutableProperty",
-		                          didSet: observer.sendNext)
+		                          didSet: observer.send(value:))
 	}
 
 	/// Atomically replaces the contents of the variable.

@@ -11,11 +11,11 @@ public protocol ObserverProtocol {
 	associatedtype Value
 	associatedtype Error: Swift.Error
 
-	/// Puts a `next` event into `self`.
-	func sendNext(_ value: Value)
+	/// Puts a `value` event into `self`.
+	func send(value: Value)
 
 	/// Puts a failed event into `self`.
-	func sendFailed(_ error: Error)
+	func send(error: Error)
 
 	/// Puts a `completed` event into `self`.
 	func sendCompleted()
@@ -44,7 +44,7 @@ public final class Observer<Value, Error: Swift.Error> {
 	/// An initializer that accepts closures for different event types.
 	///
 	/// - parameters:
-	///   - next: Optional closure executed when a `next` event is observed.
+	///   - value: Optional closure executed when a `value` event is observed.
 	///   - failed: Optional closure that accepts an `Error` parameter when a
 	///             failed event is observed.
 	///   - completed: Optional closure executed when a `completed` event is
@@ -52,15 +52,15 @@ public final class Observer<Value, Error: Swift.Error> {
 	///   - interruped: Optional closure executed when an `interrupted` event is
 	///                 observed.
 	public convenience init(
-		next: ((Value) -> Void)? = nil,
+		value: ((Value) -> Void)? = nil,
 		failed: ((Error) -> Void)? = nil,
 		completed: (() -> Void)? = nil,
 		interrupted: (() -> Void)? = nil
 	) {
 		self.init { event in
 			switch event {
-			case let .next(value):
-				next?(value)
+			case let .value(v):
+				value?(v)
 
 			case let .failed(error):
 				failed?(error)
@@ -76,19 +76,19 @@ public final class Observer<Value, Error: Swift.Error> {
 }
 
 extension Observer: ObserverProtocol {
-	/// Puts a `next` event into `self`.
+	/// Puts a `value` event into `self`.
 	///
 	/// - parameters:
-	///   - value: A value sent with the `next` event.
-	public func sendNext(_ value: Value) {
-		action(.next(value))
+	///   - value: A value sent with the `value` event.
+	public func send(value: Value) {
+		action(.value(value))
 	}
 
 	/// Puts a failed event into `self`.
 	///
 	/// - parameters:
 	///   - error: An error object sent with failed event.
-	public func sendFailed(_ error: Error) {
+	public func send(error: Error) {
 		action(.failed(error))
 	}
 

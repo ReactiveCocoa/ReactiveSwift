@@ -9,10 +9,10 @@
 /// Represents a signal event.
 ///
 /// Signals must conform to the grammar:
-/// `next* (failed | completed | interrupted)?`
+/// `value* (failed | completed | interrupted)?`
 public enum Event<Value, Error: Swift.Error> {
 	/// A value provided by the signal.
-	case next(Value)
+	case value(Value)
 
 	/// The signal terminated because of an error. No further events will be
 	/// received.
@@ -32,7 +32,7 @@ public enum Event<Value, Error: Swift.Error> {
 	/// events will be received).
 	public var isTerminating: Bool {
 		switch self {
-		case .next:
+		case .value:
 			return false
 
 		case .failed, .completed, .interrupted:
@@ -42,17 +42,17 @@ public enum Event<Value, Error: Swift.Error> {
 
 	/// Lift the given closure over the event's value.
 	///
-	/// - important: The closure is called only on `next` type events.
+	/// - important: The closure is called only on `value` type events.
 	///
 	/// - parameters:
 	///   - f: A closure that accepts a value and returns a new value
 	///
 	/// - returns: An event with function applied to a value in case `self` is a
-	///            `next` type of event.
+	///            `value` type of event.
 	public func map<U>(_ f: (Value) -> U) -> Event<U, Error> {
 		switch self {
-		case let .next(value):
-			return .next(f(value))
+		case let .value(value):
+			return .value(f(value))
 
 		case let .failed(error):
 			return .failed(error)
@@ -77,8 +77,8 @@ public enum Event<Value, Error: Swift.Error> {
 	///            `self` is a `.Failed` type of event.
 	public func mapError<F>(_ f: (Error) -> F) -> Event<Value, F> {
 		switch self {
-		case let .next(value):
-			return .next(value)
+		case let .value(value):
+			return .value(value)
 
 		case let .failed(error):
 			return .failed(f(error))
@@ -91,9 +91,9 @@ public enum Event<Value, Error: Swift.Error> {
 		}
 	}
 
-	/// Unwrap the contained `next` value.
+	/// Unwrap the contained `value` value.
 	public var value: Value? {
-		if case let .next(value) = self {
+		if case let .value(value) = self {
 			return value
 		} else {
 			return nil
@@ -112,7 +112,7 @@ public enum Event<Value, Error: Swift.Error> {
 
 public func == <Value: Equatable, Error: Equatable> (lhs: Event<Value, Error>, rhs: Event<Value, Error>) -> Bool {
 	switch (lhs, rhs) {
-	case let (.next(left), .next(right)):
+	case let (.value(left), .value(right)):
 		return left == right
 
 	case let (.failed(left), .failed(right)):
@@ -132,8 +132,8 @@ public func == <Value: Equatable, Error: Equatable> (lhs: Event<Value, Error>, r
 extension Event: CustomStringConvertible {
 	public var description: String {
 		switch self {
-		case let .next(value):
-			return "NEXT \(value)"
+		case let .value(value):
+			return "VALUE \(value)"
 
 		case let .failed(error):
 			return "FAILED \(error)"

@@ -37,11 +37,11 @@ is no random access to values of a signal.
 Signals can be manipulated by applying [primitives](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Documentation/BasicOperators.md) to them.
 Typical primitives to manipulate a single signal like `filter`, `map` and
 `reduce` are available, as well as primitives to manipulate multiple signals
-at once (`zip`). Primitives operate only on the `Next` events of a signal.
+at once (`zip`). Primitives operate only on the `value` events of a signal.
 
-The lifetime of a signal consists of any number of `Next` events, followed by
-one terminating event, which may be any one of `Failed`, `Completed`, or
-`Interrupted` (but not a combination).
+The lifetime of a signal consists of any number of `value` events, followed by
+one terminating event, which may be any one of `failed`, `completed`, or
+`interrupted` (but not a combination).
 Terminating events are not included in the signal’s values—they must be
 handled specially.
 */
@@ -55,15 +55,15 @@ scopedExample("Subscription") {
 	// Signal.pipe is a way to manually control a signal. the returned observer can be used to send values to the signal
 	let (signal, observer) = Signal<Int, NoError>.pipe()
 
-	let subscriber1 = Observer<Int, NoError>(next: { print("Subscriber 1 received \($0)") } )
-	let subscriber2 = Observer<Int, NoError>(next: { print("Subscriber 2 received \($0)") } )
+	let subscriber1 = Observer<Int, NoError>(value: { print("Subscriber 1 received \($0)") } )
+	let subscriber2 = Observer<Int, NoError>(value: { print("Subscriber 2 received \($0)") } )
 
 	print("Subscriber 1 subscribes to the signal")
 	signal.observe(subscriber1)
 
 	print("Send value `10` on the signal")
 	// subscriber1 will receive the value
-	observer.sendNext(10)
+	observer.send(value: 10)
 
 	print("Subscriber 2 subscribes to the signal")
 	// Notice how nothing happens at this moment, i.e. subscriber2 does not receive the previously sent value
@@ -71,7 +71,7 @@ scopedExample("Subscription") {
 
 	print("Send value `20` on the signal")
 	// Notice that now, subscriber1 and subscriber2 will receive the value
-	observer.sendNext(20)
+	observer.send(value: 20)
 }
 
 /*:
@@ -82,7 +82,7 @@ scopedExample("`empty`") {
 	let emptySignal = Signal<Int, NoError>.empty
 
 	let observer = Observer<Int, NoError>(
-		next: { _ in print("next not called") },
+		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed not called") },
 		interrupted: { print("interrupted called") }
@@ -99,7 +99,7 @@ scopedExample("`never`") {
 	let neverSignal = Signal<Int, NoError>.never
 
 	let observer = Observer<Int, NoError>(
-		next: { _ in print("next not called") },
+		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed not called") },
 		interrupted: { print("interrupted not called") }
@@ -120,17 +120,17 @@ the memory footprint.
 */
 scopedExample("`uniqueValues`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
-	let subscriber = Observer<Int, NoError>(next: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	let uniqueSignal = signal.uniqueValues()
 
 	uniqueSignal.observe(subscriber)
-	observer.sendNext(1)
-	observer.sendNext(2)
-	observer.sendNext(3)
-	observer.sendNext(4)
-	observer.sendNext(3)
-	observer.sendNext(3)
-	observer.sendNext(5)
+	observer.send(value: 1)
+	observer.send(value: 2)
+	observer.send(value: 3)
+	observer.send(value: 4)
+	observer.send(value: 3)
+	observer.send(value: 3)
+	observer.send(value: 5)
 }
 
 /*:
@@ -139,12 +139,12 @@ Maps each value in the signal to a new value.
 */
 scopedExample("`map`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
-	let subscriber = Observer<Int, NoError>(next: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	let mappedSignal = signal.map { $0 * 2 }
 
 	mappedSignal.observe(subscriber)
 	print("Send value `10` on the signal")
-	observer.sendNext(10)
+	observer.send(value: 10)
 }
 
 /*:
@@ -163,7 +163,7 @@ scopedExample("`mapError`") {
 
 	mappedErrorSignal.observe(subscriber)
 	print("Send error `NSError(domain: \"com.reactivecocoa.errordomain\", code: 4815, userInfo: nil)` on the signal")
-	observer.sendFailed(NSError(domain: "com.reactivecocoa.errordomain", code: 4815, userInfo: nil))
+	observer.send(error: NSError(domain: "com.reactivecocoa.errordomain", code: 4815, userInfo: nil))
 }
 
 /*:
@@ -172,16 +172,16 @@ Preserves only the values of the signal that pass the given predicate.
 */
 scopedExample("`filter`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
-	let subscriber = Observer<Int, NoError>(next: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	// subscriber will only receive events with values greater than 12
 	let filteredSignal = signal.filter { $0 > 12 ? true : false }
 
 	filteredSignal.observe(subscriber)
-	observer.sendNext(10)
-	observer.sendNext(11)
-	observer.sendNext(12)
-	observer.sendNext(13)
-	observer.sendNext(14)
+	observer.send(value: 10)
+	observer.send(value: 11)
+	observer.send(value: 12)
+	observer.send(value: 13)
+	observer.send(value: 14)
 }
 
 /*:
@@ -193,13 +193,13 @@ scopedExample("`skipNil`") {
 	let (signal, observer) = Signal<Int?, NoError>.pipe()
 	// note that the signal is of type `Int?` and observer is of type `Int`, given we're unwrapping
 	// non-`nil` values
-	let subscriber = Observer<Int, NoError>(next: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	let skipNilSignal = signal.skipNil()
 
 	skipNilSignal.observe(subscriber)
-	observer.sendNext(1)
-	observer.sendNext(nil)
-	observer.sendNext(3)
+	observer.send(value: 1)
+	observer.send(value: nil)
+	observer.send(value: 3)
 }
 
 /*:
@@ -208,14 +208,14 @@ Returns a signal that will yield the first `count` values from `self`
 */
 scopedExample("`take(first:)`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
-	let subscriber = Observer<Int, NoError>(next: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	let takeSignal = signal.take(first: 2)
 
 	takeSignal.observe(subscriber)
-	observer.sendNext(1)
-	observer.sendNext(2)
-	observer.sendNext(3)
-	observer.sendNext(4)
+	observer.send(value: 1)
+	observer.send(value: 2)
+	observer.send(value: 3)
+	observer.send(value: 4)
 }
 
 /*:
@@ -228,13 +228,9 @@ scopedExample("`collect`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
 	// note that the signal is of type `Int` and observer is of type `[Int]` given we're "collecting"
 	// `Int` values for the lifetime of the signal
-	let subscriber = Observer<[Int], NoError>(next: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<[Int], NoError>(value: { print("Subscriber received \($0)") } )
 	let collectSignal = signal.collect()
 
 	collectSignal.observe(subscriber)
-	observer.sendNext(1)
-	observer.sendNext(2)
-	observer.sendNext(3)
-	observer.sendNext(4)
-	observer.sendCompleted()
-}
+	observer.send(value: 1)
+	observer.send(value: 2)
