@@ -95,6 +95,49 @@ extension FlattenStrategy {
 	public static var Merge: FlattenStrategy { fatalError() }
 }
 
+extension LoggingEvent.Signal {
+	@available(*, unavailable, renamed:"next")
+	public static var Next: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"completed")
+	public static var Completed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"failed")
+	public static var Failed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"terminated")
+	public static var Terminated: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"disposed")
+	public static var Disposed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"interrupted")
+	public static var Interrupted: LoggingEvent.Signal { fatalError() }
+}
+
+extension LoggingEvent.SignalProducer {
+	@available(*, unavailable, renamed:"started")
+	public static var Started: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"next")
+	public static var Next: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"completed")
+	public static var Completed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"failed")
+	public static var Failed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"terminated")
+	public static var Terminated: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"disposed")
+	public static var Disposed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"interrupted")
+	public static var Interrupted: LoggingEvent.Signal { fatalError() }
+}
+
 // Methods
 
 extension Bag {
