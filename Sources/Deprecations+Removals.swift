@@ -95,6 +95,49 @@ extension FlattenStrategy {
 	public static var Merge: FlattenStrategy { fatalError() }
 }
 
+extension LoggingEvent.Signal {
+	@available(*, unavailable, renamed:"next")
+	public static var Next: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"completed")
+	public static var Completed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"failed")
+	public static var Failed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"terminated")
+	public static var Terminated: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"disposed")
+	public static var Disposed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"interrupted")
+	public static var Interrupted: LoggingEvent.Signal { fatalError() }
+}
+
+extension LoggingEvent.SignalProducer {
+	@available(*, unavailable, renamed:"started")
+	public static var Started: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"next")
+	public static var Next: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"completed")
+	public static var Completed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"failed")
+	public static var Failed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"terminated")
+	public static var Terminated: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"disposed")
+	public static var Disposed: LoggingEvent.Signal { fatalError() }
+
+	@available(*, unavailable, renamed:"interrupted")
+	public static var Interrupted: LoggingEvent.Signal { fatalError() }
+}
+
 // Methods
 
 extension Bag {
@@ -253,3 +296,131 @@ extension TestScheduler {
 	@available(*, unavailable, renamed:"advance(to:)")
 	public func advanceToDate(_ date: Date) { fatalError() }
 }
+
+extension QueueScheduler {
+	@available(*, unavailable, renamed:"main")
+	public static var mainQueueScheduler: QueueScheduler { fatalError() }
+}
+
+// Free functions
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>) -> Signal<(A, B), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, C, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>) -> Signal<(A, B, C), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, C, D, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>) -> Signal<(A, B, C, D), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, C, D, E, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>) -> Signal<(A, B, C, D, E), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, C, D, E, F, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>) -> Signal<(A, B, C, D, E, F), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, C, D, E, F, G, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>) -> Signal<(A, B, C, D, E, F, G), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, C, D, E, F, G, H, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>) -> Signal<(A, B, C, D, E, F, G, H), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, C, D, E, F, G, H, I, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>) -> Signal<(A, B, C, D, E, F, G, H, I), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<A, B, C, D, E, F, G, H, I, J, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>) -> Signal<(A, B, C, D, E, F, G, H, I, J), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.combineLatest")
+public func combineLatest<S: Sequence, Value, Error>(signals: S) -> Signal<[Value], Error> where S.Iterator.Element == Signal<Value, Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>) -> Signal<(A, B), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, C, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>) -> Signal<(A, B, C), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, C, D, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>) -> Signal<(A, B, C, D), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, C, D, E, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>) -> Signal<(A, B, C, D, E), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, C, D, E, F, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>) -> Signal<(A, B, C, D, E, F), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, C, D, E, F, G, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>) -> Signal<(A, B, C, D, E, F, G), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, C, D, E, F, G, H, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>) -> Signal<(A, B, C, D, E, F, G, H), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, C, D, E, F, G, H, I, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>) -> Signal<(A, B, C, D, E, F, G, H, I), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<A, B, C, D, E, F, G, H, I, J, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>) -> Signal<(A, B, C, D, E, F, G, H, I, J), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"Signal.zip")
+public func zip<S: Sequence, Value, Error>(signals: S) -> Signal<[Value], Error> where S.Iterator.Element == Signal<Value, Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(A, B), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, C, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(A, B, C), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, C, D, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(A, B, C, D), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, C, D, E, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(A, B, C, D, E), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, C, D, E, F, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(A, B, C, D, E, F), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, C, D, E, F, G, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(A, B, C, D, E, F, G), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, C, D, E, F, G, H, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, C, D, E, F, G, H, I, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<A, B, C, D, E, F, G, H, I, J, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I, J), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.combineLatest")
+public func combineLatest<S: Sequence, Value, Error>(producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(A, B), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, C, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(A, B, C), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, C, D, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(A, B, C, D), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, C, D, E, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(A, B, C, D, E), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, C, D, E, F, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(A, B, C, D, E, F), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, C, D, E, F, G, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(A, B, C, D, E, F, G), Error> {
+	fatalError()}
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, C, D, E, F, G, H, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, C, D, E, F, G, H, I, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<A, B, C, D, E, F, G, H, I, J, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I, J), Error> { fatalError() }
+
+@available(*, unavailable, renamed:"SignalProducer.zip")
+public func zip<S: Sequence, Value, Error>(producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> { fatalError() }
