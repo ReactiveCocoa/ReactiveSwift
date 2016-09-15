@@ -36,22 +36,22 @@ class ActionSpec: QuickSpec {
 						executionCount += 1
 
 						if number % 2 == 0 {
-							observer.sendNext("\(number)")
-							observer.sendNext("\(number)\(number)")
+							observer.send(value: "\(number)")
+							observer.send(value: "\(number)\(number)")
 
 							scheduler.schedule {
 								observer.sendCompleted()
 							}
 						} else {
 							scheduler.schedule {
-								observer.sendFailed(testError)
+								observer.send(error: testError)
 							}
 						}
 					}
 				}
 
-				action.values.observeNext { values.append($0) }
-				action.errors.observeNext { errors.append($0) }
+				action.values.observeValues { values.append($0) }
+				action.errors.observeValues { errors.append($0) }
 			}
 
 			it("should be disabled and not executing after initialization") {
@@ -92,7 +92,7 @@ class ActionSpec: QuickSpec {
 
 					action.apply(0)
 						.assumeNoErrors()
-						.startWithNext {
+						.startWithValues {
 							receivedValue = $0
 						}
 

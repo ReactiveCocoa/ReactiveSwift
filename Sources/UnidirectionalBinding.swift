@@ -87,7 +87,7 @@ extension BindingTarget {
 	public static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
 		return signal
 			.take(during: target.lifetime)
-			.observeNext { [weak target] value in
+			.observeValues { [weak target] value in
 				target?.consume(value)
 			}
 	}

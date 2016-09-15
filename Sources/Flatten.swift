@@ -364,7 +364,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 								startNextIfNeeded()
 							}
 
-						case .next, .failed:
+						case .value, .failed:
 							observer.action(event)
 						}
 					}
@@ -375,12 +375,12 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 		
 		return observe { event in
 			switch event {
-			case let .next(value):
+			case let .value(value):
 				state.modify { $0.queue.append(value.producer) }
 				startNextIfNeeded()
 
 			case let .failed(error):
-				observer.sendFailed(error)
+				observer.send(error: error)
 
 			case .completed:
 				state.modify { state in
@@ -504,7 +504,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 
 		return self.observe { event in
 			switch event {
-			case let .next(producer):
+			case let .value(producer):
 				producer.startWithSignal { innerSignal, innerDisposable in
 					inFlight.modify { $0 += 1 }
 					let handle = disposable.add(innerDisposable)
@@ -515,14 +515,14 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 							handle.remove()
 							decrementInFlight()
 
-						case .next, .failed:
+						case .value, .failed:
 							observer.action(event)
 						}
 					}
 				}
 
 			case let .failed(error):
-				observer.sendFailed(error)
+				observer.send(error: error)
 
 			case .completed:
 				decrementInFlight()
@@ -621,7 +621,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 
 		return self.observe { event in
 			switch event {
-			case let .next(innerProducer):
+			case let .value(innerProducer):
 				innerProducer.startWithSignal { innerSignal, innerDisposable in
 					state.modify {
 						// When we replace the disposable below, this prevents
@@ -663,14 +663,14 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 								observer.sendCompleted()
 							}
 
-						case .next, .failed:
+						case .value, .failed:
 							observer.action(event)
 						}
 					}
 				}
 
 			case let .failed(error):
-				observer.sendFailed(error)
+				observer.send(error: error)
 
 			case .completed:
 				let shouldComplete: Bool = state.modify {
@@ -888,8 +888,8 @@ extension SignalProtocol {
 	fileprivate func observeFlatMapError<F>(_ handler: @escaping (Error) -> SignalProducer<Value, F>, _ observer: Observer<Value, F>, _ serialDisposable: SerialDisposable) -> Disposable? {
 		return self.observe { event in
 			switch event {
-			case let .next(value):
-				observer.sendNext(value)
+			case let .value(value):
+				observer.send(value: value)
 			case let .failed(error):
 				handler(error).startWithSignal { signal, disposable in
 					serialDisposable.innerDisposable = disposable

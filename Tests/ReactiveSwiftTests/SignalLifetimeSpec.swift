@@ -80,7 +80,7 @@ class SignalLifetimeSpec: QuickSpec {
 				weak var signal: Signal<AnyObject, TestError>? = {
 					let signal = Signal<AnyObject, TestError> { observer in
 						testScheduler.schedule {
-							observer.sendFailed(TestError.default)
+							observer.send(error: TestError.default)
 						}
 						return nil
 					}
@@ -164,7 +164,7 @@ class SignalLifetimeSpec: QuickSpec {
 					weakSignal = signal
 					testScheduler.schedule {
 						// Note that the input observer has a weak reference to the signal.
-						observer.sendFailed(TestError.default)
+						observer.send(error: TestError.default)
 					}
 					signal.observeFailed { _ in errored = true }
 				}
@@ -284,12 +284,12 @@ class SignalLifetimeSpec: QuickSpec {
 
 				run()
 
-				sourceObserver.sendNext(1)
+				sourceObserver.send(value: 1)
 				expect(firstCounter) == 0
 				expect(secondCounter) == 0
 				expect(thirdCounter) == 0
 
-				sourceObserver.sendNext(2)
+				sourceObserver.send(value: 2)
 				expect(firstCounter) == 0
 				expect(secondCounter) == 0
 				expect(thirdCounter) == 0
@@ -323,19 +323,19 @@ class SignalLifetimeSpec: QuickSpec {
 
 				run()
 
-				sourceObserver.sendNext(1)
+				sourceObserver.send(value: 1)
 				expect(firstCounter) == 1
 				expect(secondCounter) == 1
 				expect(thirdCounter) == 1
 
-				sourceObserver.sendNext(2)
+				sourceObserver.send(value: 2)
 				expect(firstCounter) == 2
 				expect(secondCounter) == 2
 				expect(thirdCounter) == 2
 
 				disposable?.dispose()
 
-				sourceObserver.sendNext(3)
+				sourceObserver.send(value: 3)
 				expect(firstCounter) == 2
 				expect(secondCounter) == 2
 				expect(thirdCounter) == 2
@@ -373,13 +373,13 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should deallocate observe handler when signal completes") {
 				expectTokenNotDeallocated()
 
-				observer.sendNext(1)
+				observer.send(value: 1)
 				expectTokenNotDeallocated()
 
 				token = nil
 				expectTokenNotDeallocated()
 
-				observer.sendNext(2)
+				observer.send(value: 2)
 				expectTokenNotDeallocated()
 
 				observer.sendCompleted()
@@ -389,16 +389,16 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should deallocate observe handler when signal fails") {
 				expectTokenNotDeallocated()
 
-				observer.sendNext(1)
+				observer.send(value: 1)
 				expectTokenNotDeallocated()
 
 				token = nil
 				expectTokenNotDeallocated()
 
-				observer.sendNext(2)
+				observer.send(value: 2)
 				expectTokenNotDeallocated()
 
-				observer.sendFailed(.default)
+				observer.send(error: .default)
 				expectTokenDeallocated()
 			}
 		}

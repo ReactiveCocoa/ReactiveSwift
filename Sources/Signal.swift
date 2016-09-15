@@ -219,7 +219,7 @@ extension SignalProtocol {
 		return observe(Observer(action))
 	}
 
-	/// Observe the `Signal` by invoking the given callback when `next` or
+	/// Observe the `Signal` by invoking the given callback when `value` or
 	/// `failed` event are received.
 	///
 	/// - parameters:
@@ -234,7 +234,7 @@ extension SignalProtocol {
 	public func observeResult(_ result: @escaping (Result<Value, Error>) -> Void) -> Disposable? {
 		return observe(
 			Observer(
-				next: { result(.success($0)) },
+				value: { result(.success($0)) },
 				failed: { result(.failure($0)) }
 			)
 		)
@@ -288,18 +288,18 @@ extension SignalProtocol {
 }
 
 extension SignalProtocol where Error == NoError {
-	/// Observe the Signal by invoking the given callback when `next` events are
+	/// Observe the Signal by invoking the given callback when `value` events are
 	/// received.
 	///
 	/// - parameters:
-	///   - next: A closure that accepts a value when `next` event is received.
+	///   - value: A closure that accepts a value when `value` event is received.
 	///
 	/// - returns: An optional `Disposable` which can be used to stop the
 	///            invocation of the callback. Disposing of the Disposable will
 	///            have no effect on the Signal itself.
 	@discardableResult
-	public func observeNext(_ next: @escaping (Value) -> Void) -> Disposable? {
-		return observe(Observer(next: next))
+	public func observeValues(_ value: @escaping (Value) -> Void) -> Disposable? {
+		return observe(Observer(value: value))
 	}
 }
 
@@ -307,7 +307,7 @@ extension SignalProtocol {
 	/// Map each value in the signal to a new value.
 	///
 	/// - parameters:
-	///   - transform: A closure that accepts a value from the `next` event and
+	///   - transform: A closure that accepts a value from the `value` event and
 	///                returns a new value.
 	///
 	/// - returns: A signal that will send new values.
@@ -351,7 +351,7 @@ extension SignalProtocol {
 				}
 
 				if predicate(value) {
-					observer.sendNext(value)
+					observer.send(value: value)
 				}
 			}
 		}
@@ -396,7 +396,7 @@ extension SignalProtocol {
 
 				if taken < count {
 					taken += 1
-					observer.sendNext(value)
+					observer.send(value: value)
 				}
 
 				if taken == count {
@@ -481,15 +481,15 @@ extension SignalProtocol {
 	///
 	/// signal
 	///     .collect { values in values.reduce(0, combine: +) == 8 }
-	///     .observeNext { print($0) }
+	///     .observeValues { print($0) }
 	///
-	/// observer.sendNext(1)
-	/// observer.sendNext(3)
-	/// observer.sendNext(4)
-	/// observer.sendNext(7)
-	/// observer.sendNext(1)
-	/// observer.sendNext(5)
-	/// observer.sendNext(6)
+	/// observer.send(value: 1)
+	/// observer.send(value: 3)
+	/// observer.send(value: 4)
+	/// observer.send(value: 7)
+	/// observer.send(value: 1)
+	/// observer.send(value: 5)
+	/// observer.send(value: 6)
 	/// observer.sendCompleted()
 	///
 	/// // Output:
@@ -502,7 +502,7 @@ extension SignalProtocol {
 	///   - predicate: Predicate to match when values should be sent (returning
 	///                `true`) or alternatively when they should be collected
 	///                (where it should return `false`). The most recent value
-	///                (`next`) is included in `values` and will be the end of
+	///                (`value`) is included in `values` and will be the end of
 	///                the current array of values if the predicate returns
 	///                `true`.
 	///
@@ -515,19 +515,19 @@ extension SignalProtocol {
 
 			return self.observe { event in
 				switch event {
-				case let .next(value):
+				case let .value(value):
 					state.append(value)
 					if predicate(state.values) {
-						observer.sendNext(state.values)
+						observer.send(value: state.values)
 						state.flush()
 					}
 				case .completed:
 					if !state.isEmpty {
-						observer.sendNext(state.values)
+						observer.send(value: state.values)
 					}
 					observer.sendCompleted()
 				case let .failed(error):
-					observer.sendFailed(error)
+					observer.send(error: error)
 				case .interrupted:
 					observer.sendInterrupted()
 				}
@@ -535,8 +535,8 @@ extension SignalProtocol {
 		}
 	}
 
-	/// Repeatedly collect an array of values up to a matching `next` value.
-	/// Then forward them as single array and wait for next events.
+	/// Repeatedly collect an array of values up to a matching `value` value.
+	/// Then forward them as single array and wait for value events.
 	///
 	/// - note: When `self` completes any remaining values will be sent, the
 	///         last array may not match `predicate`. Alternatively, if no
@@ -546,15 +546,15 @@ extension SignalProtocol {
 	/// let (signal, observer) = Signal<Int, NoError>.pipe()
 	///
 	/// signal
-	///     .collect { values, next in next == 7 }
-	///     .observeNext { print($0) }
+	///     .collect { values, value in value == 7 }
+	///     .observeValues { print($0) }
 	///
-	/// observer.sendNext(1)
-	/// observer.sendNext(1)
-	/// observer.sendNext(7)
-	/// observer.sendNext(7)
-	/// observer.sendNext(5)
-	/// observer.sendNext(6)
+	/// observer.send(value: 1)
+	/// observer.send(value: 1)
+	/// observer.send(value: 7)
+	/// observer.send(value: 7)
+	/// observer.send(value: 5)
+	/// observer.send(value: 6)
 	/// observer.sendCompleted()
 	///
 	/// // Output:
@@ -567,32 +567,32 @@ extension SignalProtocol {
 	///   - predicate: Predicate to match when values should be sent (returning
 	///                `true`) or alternatively when they should be collected
 	///                (where it should return `false`). The most recent value
-	///                (`next`) is not included in `values` and will be the
+	///                (`value`) is not included in `values` and will be the
 	///                start of the next array of values if the predicate
 	///                returns `true`.
 	///
 	/// - returns: A signal that will yield an array of values based on a
 	///            predicate which matches the values collected and the next
 	///            value.
-	public func collect(_ predicate: @escaping (_ values: [Value], _ next: Value) -> Bool) -> Signal<[Value], Error> {
+	public func collect(_ predicate: @escaping (_ values: [Value], _ value: Value) -> Bool) -> Signal<[Value], Error> {
 		return Signal { observer in
 			let state = CollectState<Value>()
 
 			return self.observe { event in
 				switch event {
-				case let .next(value):
+				case let .value(value):
 					if predicate(state.values, value) {
-						observer.sendNext(state.values)
+						observer.send(value: state.values)
 						state.flush()
 					}
 					state.append(value)
 				case .completed:
 					if !state.isEmpty {
-						observer.sendNext(state.values)
+						observer.send(value: state.values)
 					}
 					observer.sendCompleted()
 				case let .failed(error):
-					observer.sendFailed(error)
+					observer.send(error: error)
 				case .interrupted:
 					observer.sendInterrupted()
 				}
@@ -627,18 +627,18 @@ extension SignalProtocol {
 	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: NSLock, _ observer: Signal<(), Error>.Observer) -> Disposable? {
 		return self.observe { event in
 			switch event {
-			case let .next(value):
+			case let .value(value):
 				lock.lock()
 
 				signalState.latestValue = value
 				if otherState.latestValue != nil {
-					observer.sendNext()
+					observer.send(value: ())
 				}
 
 				lock.unlock()
 
 			case let .failed(error):
-				observer.sendFailed(error)
+				observer.send(error: error)
 
 			case .completed:
 				lock.lock()
@@ -678,11 +678,11 @@ extension SignalProtocol {
 			let signalState = CombineLatestState<Value>()
 			let otherState = CombineLatestState<U>()
 
-			let onBothNext = {
-				observer.sendNext((signalState.latestValue!, otherState.latestValue!))
+			let onBothValue = {
+				observer.send(value: (signalState.latestValue!, otherState.latestValue!))
 			}
 
-			let observer = Signal<(), Error>.Observer(next: onBothNext, failed: observer.sendFailed, completed: observer.sendCompleted, interrupted: observer.sendInterrupted)
+			let observer = Signal<(), Error>.Observer(value: onBothValue, failed: observer.send(error:), completed: observer.sendCompleted, interrupted: observer.sendInterrupted)
 
 			let disposable = CompositeDisposable()
 			disposable += self.observeWithStates(signalState, otherState, lock, observer)
@@ -692,17 +692,17 @@ extension SignalProtocol {
 		}
 	}
 
-	/// Delay `next` and `completed` events by the given interval, forwarding
+	/// Delay `value` and `completed` events by the given interval, forwarding
 	/// them on the given scheduler.
 	///
 	/// - note: failed and `interrupted` events are always scheduled
 	///         immediately.
 	///
 	/// - parameters:
-	///   - interval: Interval to delay `next` and `completed` events by.
+	///   - interval: Interval to delay `value` and `completed` events by.
 	///   - scheduler: A scheduler to deliver delayed events on.
 	///
-	/// - returns: A signal that will delay `next` and `completed` events and
+	/// - returns: A signal that will delay `value` and `completed` events and
 	///            will yield them on given scheduler.
 	public func delay(_ interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> Signal<Value, Error> {
 		precondition(interval >= 0)
@@ -715,7 +715,7 @@ extension SignalProtocol {
 						observer.action(event)
 					}
 
-				case .next, .completed:
+				case .value, .completed:
 					let date = scheduler.currentDate.addingTimeInterval(interval)
 					scheduler.schedule(after: date) {
 						observer.action(event)
@@ -743,7 +743,7 @@ extension SignalProtocol {
 			var skipped = 0
 
 			return self.observe { event in
-				if case .next = event, skipped < count {
+				if case .value = event, skipped < count {
 					skipped += 1
 				} else {
 					observer.action(event)
@@ -766,7 +766,7 @@ extension SignalProtocol {
 	public func materialize() -> Signal<Event<Value, Error>, NoError> {
 		return Signal { observer in
 			return self.observe { event in
-				observer.sendNext(event)
+				observer.send(value: event)
 
 				switch event {
 				case .interrupted:
@@ -775,7 +775,7 @@ extension SignalProtocol {
 				case .completed, .failed:
 					observer.sendCompleted()
 
-				case .next:
+				case .value:
 					break
 				}
 			}
@@ -792,7 +792,7 @@ extension SignalProtocol where Value: EventProtocol, Error == NoError {
 		return Signal<Value.Value, Value.Error> { observer in
 			return self.observe { event in
 				switch event {
-				case let .next(innerEvent):
+				case let .value(innerEvent):
 					observer.action(innerEvent.event)
 
 				case .failed:
@@ -815,7 +815,7 @@ extension SignalProtocol {
 	/// - parameters:
 	///   - event: A closure that accepts an event and is invoked on every
 	///            received event.
-	///   - next: A closure that accepts a value from `next` event.
+	///   - value: A closure that accepts a value from `value` event.
 	///   - failed: A closure that accepts error object and is invoked for
 	///             failed event.
 	///   - completed: A closure that is invoked for `completed` event.
@@ -831,7 +831,7 @@ extension SignalProtocol {
 		interrupted: (() -> Void)? = nil,
 		terminated: (() -> Void)? = nil,
 		disposed: (() -> Void)? = nil,
-		next: ((Value) -> Void)? = nil
+		value: ((Value) -> Void)? = nil
 	) -> Signal<Value, Error> {
 		return Signal { observer in
 			let disposable = CompositeDisposable()
@@ -842,8 +842,8 @@ extension SignalProtocol {
 				event?(receivedEvent)
 
 				switch receivedEvent {
-				case let .next(value):
-					next?(value)
+				case let .value(v):
+					value?(v)
 
 				case let .failed(error):
 					failed?(error)
@@ -875,13 +875,13 @@ private struct SampleState<Value> {
 
 extension SignalProtocol {
 	/// Forward the latest value from `self` with the value from `sampler` as a
-	/// tuple, only when`sampler` sends a `next` event.
+	/// tuple, only when`sampler` sends a `value` event.
 	///
 	/// - note: If `sampler` fires before a value has been observed on `self`, 
 	///         nothing happens.
 	///
 	/// - parameters:
-	///   - sampler: A signal that will trigger the delivery of `next` event
+	///   - sampler: A signal that will trigger the delivery of `value` event
 	///              from `self`.
 	///
 	/// - returns: A signal that will send values from `self` and `sampler`, 
@@ -895,13 +895,13 @@ extension SignalProtocol {
 
 			disposable += self.observe { event in
 				switch event {
-				case let .next(value):
+				case let .value(value):
 					state.modify {
 						$0.latestValue = value
 					}
 
 				case let .failed(error):
-					observer.sendFailed(error)
+					observer.send(error: error)
 
 				case .completed:
 					let shouldComplete: Bool = state.modify {
@@ -920,9 +920,9 @@ extension SignalProtocol {
 			
 			disposable += sampler.observe { event in
 				switch event {
-				case .next(let samplerValue):
+				case .value(let samplerValue):
 					if let value = state.value.latestValue {
-						observer.sendNext((value, samplerValue))
+						observer.send(value: (value, samplerValue))
 					}
 
 				case .completed:
@@ -947,14 +947,14 @@ extension SignalProtocol {
 		}
 	}
 	
-	/// Forward the latest value from `self` whenever `sampler` sends a `next`
+	/// Forward the latest value from `self` whenever `sampler` sends a `value`
 	/// event.
 	///
 	/// - note: If `sampler` fires before a value has been observed on `self`, 
 	///         nothing happens.
 	///
 	/// - parameters:
-	///   - sampler: A signal that will trigger the delivery of `next` event
+	///   - sampler: A signal that will trigger the delivery of `value` event
 	///              from `self`.
 	///
 	/// - returns: A signal that will send values from `self`, sampled (possibly
@@ -978,15 +978,15 @@ extension SignalProtocol {
 		return take(until: lifetime.ended)
 	}
 
-	/// Forward events from `self` until `trigger` sends a `next` or
+	/// Forward events from `self` until `trigger` sends a `value` or
 	/// `completed` event, at which point the returned signal will complete.
 	///
 	/// - parameters:
-	///   - trigger: A signal whose `next` or `completed` events will stop the
-	///              delivery of `next` events from `self`.
+	///   - trigger: A signal whose `value` or `completed` events will stop the
+	///              delivery of `value` events from `self`.
 	///
 	/// - returns: A signal that will deliver events until `trigger` sends
-	///            `next` or `completed` events.
+	///            `value` or `completed` events.
 	public func take(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
 		return Signal { observer in
 			let disposable = CompositeDisposable()
@@ -994,7 +994,7 @@ extension SignalProtocol {
 
 			disposable += trigger.observe { event in
 				switch event {
-				case .next, .completed:
+				case .value, .completed:
 					observer.sendCompleted()
 
 				case .failed, .interrupted:
@@ -1006,23 +1006,23 @@ extension SignalProtocol {
 		}
 	}
 
-	/// Do not forward any values from `self` until `trigger` sends a `next` or
+	/// Do not forward any values from `self` until `trigger` sends a `value` or
 	/// `completed` event, at which point the returned signal behaves exactly
 	/// like `signal`.
 	///
 	/// - parameters:
-	///   - trigger: A signal whose `next` or `completed` events will start the
+	///   - trigger: A signal whose `value` or `completed` events will start the
 	///              deliver of events on `self`.
 	///
 	/// - returns: A signal that will deliver events once the `trigger` sends
-	///            `next` or `completed` events.
+	///            `value` or `completed` events.
 	public func skip(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
 		return Signal { observer in
 			let disposable = SerialDisposable()
 			
 			disposable.innerDisposable = trigger.observe { event in
 				switch event {
-				case .next, .completed:
+				case .value, .completed:
 					disposable.innerDisposable = self.observe(observer)
 					
 				case .failed, .interrupted:
@@ -1069,7 +1069,7 @@ extension SignalProtocol {
 
 		// Now that we've got takeLast() listening to the piped signal, send
         // that initial value.
-		outputSignalObserver.sendNext(initial)
+		outputSignalObserver.send(value: initial)
 
 		// Pipe the scanned input signal into the output signal.
 		self.scan(initial, combine)
@@ -1162,7 +1162,7 @@ extension SignalProtocol {
 
 			return self.observe { event in
 				switch event {
-				case let .next(value):
+				case let .value(value):
 					shouldSkip = shouldSkip && predicate(value)
 					if !shouldSkip {
 						fallthrough
@@ -1181,7 +1181,7 @@ extension SignalProtocol {
 	///   - replacement: A signal to wait to wait for values from and start
 	///                  sending them as a replacement to `self`'s values.
 	///
-	/// - returns: A signal which passes through `next`, failed, and
+	/// - returns: A signal which passes through `value`, failed, and
 	///            `interrupted` events from `self` until `replacement` sends
 	///            an event, at which point the returned signal will send that
 	///            event and switch to passing through events from `replacement`
@@ -1196,7 +1196,7 @@ extension SignalProtocol {
 				case .completed:
 					break
 
-				case .next, .failed, .interrupted:
+				case .value, .failed, .interrupted:
 					observer.action(event)
 				}
 			}
@@ -1226,7 +1226,7 @@ extension SignalProtocol {
 
 			return self.observe { event in
 				switch event {
-				case let .next(value):
+				case let .value(value):
 					// To avoid exceeding the reserved capacity of the buffer, 
 					// we remove then add. Remove elements until we have room to 
 					// add one more.
@@ -1236,9 +1236,9 @@ extension SignalProtocol {
 					
 					buffer.append(value)
 				case let .failed(error):
-					observer.sendFailed(error)
+					observer.send(error: error)
 				case .completed:
-					buffer.forEach(observer.sendNext)
+					buffer.forEach(observer.send(value:))
 					
 					observer.sendCompleted()
 				case .interrupted:
@@ -1308,7 +1308,7 @@ extension SignalProtocol {
 				}
 
 				if let tuple = tuple {
-					observer.sendNext(tuple)
+					observer.send(value: tuple)
 				}
 
 				if isFinished {
@@ -1316,12 +1316,12 @@ extension SignalProtocol {
 				}
 			}
 			
-			let onFailed = observer.sendFailed
+			let onFailed = observer.send(error:)
 			let onInterrupted = observer.sendInterrupted
 
 			disposable += self.observe { event in
 				switch event {
-				case let .next(value):
+				case let .value(value):
 					state.modify {
 						$0.values.left.append(value)
 					}
@@ -1343,7 +1343,7 @@ extension SignalProtocol {
 
 			disposable += other.observe { event in
 				switch event {
-				case let .next(value):
+				case let .value(value):
 					state.modify {
 						$0.values.right.append(value)
 					}
@@ -1373,7 +1373,7 @@ extension SignalProtocol {
 	/// - parameters:
 	///   - operation: A closure that accepts a value and returns a `Result`.
 	///
-	/// - returns: A signal that receives `success`ful `Result` as `next` event
+	/// - returns: A signal that receives `success`ful `Result` as `value` event
 	///            and `failure` as failed event.
 	public func attempt(_ operation: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
 		return attemptMap { value in
@@ -1396,13 +1396,13 @@ extension SignalProtocol {
 		return Signal { observer in
 			self.observe { event in
 				switch event {
-				case let .next(value):
+				case let .value(value):
 					operation(value).analysis(
-						ifSuccess: observer.sendNext,
-						ifFailure: observer.sendFailed
+						ifSuccess: observer.send(value:),
+						ifFailure: observer.send(error:)
 					)
 				case let .failed(error):
-					observer.sendFailed(error)
+					observer.send(error: error)
 				case .completed:
 					observer.sendCompleted()
 				case .interrupted:
@@ -1483,7 +1483,7 @@ extension SignalProtocol {
 					}
 					
 					if let pendingValue = pendingValue {
-						observer.sendNext(pendingValue)
+						observer.send(value: pendingValue)
 					}
 				}
 			}
@@ -1544,7 +1544,7 @@ extension SignalProtocol {
 			return self
 				.observe { event in
 					switch event {
-					case let .next(value):
+					case let .value(value):
 						let identity = transform(value)
 						if !seenValues.contains(identity) {
 							seenValues.insert(identity)
@@ -1777,7 +1777,7 @@ extension SignalProtocol {
 			let date = scheduler.currentDate.addingTimeInterval(interval)
 
 			disposable += scheduler.schedule(after: date) {
-				observer.sendFailed(error)
+				observer.send(error: error)
 			}
 
 			disposable += self.observe(observer)
@@ -1802,8 +1802,8 @@ extension SignalProtocol where Error == NoError {
 		return Signal { observer in
 			return self.observe { event in
 				switch event {
-				case let .next(value):
-					observer.sendNext(value)
+				case let .value(value):
+					observer.send(value: value)
 				case .failed:
 					fatalError("NoError is impossible to construct")
 				case .completed:

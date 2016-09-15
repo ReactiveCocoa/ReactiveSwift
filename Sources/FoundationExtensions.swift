@@ -34,7 +34,7 @@ extension NotificationCenter {
 			}
 
 			let notificationObserver = self.addObserver(forName: name, object: object, queue: nil) { notification in
-				observer.sendNext(notification)
+				observer.send(value: notification)
 			}
 
 			disposable += {
@@ -64,10 +64,10 @@ extension URLSession {
 		return SignalProducer { observer, disposable in
 			let task = self.dataTask(with: request) { data, response, error in
 				if let data = data, let response = response {
-					observer.sendNext((data, response))
+					observer.send(value: (data, response))
 					observer.sendCompleted()
 				} else {
-					observer.sendFailed(error as NSError? ?? defaultSessionError)
+					observer.send(error: error as NSError? ?? defaultSessionError)
 				}
 			}
 

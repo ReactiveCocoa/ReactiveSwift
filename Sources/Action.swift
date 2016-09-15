@@ -119,7 +119,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			}
 
 			if !startedExecuting {
-				observer.sendFailed(.disabled)
+				observer.send(error: .disabled)
 				return
 			}
 
@@ -128,7 +128,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 				signal.observe { event in
 					observer.action(event.mapError(ActionError.producerFailed))
-					self.eventsObserver.sendNext(event)
+					self.eventsObserver.send(value: event)
 				}
 			}
 

@@ -40,7 +40,7 @@ class FlattenSpec: QuickSpec {
 
 					beforeEach {
 						disposed = false
-						pipe.observer.sendNext(SignalProducer<Int, TestError> { _, disposable in
+						pipe.observer.send(value: SignalProducer<Int, TestError> { _, disposable in
 							disposable += ActionDisposable {
 								disposed = true
 							}
@@ -53,7 +53,7 @@ class FlattenSpec: QuickSpec {
 					}
 
 					it("should dispose inner signals when outer signal failed") {
-						pipe.observer.sendFailed(.default)
+						pipe.observer.send(error: .default)
 						expect(disposed) == true
 					}
 
@@ -108,12 +108,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -128,12 +128,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -147,12 +147,12 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -167,12 +167,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -187,12 +187,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -207,12 +207,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -226,12 +226,12 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -246,12 +246,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -262,11 +262,11 @@ class FlattenSpec: QuickSpec {
 				
 				signal
 					.flatten(.concat)
-					.observeNext { value in
+					.observeValues { value in
 						observedValues.append(value)
 					}
 				
-				innerObserver.sendNext(sequence)
+				innerObserver.send(value: sequence)
 				expect(observedValues) == sequence
 			}
 		}
@@ -283,12 +283,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -303,12 +303,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -322,12 +322,12 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -342,12 +342,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -362,12 +362,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -382,12 +382,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -401,12 +401,12 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -421,12 +421,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatten(.latest)
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(inner)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: inner)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -437,7 +437,7 @@ class FlattenSpec: QuickSpec {
 				let producer = SignalProducer<[Int], NoError>(value: sequence)
 				producer
 					.flatten(.latest)
-					.startWithNext { value in
+					.startWithValues { value in
 						observedValues.append(value)
 					}
 				
@@ -457,12 +457,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -477,12 +477,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -496,12 +496,12 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -516,12 +516,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -536,12 +536,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -556,12 +556,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -575,12 +575,12 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -595,12 +595,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.observeNext { value in
+					.observeValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 		}
@@ -617,12 +617,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -637,12 +637,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -656,12 +656,12 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -676,12 +676,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -696,12 +696,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -716,12 +716,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -735,12 +735,12 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 			
@@ -755,12 +755,12 @@ class FlattenSpec: QuickSpec {
 				outer
 					.flatMap(.latest) { _ in inner }
 					.assumeNoErrors()
-					.startWithNext { value in
+					.startWithValues { value in
 						observed = value
 					}
 				
-				outerObserver.sendNext(4)
-				innerObserver.sendNext(4)
+				outerObserver.send(value: 4)
+				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
 		}
@@ -773,17 +773,17 @@ class FlattenSpec: QuickSpec {
 				let mergedSignals = Signal.merge([signal1, signal2])
 				
 				var lastValue: Int?
-				mergedSignals.observeNext { lastValue = $0 }
+				mergedSignals.observeValues { lastValue = $0 }
 				
 				expect(lastValue).to(beNil())
 				
-				observer1.sendNext(1)
+				observer1.send(value: 1)
 				expect(lastValue) == 1
 				
-				observer2.sendNext(2)
+				observer2.send(value: 2)
 				expect(lastValue) == 2
 				
-				observer1.sendNext(3)
+				observer1.send(value: 3)
 				expect(lastValue) == 3
 			}
 			
@@ -794,17 +794,17 @@ class FlattenSpec: QuickSpec {
 				let mergedSignals = Signal.merge([signal1, signal2])
 				
 				var lastValue: Int?
-				mergedSignals.observeNext { lastValue = $0 }
+				mergedSignals.observeValues { lastValue = $0 }
 				
 				expect(lastValue).to(beNil())
 				
-				observer1.sendNext(1)
+				observer1.send(value: 1)
 				expect(lastValue) == 1
 				
 				observer1.sendCompleted()
 				expect(lastValue) == 1
 				
-				observer2.sendNext(2)
+				observer2.send(value: 2)
 				expect(lastValue) == 2
 			}
 			
@@ -819,7 +819,7 @@ class FlattenSpec: QuickSpec {
 				
 				expect(completed) == false
 				
-				observer1.sendNext(1)
+				observer1.send(value: 1)
 				expect(completed) == false
 				
 				observer1.sendCompleted()
@@ -838,17 +838,17 @@ class FlattenSpec: QuickSpec {
 				let mergedSignals = SignalProducer.merge([signal1, signal2])
 				
 				var lastValue: Int?
-				mergedSignals.startWithNext { lastValue = $0 }
+				mergedSignals.startWithValues { lastValue = $0 }
 				
 				expect(lastValue).to(beNil())
 				
-				observer1.sendNext(1)
+				observer1.send(value: 1)
 				expect(lastValue) == 1
 				
-				observer2.sendNext(2)
+				observer2.send(value: 2)
 				expect(lastValue) == 2
 				
-				observer1.sendNext(3)
+				observer1.send(value: 3)
 				expect(lastValue) == 3
 			}
 			
@@ -859,17 +859,17 @@ class FlattenSpec: QuickSpec {
 				let mergedSignals = SignalProducer.merge([signal1, signal2])
 				
 				var lastValue: Int?
-				mergedSignals.startWithNext { lastValue = $0 }
+				mergedSignals.startWithValues { lastValue = $0 }
 				
 				expect(lastValue).to(beNil())
 				
-				observer1.sendNext(1)
+				observer1.send(value: 1)
 				expect(lastValue) == 1
 				
 				observer1.sendCompleted()
 				expect(lastValue) == 1
 				
-				observer2.sendNext(2)
+				observer2.send(value: 2)
 				expect(lastValue) == 2
 			}
 			
@@ -884,7 +884,7 @@ class FlattenSpec: QuickSpec {
 				
 				expect(completed) == false
 				
-				observer1.sendNext(1)
+				observer1.send(value: 1)
 				expect(completed) == false
 				
 				observer1.sendCompleted()
@@ -902,17 +902,17 @@ class FlattenSpec: QuickSpec {
 				let mergedSignals = signal.prefix(value: 0)
 
 				var lastValue: Int?
-				mergedSignals.startWithNext { lastValue = $0 }
+				mergedSignals.startWithValues { lastValue = $0 }
 
 				expect(lastValue) == 0
 
-				observer.sendNext(1)
+				observer.send(value: 1)
 				expect(lastValue) == 1
 
-				observer.sendNext(2)
+				observer.send(value: 2)
 				expect(lastValue) == 2
 
-				observer.sendNext(3)
+				observer.send(value: 3)
 				expect(lastValue) == 3
 			}
 
@@ -922,17 +922,17 @@ class FlattenSpec: QuickSpec {
 				let mergedSignals = signal.prefix(SignalProducer(value: 0))
 				
 				var lastValue: Int?
-				mergedSignals.startWithNext { lastValue = $0 }
+				mergedSignals.startWithValues { lastValue = $0 }
 				
 				expect(lastValue) == 0
 				
-				observer.sendNext(1)
+				observer.send(value: 1)
 				expect(lastValue) == 1
 				
-				observer.sendNext(2)
+				observer.send(value: 2)
 				expect(lastValue) == 2
 				
-				observer.sendNext(3)
+				observer.send(value: 3)
 				expect(lastValue) == 3
 			}
 		}
@@ -944,15 +944,15 @@ class FlattenSpec: QuickSpec {
 				let mergedSignals = signal.concat(value: 4)
 				
 				var lastValue: Int?
-				mergedSignals.startWithNext { lastValue = $0 }
+				mergedSignals.startWithValues { lastValue = $0 }
 								
-				observer.sendNext(1)
+				observer.send(value: 1)
 				expect(lastValue) == 1
 				
-				observer.sendNext(2)
+				observer.send(value: 2)
 				expect(lastValue) == 2
 				
-				observer.sendNext(3)
+				observer.send(value: 3)
 				expect(lastValue) == 3
 				
 				observer.sendCompleted()
