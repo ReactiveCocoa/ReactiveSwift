@@ -63,7 +63,7 @@ extension ActionProtocol {
 // Renamed Enum cases
 
 extension Event {
-	@available(*, unavailable, renamed:"next")
+	@available(*, unavailable, renamed:"value")
 	public static var Next: Event<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"failed")
