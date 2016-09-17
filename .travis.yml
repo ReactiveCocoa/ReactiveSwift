@@ -56,6 +56,10 @@ matrix:
         - carthage build --no-skip-current --platform watchOS
       env:
         - JOB=CARTHAGE-watchOS
+    - script:
+      - gem install cocoapods --pre
+      - pod repo update 
+      - pod lib lint ReactiveSwift.podspec --allow-warnings
     - os: osx
       language: generic
       script: swift build
