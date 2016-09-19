@@ -170,6 +170,16 @@ public protocol ActionProtocol: BindingTargetProtocol {
 	/// `NoError` can be used.
 	associatedtype Error: Swift.Error
 
+	/// Initializes an action that will be conditionally enabled, and creates a
+	/// SignalProducer for each input.
+	///
+	/// - parameters:
+	///   - enabledIf: Boolean property that shows whether the action is
+	///                enabled.
+	///   - execute: A closure that returns the signal producer returned by
+	///              calling `apply(Input)` on the action.
+	init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool
+
 	/// Whether the action is currently enabled.
 	var isEnabled: Property<Bool> { get }
 
@@ -199,6 +209,36 @@ extension ActionProtocol {
 extension Action: ActionProtocol {
 	public var action: Action {
 		return self
+	}
+}
+
+extension ActionProtocol where Input == Void {
+	/// Initializes an action that uses an optional property for its input,
+	/// and is disabled whenever the input is nil. When executed, a SignalProducer
+	/// is created with the current value of the input.
+	///
+	/// - parameters:
+	///   - input: An Optional property whose current value is used as input
+	///            whenever the action is executed. The action is disabled
+	///            whenever the value is nil.
+	///   - execute: A closure to return a new SignalProducer based on the
+	///              current value of `input`.
+	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
+		self.init(enabledIf: input.map { $0 != nil }) {
+			execute(input.value!)
+		}
+	}
+
+	/// Initializes an action that uses a property for its input. When executed,
+	/// a SignalProducer is created with the current value of the input.
+	///
+	/// - parameters:
+	///   - input: A property whose current value is used as input
+	///            whenever the action is executed.
+	///   - execute: A closure to return a new SignalProducer based on the
+	///              current value of `input`.
+	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
+		self.init(input: input.map(Optional.some), execute)
 	}
 }
 
