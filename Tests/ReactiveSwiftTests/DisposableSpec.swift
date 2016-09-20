@@ -84,6 +84,12 @@ class DisposableSpec: QuickSpec {
 		}
 
 		describe("ScopedDisposable") {
+			it("should be initialized with an instance of `Disposable` protocol type") {
+				let d: Disposable = SimpleDisposable()
+				let scoped = ScopedDisposable(d)
+				expect(type(of: scoped) == ScopedDisposable<AnyDisposable>.self) == true
+			}
+
 			it("should dispose of the inner disposable upon deinitialization") {
 				let simpleDisposable = SimpleDisposable()
 
