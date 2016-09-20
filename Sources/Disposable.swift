@@ -227,7 +227,7 @@ extension ScopedDisposable where InnerDisposable: AnyDisposable {
 	///   - disposable: A disposable to dispose of when deinitializing, which
 	///                 will be wrapped in an `AnyDisposable`.
 	public convenience init(_ disposable: Disposable) {
-		self.init(AnyDisposable(disposable))
+		self.init(InnerDisposable(disposable))
 	}
 }
 
