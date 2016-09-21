@@ -185,6 +185,7 @@ public final class CompositeDisposable: Disposable {
 	///
 	/// - returns: An instance of `DisposableHandle` that can be used to
 	///            opaquely remove the disposable later (if desired).
+	@discardableResult
 	public func add(_ action: @escaping () -> Void) -> DisposableHandle {
 		return add(ActionDisposable(action: action))
 	}
