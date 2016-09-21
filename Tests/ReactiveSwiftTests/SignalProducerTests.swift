@@ -24,11 +24,11 @@ final class SignalProducerTests: XCTestCase {
 
         disposable += producer
             .group { $0 % 2 == 0 }
-            .start(Observer(next: { key, group in
+            .start(Observer(value: { key, group in
                 if key {
-                    group.startWithNext { evens.append($0) }
+                    group.startWithValues { evens.append($0) }
                 } else {
-                    group.startWithNext { odds.append($0) }
+                    group.startWithValues { odds.append($0) }
                 }
             },completed: {
                 completed = true
@@ -36,21 +36,21 @@ final class SignalProducerTests: XCTestCase {
                 interrupted = true
             }))
 
-        observer.sendNext(1)
+        observer.send(value: 1)
         XCTAssert(evens == [])
         XCTAssert(odds == [1])
 
-        observer.sendNext(2)
+        observer.send(value: 2)
         XCTAssert(evens == [2])
         XCTAssert(odds == [1])
 
-        observer.sendNext(3)
+        observer.send(value: 3)
         XCTAssert(evens == [2])
         XCTAssert(odds == [1, 3])
 
         disposable.dispose()
 
-        observer.sendNext(1)
+        observer.send(value: 1)
         XCTAssert(interrupted)
         XCTAssertFalse(completed)
     }
@@ -86,8 +86,8 @@ final class SignalProducerTests: XCTestCase {
         var count = 0
         let producer = SignalProducer<Int, TestError> { observer, _ in
             if count < 2 {
-                scheduler.schedule { observer.sendNext(count) }
-                scheduler.schedule { observer.sendFailed(.default) }
+                scheduler.schedule { observer.send(value: count) }
+                scheduler.schedule { observer.send(error: .default) }
             } else {
                 scheduler.schedule { observer.sendCompleted() }
             }
@@ -99,7 +99,7 @@ final class SignalProducerTests: XCTestCase {
         producer
             .deferredRetry(1, on: scheduler)
             .start(Observer(
-                next: { value = $0 },
+                value: { value = $0 },
                 completed: { completed = true }
             ))
 
@@ -127,8 +127,8 @@ final class SignalProducerTests: XCTestCase {
 
         var count = 0
         let producer = SignalProducer<Int, TestError> { observer, _ in
-            observer.sendNext(count)
-            observer.sendFailed(.default)
+            observer.send(value: count)
+            observer.send(error: .default)
             count += 1
         }
 
@@ -137,7 +137,7 @@ final class SignalProducerTests: XCTestCase {
         producer
             .deferredRetry(1, on: scheduler, count: 2)
             .start(Observer(
-                next: { value = $0 },
+                value: { value = $0 },
                 failed: { _ in failed = true }
             ))
 

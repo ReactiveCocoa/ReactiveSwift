@@ -6,18 +6,16 @@
 //  Copyright (c) 2015 Neil Pankey. All rights reserved.
 //
 
-import ReactiveSwift
-
 extension Data {
     /// Read the data at the URL, sending the result or an error.
     public static func rex_data(contentsOf url: URL, options: Data.ReadingOptions = []) -> SignalProducer<Data, NSError> {
         return SignalProducer<Data, NSError> { observer, disposable in
             do {
                 let data = try Data(contentsOf: url, options: options)
-                observer.sendNext(data)
+                observer.send(value: data)
                 observer.sendCompleted()
             } catch {
-                observer.sendFailed(error as NSError)
+                observer.send(error: error as NSError)
             }
         }
     }

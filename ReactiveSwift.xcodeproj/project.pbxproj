@@ -52,6 +52,42 @@
 		7DFBED2F1CDB8DE300EE435B /* TestError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B696FB801A7640C00075236D /* TestError.swift */; };
 		7DFBED301CDB8DE300EE435B /* TestLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = C79B64731CD38B2B003F2376 /* TestLogger.swift */; };
 		7DFBED6D1CDB8F7D00EE435B /* SignalProducerNimbleMatchers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA6B94A1A76044800C846D1 /* SignalProducerNimbleMatchers.swift */; };
+		9A2848271D933D7300A59A29 /* ActionExtensionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2848261D933D7300A59A29 /* ActionExtensionTests.swift */; };
+		9A2848281D933D7300A59A29 /* ActionExtensionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2848261D933D7300A59A29 /* ActionExtensionTests.swift */; };
+		9A2848291D933D7300A59A29 /* ActionExtensionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2848261D933D7300A59A29 /* ActionExtensionTests.swift */; };
+		9A28482E1D933D8E00A59A29 /* Action+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482A1D933D8E00A59A29 /* Action+Extensions.swift */; };
+		9A28482F1D933D8E00A59A29 /* Action+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482A1D933D8E00A59A29 /* Action+Extensions.swift */; };
+		9A2848301D933D8E00A59A29 /* Action+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482A1D933D8E00A59A29 /* Action+Extensions.swift */; };
+		9A2848311D933D8E00A59A29 /* Action+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482A1D933D8E00A59A29 /* Action+Extensions.swift */; };
+		9A2848321D933D8E00A59A29 /* Property+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482B1D933D8E00A59A29 /* Property+Extensions.swift */; };
+		9A2848331D933D8E00A59A29 /* Property+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482B1D933D8E00A59A29 /* Property+Extensions.swift */; };
+		9A2848341D933D8E00A59A29 /* Property+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482B1D933D8E00A59A29 /* Property+Extensions.swift */; };
+		9A2848351D933D8E00A59A29 /* Property+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482B1D933D8E00A59A29 /* Property+Extensions.swift */; };
+		9A2848361D933D8E00A59A29 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482C1D933D8E00A59A29 /* Signal+Extensions.swift */; };
+		9A2848371D933D8E00A59A29 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482C1D933D8E00A59A29 /* Signal+Extensions.swift */; };
+		9A2848381D933D8E00A59A29 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482C1D933D8E00A59A29 /* Signal+Extensions.swift */; };
+		9A2848391D933D8E00A59A29 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482C1D933D8E00A59A29 /* Signal+Extensions.swift */; };
+		9A28483A1D933D8E00A59A29 /* SignalProducer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482D1D933D8E00A59A29 /* SignalProducer+Extensions.swift */; };
+		9A28483B1D933D8E00A59A29 /* SignalProducer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482D1D933D8E00A59A29 /* SignalProducer+Extensions.swift */; };
+		9A28483C1D933D8E00A59A29 /* SignalProducer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482D1D933D8E00A59A29 /* SignalProducer+Extensions.swift */; };
+		9A28483D1D933D8E00A59A29 /* SignalProducer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28482D1D933D8E00A59A29 /* SignalProducer+Extensions.swift */; };
+		9A2848411D933D9C00A59A29 /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28483E1D933D9C00A59A29 /* Data.swift */; };
+		9A2848421D933D9C00A59A29 /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28483E1D933D9C00A59A29 /* Data.swift */; };
+		9A2848431D933D9C00A59A29 /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28483E1D933D9C00A59A29 /* Data.swift */; };
+		9A2848441D933D9C00A59A29 /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28483E1D933D9C00A59A29 /* Data.swift */; };
+		9A2848491D933D9C00A59A29 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2848401D933D9C00A59A29 /* UserDefaults.swift */; };
+		9A28484A1D933D9C00A59A29 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2848401D933D9C00A59A29 /* UserDefaults.swift */; };
+		9A28484B1D933D9C00A59A29 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2848401D933D9C00A59A29 /* UserDefaults.swift */; };
+		9A28484C1D933D9C00A59A29 /* UserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2848401D933D9C00A59A29 /* UserDefaults.swift */; };
+		9A2848501D9343AC00A59A29 /* PropertyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484D1D9343AC00A59A29 /* PropertyTests.swift */; };
+		9A2848511D9343AC00A59A29 /* PropertyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484D1D9343AC00A59A29 /* PropertyTests.swift */; };
+		9A2848521D9343AC00A59A29 /* PropertyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484D1D9343AC00A59A29 /* PropertyTests.swift */; };
+		9A2848531D9343AC00A59A29 /* SignalProducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484E1D9343AC00A59A29 /* SignalProducerTests.swift */; };
+		9A2848541D9343AC00A59A29 /* SignalProducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484E1D9343AC00A59A29 /* SignalProducerTests.swift */; };
+		9A2848551D9343AC00A59A29 /* SignalProducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484E1D9343AC00A59A29 /* SignalProducerTests.swift */; };
+		9A2848561D9343AC00A59A29 /* SignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484F1D9343AC00A59A29 /* SignalTests.swift */; };
+		9A2848571D9343AC00A59A29 /* SignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484F1D9343AC00A59A29 /* SignalTests.swift */; };
+		9A2848581D9343AC00A59A29 /* SignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A28484F1D9343AC00A59A29 /* SignalTests.swift */; };
 		9ABCB1851D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */; };
 		9ABCB1861D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */; };
 		9ABCB1871D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */; };
@@ -220,6 +256,16 @@
 		57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Framework.xcconfig"; sourceTree = "<group>"; };
 		57A4D2471BA13F9700F7D4B1 /* tvOS-StaticLibrary.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-StaticLibrary.xcconfig"; sourceTree = "<group>"; };
 		7DFBED031CDB8C9500EE435B /* ReactiveSwiftTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReactiveSwiftTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A2848261D933D7300A59A29 /* ActionExtensionTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ActionExtensionTests.swift; sourceTree = "<group>"; };
+		9A28482A1D933D8E00A59A29 /* Action+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Action+Extensions.swift"; sourceTree = "<group>"; };
+		9A28482B1D933D8E00A59A29 /* Property+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Property+Extensions.swift"; sourceTree = "<group>"; };
+		9A28482C1D933D8E00A59A29 /* Signal+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Signal+Extensions.swift"; sourceTree = "<group>"; };
+		9A28482D1D933D8E00A59A29 /* SignalProducer+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "SignalProducer+Extensions.swift"; sourceTree = "<group>"; };
+		9A28483E1D933D9C00A59A29 /* Data.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Data.swift; path = Foundation/Data.swift; sourceTree = "<group>"; };
+		9A2848401D933D9C00A59A29 /* UserDefaults.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = UserDefaults.swift; path = Foundation/UserDefaults.swift; sourceTree = "<group>"; };
+		9A28484D1D9343AC00A59A29 /* PropertyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PropertyTests.swift; sourceTree = "<group>"; };
+		9A28484E1D9343AC00A59A29 /* SignalProducerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalProducerTests.swift; sourceTree = "<group>"; };
+		9A28484F1D9343AC00A59A29 /* SignalTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalTests.swift; sourceTree = "<group>"; };
 		9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Deprecations+Removals.swift"; sourceTree = "<group>"; };
 		A97451331B3A935E00F48E55 /* watchOS-Application.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Application.xcconfig"; sourceTree = "<group>"; };
 		A97451341B3A935E00F48E55 /* watchOS-Base.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Base.xcconfig"; sourceTree = "<group>"; };
@@ -397,12 +443,14 @@
 			name = "Internal Utilities";
 			sourceTree = "<group>";
 		};
-		D03B4A3B19F4C281009E02AC /* Extensions */ = {
+		D03B4A3B19F4C281009E02AC /* Foundation Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				9A28483E1D933D9C00A59A29 /* Data.swift */,
+				9A2848401D933D9C00A59A29 /* UserDefaults.swift */,
 				D03B4A3C19F4C39A009E02AC /* FoundationExtensions.swift */,
 			);
-			name = Extensions;
+			name = "Foundation Extensions";
 			sourceTree = "<group>";
 		};
 		D04725E019E49ED7006002AA = {
@@ -442,9 +490,13 @@
 				D871D69E1B3B29A40070F16C /* Optional.swift */,
 				D0C312C819EF2A5800984962 /* Scheduler.swift */,
 				C79B647B1CD52E23003F2376 /* EventLogger.swift */,
+				9A28482A1D933D8E00A59A29 /* Action+Extensions.swift */,
+				9A28482B1D933D8E00A59A29 /* Property+Extensions.swift */,
+				9A28482C1D933D8E00A59A29 /* Signal+Extensions.swift */,
+				9A28482D1D933D8E00A59A29 /* SignalProducer+Extensions.swift */,
 				D03B4A3919F4C25F009E02AC /* Signals */,
 				D03B4A3A19F4C26D009E02AC /* Internal Utilities */,
-				D03B4A3B19F4C281009E02AC /* Extensions */,
+				D03B4A3B19F4C281009E02AC /* Foundation Extensions */,
 				9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */,
 				D04725ED19E49ED7006002AA /* Supporting Files */,
 			);
@@ -465,6 +517,10 @@
 			isa = PBXGroup;
 			children = (
 				D021671C1A6CD50500987861 /* ActionSpec.swift */,
+				9A2848261D933D7300A59A29 /* ActionExtensionTests.swift */,
+				9A28484D1D9343AC00A59A29 /* PropertyTests.swift */,
+				9A28484E1D9343AC00A59A29 /* SignalProducerTests.swift */,
+				9A28484F1D9343AC00A59A29 /* SignalTests.swift */,
 				D0C312EE19EF2A7700984962 /* AtomicSpec.swift */,
 				D0C312EF19EF2A7700984962 /* BagSpec.swift */,
 				D0C312F019EF2A7700984962 /* DisposableSpec.swift */,
@@ -851,13 +907,19 @@
 			files = (
 				57A4D1B11BA13D7A00F7D4B1 /* Optional.swift in Sources */,
 				57A4D1B41BA13D7A00F7D4B1 /* Disposable.swift in Sources */,
+				9A2848391D933D8E00A59A29 /* Signal+Extensions.swift in Sources */,
+				9A28483D1D933D8E00A59A29 /* SignalProducer+Extensions.swift in Sources */,
 				57A4D1B61BA13D7A00F7D4B1 /* Event.swift in Sources */,
 				57A4D1B81BA13D7A00F7D4B1 /* Scheduler.swift in Sources */,
+				9A28484C1D933D9C00A59A29 /* UserDefaults.swift in Sources */,
 				57A4D1B91BA13D7A00F7D4B1 /* Action.swift in Sources */,
 				57A4D1BA1BA13D7A00F7D4B1 /* Property.swift in Sources */,
 				57A4D1BB1BA13D7A00F7D4B1 /* Signal.swift in Sources */,
+				9A2848311D933D8E00A59A29 /* Action+Extensions.swift in Sources */,
+				9A2848351D933D8E00A59A29 /* Property+Extensions.swift in Sources */,
 				57A4D1BC1BA13D7A00F7D4B1 /* SignalProducer.swift in Sources */,
 				57A4D1BD1BA13D7A00F7D4B1 /* Atomic.swift in Sources */,
+				9A2848441D933D9C00A59A29 /* Data.swift in Sources */,
 				57A4D1BE1BA13D7A00F7D4B1 /* Bag.swift in Sources */,
 				57A4D1BF1BA13D7A00F7D4B1 /* TupleExtensions.swift in Sources */,
 				57A4D1C01BA13D7A00F7D4B1 /* FoundationExtensions.swift in Sources */,
@@ -876,14 +938,18 @@
 			files = (
 				7DFBED221CDB8DE300EE435B /* ActionSpec.swift in Sources */,
 				7DFBED231CDB8DE300EE435B /* AtomicSpec.swift in Sources */,
+				9A2848521D9343AC00A59A29 /* PropertyTests.swift in Sources */,
 				7DFBED241CDB8DE300EE435B /* BagSpec.swift in Sources */,
 				7DFBED251CDB8DE300EE435B /* DisposableSpec.swift in Sources */,
 				7DFBED261CDB8DE300EE435B /* FoundationExtensionsSpec.swift in Sources */,
 				7DFBED281CDB8DE300EE435B /* PropertySpec.swift in Sources */,
 				7DFBED291CDB8DE300EE435B /* SchedulerSpec.swift in Sources */,
+				9A2848291D933D7300A59A29 /* ActionExtensionTests.swift in Sources */,
+				9A2848551D9343AC00A59A29 /* SignalProducerTests.swift in Sources */,
 				7DFBED2A1CDB8DE300EE435B /* SignalLifetimeSpec.swift in Sources */,
 				7DFBED2B1CDB8DE300EE435B /* SignalProducerSpec.swift in Sources */,
 				7DFBED2C1CDB8DE300EE435B /* SignalProducerLiftingSpec.swift in Sources */,
+				9A2848581D9343AC00A59A29 /* SignalTests.swift in Sources */,
 				7DFBED2D1CDB8DE300EE435B /* SignalSpec.swift in Sources */,
 				7DFBED2E1CDB8DE300EE435B /* FlattenSpec.swift in Sources */,
 				7DFBED2F1CDB8DE300EE435B /* TestError.swift in Sources */,
@@ -899,13 +965,19 @@
 			files = (
 				A9F793341B60D0140026BCBA /* Optional.swift in Sources */,
 				A9B315BC1B3940810001CB9C /* Disposable.swift in Sources */,
+				9A2848381D933D8E00A59A29 /* Signal+Extensions.swift in Sources */,
+				9A28483C1D933D8E00A59A29 /* SignalProducer+Extensions.swift in Sources */,
 				A9B315BE1B3940810001CB9C /* Event.swift in Sources */,
 				A9B315C01B3940810001CB9C /* Scheduler.swift in Sources */,
+				9A28484B1D933D9C00A59A29 /* UserDefaults.swift in Sources */,
 				A9B315C11B3940810001CB9C /* Action.swift in Sources */,
 				A9B315C21B3940810001CB9C /* Property.swift in Sources */,
 				A9B315C31B3940810001CB9C /* Signal.swift in Sources */,
+				9A2848301D933D8E00A59A29 /* Action+Extensions.swift in Sources */,
+				9A2848341D933D8E00A59A29 /* Property+Extensions.swift in Sources */,
 				A9B315C41B3940810001CB9C /* SignalProducer.swift in Sources */,
 				A9B315C51B3940810001CB9C /* Atomic.swift in Sources */,
+				9A2848431D933D9C00A59A29 /* Data.swift in Sources */,
 				A9B315C61B3940810001CB9C /* Bag.swift in Sources */,
 				A9B315C71B3940810001CB9C /* TupleExtensions.swift in Sources */,
 				A9B315C81B3940810001CB9C /* FoundationExtensions.swift in Sources */,
@@ -924,13 +996,19 @@
 			files = (
 				D00004091A46864E000E7D41 /* TupleExtensions.swift in Sources */,
 				D871D69F1B3B29A40070F16C /* Optional.swift in Sources */,
+				9A2848361D933D8E00A59A29 /* Signal+Extensions.swift in Sources */,
+				9A28483A1D933D8E00A59A29 /* SignalProducer+Extensions.swift in Sources */,
 				D08C54B61A69A3DB00AD8286 /* Event.swift in Sources */,
 				D0C312D319EF2A5800984962 /* Disposable.swift in Sources */,
+				9A2848491D933D9C00A59A29 /* UserDefaults.swift in Sources */,
 				EBCC7DBC1BBF010C00A2AE92 /* Observer.swift in Sources */,
 				D03B4A3D19F4C39A009E02AC /* FoundationExtensions.swift in Sources */,
 				D08C54B31A69A2AE00AD8286 /* Signal.swift in Sources */,
+				9A28482E1D933D8E00A59A29 /* Action+Extensions.swift in Sources */,
+				9A2848321D933D8E00A59A29 /* Property+Extensions.swift in Sources */,
 				D85C652A1C0D84C7005A77AD /* Flatten.swift in Sources */,
 				D0C312CF19EF2A5800984962 /* Bag.swift in Sources */,
+				9A2848411D933D9C00A59A29 /* Data.swift in Sources */,
 				4A0E10FF1D2A92720065D310 /* Lifetime.swift in Sources */,
 				D0C312E719EF2A5800984962 /* Scheduler.swift in Sources */,
 				D0C312CD19EF2A5800984962 /* Atomic.swift in Sources */,
@@ -949,14 +1027,18 @@
 			files = (
 				D0A2260E1A72F16D00D33B74 /* PropertySpec.swift in Sources */,
 				B696FB811A7640C00075236D /* TestError.swift in Sources */,
+				9A2848501D9343AC00A59A29 /* PropertyTests.swift in Sources */,
 				D021671D1A6CD50500987861 /* ActionSpec.swift in Sources */,
 				D0C3130E19EF2B1F00984962 /* SchedulerSpec.swift in Sources */,
 				BFA6B94D1A7604D400C846D1 /* SignalProducerNimbleMatchers.swift in Sources */,
 				D8170FC11B100EBC004192AD /* FoundationExtensionsSpec.swift in Sources */,
 				C79B64741CD38B2B003F2376 /* TestLogger.swift in Sources */,
+				9A2848271D933D7300A59A29 /* ActionExtensionTests.swift in Sources */,
+				9A2848531D9343AC00A59A29 /* SignalProducerTests.swift in Sources */,
 				CA6F28501C52626B001879D2 /* FlattenSpec.swift in Sources */,
 				4A0E11041D2A95200065D310 /* LifetimeSpec.swift in Sources */,
 				CDCD247A1C277EEC00710AEE /* AtomicSpec.swift in Sources */,
+				9A2848561D9343AC00A59A29 /* SignalTests.swift in Sources */,
 				579504331BB8A34200A5E482 /* BagSpec.swift in Sources */,
 				D0A226081A72E0E900D33B74 /* SignalSpec.swift in Sources */,
 				02D2602B1C1D6DB8003ACC61 /* SignalLifetimeSpec.swift in Sources */,
@@ -972,13 +1054,19 @@
 			files = (
 				D08C54B41A69A2AF00AD8286 /* Signal.swift in Sources */,
 				D8E84A671B3B32FB00C3E831 /* Optional.swift in Sources */,
+				9A2848371D933D8E00A59A29 /* Signal+Extensions.swift in Sources */,
+				9A28483B1D933D8E00A59A29 /* SignalProducer+Extensions.swift in Sources */,
 				D0C312D419EF2A5800984962 /* Disposable.swift in Sources */,
 				D08C54B91A69A9D100AD8286 /* SignalProducer.swift in Sources */,
+				9A28484A1D933D9C00A59A29 /* UserDefaults.swift in Sources */,
 				9ABCB1861D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				EBCC7DBD1BBF01E100A2AE92 /* Observer.swift in Sources */,
 				D85C652B1C0E70E3005A77AD /* Flatten.swift in Sources */,
+				9A28482F1D933D8E00A59A29 /* Action+Extensions.swift in Sources */,
+				9A2848331D933D8E00A59A29 /* Property+Extensions.swift in Sources */,
 				4A0E11001D2A92720065D310 /* Lifetime.swift in Sources */,
 				D08C54BB1A69C54400AD8286 /* Property.swift in Sources */,
+				9A2848421D933D9C00A59A29 /* Data.swift in Sources */,
 				D03B4A3E19F4C39A009E02AC /* FoundationExtensions.swift in Sources */,
 				D000040A1A46864E000E7D41 /* TupleExtensions.swift in Sources */,
 				D08C54B71A69A3DB00AD8286 /* Event.swift in Sources */,
@@ -997,14 +1085,18 @@
 			files = (
 				D0A2260C1A72E6C500D33B74 /* SignalProducerSpec.swift in Sources */,
 				D0A2260F1A72F16D00D33B74 /* PropertySpec.swift in Sources */,
+				9A2848511D9343AC00A59A29 /* PropertyTests.swift in Sources */,
 				D0A226091A72E0E900D33B74 /* SignalSpec.swift in Sources */,
 				CDCD247B1C277EED00710AEE /* AtomicSpec.swift in Sources */,
 				D021671E1A6CD50500987861 /* ActionSpec.swift in Sources */,
 				D8024DB31B2E1BB0005E6B9A /* SignalProducerLiftingSpec.swift in Sources */,
 				BFA6B94E1A7604D500C846D1 /* SignalProducerNimbleMatchers.swift in Sources */,
+				9A2848281D933D7300A59A29 /* ActionExtensionTests.swift in Sources */,
+				9A2848541D9343AC00A59A29 /* SignalProducerTests.swift in Sources */,
 				B696FB821A7640C00075236D /* TestError.swift in Sources */,
 				D8170FC21B100EBC004192AD /* FoundationExtensionsSpec.swift in Sources */,
 				D0C3131419EF2B2000984962 /* SchedulerSpec.swift in Sources */,
+				9A2848571D9343AC00A59A29 /* SignalTests.swift in Sources */,
 				C79B64751CD38B2B003F2376 /* TestLogger.swift in Sources */,
 				D0C3131219EF2B2000984962 /* DisposableSpec.swift in Sources */,
 				CA6F28511C52626B001879D2 /* FlattenSpec.swift in Sources */,

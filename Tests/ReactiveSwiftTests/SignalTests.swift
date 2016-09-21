@@ -20,18 +20,18 @@ final class SignalTests: XCTestCase {
             .filterMap {
                 return $0 % 2 == 0 ? String($0) : nil
             }
-            .observeNext { values.append($0) }
+            .observeValues { values.append($0) }
 
-        observer.sendNext(1)
+        observer.send(value: 1)
         XCTAssert(values == [])
 
-        observer.sendNext(2)
+        observer.send(value: 2)
         XCTAssert(values == ["2"])
 
-        observer.sendNext(3)
+        observer.send(value: 3)
         XCTAssert(values == ["2"])
 
-        observer.sendNext(6)
+        observer.send(value: 6)
         XCTAssert(values == ["2", "6"])
     }
 
@@ -43,10 +43,10 @@ final class SignalTests: XCTestCase {
             .ignoreError()
             .observeCompleted { completed = true }
 
-        observer.sendNext(1)
+        observer.send(value: 1)
         XCTAssertFalse(completed)
 
-        observer.sendFailed(.default)
+        observer.send(error: .default)
         XCTAssertTrue(completed)
     }
 
@@ -58,10 +58,10 @@ final class SignalTests: XCTestCase {
             .ignoreError(replacement: .interrupted)
             .observeInterrupted { interrupted = true }
 
-        observer.sendNext(1)
+        observer.send(value: 1)
         XCTAssertFalse(interrupted)
 
-        observer.sendFailed(.default)
+        observer.send(error: .default)
         XCTAssertTrue(interrupted)
     }
 
@@ -117,15 +117,15 @@ final class SignalTests: XCTestCase {
 
         signal
             .uncollect()
-            .observeNext { values.append($0) }
+            .observeValues { values.append($0) }
 
-        observer.sendNext([])
+        observer.send(value: [])
         XCTAssert(values.isEmpty)
 
-        observer.sendNext([1])
+        observer.send(value: [1])
         XCTAssert(values == [1])
 
-        observer.sendNext([2, 3])
+        observer.send(value: [2, 3])
         XCTAssert(values == [1, 2, 3])
     }
 
@@ -136,26 +136,26 @@ final class SignalTests: XCTestCase {
 
         signal
             .mute(for: 1, clock: scheduler)
-            .observeNext { value = $0 }
+            .observeValues { value = $0 }
 
-        scheduler.schedule { observer.sendNext(1) }
+        scheduler.schedule { observer.send(value: 1) }
         scheduler.advance()
         XCTAssertEqual(value, 1)
 
-        scheduler.schedule { observer.sendNext(2) }
+        scheduler.schedule { observer.send(value: 2) }
         scheduler.advance()
         XCTAssertEqual(value, 1)
 
-        scheduler.schedule { observer.sendNext(3) }
-        scheduler.schedule { observer.sendNext(4) }
+        scheduler.schedule { observer.send(value: 3) }
+        scheduler.schedule { observer.send(value: 4) }
         scheduler.advance()
         XCTAssertEqual(value, 1)
 
         scheduler.advance(by: 1)
         XCTAssertEqual(value, 1)
 
-        scheduler.schedule { observer.sendNext(5) }
-        scheduler.schedule { observer.sendNext(6) }
+        scheduler.schedule { observer.send(value: 5) }
+        scheduler.schedule { observer.send(value: 6) }
         scheduler.advance()
         XCTAssertEqual(value, 5)
     }
@@ -169,22 +169,18 @@ final class SignalTests: XCTestCase {
         signal
             .mute(for: 1, clock: scheduler)
             .observe(Observer(
-                next: { value = $0 },
+                value: { value = $0 },
                 failed: { _ in failed = true }
             ))
 
-        scheduler.schedule { observer.sendNext(1) }
+        scheduler.schedule { observer.send(value: 1) }
         scheduler.advance()
         XCTAssertEqual(value, 1)
 
-        scheduler.schedule { observer.sendNext(2) }
-        scheduler.schedule { observer.sendFailed(.default) }
+        scheduler.schedule { observer.send(value: 2) }
+        scheduler.schedule { observer.send(error: .default) }
         scheduler.advance()
         XCTAssertTrue(failed)
         XCTAssertEqual(value, 1)
     }
-}
-
-enum TestError: Error {
-    case `default`
 }

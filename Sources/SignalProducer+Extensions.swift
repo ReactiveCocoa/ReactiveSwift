@@ -6,8 +6,6 @@
 //  Copyright (c) 2015 Neil Pankey. All rights reserved.
 //
 
-import ReactiveSwift
-import ReactiveCocoa
 import enum Result.NoError
 
 extension SignalProducerProtocol {
@@ -24,25 +22,25 @@ extension SignalProducerProtocol {
 
             self.start { event in
                 switch event {
-                case let .next(value):
+                case let .value(value):
                     let key = grouping(value)
 
                     lock.lock()
                     var group = groups[key]
                     if group == nil {
                         let (producer, innerObserver) = SignalProducer<Value, Error>.bufferingProducer(upTo: Int.max)
-                        observer.sendNext(key, producer)
+												observer.send(value: (key, producer))
 
                         groups[key] = innerObserver
                         group = innerObserver
                     }
                     lock.unlock()
                     
-                    group!.sendNext(value)
+                    group!.send(value: value)
 
                 case let .failed(error):
-                    observer.sendFailed(error)
-                    groups.values.forEach { $0.sendFailed(error) }
+                    observer.send(error: error)
+                    groups.values.forEach { $0.send(error: error) }
 
                 case .completed:
                     observer.sendCompleted()
@@ -155,7 +153,7 @@ extension SignalProducer {
             }
 
             while !replayValues.isEmpty {
-                replayValues.forEach(observer.sendNext)
+                replayValues.forEach(observer.send)
 
                 terminationEvent = state.modify { state in
                     replayValues = replayBuffer.values

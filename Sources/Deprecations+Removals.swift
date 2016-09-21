@@ -452,3 +452,40 @@ public func zip<A, B, C, D, E, F, G, H, I, J, Error>(_ a: SignalProducer<A, Erro
 
 @available(*, unavailable, renamed:"SignalProducer.zip")
 public func zip<S: Sequence, Value, Error>(producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> { fatalError() }
+
+extension SignalProtocol {
+	@available(*, unavailable, renamed:"mute(for:clock:)")
+	public func muteFor(_ interval: TimeInterval, clock: DateSchedulerProtocol) -> Signal<Value, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"timeout(after:with:on:)")
+	public func timeoutAfter(_ interval: TimeInterval, withEvent event: Event<Value, Error>, onScheduler scheduler: DateSchedulerProtocol) -> Signal<Value, Error> { fatalError() }
+}
+
+extension SignalProducerProtocol {
+	@available(*, unavailable, renamed:"mute(for:clock:)")
+	public func muteFor(_ interval: TimeInterval, clock: DateSchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"timeout(after:with:on:)")
+	public func timeoutAfter(_ interval: TimeInterval, withEvent event: Event<Value, Error>, onScheduler scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"group(by:)")
+	public func groupBy<Key: Hashable>(_ grouping: (Value) -> Key) -> SignalProducer<(Key, SignalProducer<Value, Error>), Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"defer(by:on:)")
+	public func deferred(_ interval: TimeInterval, onScheduler scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
+}
+
+extension UserDefaults {
+	@available(*, unavailable, renamed:"rex_value(forKey:)")
+	public func rex_valueForKey(_ key: String) -> SignalProducer<AnyObject?, NoError> { fatalError() }
+}
+
+extension Data {
+	@available(*, unavailable, renamed:"rex_data(contentsOf:options:)")
+	public static func rex_dataWithContentsOfURL(_ url: URL, options: Data.ReadingOptions = []) -> SignalProducer<Data, NSError> { fatalError() }
+}
+
+extension Data {
+	@available(*, unavailable, renamed:"rex_data(contentsOf:options:)")
+	public static func rex_dataWithContentsOfURL(_ url: URL, options: NSData.ReadingOptions = []) -> SignalProducer<NSData, NSError> { fatalError() }
+}

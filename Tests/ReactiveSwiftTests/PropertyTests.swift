@@ -17,7 +17,7 @@ final class PropertyTests: XCTestCase {
         let and = lhs.and(rhs)
 
         var current: Bool!
-        and.producer.startWithNext { current = $0 }
+        and.producer.startWithValues { current = $0 }
 
         XCTAssertFalse(and.value)
         XCTAssertFalse(current!)
@@ -32,12 +32,12 @@ final class PropertyTests: XCTestCase {
 
         let (signal, pipe) = Signal<Bool, NoError>.pipe()
         let and2 = and.and(Property(initial: false, then: signal))
-        and2.producer.startWithNext { current = $0 }
+        and2.producer.startWithValues { current = $0 }
 
         XCTAssertFalse(and2.value)
         XCTAssertFalse(current!)
 
-        pipe.sendNext(true)
+        pipe.send(value: true)
         XCTAssertTrue(and2.value)
         XCTAssertTrue(current!)
     }
@@ -47,7 +47,7 @@ final class PropertyTests: XCTestCase {
         let or = lhs.or(rhs)
 
         var current: Bool!
-        or.producer.startWithNext { current = $0 }
+        or.producer.startWithValues { current = $0 }
 
         XCTAssertTrue(or.value)
         XCTAssertTrue(current!)
@@ -62,12 +62,12 @@ final class PropertyTests: XCTestCase {
 
         let (signal, pipe) = Signal<Bool, NoError>.pipe()
         let or2 = or.or(Property(initial: true, then: signal))
-        or2.producer.startWithNext { current = $0 }
+        or2.producer.startWithValues { current = $0 }
 
         XCTAssertTrue(or2.value)
         XCTAssertTrue(current!)
 
-        pipe.sendNext(false)
+        pipe.send(value: false)
         XCTAssertFalse(or2.value)
         XCTAssertFalse(current!)
     }
@@ -77,7 +77,7 @@ final class PropertyTests: XCTestCase {
         let not = source.not()
 
         var current: Bool!
-        not.producer.startWithNext { current = $0 }
+        not.producer.startWithValues { current = $0 }
 
         XCTAssertTrue(not.value)
         XCTAssertTrue(current!)

@@ -1,13 +1,11 @@
 //
-//  Signal.swift
-//  Rex
+//  Signal+Extensions.swift
+//  ReactiveCocoa
 //
 //  Created by Neil Pankey on 5/9/15.
 //  Copyright (c) 2015 Neil Pankey. All rights reserved.
 //
 
-import ReactiveSwift
-import ReactiveCocoa
 import enum Result.NoError
 
 extension SignalProtocol {
@@ -18,12 +16,12 @@ extension SignalProtocol {
         return Signal<U, Error> { observer in
             return self.observe { event in
                 switch event {
-                case let .next(value):
+                case let .value(value):
                     if let mapped = transform(value) {
-                        observer.sendNext(mapped)
+                        observer.send(value: mapped)
                     }
                 case let .failed(error):
-                    observer.sendFailed(error)
+                    observer.send(error: error)
                 case .completed:
                     observer.sendCompleted()
                 case .interrupted:
@@ -41,8 +39,8 @@ extension SignalProtocol {
         return Signal<Value, NoError> { observer in
             return self.observe { event in
                 switch event {
-                case let .next(value):
-                    observer.sendNext(value)
+                case let .value(value):
+                    observer.send(value: value)
                 case .failed:
                     observer.action(replacement)
                 case .completed:
@@ -105,10 +103,10 @@ extension SignalProtocol where Value: Sequence {
         return Signal<Value.Iterator.Element, Error> { observer in
             return self.observe { event in
                 switch event {
-                case let .next(sequence):
-                    sequence.forEach { observer.sendNext($0) }
+                case let .value(sequence):
+                    sequence.forEach { observer.send(value: $0) }
                 case let .failed(error):
-                    observer.sendFailed(error)
+                    observer.send(error: error)
                 case .completed:
                     observer.sendCompleted()
                 case .interrupted:

@@ -22,7 +22,7 @@ final class ActionTests: XCTestCase {
         var started = false
         action
             .rex_started
-            .observeNext { started = true }
+            .observeValues { started = true }
 
         action
             .apply()
@@ -40,13 +40,13 @@ final class ActionTests: XCTestCase {
         var completed = false
         action
             .rex_completed
-            .observeNext { completed = true }
+            .observeValues { completed = true }
 
         action
             .apply()
             .start()
         
-        observer.sendNext(1)
+        observer.send(value: 1)
         XCTAssertFalse(completed)
 
         observer.sendCompleted()
@@ -62,13 +62,13 @@ final class ActionTests: XCTestCase {
         var completed = false
         action
             .rex_completed
-            .observeNext { completed = true }
+            .observeValues { completed = true }
 
         action
             .apply()
             .start()
         
-        observer.sendFailed(.unknown)
+        observer.send(error: .unknown)
         XCTAssertFalse(completed)
     }
 }
