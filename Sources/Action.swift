@@ -49,28 +49,10 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// Whether the action is currently executing.
 	public let isExecuting: Property<Bool>
 
-	private let _isExecuting: MutableProperty<Bool> = MutableProperty(false)
-
 	/// Whether the action is currently enabled.
-	public var isEnabled: Property<Bool>
+	public let isEnabled: Property<Bool>
 
-	private let _isEnabled: MutableProperty<Bool> = MutableProperty(false)
-
-	/// Whether the instantiator of this action wants it to be enabled.
-	private let isUserEnabled: Property<Bool>
-
-	/// This queue is used for read-modify-write operations on the `_executing`
-	/// property.
-	private let executingQueue = DispatchQueue(
-		label: "org.reactivecocoa.ReactiveSwift.Action.executingQueue",
-		attributes: []
-	)
-
-	/// Whether the action should be enabled for the given combination of user
-	/// enabledness and executing status.
-	private static func shouldBeEnabled(userEnabled: Bool, executing: Bool) -> Bool {
-		return userEnabled && !executing
-	}
+	private let state: MutableProperty<ActionState>
 
 	/// Initializes an action that will be conditionally enabled, and creates a
 	/// SignalProducer for each input.
@@ -85,7 +67,6 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		lifetime = Lifetime(deinitToken)
 
 		executeClosure = execute
-		isUserEnabled = Property(property)
 
 		(events, eventsObserver) = Signal<Event<Output, Error>, NoError>.pipe()
 		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
@@ -94,12 +75,18 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		errors = events.map { $0.error }.skipNil()
 		completed = events.filter { $0.isCompleted }.map { _ in }
 
-		isEnabled = Property(_isEnabled)
-		isExecuting = Property(_isExecuting)
+		state = MutableProperty(ActionState(isExecuting: false, userEnabled: property.value))
 
-		_isEnabled <~ property.producer
-			.combineLatest(with: isExecuting.producer)
-			.map(Action.shouldBeEnabled)
+		property.signal
+			.take(during: state.lifetime)
+			.observeValues { [weak state] isEnabled in
+				state?.modify {
+					$0.userEnabled = isEnabled
+				}
+			}
+
+		isEnabled = state.map { $0.isEnabled }
+		isExecuting = state.map { $0.isExecuting }
 	}
 
 	/// Initializes an action that will be enabled by default, and creates a
@@ -130,16 +117,16 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///            producer.
 	public func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>> {
 		return SignalProducer { observer, disposable in
-			var startedExecuting = false
-
-			self.executingQueue.sync {
-				if self._isEnabled.value {
-					self._isExecuting.value = true
-					startedExecuting = true
+			let startedExecuting = self.state.modify { state -> Bool in
+				if state.isEnabled {
+					state.isExecuting = true
+					return true
+				} else {
+					return false
 				}
 			}
 
-			if !startedExecuting {
+			guard startedExecuting else {
 				observer.send(error: .disabled)
 				self.disabledErrorsObserver.send(value: ())
 				return
@@ -155,9 +142,22 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			}
 
 			disposable += {
-				self._isExecuting.value = false
+				self.state.modify {
+					$0.isExecuting = false
+				}
 			}
 		}
+	}
+}
+
+private struct ActionState {
+	var isExecuting: Bool
+	var userEnabled: Bool
+
+	/// Whether the action should be enabled for the given combination of user
+	/// enabledness and executing status.
+	fileprivate var isEnabled: Bool {
+		return userEnabled && !isExecuting
 	}
 }
 
