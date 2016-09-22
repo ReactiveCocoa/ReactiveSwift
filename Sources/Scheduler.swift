@@ -264,16 +264,16 @@ public final class QueueScheduler: DateSchedulerProtocol {
 		precondition(interval >= 0)
 		precondition(leeway >= 0)
 
-		let nsecInterval = interval * Double(NSEC_PER_SEC)
-		let nsecLeeway = leeway * Double(NSEC_PER_SEC)
+		let msecInterval = interval * 1000
+		let msecLeeway = leeway * 1000
 
 		let timer = DispatchSource.makeTimerSource(
 			flags: DispatchSource.TimerFlags(rawValue: UInt(0)),
 			queue: queue
 		)
 		timer.scheduleRepeating(wallDeadline: wallTime(with: date),
-		                        interval: .nanoseconds(Int(nsecInterval)),
-		                        leeway: .nanoseconds(Int(nsecLeeway)))
+		                        interval: .milliseconds(Int(msecInterval)),
+		                        leeway: .milliseconds(Int(msecLeeway)))
 		timer.setEventHandler(handler: action)
 		timer.resume()
 

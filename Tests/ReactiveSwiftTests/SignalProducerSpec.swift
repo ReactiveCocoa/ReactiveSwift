@@ -793,6 +793,14 @@ class SignalProducerSpec: QuickSpec {
 				expect(dates) == [tick1, tick2, tick3]
 			}
 
+			it("shouldn't overflow on a real scheduler") {
+				let scheduler = QueueScheduler()
+				let producer = timer(interval: 3, on: scheduler)
+				let disposable = producer.start()
+
+				disposable.dispose()
+			}
+
 			it("should release the signal when disposed") {
 				let scheduler = TestScheduler()
 				let producer = timer(interval: 1, on: scheduler, leeway: 0)
