@@ -10,7 +10,7 @@ precedencegroup BindingPrecedence {
 infix operator <~ : BindingPrecedence
 
 /// Describes a target to which can be bound.
-public protocol BindingTarget: class {
+public protocol BindingTargetProtocol: class {
 	associatedtype Value
 
 	/// The lifetime of `self`. The binding operators use this to determine when
@@ -53,7 +53,7 @@ public protocol BindingTarget: class {
 	static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError
 }
 
-extension BindingTarget {
+extension BindingTargetProtocol {
 	/// Binds a signal to a target, updating the target's value to the latest
 	/// value sent by the signal.
 	///
@@ -170,7 +170,7 @@ extension BindingTarget {
 	}
 }
 
-extension BindingTarget where Value: OptionalProtocol {
+extension BindingTargetProtocol where Value: OptionalProtocol {
 	/// Binds a signal to a target, updating the target's value to the latest
 	/// value sent by the signal.
 	///
