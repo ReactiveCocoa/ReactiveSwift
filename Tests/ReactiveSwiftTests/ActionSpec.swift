@@ -19,7 +19,7 @@ class ActionSpec: QuickSpec {
 
 			var executionCount = 0
 			var values: [String] = []
-			var errors: [NSError] = []
+			var errors: [ActionError<NSError>] = []
 
 			var scheduler: TestScheduler!
 			let testError = NSError(domain: "ActionSpec", code: 1, userInfo: nil)
@@ -102,18 +102,19 @@ class ActionSpec: QuickSpec {
 
 					expect(receivedValue) == "00"
 					expect(values) == [ "0", "00" ]
-					expect(errors) == []
+					expect(errors).to(beEmpty())
 
 					scheduler.run()
 					expect(action.isExecuting.value) == false
 					expect(action.isEnabled.value) == true
 
 					expect(values) == [ "0", "00" ]
-					expect(errors) == []
+					expect(errors).to(beEmpty())
 				}
 
 				it("should execute with an error") {
 					var receivedError: ActionError<NSError>?
+					let expectedError = ActionError<NSError>.producerFailed(testError)
 
 					action.apply(1).startWithFailed {
 						receivedError = $0
@@ -129,12 +130,12 @@ class ActionSpec: QuickSpec {
 
 					expect(receivedError).notTo(beNil())
 					if let error = receivedError {
-						let expectedError = ActionError<NSError>.producerFailed(testError)
 						expect(error == expectedError) == true
 					}
 
 					expect(values) == []
-					expect(errors) == [ testError ]
+					expect(errors).notTo(beEmpty())
+					expect(errors.first! == expectedError) == true
 				}
 			}
 		}
