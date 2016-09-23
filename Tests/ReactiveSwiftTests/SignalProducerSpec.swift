@@ -796,9 +796,9 @@ class SignalProducerSpec: QuickSpec {
 			it("shouldn't overflow on a real scheduler") {
 				let scheduler = QueueScheduler()
 				let producer = timer(interval: 3, on: scheduler)
-				let disposable = producer.start()
-
-				disposable.dispose()
+				producer
+					.start()
+					.dispose()
 			}
 
 			it("should release the signal when disposed") {
