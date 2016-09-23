@@ -283,15 +283,6 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 	public let lifetime: Lifetime
 	private let setter: (Value) -> Void
 
-	/// Wraps a `BindingTarget`.
-	///
-	/// - parameters:
-	///   - target: The binding target to wrap.
-	public init<T: BindingTargetProtocol>(_ target: T) where T.Value == Value {
-		lifetime = target.lifetime
-		setter = target.consume
-	}
-
 	/// Creates a binding target.
 	///
 	/// - parameters:
