@@ -1,3 +1,4 @@
+import Dispatch
 import enum Result.NoError
 
 precedencegroup BindingPrecedence {
@@ -276,3 +277,63 @@ extension BindingTargetProtocol where Value: OptionalProtocol {
 		return target <~ property.producer
 	}
 }
+
+/// A binding target that can be used with the `<~` operator.
+public final class BindingTarget<Value>: BindingTargetProtocol {
+	public let lifetime: Lifetime
+	private let setter: (Value) -> Void
+
+	/// Wraps a `BindingTarget`.
+	///
+	/// - parameters:
+	///   - target: The binding target to wrap.
+	public init<T: BindingTargetProtocol>(_ target: T) where T.Value == Value {
+		lifetime = target.lifetime
+		setter = target.consume
+	}
+
+	/// Creates a binding target.
+	///
+	/// - parameters:
+	///   - setter: The action to receive values.
+	///   - lifetime: The expected lifetime of any bindings against the resulting
+	///               target.
+	public init(setter: @escaping (Value) -> Void, lifetime: Lifetime) {
+		self.setter = setter
+		self.lifetime = lifetime
+	}
+
+	/// Creates a binding target which consumes values synchronously on the
+	/// supplied queue.
+	///
+	/// - parameters:
+	///   - setter: The action to receive values.
+	///   - queue: The dispatch queue on which the values are consumed.
+	///   - lifetime: The expected lifetime of any bindings against the resulting
+	///               target.
+	public convenience init(setter: @escaping (Value) -> Void, lifetime: Lifetime, on queue: DispatchQueue) {
+		let queueId = ObjectIdentifier(queue)
+
+		/// Ensures the queue has been setup property.
+		if nil == queue.getSpecific(key: specificKey) {
+			queue.setSpecific(key: specificKey, value: queueId)
+		}
+
+		let setter: (Value) -> Void = { value in
+			if queueId == DispatchQueue.getSpecific(key: specificKey) {
+				setter(value)
+			} else {
+				queue.sync {
+					setter(value)
+				}
+			}
+		}
+		self.init(setter: setter, lifetime: lifetime)
+	}
+
+	public func consume(_ value: Value) {
+		setter(value)
+	}
+}
+
+private let specificKey = DispatchSpecificKey<ObjectIdentifier>()
