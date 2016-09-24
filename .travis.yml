@@ -62,8 +62,10 @@ matrix:
         - JOB=CARTHAGE-watchOS
     - script:
       - gem install cocoapods --pre
-      - pod repo update 
-      - pod lib lint ReactiveSwift.podspec --allow-warnings
+      - pod repo update
+      - pod lib lint ReactiveSwift.podspec
+      env:
+        - JOB=PODSPEC
     - os: osx
       language: generic
       script: swift build
