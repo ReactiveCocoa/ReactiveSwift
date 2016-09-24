@@ -61,11 +61,18 @@ class ActionSpec: QuickSpec {
 
 			it("should error if executed while disabled") {
 				var receivedError: ActionError<NSError>?
+				var disabledErrorsTriggered = false
+
+				action.disabledErrors.observeValues {
+					disabledErrorsTriggered = true
+				}
+
 				action.apply(0).startWithFailed {
 					receivedError = $0
 				}
 
 				expect(receivedError).notTo(beNil())
+				expect(disabledErrorsTriggered) == true
 				if let error = receivedError {
 					let expectedError = ActionError<NSError>.disabled
 					expect(error == expectedError) == true
