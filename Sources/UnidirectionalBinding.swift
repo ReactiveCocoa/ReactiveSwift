@@ -13,12 +13,13 @@ infix operator <~ : BindingPrecedence
 public protocol BindingTarget: class {
 	associatedtype Value
 
+	/// Workaround for the type inferrer, which failed to infer `Value` from the
+	/// static `<~` requirement.
+	var _type: Value.Type { get }
+
 	/// The lifetime of `self`. The binding operators use this to determine when
 	/// the binding should be teared down.
 	var lifetime: Lifetime { get }
-
-	/// Consume a value from the binding.
-	func consume(_ value: Value)
 
 	/// Binds a signal to a target, updating the target's value to the latest
 	/// value sent by the signal.
@@ -54,44 +55,6 @@ public protocol BindingTarget: class {
 }
 
 extension BindingTarget {
-	/// Binds a signal to a target, updating the target's value to the latest
-	/// value sent by the signal.
-	///
-	/// - note: The binding will automatically terminate when the target is
-	///         deinitialized, or when the signal sends a `completed` event.
-	///
-	/// ````
-	/// let property = MutableProperty(0)
-	/// let signal = Signal({ /* do some work after some time */ })
-	/// property <~ signal
-	/// ````
-	///
-	/// ````
-	/// let property = MutableProperty(0)
-	/// let signal = Signal({ /* do some work after some time */ })
-	/// let disposable = property <~ signal
-	/// ...
-	/// // Terminates binding before property dealloc or signal's
-	/// // `completed` event.
-	/// disposable.dispose()
-	/// ````
-	///
-	/// - parameters:
-	///   - target: A target to be bond to.
-	///   - signal: A signal to bind.
-	///
-	/// - returns: A disposable that can be used to terminate binding before the
-	///            deinitialization of the target or the signal's `completed`
-	///            event.
-	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
-		return signal
-			.take(during: target.lifetime)
-			.observeValues { [weak target] value in
-				target?.consume(value)
-			}
-	}
-
 	/// Binds a producer to a target, updating the target's value to the latest
 	/// value sent by the producer.
 	///

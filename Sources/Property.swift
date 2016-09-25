@@ -32,8 +32,8 @@ public protocol MutablePropertyProtocol: PropertyProtocol, BindingTarget {
 
 /// Default implementation of `MutablePropertyProtocol` for `BindingTarget`.
 extension MutablePropertyProtocol {
-	public func consume(_ value: Value) {
-		self.value = value
+	public var _type: Value.Type {
+		return Value.self
 	}
 }
 
@@ -639,5 +639,43 @@ public final class MutableProperty<Value>: MutablePropertyProtocol {
 
 	deinit {
 		observer.sendCompleted()
+	}
+
+	/// Binds a signal to a target, updating the target's value to the latest
+	/// value sent by the signal.
+	///
+	/// - note: The binding will automatically terminate when the target is
+	///         deinitialized, or when the signal sends a `completed` event.
+	///
+	/// ````
+	/// let property = MutableProperty(0)
+	/// let signal = Signal({ /* do some work after some time */ })
+	/// property <~ signal
+	/// ````
+	///
+	/// ````
+	/// let property = MutableProperty(0)
+	/// let signal = Signal({ /* do some work after some time */ })
+	/// let disposable = property <~ signal
+	/// ...
+	/// // Terminates binding before property dealloc or signal's
+	/// // `completed` event.
+	/// disposable.dispose()
+	/// ````
+	///
+	/// - parameters:
+	///   - target: A target to be bond to.
+	///   - signal: A signal to bind.
+	///
+	/// - returns: A disposable that can be used to terminate binding before the
+	///            deinitialization of the target or the signal's `completed`
+	///            event.
+	@discardableResult
+	public static func <~ <Source: SignalProtocol>(target: MutableProperty, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
+		return signal
+			.take(during: target.lifetime)
+			.observeValues { [weak target] value in
+				target?.value = value
+			}
 	}
 }
