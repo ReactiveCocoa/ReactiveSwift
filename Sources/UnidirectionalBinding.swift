@@ -325,6 +325,15 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 	public func consume(_ value: Value) {
 		setter(value)
 	}
+
+	@discardableResult
+	public static func <~ <Source: SignalProtocol>(target: BindingTarget<Value>, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
+		return signal
+			.take(during: target.lifetime)
+			.observeValues { [setter = target.setter] value in
+				setter(value)
+			}
+	}
 }
 
 private let specificKey = DispatchSpecificKey<ObjectIdentifier>()
