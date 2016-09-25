@@ -68,9 +68,19 @@ matrix:
         - JOB=PODSPEC
     - os: osx
       language: generic
-      script: swift build
+      script:
+        - swift build
       env:
         - JOB=SWIFTPM_DARWIN
+    - os: linux
+      language: generic
+      sudo: required
+      dist: trusty
+      before_install:
+        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
+      script:
+        - swift build
+      env: JOB=SWIFTPM_LINUX
 notifications:
   email: false
   slack:
