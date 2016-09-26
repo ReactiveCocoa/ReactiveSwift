@@ -160,10 +160,10 @@ public final class QueueScheduler: DateSchedulerProtocol {
 	@available(OSX, deprecated:10.10, obsoleted:10.11, message:"Use init(qos:name:targeting:) instead")
 	@available(iOS, deprecated:8.0, obsoleted:9.0, message:"Use init(qos:name:targeting:) instead.")
 	public convenience init(queue: DispatchQueue, name: String = "org.reactivecocoa.ReactiveSwift.QueueScheduler") {
-		self.init(internalQueue: DispatchQueue(label: name, attributes: [], target: queue))
+		self.init(internalQueue: DispatchQueue(label: name, target: queue))
 	}
 
-	/// Initializes a scheduler that will target a new serial queue with the
+	/// Initializes a scheduler that creates a new serial queue with the
 	/// given quality of service class.
 	///
 	/// - parameters:
@@ -172,11 +172,16 @@ public final class QueueScheduler: DateSchedulerProtocol {
 	///   - targeting: (Optional) The queue on which this scheduler's work is
 	///     targeted
 	@available(OSX 10.10, *)
-	public convenience init(qos: DispatchQoS = .default, name: String = "org.reactivecocoa.ReactiveSwift.QueueScheduler", targeting targetQueue: DispatchQueue? = nil) {
-		self.init(internalQueue: DispatchQueue(label: name, qos: qos))
-		if let targetQueue = targetQueue {
-			queue.setTarget(queue: targetQueue)
-		}
+	public convenience init(
+		qos: DispatchQoS = .default,
+		name: String = "org.reactivecocoa.ReactiveSwift.QueueScheduler",
+		targeting targetQueue: DispatchQueue? = nil
+	) {
+		self.init(internalQueue: DispatchQueue(
+			label: name,
+			qos: qos,
+			target: targetQueue
+		))
 	}
 
 	/// Schedules action for dispatch on internal queue
