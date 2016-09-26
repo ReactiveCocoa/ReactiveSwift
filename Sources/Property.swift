@@ -25,16 +25,11 @@ public protocol PropertyProtocol: class {
 }
 
 /// Represents an observable property that can be mutated directly.
-public protocol MutablePropertyProtocol: PropertyProtocol, BindingTarget {
+public protocol MutablePropertyProtocol: BindingTarget, PropertyProtocol {
+	associatedtype Value
+
 	/// The current value of the property.
 	var value: Value { get set }
-}
-
-/// Default implementation of `MutablePropertyProtocol` for `BindingTarget`.
-extension MutablePropertyProtocol {
-	public var _type: Value.Type {
-		return Value.self
-	}
 }
 
 /// Protocol composition operators

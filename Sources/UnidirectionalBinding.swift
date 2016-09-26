@@ -13,10 +13,6 @@ infix operator <~ : BindingPrecedence
 public protocol BindingTarget: class {
 	associatedtype Value
 
-	/// Workaround for the type inferrer, which failed to infer `Value` from the
-	/// static `<~` requirement.
-	var _type: Value.Type { get }
-
 	/// The lifetime of `self`. The binding operators use this to determine when
 	/// the binding should be teared down.
 	var lifetime: Lifetime { get }
