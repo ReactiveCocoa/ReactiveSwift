@@ -199,12 +199,12 @@ do not allow tasks to be reordered or depend on one another.
 [Design Guidelines]: DesignGuidelines.md
 [BasicOperators]: BasicOperators.md
 [README]: ../README.md
-[Signal]: ../ReactiveCocoa/Swift/Signal.swift
-[SignalProducer]: ../ReactiveCocoa/Swift/SignalProducer.swift
-[Action]: ../ReactiveCocoa/Swift/Action.swift
-[CocoaAction]: ../ReactiveCocoa/Swift/CocoaAction.swift
-[Disposable]: ../ReactiveCocoa/Swift/Disposable.swift
-[Scheduler]: ../ReactiveCocoa/Swift/Scheduler.swift
-[Property]: ../ReactiveCocoa/Swift/Property.swift
-[Event]: ../ReactiveCocoa/Swift/Event.swift
-[Observer]: ../ReactiveCocoa/Swift/Observer.swift
+[Signal]: ../Sources/Signal.swift
+[SignalProducer]: ../Sources/SignalProducer.swift
+[Action]: ../Sources/Action.swift
+[CocoaAction]: https://github.com/ReactiveCocoa/ReactiveCocoa/blob/master/ReactiveCocoa/CocoaAction.swift
+[Disposable]: ../Sources/Disposable.swift
+[Scheduler]: ../Sources/Scheduler.swift
+[Property]: ../Sources/Property.swift
+[Event]: ../Sources/Event.swift
+[Observer]: ../Sources/Observer.swift
