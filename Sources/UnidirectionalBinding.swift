@@ -286,10 +286,10 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 	/// Creates a binding target.
 	///
 	/// - parameters:
-	///   - setter: The action to receive values.
 	///   - lifetime: The expected lifetime of any bindings against the resulting
 	///               target.
-	public init(setter: @escaping (Value) -> Void, lifetime: Lifetime) {
+	///   - setter: The action to receive values.
+	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void) {
 		self.setter = setter
 		self.lifetime = lifetime
 	}
@@ -298,11 +298,11 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 	/// supplied queue.
 	///
 	/// - parameters:
-	///   - setter: The action to receive values.
 	///   - queue: The dispatch queue on which the values are consumed.
 	///   - lifetime: The expected lifetime of any bindings against the resulting
 	///               target.
-	public convenience init(setter: @escaping (Value) -> Void, lifetime: Lifetime, on queue: DispatchQueue) {
+	///   - setter: The action to receive values.
+	public convenience init(on queue: DispatchQueue, lifetime: Lifetime, setter: @escaping (Value) -> Void) {
 		let queueId = ObjectIdentifier(queue)
 
 		/// Ensures the queue has been setup property.
@@ -319,7 +319,7 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 				}
 			}
 		}
-		self.init(setter: setter, lifetime: lifetime)
+		self.init(lifetime: lifetime, setter: setter)
 	}
 
 	public func consume(_ value: Value) {

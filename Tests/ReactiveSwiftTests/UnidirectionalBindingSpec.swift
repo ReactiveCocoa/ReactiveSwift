@@ -14,7 +14,7 @@ class UnidirectionalBindingSpec: QuickSpec {
 			beforeEach {
 				token = Lifetime.Token()
 				lifetime = Lifetime(token)
-				target = BindingTarget(setter: { value = $0 }, lifetime: lifetime)
+				target = BindingTarget(lifetime: lifetime, setter: { value = $0 })
 				value = nil
 			}
 
@@ -41,9 +41,9 @@ class UnidirectionalBindingSpec: QuickSpec {
 			}
 
 			it("should not deadlock on the same queue") {
-				target = BindingTarget(setter: { value = $0 },
+				target = BindingTarget(on: .main,
 				                       lifetime: lifetime,
-				                       on: .main)
+				                       setter: { value = $0 })
 
 				let property = MutableProperty(1)
 				target <~ property
@@ -61,9 +61,9 @@ class UnidirectionalBindingSpec: QuickSpec {
 					mainQueueCounter.modify { $0 += DispatchQueue.getSpecific(key: key) != nil ? 1 : 0 }
 				}
 
-				target = BindingTarget(setter: setter,
+				target = BindingTarget(on: .main,
 				                       lifetime: lifetime,
-				                       on: .main)
+				                       setter: setter)
 
 				let scheduler: QueueScheduler
 				if #available(OSX 10.10, *) {
