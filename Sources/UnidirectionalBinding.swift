@@ -48,7 +48,7 @@ public protocol BindingTargetProtocol: class {
 	///            deinitialization of the target or the signal's `completed`
 	///            event.
 	@discardableResult
-	static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError
+	static func <~ (target: Self, signal: Signal<Value, NoError>) -> Disposable?
 }
 
 extension BindingTargetProtocol {
@@ -83,7 +83,7 @@ extension BindingTargetProtocol {
 	///            deinitialization of the target or the producer's `completed
 	///            event.
 	@discardableResult
-	public static func <~ <Source: SignalProducerProtocol>(target: Self, producer: Source) -> Disposable where Source.Value == Value, Source.Error == NoError {
+	public static func <~ (target: Self, producer: SignalProducer<Value, NoError>) -> Disposable {
 		var disposable: Disposable!
 
 		producer
@@ -161,7 +161,7 @@ extension BindingTargetProtocol where Value: OptionalProtocol {
 	///            deinitialization of the target or the signal's `completed`
 	///            event.
 	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value.Wrapped, Source.Error == NoError {
+	public static func <~ (target: Self, signal: Signal<Value.Wrapped, NoError>) -> Disposable? {
 		return target <~ signal.map(Value.init(reconstructing:))
 	}
 
@@ -196,7 +196,7 @@ extension BindingTargetProtocol where Value: OptionalProtocol {
 	///            deinitialization of the target or the producer's `completed`
 	///            event.
 	@discardableResult
-	public static func <~ <Source: SignalProducerProtocol>(target: Self, producer: Source) -> Disposable where Source.Value == Value.Wrapped, Source.Error == NoError {
+	public static func <~ (target: Self, producer: SignalProducer<Value.Wrapped, NoError>) -> Disposable {
 		return target <~ producer.map(Value.init(reconstructing:))
 	}
 
@@ -284,7 +284,7 @@ public final class BindingTarget<U>: BindingTargetProtocol {
 	}
 
 	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: BindingTarget<Value>, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
+	public static func <~ (target: BindingTarget<Value>, signal: Signal<Value, NoError>) -> Disposable? {
 		return signal
 			.take(during: target.lifetime)
 			.observeValues { [setter = target.setter] value in

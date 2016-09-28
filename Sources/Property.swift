@@ -666,7 +666,7 @@ public final class MutableProperty<Value>: MutablePropertyProtocol {
 	///            deinitialization of the target or the signal's `completed`
 	///            event.
 	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: MutableProperty, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
+	public static func <~ (target: MutableProperty, signal: Signal<Value, NoError>) -> Disposable? {
 		return signal
 			.take(during: target.lifetime)
 			.observeValues { [weak target] value in
