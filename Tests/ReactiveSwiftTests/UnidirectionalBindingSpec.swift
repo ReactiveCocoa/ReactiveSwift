@@ -22,13 +22,6 @@ class UnidirectionalBindingSpec: QuickSpec {
 				expect(target.lifetime).to(beIdenticalTo(lifetime))
 			}
 
-			it("should trigger the supplied setter") {
-				expect(value).to(beNil())
-
-				target.consume(1)
-				expect(value) == 1
-			}
-
 			it("should accept bindings from properties") {
 				expect(value).to(beNil())
 
