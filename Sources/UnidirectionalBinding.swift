@@ -1,3 +1,4 @@
+import Dispatch
 import enum Result.NoError
 
 precedencegroup BindingPrecedence {
@@ -10,7 +11,7 @@ precedencegroup BindingPrecedence {
 infix operator <~ : BindingPrecedence
 
 /// Describes a target to which can be bound.
-public protocol BindingTarget: class {
+public protocol BindingTargetProtocol: class {
 	associatedtype Value
 
 	/// The lifetime of `self`. The binding operators use this to determine when
@@ -50,7 +51,7 @@ public protocol BindingTarget: class {
 	static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError
 }
 
-extension BindingTarget {
+extension BindingTargetProtocol {
 	/// Binds a producer to a target, updating the target's value to the latest
 	/// value sent by the producer.
 	///
@@ -129,7 +130,7 @@ extension BindingTarget {
 	}
 }
 
-extension BindingTarget where Value: OptionalProtocol {
+extension BindingTargetProtocol where Value: OptionalProtocol {
 	/// Binds a signal to a target, updating the target's value to the latest
 	/// value sent by the signal.
 	///
@@ -235,3 +236,61 @@ extension BindingTarget where Value: OptionalProtocol {
 		return target <~ property.producer
 	}
 }
+
+/// A binding target that can be used with the `<~` operator.
+public final class BindingTarget<U>: BindingTargetProtocol {
+	public typealias Value = U
+
+	public let lifetime: Lifetime
+	private let setter: (Value) -> Void
+
+	/// Creates a binding target.
+	///
+	/// - parameters:
+	///   - lifetime: The expected lifetime of any bindings against the resulting
+	///               target.
+	///   - setter: The action to receive values.
+	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void) {
+		self.setter = setter
+		self.lifetime = lifetime
+	}
+
+	/// Creates a binding target which consumes values synchronously on the
+	/// supplied queue.
+	///
+	/// - parameters:
+	///   - queue: The dispatch queue on which the values are consumed.
+	///   - lifetime: The expected lifetime of any bindings against the resulting
+	///               target.
+	///   - setter: The action to receive values.
+	public convenience init(on queue: DispatchQueue, lifetime: Lifetime, setter: @escaping (Value) -> Void) {
+		let queueId = ObjectIdentifier(queue)
+
+		/// Ensures the queue has been setup property.
+		if nil == queue.getSpecific(key: specificKey) {
+			queue.setSpecific(key: specificKey, value: queueId)
+		}
+
+		let setter: (Value) -> Void = { value in
+			if queueId == DispatchQueue.getSpecific(key: specificKey) {
+				setter(value)
+			} else {
+				queue.sync {
+					setter(value)
+				}
+			}
+		}
+		self.init(lifetime: lifetime, setter: setter)
+	}
+
+	@discardableResult
+	public static func <~ <Source: SignalProtocol>(target: BindingTarget<Value>, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
+		return signal
+			.take(during: target.lifetime)
+			.observeValues { [setter = target.setter] value in
+				setter(value)
+			}
+	}
+}
+
+private let specificKey = DispatchSpecificKey<ObjectIdentifier>()

@@ -25,7 +25,7 @@ public protocol PropertyProtocol: class {
 }
 
 /// Represents an observable property that can be mutated directly.
-public protocol MutablePropertyProtocol: BindingTarget, PropertyProtocol {
+public protocol MutablePropertyProtocol: BindingTargetProtocol, PropertyProtocol {
 	associatedtype Value
 
 	/// The current value of the property.
