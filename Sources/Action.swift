@@ -10,10 +10,11 @@ import enum Result.NoError
 /// Actions enforce serial execution. Any attempt to execute an action multiple
 /// times concurrently will return an error.
 public final class Action<Input, Output, Error: Swift.Error> {
-	private let deinitToken: Lifetime.Token
+	private let deinitToken: Lifetime.Token?
 	private let executeClosure: (Input) -> SignalProducer<Output, Error>
 	private let eventsObserver: Signal<Event<Output, Error>, NoError>.Observer
 	private let disabledErrorsObserver: Signal<(), NoError>.Observer
+	private let producerFactory: (Input) -> SignalProducer<Output, ActionError<Error>>
 
 	/// The lifetime of the Action.
 	public let lifetime: Lifetime
@@ -40,16 +41,12 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	public let disabledErrors: Signal<(), NoError>
 
 	/// Whether the action is currently executing.
-	public var isExecuting: Property<Bool> {
-		return Property(_isExecuting)
-	}
+	public let isExecuting: Property<Bool>
 
 	private let _isExecuting: MutableProperty<Bool> = MutableProperty(false)
 
 	/// Whether the action is currently enabled.
-	public var isEnabled: Property<Bool> {
-		return Property(_isEnabled)
-	}
+	public var isEnabled: Property<Bool>
 
 	private let _isEnabled: MutableProperty<Bool> = MutableProperty(false)
 
@@ -73,13 +70,14 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// SignalProducer for each input.
 	///
 	/// - parameters:
+	///   - lifetime:
 	///   - enabledIf: Boolean property that shows whether the action is
 	///                enabled.
 	///   - execute: A closure that returns the signal producer returned by
 	///              calling `apply(Input)` on the action.
-	public init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
-		deinitToken = Lifetime.Token()
-		lifetime = Lifetime(deinitToken)
+	private init<P: PropertyProtocol>(lifetime: Lifetime, token: Lifetime.Token?, enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+		self.lifetime = lifetime
+		deinitToken = token
 
 		executeClosure = execute
 		isUserEnabled = Property(property)
@@ -87,12 +85,76 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		(events, eventsObserver) = Signal<Event<Output, Error>, NoError>.pipe()
 		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
 
+		lifetime.ended.observeCompleted(eventsObserver.sendCompleted)
+		lifetime.ended.observeCompleted(disabledErrorsObserver.sendCompleted)
+
 		values = events.map { $0.value }.skipNil()
 		errors = events.map { $0.error }.skipNil()
+
+		isEnabled = _isEnabled.take(during: lifetime)
+		isExecuting = _isExecuting.take(during: lifetime)
 
 		_isEnabled <~ property.producer
 			.combineLatest(with: isExecuting.producer)
 			.map(Action.shouldBeEnabled)
+
+		producerFactory = { [executingQueue, _isEnabled, _isExecuting, disabledErrorsObserver, eventsObserver, executeClosure] input in
+			return SignalProducer { observer, disposable in
+				var startedExecuting = false
+
+				executingQueue.sync {
+					if _isEnabled.value {
+						_isExecuting.value = true
+						startedExecuting = true
+					}
+				}
+
+				if !startedExecuting {
+					observer.send(error: .disabled)
+					disabledErrorsObserver.send(value: ())
+					return
+				}
+
+				executeClosure(input).startWithSignal { signal, signalDisposable in
+					disposable += signalDisposable
+
+					signal.observe { event in
+						observer.action(event.mapError(ActionError.producerFailed))
+						eventsObserver.send(value: event)
+					}
+				}
+
+				disposable += {
+					_isExecuting.value = false
+				}
+			}
+		}
+	}
+
+	/// Initializes an action that will be conditionally enabled, and creates a
+	/// SignalProducer for each input.
+	///
+	/// - parameters:
+	///   - enabledIf: Boolean property that shows whether the action is
+	///                enabled.
+	///   - execute: A closure that returns the signal producer returned by
+	///              calling `apply(Input)` on the action.
+	public convenience init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+		let token = Lifetime.Token()
+		let lifetime = Lifetime(token)
+		self.init(lifetime: lifetime, token: token, enabledIf: property, execute)
+	}
+
+	/// Initializes an action that will be conditionally enabled, and creates a
+	/// SignalProducer for each input.
+	///
+	/// - parameters:
+	///   - enabledIf: Boolean property that shows whether the action is
+	///                enabled.
+	///   - execute: A closure that returns the signal producer returned by
+	///              calling `apply(Input)` on the action.
+	public convenience init<P: PropertyProtocol>(lifetime: Lifetime, enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+		self.init(lifetime: lifetime, token: nil, enabledIf: property, execute)
 	}
 
 	/// Initializes an action that will be enabled by default, and creates a
@@ -105,8 +167,14 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		self.init(enabledIf: Property(value: true), execute)
 	}
 
-	deinit {
-		eventsObserver.sendCompleted()
+	/// Initializes an action that will be enabled by default, and creates a
+	/// SignalProducer for each input.
+	///
+	/// - parameters:
+	///   - execute: A closure that returns the signal producer returned by
+	///              calling `apply(Input)` on the action.
+	public convenience init(lifetime: Lifetime, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) {
+		self.init(lifetime: lifetime, enabledIf: Property(value: true), execute)
 	}
 
 	/// Creates a SignalProducer that, when started, will execute the action
@@ -121,39 +189,34 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///   - input: A value that will be passed to the closure creating the signal
 	///            producer.
 	public func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>> {
-		return SignalProducer { observer, disposable in
-			var startedExecuting = false
+		return producerFactory(input)
+	}
 
-			self.executingQueue.sync {
-				if self._isEnabled.value {
-					self._isExecuting.value = true
-					startedExecuting = true
-				}
+	/// Binds a signal to an action, executing the action with the latest
+	/// value sent by the signal.
+	///
+	/// - note: The binding will automatically terminate when the lifetime of the
+	///         target is deinitialized, or when the signal sends a `completed`
+	///         event.
+	///
+	/// - parameters:
+	///   - target: An action to be bond to.
+	///   - signal: A signal to bind.
+	///
+	/// - returns: A disposable that can be used to terminate binding before the
+	///            end of lifetime of the action or the signal's `completed`
+	///            event.
+	@discardableResult
+	public static func <~ <Source: SignalProtocol>(target: Action, signal: Source) -> Disposable? where Source.Value == Input, Source.Error == NoError {
+		return signal
+			.take(during: target.lifetime)
+			.observeValues { [producerFactory = target.producerFactory] value in
+				producerFactory(value).start()
 			}
-
-			if !startedExecuting {
-				observer.send(error: .disabled)
-				self.disabledErrorsObserver.send(value: ())
-				return
-			}
-
-			self.executeClosure(input).startWithSignal { signal, signalDisposable in
-				disposable += signalDisposable
-
-				signal.observe { event in
-					observer.action(event.mapError(ActionError.producerFailed))
-					self.eventsObserver.send(value: event)
-				}
-			}
-
-			disposable += {
-				self._isExecuting.value = false
-			}
-		}
 	}
 }
 
-public protocol ActionProtocol: BindingTarget {
+public protocol ActionProtocol: BindingTargetProtocol {
 	/// The type of argument to apply the action to.
 	associatedtype Input
 	/// The type of values returned by the action.
