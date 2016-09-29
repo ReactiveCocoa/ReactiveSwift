@@ -144,6 +144,81 @@ class ActionSpec: QuickSpec {
 					expect(errors) == [ testError ]
 				}
 			}
+
+			describe("bindings") {
+				it("should execute successfully") {
+					var receivedValue: String?
+					let (signal, observer) = Signal<Int, NoError>.pipe()
+
+					action.values.observeValues { receivedValue = $0 }
+
+					action <~ signal
+
+					enabled.value = true
+
+					expect(executionCount) == 0
+					expect(action.isExecuting.value) == false
+					expect(action.isEnabled.value) == true
+
+					observer.send(value: 0)
+
+					expect(executionCount) == 1
+					expect(action.isExecuting.value) == true
+					expect(action.isEnabled.value) == false
+
+					expect(receivedValue) == "00"
+					expect(values) == [ "0", "00" ]
+					expect(errors) == []
+
+					scheduler.run()
+					expect(action.isExecuting.value) == false
+					expect(action.isEnabled.value) == true
+
+					expect(values) == [ "0", "00" ]
+					expect(errors) == []
+				}
+
+				it("should respect the arbitrary lifetime used to create it") {
+					var token = Optional(Lifetime.Token())
+					let lifetime = Lifetime(token!)
+
+					let executeClosure: (Int) -> SignalProducer<Int, NoError> = {
+						return SignalProducer(value: $0 + 100)
+					}
+
+					var action = Optional(Action<Int, Int, NoError>(lifetime: lifetime,
+					                                                enabledIf: Property(value: true),
+					                                                executeClosure))
+
+					var isCompleted = false
+					action!.events.observeCompleted { isCompleted = true }
+
+					var receivedValue: Int?
+					let (signal, observer) = Signal<Int, NoError>.pipe()
+
+					action!.values.observeValues { receivedValue = $0 }
+
+					action! <~ signal
+
+					expect(receivedValue).to(beNil())
+
+					observer.send(value: 1)
+					expect(receivedValue) == 101
+
+					action = nil
+					expect(isCompleted) == false
+
+					observer.send(value: 2)
+					expect(receivedValue) == 102
+
+					observer.sendCompleted()
+					expect(receivedValue) == 102
+					expect(isCompleted) == false
+
+					token = nil
+					expect(isCompleted) == true
+				}
+			}
 		}
 	}
 }
