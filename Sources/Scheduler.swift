@@ -6,7 +6,12 @@
 //  Copyright (c) 2014 GitHub. All rights reserved.
 //
 
+import Dispatch
 import Foundation
+
+#if os(Linux)
+	import CDispatch
+#endif
 
 /// Represents a serial queue of work items.
 public protocol SchedulerProtocol {
@@ -85,7 +90,11 @@ public final class UIScheduler: SchedulerProtocol {
 			                               value: dispatchSpecificValue)
 	}()
 
+	#if os(Linux)
+	private var queueLength: Atomic<Int32> = Atomic(0)
+	#else
 	private var queueLength: Int32 = 0
+	#endif
 
 	/// Initializes `UIScheduler`
 	public init() {
@@ -113,10 +122,21 @@ public final class UIScheduler: SchedulerProtocol {
 				action()
 			}
 
-			OSAtomicDecrement32(&self.queueLength)
+			#if os(Linux)
+				self.queueLength.modify { $0 -= 1 }
+			#else
+				OSAtomicDecrement32(&self.queueLength)
+			#endif
 		}
 
-		let queued = OSAtomicIncrement32(&queueLength)
+		#if os(Linux)
+			let queued = self.queueLength.modify { value -> Int32 in
+				value += 1
+				return value
+			}
+		#else
+			let queued = OSAtomicIncrement32(&queueLength)
+		#endif
 
 		// If we're already running on the main queue, and there isn't work
 		// already enqueued, we can skip scheduling and just execute directly.
@@ -433,7 +453,7 @@ public final class TestScheduler: DateSchedulerProtocol {
 	/// This is intended to be used as a way to execute actions that have been
 	/// scheduled to run as soon as possible.
 	public func advance() {
-		advance(by: DBL_EPSILON)
+		advance(by: Double.ulpOfOne)
 	}
 
 	/// Advances the virtualized clock by the given interval, dequeuing and
