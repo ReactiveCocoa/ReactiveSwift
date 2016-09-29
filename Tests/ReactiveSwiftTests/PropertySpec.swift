@@ -581,6 +581,61 @@ class PropertySpec: QuickSpec {
 				}
 			}
 
+			describe("take(until)") {
+				it("should take values until the trigger fires") {
+					let source = MutableProperty(0)
+					let (trigger, triggerObserver) = Signal<(), NoError>.pipe()
+
+					let composed = source.take(until: trigger)
+					var isCompleted = false
+					composed.producer.startWithCompleted { isCompleted = true }
+
+					expect(composed.value) == 0
+
+					source.value = 1
+					expect(composed.value) == 1
+
+					source.value = 2
+					expect(composed.value) == 2
+
+					expect(isCompleted) == false
+					triggerObserver.send(value: ())
+					expect(isCompleted) == true
+				}
+
+				it("should take values until the trigger completes") {
+					let source = MutableProperty(0)
+					let (trigger, triggerObserver) = Signal<(), NoError>.pipe()
+
+					let composed = source.take(until: trigger)
+					var isCompleted = false
+					composed.producer.startWithCompleted { isCompleted = true }
+
+					expect(composed.value) == 0
+
+					source.value = 1
+					expect(composed.value) == 1
+
+					source.value = 2
+					expect(composed.value) == 2
+
+					expect(isCompleted) == false
+					triggerObserver.sendCompleted()
+					expect(isCompleted) == true
+				}
+
+				it("should send at least one value even the trigger fires right away") {
+					let source = MutableProperty(0)
+
+					let composed = source.take(until: SignalProducer.empty)
+					var isCompleted = false
+					composed.producer.startWithCompleted { isCompleted = true }
+
+					expect(composed.value) == 0
+					expect(isCompleted) == true
+				}
+			}
+
 			describe("combineLatest") {
 				var property: MutableProperty<String>!
 				var otherProperty: MutableProperty<String>!
