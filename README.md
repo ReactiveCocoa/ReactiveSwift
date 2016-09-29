@@ -343,7 +343,7 @@ We also provide a great Playground, so you can get used to ReactiveCocoa's opera
 [Actions]: Documentation/FrameworkOverview.md#actions
 [Basic Operators]: Documentation/BasicOperators.md
 [CHANGELOG]: CHANGELOG.md
-[Code]: ReactiveCocoa
+[Code]: Sources
 [Documentation]: Documentation
 [Events]: Documentation/FrameworkOverview.md#events
 [Framework Overview]: Documentation/FrameworkOverview.md
