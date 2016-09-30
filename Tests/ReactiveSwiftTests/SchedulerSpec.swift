@@ -6,11 +6,24 @@
 //  Copyright (c) 2014 GitHub. All rights reserved.
 //
 
+import Dispatch
 import Foundation
+
 import Nimble
 import Quick
 @testable
 import ReactiveSwift
+
+#if os(Linux)
+	import CoreFoundation
+
+	private extension Thread {
+		// `isMainThread` is not implemented yet in swift-corelibs-foundation.
+		static var isMainThread: Bool {
+			return _CFIsMainThread()
+		}
+	}
+#endif
 
 class SchedulerSpec: QuickSpec {
 	override func spec() {
