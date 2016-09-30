@@ -15,7 +15,7 @@ import Quick
 import ReactiveSwift
 
 #if os(Linux)
-	import CoreFoundation
+	import func CoreFoundation._CFIsMainThread
 
 	private extension Thread {
 		// `isMainThread` is not implemented yet in swift-corelibs-foundation.
