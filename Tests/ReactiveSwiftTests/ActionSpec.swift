@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 GitHub. All rights reserved.
 //
 
+import Foundation
+
 import Result
 import Nimble
 import Quick

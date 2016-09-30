@@ -6,6 +6,8 @@
 //  Copyright (c) 2015 GitHub. All rights reserved.
 //
 
+import Foundation
+
 import Result
 import Nimble
 import Quick
@@ -194,6 +196,12 @@ class SignalSpec: QuickSpec {
 				it("should not crash allocating memory with a few observers") {
 					let (signal, _) = Signal<Int, NoError>.pipe()
 
+					#if os(Linux)
+						func autoreleasepool(invoking code: () -> Void) {
+							code()
+						}
+					#endif
+
 					for _ in 0..<50 {
 						autoreleasepool {
 							let disposable = signal.observe { _ in }
@@ -258,7 +266,7 @@ class SignalSpec: QuickSpec {
 				let (signal, observer) = Signal<Int, NoError>.pipe()
 
 				let test = {
-					let innerStr: NSMutableString = NSMutableString()
+					let innerStr = NSMutableString(string: "")
 					signal.observeValues { value in
 						innerStr.append("\(value)")
 					}
@@ -280,7 +288,7 @@ class SignalSpec: QuickSpec {
 				let (signal, observer) = Signal<Int, NoError>.pipe()
 
 				let test = {
-					let innerStr: NSMutableString = NSMutableString()
+					let innerStr = NSMutableString(string: "")
 					signal.observeValues { value in
 						innerStr.append("\(value)")
 					}
@@ -897,16 +905,16 @@ class SignalSpec: QuickSpec {
 
 					if i % 3 == 0 {
 						expectation.append([Int]((i - 2)...i))
-						expect(observedValues as NSArray) == expectation as NSArray
+						expect(observedValues._bridgeToObjectiveC()) == expectation._bridgeToObjectiveC()
 					} else {
-						expect(observedValues as NSArray) == expectation as NSArray
+						expect(observedValues._bridgeToObjectiveC()) == expectation._bridgeToObjectiveC()
 					}
 				}
 
 				observer.sendCompleted()
 
 				expectation.append([7])
-				expect(observedValues as NSArray) == expectation as NSArray
+				expect(observedValues._bridgeToObjectiveC()) == expectation._bridgeToObjectiveC()
 			}
 
 			it("should collect values until it matches a certain value") {
@@ -924,7 +932,7 @@ class SignalSpec: QuickSpec {
 				}
 
 				signal.observeCompleted {
-					expect(expectedValues as NSArray) == []
+					expect(expectedValues._bridgeToObjectiveC()) == []
 				}
 
 				expectedValues
@@ -949,7 +957,7 @@ class SignalSpec: QuickSpec {
 				}
 
 				signal.observeCompleted {
-					expect(expectedValues as NSArray) == []
+					expect(expectedValues._bridgeToObjectiveC()) == []
 				}
 
 				expectedValues

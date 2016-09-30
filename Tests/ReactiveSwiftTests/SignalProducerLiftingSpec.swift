@@ -6,6 +6,8 @@
 //  Copyright © 2015 GitHub. All rights reserved.
 //
 
+import Foundation
+
 import Result
 import Nimble
 import Quick
@@ -516,16 +518,16 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 					if i % 3 == 0 {
 						expectation.append([Int]((i - 2)...i))
-						expect(observedValues as NSArray) == expectation as NSArray
+						expect(observedValues._bridgeToObjectiveC()) == expectation._bridgeToObjectiveC()
 					} else {
-						expect(observedValues as NSArray) == expectation as NSArray
+						expect(observedValues._bridgeToObjectiveC()) == expectation._bridgeToObjectiveC()
 					}
 				}
 
 				observer.sendCompleted()
 
 				expectation.append([7])
-				expect(observedValues as NSArray) == expectation as NSArray
+				expect(observedValues._bridgeToObjectiveC()) == expectation._bridgeToObjectiveC()
 			}
 
 			it("should collect values until it matches a certain value") {
@@ -543,7 +545,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				}
 
 				producer.startWithCompleted {
-					expect(expectedValues as NSArray) == [] as NSArray
+					expect(expectedValues._bridgeToObjectiveC()) == []._bridgeToObjectiveC()
 				}
 
 				expectedValues
@@ -568,7 +570,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				}
 
 				producer.startWithCompleted {
-					expect(expectedValues as NSArray) == [] as NSArray
+					expect(expectedValues._bridgeToObjectiveC()) == []._bridgeToObjectiveC()
 				}
 
 				expectedValues
