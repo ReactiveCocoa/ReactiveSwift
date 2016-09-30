@@ -10,7 +10,7 @@ import Dispatch
 import Foundation
 
 #if os(Linux)
-	import CDispatch
+	import let CDispatch.NSEC_PER_SEC
 #endif
 
 /// Represents a serial queue of work items.
