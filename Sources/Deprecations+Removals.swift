@@ -330,6 +330,16 @@ extension QueueScheduler {
 	public static var mainQueueScheduler: QueueScheduler { fatalError() }
 }
 
+extension NotificationCenter {
+	@available(*, unavailable, renamed:"rac.notifications")
+	public func rac_notifications(forName name: Notification.Name?, object: AnyObject? = nil) -> SignalProducer<Notification, NoError> { fatalError() }
+}
+
+extension URLSession {
+	@available(*, unavailable, renamed:"rac.data")
+	public func rac_data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), NSError> { fatalError() }
+}
+
 // Free functions
 
 @available(*, unavailable, renamed:"Signal.combineLatest")
