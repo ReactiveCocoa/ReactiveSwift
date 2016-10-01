@@ -177,47 +177,6 @@ class ActionSpec: QuickSpec {
 					expect(values) == [ "0", "00" ]
 					expect(errors) == []
 				}
-
-				it("should respect the arbitrary lifetime used to create it") {
-					var token = Optional(Lifetime.Token())
-					let lifetime = Lifetime(token!)
-
-					let executeClosure: (Int) -> SignalProducer<Int, NoError> = {
-						return SignalProducer(value: $0 + 100)
-					}
-
-					var action = Optional(Action<Int, Int, NoError>(lifetime: lifetime,
-					                                                enabledIf: Property(value: true),
-					                                                executeClosure))
-
-					var isCompleted = false
-					action!.events.observeCompleted { isCompleted = true }
-
-					var receivedValue: Int?
-					let (signal, observer) = Signal<Int, NoError>.pipe()
-
-					action!.values.observeValues { receivedValue = $0 }
-
-					action! <~ signal
-
-					expect(receivedValue).to(beNil())
-
-					observer.send(value: 1)
-					expect(receivedValue) == 101
-
-					action = nil
-					expect(isCompleted) == false
-
-					observer.send(value: 2)
-					expect(receivedValue) == 102
-
-					observer.sendCompleted()
-					expect(receivedValue) == 102
-					expect(isCompleted) == false
-
-					token = nil
-					expect(isCompleted) == true
-				}
 			}
 		}
 	}
