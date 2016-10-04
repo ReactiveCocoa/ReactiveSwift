@@ -43,13 +43,29 @@ class UnidirectionalBindingSpec: QuickSpec {
 			}
 
 			it("should not deadlock on the same queue") {
-				target = BindingTarget(on: .main,
+				target = BindingTarget(on: UIScheduler(),
 				                       lifetime: lifetime,
 				                       setter: { value = $0 })
 
 				let property = MutableProperty(1)
 				target <~ property
 				expect(value) == 1
+			}
+
+			it("should not deadlock on the main thread even if the context was switched to a different queue") {
+				let queue = DispatchQueue(label: #file)
+
+				target = BindingTarget(on: UIScheduler(),
+				                       lifetime: lifetime,
+				                       setter: { value = $0 })
+
+				let property = MutableProperty(1)
+
+				queue.sync {
+					_ = target <~ property
+				}
+
+				expect(value).toEventually(equal(1))
 			}
 
 			it("should not deadlock even if the value is originated from the same queue indirectly") {
@@ -63,7 +79,7 @@ class UnidirectionalBindingSpec: QuickSpec {
 					mainQueueCounter.modify { $0 += DispatchQueue.getSpecific(key: key) != nil ? 1 : 0 }
 				}
 
-				target = BindingTarget(on: .main,
+				target = BindingTarget(on: UIScheduler(),
 				                       lifetime: lifetime,
 				                       setter: setter)
 
