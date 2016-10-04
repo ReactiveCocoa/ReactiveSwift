@@ -10,9 +10,14 @@ import enum Result.NoError
 /// Actions enforce serial execution. Any attempt to execute an action multiple
 /// times concurrently will return an error.
 public final class Action<Input, Output, Error: Swift.Error> {
+	private let deinitToken: Lifetime.Token
+
 	private let executeClosure: (Input) -> SignalProducer<Output, Error>
 	private let eventsObserver: Signal<Event<Output, Error>, NoError>.Observer
 	private let disabledErrorsObserver: Signal<(), NoError>.Observer
+
+	/// The lifetime of the Action.
+	public let lifetime: Lifetime
 
 	/// A signal of all events generated from applications of the Action.
 	///
@@ -36,16 +41,12 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	public let disabledErrors: Signal<(), NoError>
 
 	/// Whether the action is currently executing.
-	public var isExecuting: Property<Bool> {
-		return Property(_isExecuting)
-	}
+	public let isExecuting: Property<Bool>
 
 	private let _isExecuting: MutableProperty<Bool> = MutableProperty(false)
 
 	/// Whether the action is currently enabled.
-	public var isEnabled: Property<Bool> {
-		return Property(_isEnabled)
-	}
+	public var isEnabled: Property<Bool>
 
 	private let _isEnabled: MutableProperty<Bool> = MutableProperty(false)
 
@@ -74,6 +75,9 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///   - execute: A closure that returns the signal producer returned by
 	///              calling `apply(Input)` on the action.
 	public init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+		deinitToken = Lifetime.Token()
+		lifetime = Lifetime(deinitToken)
+
 		executeClosure = execute
 		isUserEnabled = Property(property)
 
@@ -82,6 +86,9 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 		values = events.map { $0.value }.skipNil()
 		errors = events.map { $0.error }.skipNil()
+
+		isEnabled = Property(_isEnabled)
+		isExecuting = Property(_isExecuting)
 
 		_isEnabled <~ property.producer
 			.combineLatest(with: isExecuting.producer)
@@ -100,6 +107,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 	deinit {
 		eventsObserver.sendCompleted()
+		disabledErrorsObserver.sendCompleted()
 	}
 
 	/// Creates a SignalProducer that, when started, will execute the action
@@ -146,7 +154,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	}
 }
 
-public protocol ActionProtocol {
+public protocol ActionProtocol: BindingTargetProtocol {
 	/// The type of argument to apply the action to.
 	associatedtype Input
 	/// The type of values returned by the action.
@@ -173,6 +181,12 @@ public protocol ActionProtocol {
 	///   - input: A value that will be passed to the closure creating the signal
 	///            producer.
 	func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>>
+}
+
+extension ActionProtocol {
+	public func consume(_ value: Input) {
+		apply(value).start()
+	}
 }
 
 extension Action: ActionProtocol {

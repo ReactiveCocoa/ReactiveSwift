@@ -146,6 +146,40 @@ class ActionSpec: QuickSpec {
 					expect(errors) == [ testError ]
 				}
 			}
+
+			describe("bindings") {
+				it("should execute successfully") {
+					var receivedValue: String?
+					let (signal, observer) = Signal<Int, NoError>.pipe()
+
+					action.values.observeValues { receivedValue = $0 }
+
+					action <~ signal
+
+					enabled.value = true
+
+					expect(executionCount) == 0
+					expect(action.isExecuting.value) == false
+					expect(action.isEnabled.value) == true
+
+					observer.send(value: 0)
+
+					expect(executionCount) == 1
+					expect(action.isExecuting.value) == true
+					expect(action.isEnabled.value) == false
+
+					expect(receivedValue) == "00"
+					expect(values) == [ "0", "00" ]
+					expect(errors) == []
+
+					scheduler.run()
+					expect(action.isExecuting.value) == false
+					expect(action.isEnabled.value) == true
+
+					expect(values) == [ "0", "00" ]
+					expect(errors) == []
+				}
+			}
 		}
 	}
 }
