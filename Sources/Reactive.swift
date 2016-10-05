@@ -7,7 +7,7 @@ public protocol ReactiveExtensionsProvider: class {}
 
 extension ReactiveExtensionsProvider {
 	/// A proxy which exposes the reactivity of `self`.
-	public var rac: Reactive<Self> {
+	public var reactive: Reactive<Self> {
 		return Reactive(self)
 	}
 }
