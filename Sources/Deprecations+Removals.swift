@@ -331,12 +331,12 @@ extension QueueScheduler {
 }
 
 extension NotificationCenter {
-	@available(*, unavailable, renamed:"rac.notifications")
+	@available(*, unavailable, renamed:"reactive.notifications")
 	public func rac_notifications(forName name: Notification.Name?, object: AnyObject? = nil) -> SignalProducer<Notification, NoError> { fatalError() }
 }
 
 extension URLSession {
-	@available(*, unavailable, renamed:"rac.data")
+	@available(*, unavailable, renamed:"reactive.data")
 	public func rac_data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), NSError> { fatalError() }
 }
 
