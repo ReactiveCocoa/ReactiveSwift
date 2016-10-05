@@ -1,3 +1,4 @@
+import Foundation
 import Dispatch
 import enum Result.NoError
 
@@ -286,37 +287,23 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 	/// Creates a binding target.
 	///
 	/// - parameters:
-	///   - lifetime: The expected lifetime of any bindings against the resulting
-	///               target.
-	///   - setter: The action to receive values.
+	///   - lifetime: The expected lifetime of any bindings towards `self`.
+	///   - setter: The action to consume values.
 	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void) {
 		self.setter = setter
 		self.lifetime = lifetime
 	}
 
-	/// Creates a binding target which consumes values synchronously on the
-	/// supplied queue.
+	/// Creates a binding target which consumes values on the specified scheduler.
 	///
 	/// - parameters:
-	///   - queue: The dispatch queue on which the values are consumed.
-	///   - lifetime: The expected lifetime of any bindings against the resulting
-	///               target.
-	///   - setter: The action to receive values.
-	public convenience init(on queue: DispatchQueue, lifetime: Lifetime, setter: @escaping (Value) -> Void) {
-		let queueId = ObjectIdentifier(queue)
-
-		/// Ensures the queue has been setup property.
-		if nil == queue.getSpecific(key: specificKey) {
-			queue.setSpecific(key: specificKey, value: queueId)
-		}
-
+	///   - scheduler: The scheduler on which the `setter` consumes the values.
+	///   - lifetime: The expected lifetime of any bindings towards `self`.
+	///   - setter: The action to consume values.
+	public convenience init(on scheduler: SchedulerProtocol, lifetime: Lifetime, setter: @escaping (Value) -> Void) {
 		let setter: (Value) -> Void = { value in
-			if queueId == DispatchQueue.getSpecific(key: specificKey) {
+			scheduler.schedule {
 				setter(value)
-			} else {
-				queue.sync {
-					setter(value)
-				}
 			}
 		}
 		self.init(lifetime: lifetime, setter: setter)
