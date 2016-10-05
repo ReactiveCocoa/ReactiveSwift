@@ -1736,10 +1736,13 @@ extension SignalProducerProtocol {
 			// have terminated.
 			disposable += { _ = lifetimeToken }
 
+			// A token to identify this instance of produced signal.
+			let token = ReplayToken()
+
 			while true {
 				var result: Result<RemovalToken?, ReplayError<Value>>!
 				state.modify {
-					result = $0.observe(observer)
+					result = $0.observe(observer, token: token)
 				}
 
 				switch result! {
@@ -1773,6 +1776,8 @@ private struct ReplayError<Value>: Error {
 	/// The values that should be replayed by the observer.
 	let values: [Value]
 }
+
+private class ReplayToken {}
 
 private struct ReplayState<Value, Error: Swift.Error> {
 	let capacity: Int
@@ -1813,11 +1818,8 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	///   If the observer is successfully attached, a `Result.success` with the
 	///   corresponding removal token would be returned. Otherwise, a
 	///   `Result.failure` with a `ReplayError` would be returned.
-	mutating func observe(_ observer: Signal<Value, Error>.Observer) -> Result<RemovalToken?, ReplayError<Value>> {
-		// Since the only use case is `replayLazily`, which always creates a unique
-		// `Observer` for every produced signal, we can use the ObjectIdentifier of
-		// the `Observer` to track them directly.
-		let id = ObjectIdentifier(observer)
+	mutating func observe(_ observer: Signal<Value, Error>.Observer, token: ReplayToken) -> Result<RemovalToken?, ReplayError<Value>> {
+		let id = ObjectIdentifier(token)
 
 		switch replayBuffers[id] {
 		case .none where !values.isEmpty:
