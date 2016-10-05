@@ -1,11 +1,11 @@
-/// Describes a class which has been extended with reactive elements.
+/// Describes a provider of reactive extensions.
 ///
-/// - note: `ExtendedForReactiveness` is only intended for extensions to types
-///         that are not owned by the module. Non-conforming types may carry
-///         first-party reactive elements.
-public protocol ExtendedForReactiveness: class {}
+/// - note: `ReactiveExtensionsProvider` does not indicate whether a type is
+///         reactive. It is intended for extensions to types that do not own by
+///         the module so as to avoid name collision and return type ambiguity.
+public protocol ReactiveExtensionsProvider: class {}
 
-extension ExtendedForReactiveness {
+extension ReactiveExtensionsProvider {
 	/// A proxy which exposes the reactivity of `self`.
 	public var rac: Reactive<Self> {
 		return Reactive(self)

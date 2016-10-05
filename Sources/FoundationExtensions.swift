@@ -9,7 +9,7 @@
 import Foundation
 import enum Result.NoError
 
-extension NotificationCenter: ExtendedForReactiveness {}
+extension NotificationCenter: ReactiveExtensionsProvider {}
 
 extension Reactive where Base: NotificationCenter {
 	/// Returns a SignalProducer to observe posting of the specified
@@ -50,7 +50,7 @@ private let defaultSessionError = NSError(domain: "org.reactivecocoa.ReactiveSwi
                                           code: 1,
                                           userInfo: nil)
 
-extension URLSession: ExtendedForReactiveness {}
+extension URLSession: ReactiveExtensionsProvider {}
 
 extension Reactive where Base: URLSession {
 	/// Returns a SignalProducer which performs the work associated with an
