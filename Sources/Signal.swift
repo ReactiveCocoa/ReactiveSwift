@@ -1586,19 +1586,20 @@ extension SignalProtocol {
 			disposable += shouldThrottle.producer
 				.skipRepeats()
 				.startWithValues { shouldThrottle in
-					var valueToSend: Value?
-
-					state.modify { state -> ThrottleWhileState<Value> in
-						guard !state.isTerminated else { return state }
+					let valueToSend = state.modify { state -> Value? in
+						guard !state.isTerminated else { return nil }
 
 						if shouldThrottle {
-							return .throttled(nil)
+							state = .throttled(nil)
 						} else {
+							defer { state = .resumed }
+
 							if case let .throttled(value?) = state {
-								valueToSend = value
+								return value
 							}
-							return .resumed
 						}
+
+						return nil
 					}
 
 					if let value = valueToSend {
@@ -1609,24 +1610,22 @@ extension SignalProtocol {
 				}
 
 			disposable += self.observe { event in
-				var eventToSend: Event<Value, Error>?
-
-				state.modify { state -> ThrottleWhileState<Value> in
+				let eventToSend = state.modify { state -> Event<Value, Error>? in
 					switch event {
 					case let .value(value):
 						switch state {
 						case .throttled:
-							return .throttled(value)
+							state = .throttled(value)
+							return nil
 						case .resumed:
-							eventToSend = event
-							return state
+							return event
 						case .terminated:
-							return state
+							return nil
 						}
 
 					case .completed, .interrupted, .failed:
-						eventToSend = event
-						return .terminated
+						state = .terminated
+						return event
 					}
 				}
 
