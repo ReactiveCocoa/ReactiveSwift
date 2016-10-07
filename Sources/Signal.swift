@@ -1586,6 +1586,8 @@ extension SignalProtocol {
 			disposable += shouldThrottle.producer
 				.skipRepeats()
 				.startWithValues { shouldThrottle in
+					var valueToSend: Value?
+
 					state.modify { state -> ThrottleWhileState<Value> in
 						guard !state.isTerminated else { return state }
 
@@ -1593,16 +1595,22 @@ extension SignalProtocol {
 							return .throttled(nil)
 						} else {
 							if case let .throttled(value?) = state {
-								schedulerDisposable.innerDisposable = scheduler.schedule {
-									observer.send(value: value)
-								}
+								valueToSend = value
 							}
 							return .resumed
+						}
+					}
+
+					if let value = valueToSend {
+						schedulerDisposable.innerDisposable = scheduler.schedule {
+							observer.send(value: value)
 						}
 					}
 				}
 
 			disposable += self.observe { event in
+				var eventToSend: Event<Value, Error>?
+
 				state.modify { state -> ThrottleWhileState<Value> in
 					switch event {
 					case let .value(value):
@@ -1610,19 +1618,21 @@ extension SignalProtocol {
 						case .throttled:
 							return .throttled(value)
 						case .resumed:
-							schedulerDisposable.innerDisposable = scheduler.schedule {
-								observer.action(event)
-							}
+							eventToSend = event
 							return state
 						case .terminated:
 							return state
 						}
 
 					case .completed, .interrupted, .failed:
-						schedulerDisposable.innerDisposable = scheduler.schedule {
-							observer.action(event)
-						}
+						eventToSend = event
 						return .terminated
+					}
+				}
+
+				if let event = eventToSend {
+					schedulerDisposable.innerDisposable = scheduler.schedule {
+						observer.action(event)
 					}
 				}
 			}
