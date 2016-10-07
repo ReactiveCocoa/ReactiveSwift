@@ -1,12 +1,13 @@
 /// Describes a provider of reactive extensions.
 ///
 /// - note: `ReactiveExtensionsProvider` does not indicate whether a type is
-///         reactive. It is intended for extensions to types that do not own by
-///         the module so as to avoid name collision and return type ambiguity.
+///         reactive. It is intended for extensions to types that are not owned
+///         by the module in order to avoid name collisions and return type
+///         ambiguities.
 public protocol ReactiveExtensionsProvider: class {}
 
 extension ReactiveExtensionsProvider {
-	/// A proxy which exposes the reactivity of `self`.
+	/// A proxy which hosts reactive extensions for `self`.
 	public var reactive: Reactive<Self> {
 		return Reactive(self)
 	}
