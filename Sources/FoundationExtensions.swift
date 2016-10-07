@@ -29,7 +29,7 @@ extension Reactive where Base: NotificationCenter {
 	public func notifications(forName name: Notification.Name?, object: AnyObject? = nil) -> SignalProducer<Notification, NoError> {
 		// We're weakly capturing an optional reference here, which makes destructuring awkward.
 		let objectWasNil = (object == nil)
-		return SignalProducer { [base, weak object] observer, disposable in
+		return SignalProducer { [base = self.base, weak object] observer, disposable in
 			guard object != nil || objectWasNil else {
 				observer.sendInterrupted()
 				return
@@ -67,7 +67,7 @@ extension Reactive where Base: URLSession {
 	///         side error (i.e. when a response with status code other than
 	///         200...299 is received).
 	public func data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), NSError> {
-		return SignalProducer { [base] observer, disposable in
+		return SignalProducer { [base = self.base] observer, disposable in
 			let task = base.dataTask(with: request) { data, response, error in
 				if let data = data, let response = response {
 					observer.send(value: (data, response))
