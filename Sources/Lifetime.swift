@@ -39,6 +39,58 @@ public final class Lifetime {
 		self.init(ended: token.ended)
 	}
 
+	/// Create a lifetime that is an OR of `self` and `other`.
+	///
+	/// - parameters:
+	///   - other: The lifetime to be composed with.
+	///
+	/// - returns:
+	///   An OR lifetime.
+	public func or(_ other: Lifetime) -> Lifetime {
+		return Lifetime(ended: ended.zip(with: other.ended).map { _ in })
+	}
+
+	/// Create a lifetime that is an AND of `self` and `other`.
+	///
+	/// - parameters:
+	///   - other: The lifetime to be composed with.
+	///
+	/// - returns:
+	///   An AND lifetime.
+	public func and(_ other: Lifetime) -> Lifetime {
+		return Lifetime(ended: ended.combineLatest(with: other.ended).map { _ in })
+	}
+
+	/// Attach a disposable to `lifetime`.
+	///
+	/// - parameters:
+	///   - lifetime: The lifetime being attached.
+	///   - disposable: The disposable to be attached.
+	///
+	/// - returns:
+	///   A cancel disposable to detach the disposable, or `nil` if the lifetime
+	///   has terminated.
+	@discardableResult
+	public static func += (lifetime: Lifetime, disposable: Disposable?) -> Disposable? {
+		return disposable.flatMap { disposable in
+			return lifetime.ended.observeCompleted(disposable.dispose)
+		}
+	}
+
+	/// Attach an action to `lifetime`.
+	///
+	/// - parameters:
+	///   - lifetime: The lifetime being attached.
+	///   - action: The action to be attached.
+	///
+	/// - returns:
+	///   A cancel disposable to detach the action, or `nil` if the lifetime has
+	///   terminated.
+	@discardableResult
+	public static func += (lifetime: Lifetime, action: @escaping () -> Void) -> Disposable? {
+		return lifetime.ended.observeCompleted(action)
+	}
+
 	/// A token object which completes its signal when it deinitializes.
 	///
 	/// It is generally used in conjuncion with `Lifetime` as a private
