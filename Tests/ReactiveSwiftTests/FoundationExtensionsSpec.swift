@@ -23,11 +23,11 @@ class FoundationExtensionsSpec: QuickSpec {
 		describe("NotificationCenter.reactive.notifications") {
 			let center = NotificationCenter.default
 
-			it("should send notifications on the producer") {
-				let producer = center.reactive.notifications(forName: .racFirst)
+			it("should send notifications on the signal") {
+				let signal = center.reactive.notifications(forName: .racFirst)
 
 				var notif: Notification? = nil
-				let disposable = producer.startWithValues { notif = $0 }
+				let disposable = signal.observeValues { notif = $0 }
 
 				center.post(name: .racAnother, object: nil)
 				expect(notif).to(beNil())
@@ -36,26 +36,54 @@ class FoundationExtensionsSpec: QuickSpec {
 				expect(notif?.name) == .racFirst
 
 				notif = nil
-				disposable.dispose()
+				disposable?.dispose()
 
 				center.post(name: .racFirst, object: nil)
 				expect(notif).to(beNil())
 			}
 
-			it("should send Interrupted when the observed object is freed") {
-				var observedObject: AnyObject? = NSObject()
-				let producer = center.reactive.notifications(forName: nil, object: observedObject)
-				observedObject = nil
+			it("should be freed if it is not reachable and no observer is attached") {
+				weak var signal: Signal<Notification, NoError>?
+				var isDisposed = false
 
-				var interrupted = false
-				let disposable = producer.startWithInterrupted {
-					interrupted = true
-				}
-				expect(interrupted) == true
+				let disposable: Disposable? = {
+					let innerSignal = center.reactive.notifications(forName: nil)
+						.on(disposed: { isDisposed = true })
 
-				disposable.dispose()
+					signal = innerSignal
+					return innerSignal.observe { _ in }
+				}()
+
+				expect(isDisposed) == false
+				expect(signal).toNot(beNil())
+
+				disposable?.dispose()
+
+				expect(isDisposed) == true
+				expect(signal).to(beNil())
 			}
 
+			it("should be not freed if it still has one or more active observers") {
+				weak var signal: Signal<Notification, NoError>?
+				var isDisposed = false
+
+				let disposable: Disposable? = {
+					let innerSignal = center.reactive.notifications(forName: nil)
+						.on(disposed: { isDisposed = true })
+
+					signal = innerSignal
+					innerSignal.observe { _ in }
+					return innerSignal.observe { _ in }
+				}()
+
+				expect(isDisposed) == false
+				expect(signal).toNot(beNil())
+
+				disposable?.dispose()
+
+				expect(isDisposed) == false
+				expect(signal).toNot(beNil())
+			}
 		}
 	}
 }
