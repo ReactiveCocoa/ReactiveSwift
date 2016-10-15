@@ -11,18 +11,18 @@ import Foundation
 /// A namespace for logging event types.
 public enum LoggingEvent {
 	public enum Signal: String {
-		case value, completed, failed, terminated, disposed, interrupted
+		case value, completed, failed, terminated, disposed, interrupted, valueSent
 
 		public static let allEvents: Set<Signal> = [
-			.value, .completed, .failed, .terminated, .disposed, .interrupted,
+			.value, .completed, .failed, .terminated, .disposed, .interrupted, .valueSent
 		]
 	}
 
 	public enum SignalProducer: String {
-		case starting, started, value, completed, failed, terminated, disposed, interrupted
+		case starting, started, value, completed, failed, terminated, disposed, interrupted, valueSent
 
 		public static let allEvents: Set<SignalProducer> = [
-			.starting, .started, .value, .completed, .failed, .terminated, .disposed, .interrupted,
+			.starting, .started, .value, .completed, .failed, .terminated, .disposed, .interrupted, .valueSent
 		]
 	}
 }
@@ -67,6 +67,7 @@ extension SignalProtocol {
 			interrupted: log(.interrupted),
 			terminated: log(.terminated),
 			disposed: log(.disposed),
+			valueSent: log(.valueSent),
 			value: log(.value)
 		)
 	}
@@ -102,12 +103,13 @@ extension SignalProducerProtocol {
 		return self.on(
 			starting: log(.starting),
 			started: log(.started),
-			value: log(.value),
 			failed: log(.failed),
 			completed: log(.completed),
 			interrupted: log(.interrupted),
 			terminated: log(.terminated),
-			disposed: log(.disposed)
+			disposed: log(.disposed),
+			valueSent: log(.valueSent),
+			value: log(.value)
 		)
 	}
 }

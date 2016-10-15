@@ -1242,32 +1242,37 @@ extension SignalProducerProtocol {
 	/// Injects side effects to be performed upon the specified producer events.
 	///
 	/// - note: In a composed producer, `starting` is invoked in the reverse
-	///         direction of the flow of events.
+	///         direction of the flow of events. Moreover, unless otherwise
+	///         specified, all side effects are invoked before the call-out to the
+	///         observers.
 	///
 	/// - parameters:
 	///   - starting: A closure that is invoked before the producer is started.
 	///   - started: A closure that is invoked after the producer is started.
 	///   - event: A closure that accepts an event and is invoked on every
 	///            received event.
-	///   - value: A closure that accepts a value from `value` event.
 	///   - failed: A closure that accepts error object and is invoked for
 	///             `failed` event.
 	///   - completed: A closure that is invoked for `completed` event.
 	///   - interrupted: A closure that is invoked for `interrupted` event.
 	///   - terminated: A closure that is invoked for any terminating event.
 	///   - disposed: A closure added as disposable when signal completes.
+	///   - valueSent: A closure tthat is invoked after a `next` event has been
+	///                  sent to all observers.
+	///   - value: A closure that accepts a value from `value` event.
 	///
 	/// - returns: A producer with attached side-effects for given event cases.
 	public func on(
 		starting: (() -> Void)? = nil,
 		started: (() -> Void)? = nil,
 		event: ((Event<Value, Error>) -> Void)? = nil,
-		value: ((Value) -> Void)? = nil,
 		failed: ((Error) -> Void)? = nil,
 		completed: (() -> Void)? = nil,
 		interrupted: (() -> Void)? = nil,
 		terminated: (() -> Void)? = nil,
-		disposed: (() -> Void)? = nil
+		disposed: (() -> Void)? = nil,
+		valueSent: ((Value) -> Void)? = nil,
+		value: ((Value) -> Void)? = nil
 	) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, compositeDisposable in
 			starting?()
@@ -1283,6 +1288,7 @@ extension SignalProducerProtocol {
 						interrupted: interrupted,
 						terminated: terminated,
 						disposed: disposed,
+						valueSent: valueSent,
 						value: value
 					)
 					.observe(observer)

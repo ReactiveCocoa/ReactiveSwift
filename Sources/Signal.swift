@@ -812,16 +812,21 @@ extension SignalProtocol where Value: EventProtocol, Error == NoError {
 extension SignalProtocol {
 	/// Inject side effects to be performed upon the specified signal events.
 	///
+	/// - note: Except for `valueSent` and `disposed`, all side effects are
+	///         invoked before the call-out to the observers.
+	///
 	/// - parameters:
 	///   - event: A closure that accepts an event and is invoked on every
 	///            received event.
-	///   - value: A closure that accepts a value from `value` event.
 	///   - failed: A closure that accepts error object and is invoked for
 	///             failed event.
 	///   - completed: A closure that is invoked for `completed` event.
 	///   - interrupted: A closure that is invoked for `interrupted` event.
 	///   - terminated: A closure that is invoked for any terminating event.
 	///   - disposed: A closure added as disposable when signal completes.
+	///   - valueSent: A closure that is invoked after a `next` event has been
+	///                  sent to all observers.
+	///   - value: A closure that accepts a value from `value` event.
 	///
 	/// - returns: A signal with attached side-effects for given event cases.
 	public func on(
@@ -831,6 +836,7 @@ extension SignalProtocol {
 		interrupted: (() -> Void)? = nil,
 		terminated: (() -> Void)? = nil,
 		disposed: (() -> Void)? = nil,
+		valueSent: ((Value) -> Void)? = nil,
 		value: ((Value) -> Void)? = nil
 	) -> Signal<Value, Error> {
 		return Signal { observer in
@@ -844,6 +850,9 @@ extension SignalProtocol {
 				switch receivedEvent {
 				case let .value(v):
 					value?(v)
+					observer.send(value: v)
+					valueSent?(v)
+					return
 
 				case let .failed(error):
 					failed?(error)
