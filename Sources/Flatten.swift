@@ -556,14 +556,9 @@ extension SignalProtocol {
 	public static func merge<Seq: Sequence, S: SignalProtocol>(_ signals: Seq) -> Signal<Value, Error>
 		where S.Value == Value, S.Error == Error, Seq.Iterator.Element == S
 	{
-		let producer = SignalProducer<S, Error>(values: signals)
-		var result: Signal<Value, Error>!
-
-		producer.startWithSignal { signal, _ in
-			result = signal.flatten(.merge)
-		}
-
-		return result
+		return SignalProducer<S, Error>(values: signals)
+			.flatten(.merge)
+			.startAndRetrieveSignal()
 	}
 	
 	/// Merges the given signals into a single `Signal` that will emit all

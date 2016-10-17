@@ -330,6 +330,22 @@ extension SignalProducerProtocol {
 	public func startWithInterrupted(_ interrupted: @escaping () -> Void) -> Disposable {
 		return start(Observer(interrupted: interrupted))
 	}
+	
+	/// Creates a `Signal` from the producer.
+	///
+	/// This is equivalent to `SignalProducer.startWithSignal`, but it has 
+	/// the downside that any values emitted synchronously upon starting will 
+	/// be missed by the observer, because it won't be able to subscribe in time.
+	/// That's why we don't want this method to be exposed as `public`, 
+	/// but it's useful internally.
+	internal func startAndRetrieveSignal() -> Signal<Value, Error> {
+		var result: Signal<Value, Error>!
+		self.startWithSignal { signal, _ in
+			result = signal
+		}
+		
+		return result
+	}
 }
 
 extension SignalProducerProtocol where Error == NoError {
