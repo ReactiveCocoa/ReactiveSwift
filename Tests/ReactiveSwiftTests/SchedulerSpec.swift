@@ -190,7 +190,7 @@ class SchedulerSpec: QuickSpec {
 					var count = 0
 					let timesToRun = 3
 
-					disposable.innerDisposable = scheduler.schedule(after: Date(), interval: 0.01, leeway: 0) {
+					disposable.innerDisposable = scheduler.schedule(after: Date(), interval: .milliseconds(10), leeway: .seconds(0)) {
 						expect(Thread.isMainThread) == false
 
 						count += 1
@@ -246,13 +246,13 @@ class SchedulerSpec: QuickSpec {
 			it("should run actions when advanced past the target date") {
 				var string = ""
 
-				scheduler.schedule(after: 15) { [weak scheduler] in
+				scheduler.schedule(after: .seconds(15)) { [weak scheduler] in
 					string += "bar"
 					expect(Thread.isMainThread) == true
 					expect(scheduler?.currentDate).to(beCloseTo(startDate.addingTimeInterval(15), within: dateComparisonDelta))
 				}
 
-				scheduler.schedule(after: 5) { [weak scheduler] in
+				scheduler.schedule(after: .seconds(5)) { [weak scheduler] in
 					string += "foo"
 					expect(Thread.isMainThread) == true
 					expect(scheduler?.currentDate).to(beCloseTo(startDate.addingTimeInterval(5), within: dateComparisonDelta))
@@ -260,11 +260,11 @@ class SchedulerSpec: QuickSpec {
 
 				expect(string) == ""
 
-				scheduler.advance(by: 10)
+				scheduler.advance(by: .seconds(10))
 				expect(scheduler.currentDate).to(beCloseTo(startDate.addingTimeInterval(10), within: TimeInterval(dateComparisonDelta)))
 				expect(string) == "foo"
 
-				scheduler.advance(by: 10)
+				scheduler.advance(by: .seconds(10))
 				expect(scheduler.currentDate).to(beCloseTo(startDate.addingTimeInterval(20), within: dateComparisonDelta))
 				expect(string) == "foobar"
 			}
@@ -272,12 +272,12 @@ class SchedulerSpec: QuickSpec {
 			it("should run all remaining actions in order") {
 				var string = ""
 
-				scheduler.schedule(after: 15) {
+				scheduler.schedule(after: .seconds(15)) {
 					string += "bar"
 					expect(Thread.isMainThread) == true
 				}
 
-				scheduler.schedule(after: 5) {
+				scheduler.schedule(after: .seconds(5)) {
 					string += "foo"
 					expect(Thread.isMainThread) == true
 				}
