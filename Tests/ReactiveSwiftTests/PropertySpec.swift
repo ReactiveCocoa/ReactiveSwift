@@ -6,6 +6,8 @@
 //  Copyright (c) 2015 GitHub. All rights reserved.
 //
 
+import Foundation
+
 import Result
 import Nimble
 import Quick
@@ -1553,17 +1555,5 @@ class PropertySpec: QuickSpec {
 				}
 			}
 		}
-	}
-}
-
-private class ObservableObject: NSObject {
-	dynamic var rac_value: Int = 0
-	dynamic var rac_reference: UnbridgedObject = UnbridgedObject("")
-}
-
-private class UnbridgedObject: NSObject {
-	let value: String
-	init(_ value: String) {
-		self.value = value
 	}
 }

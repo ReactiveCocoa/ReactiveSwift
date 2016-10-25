@@ -6,6 +6,7 @@
 //  Copyright (c) 2015 GitHub. All rights reserved.
 //
 
+import Dispatch
 import Foundation
 
 import Result
@@ -698,7 +699,7 @@ class SignalProducerSpec: QuickSpec {
 				observerA.sendCompleted()
 				observerB.sendCompleted()
 
-				expect(values as NSArray) == [[1, 2], [3, 2]]
+				expect(values._bridgeToObjectiveC()) == [[1, 2], [3, 2]]
 			}
 
 			it("should start signal producers in order as defined") {
@@ -723,7 +724,7 @@ class SignalProducerSpec: QuickSpec {
 				}
 
 				expect(ids) == [1, 2]
-				expect(values as NSArray) == [[1, 2]] as NSArray
+				expect(values._bridgeToObjectiveC()) == [[1, 2]]._bridgeToObjectiveC()
 			}
 		}
 
@@ -735,7 +736,7 @@ class SignalProducerSpec: QuickSpec {
 				let producer = SignalProducer.zip([producerA, producerB])
 				let result = producer.collect().single()
 				
-				expect(result?.value.map { $0 as NSArray }) == [[1, 3], [2, 4]] as NSArray
+				expect(result?.value.map { $0._bridgeToObjectiveC() }) == [[1, 3], [2, 4]]._bridgeToObjectiveC()
 			}
 
 			it("should start signal producers in order as defined") {
@@ -760,7 +761,7 @@ class SignalProducerSpec: QuickSpec {
 				}
 
 				expect(ids) == [1, 2]
-				expect(values as NSArray) == [[1, 2]] as NSArray
+				expect(values._bridgeToObjectiveC()) == [[1, 2]]._bridgeToObjectiveC()
 			}
 		}
 

@@ -266,7 +266,7 @@ code) at a glance.
 [ReactiveCocoa 3.0][https://github.com/ReactiveCocoa/ReactiveCocoa/blob/master/CHANGELOG.md] has solved this problem by distinguishing side
 effects with the separate [`Signal`][Signals] and [`SignalProducer`][Signal producers] types. Although this
 means there’s another type to learn about, it improves code clarity and helps
-communicates intent much better.
+communicate intent much better.
 
 In other words, **ReactiveSwift’s changes here are [simple, not
 easy](http://www.infoq.com/presentations/Simple-Made-Easy)**.
