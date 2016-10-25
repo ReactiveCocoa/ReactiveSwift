@@ -9,6 +9,10 @@
 import Foundation
 import enum Result.NoError
 
+#if os(Linux)
+	import CDispatch
+#endif
+
 extension NotificationCenter {
 	/// Returns a SignalProducer to observe posting of the specified
 	/// notification.
@@ -76,5 +80,63 @@ extension URLSession {
 			}
 			task.resume()
 		}
+	}
+}
+
+extension Date {
+	internal func addingTimeInterval(_ interval: DispatchTimeInterval) -> Date {
+		return addingTimeInterval(interval.timeInterval)
+	}
+}
+
+extension DispatchTimeInterval {
+	internal var timeInterval: TimeInterval {
+		switch self {
+		case let .seconds(s):
+			return TimeInterval(s)
+		case let .milliseconds(ms):
+			return TimeInterval(TimeInterval(ms) / 1000.0)
+		case let .microseconds(us):
+			return TimeInterval( UInt64(us) * NSEC_PER_USEC ) / TimeInterval(NSEC_PER_SEC)
+		case let .nanoseconds(ns):
+			return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
+		}
+	}
+
+	// This was added purely so that our test scheduler to "go backwards" in
+	// time. See `TestScheduler.rewind(by interval: DispatchTimeInterval)`.
+	internal static prefix func -(lhs: DispatchTimeInterval) -> DispatchTimeInterval {
+		switch lhs {
+		case let .seconds(s):
+			return .seconds(-s)
+		case let .milliseconds(ms):
+			return .milliseconds(-ms)
+		case let .microseconds(us):
+			return .microseconds(-us)
+		case let .nanoseconds(ns):
+			return .nanoseconds(-ns)
+		}
+	}
+
+	/// Scales a time interval by the given scalar specified in `rhs`.
+	///
+	/// - note: This method is only used internally to "scale down" a time 
+	///			interval. Specifically it's used only to scale intervals to 10% 
+	///			of their original value for the default `leeway` parameter in 
+	///			`SchedulerProtocol.schedule(after:action:)` schedule and similar
+	///			other methods.
+	///
+	///			If seconds is over 200,000, 10% is ~2,000, and hence we end up
+	///			with a value of ~2,000,000,000. Not quite overflowing a signed
+	///			integer on 32-bit platforms, but close.
+	///
+	///			Even still, 200,000 seconds should be a rarely (if ever)
+	///			specified interval for our APIs. And even then, folks should be
+	///			smart and specify their own `leeway` parameter.
+	///
+	/// - returns: Scaled interval in microseconds
+	internal static func *(lhs: DispatchTimeInterval, rhs: Double) -> DispatchTimeInterval {
+		let seconds = lhs.timeInterval * rhs
+		return .microseconds(Int(seconds * 1000 * 1000))
 	}
 }

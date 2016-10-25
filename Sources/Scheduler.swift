@@ -13,48 +13,6 @@ import Foundation
 	import CDispatch
 #endif
 
-extension Date {
-	internal func addingTimeInterval(_ interval: DispatchTimeInterval) -> Date {
-		return addingTimeInterval(interval.asTimeInterval())
-	}
-}
-
-extension DispatchTimeInterval {
-	internal func asTimeInterval() -> TimeInterval {
-		switch self {
-		case let .seconds(s):
-			return TimeInterval(s)
-		case let .milliseconds(ms):
-			return TimeInterval(TimeInterval(ms) / 1000.0)
-		case let .microseconds(us):
-			return TimeInterval( UInt64(us) * NSEC_PER_USEC ) / TimeInterval(NSEC_PER_SEC)
-		case let .nanoseconds(ns):
-			return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
-		}
-	}
-
-	internal static prefix func -(lhs: DispatchTimeInterval) -> DispatchTimeInterval {
-		switch lhs {
-		case let .seconds(s):
-			return .seconds(-s)
-		case let .milliseconds(ms):
-			return .milliseconds(-ms)
-		case let .microseconds(us):
-			return .microseconds(-us)
-		case let .nanoseconds(ns):
-			return .nanoseconds(-ns)
-		}
-	}
-
-	/// Scales a time interval by the given scalar specified in `rhs`.
-	///
-	/// - returns: Scaled interval in microseconds
-	internal static func *(lhs: DispatchTimeInterval, rhs: Double) -> DispatchTimeInterval {
-		let seconds = lhs.asTimeInterval() * rhs
-		return .microseconds(Int(seconds * 1000 * 1000))
-	}
-}
-
 /// Represents a serial queue of work items.
 public protocol SchedulerProtocol {
 	/// Enqueues an action on the scheduler.
@@ -95,6 +53,10 @@ public protocol DateSchedulerProtocol: SchedulerProtocol {
 	///   - repeatingEvery: Repetition interval.
 	///   - withLeeway: Some delta for repetition.
 	///   - action: Closure of the action to perform.
+	///
+	///	- note: If you plan to specify an `interval` value greater than 200,000
+	///			seconds, use `schedule(after:interval:leeway:action)` instead
+	///			and specify your own `leeway` value to avoid potential overflow.
 	///
 	/// - returns: Optional `Disposable` that can be used to cancel the work
 	///            before it begins.
@@ -305,6 +267,10 @@ public final class QueueScheduler: DateSchedulerProtocol {
 	///   - repeatingEvery: Repetition interval.
 	///   - action: Closure of the action to repeat.
 	///
+	///	- note: If you plan to specify an `interval` value greater than 200,000 
+	///			seconds, use `schedule(after:interval:leeway:action)` instead 
+	///			and specify your own `leeway` value to avoid potential overflow.
+	///
 	/// - returns: Optional disposable that can be used to cancel the work
 	///            before it begins.
 	@discardableResult
@@ -327,8 +293,8 @@ public final class QueueScheduler: DateSchedulerProtocol {
 	///            before it begins.
 	@discardableResult
 	public func schedule(after date: Date, interval: DispatchTimeInterval, leeway: DispatchTimeInterval, action: @escaping () -> Void) -> Disposable? {
-		precondition(interval.asTimeInterval() >= 0)
-		precondition(leeway.asTimeInterval() >= 0)
+		precondition(interval.timeInterval >= 0)
+		precondition(leeway.timeInterval >= 0)
 
 		let timer = DispatchSource.makeTimerSource(
 			flags: DispatchSource.TimerFlags(rawValue: UInt(0)),
@@ -442,10 +408,14 @@ public final class TestScheduler: DateSchedulerProtocol {
 	///   - repeatingEvery: Repetition interval.
 	///   - action: Closure of the action to repeat.
 	///
+	///	- note: If you plan to specify an `interval` value greater than 200,000
+	///			seconds, use `schedule(after:interval:leeway:action)` instead
+	///			and specify your own `leeway` value to avoid potential overflow.
+	///
 	/// - returns: Optional `Disposable` that can be used to cancel the work
 	///            before it begins.
 	private func schedule(after date: Date, interval: DispatchTimeInterval, disposable: SerialDisposable, action: @escaping () -> Void) {
-		precondition(interval.asTimeInterval() >= 0)
+		precondition(interval.timeInterval >= 0)
 
 		disposable.innerDisposable = schedule(after: date) { [unowned self] in
 			action()

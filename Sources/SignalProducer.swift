@@ -1903,6 +1903,10 @@ private struct ReplayState<Value, Error: Swift.Error> {
 ///
 /// - precondition: Interval must be non-negative number.
 ///
+///	- note: If you plan to specify an `interval` value greater than 200,000
+///			seconds, use `timer(interval:on:leeway:)` instead
+///			and specify your own `leeway` value to avoid potential overflow.
+///
 /// - parameters:
 ///   - interval: An interval between invocations.
 ///   - scheduler: A scheduler to deliver events on.
@@ -1932,8 +1936,8 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerPro
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
 public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerProtocol, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> {
-	precondition(interval.asTimeInterval() >= 0)
-	precondition(leeway.asTimeInterval() >= 0)
+	precondition(interval.timeInterval >= 0)
+	precondition(leeway.timeInterval >= 0)
 
 	return SignalProducer { observer, compositeDisposable in
 		compositeDisposable += scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval),
