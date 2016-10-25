@@ -269,6 +269,16 @@ class FlattenSpec: QuickSpec {
 				innerObserver.send(value: sequence)
 				expect(observedValues) == sequence
 			}
+
+			it("works with Property and any arbitrary error") {
+				_ = Signal<Property<Int>, TestError>.empty
+					.flatten(.latest)
+			}
+
+			it("works with Property and NoError") {
+				_ = Signal<Property<Int>, NoError>.empty
+					.flatten(.latest)
+			}
 		}
 		
 		describe("SignalProducer.flatten()") {
@@ -443,6 +453,16 @@ class FlattenSpec: QuickSpec {
 				
 				expect(observedValues) == sequence
 			}
+
+			it("works with Property and any arbitrary error") {
+				_ = SignalProducer<Property<Int>, TestError>.empty
+					.flatten(.latest)
+			}
+
+			it("works with Property and NoError") {
+				_ = SignalProducer<Property<Int>, NoError>.empty
+					.flatten(.latest)
+			}
 		}
 		
 		describe("Signal.flatMap()") {
@@ -603,6 +623,16 @@ class FlattenSpec: QuickSpec {
 				innerObserver.send(value: 4)
 				expect(observed) == 4
 			}
+
+			it("works with Property and any arbitrary error") {
+				_ = Signal<Int, TestError>.empty
+					.flatMap(.latest) { _ in Property(value: 0) }
+			}
+
+			it("works with Property and NoError") {
+				_ = Signal<Int, NoError>.empty
+					.flatMap(.latest) { _ in Property(value: 0) }
+			}
 		}
 		
 		describe("SignalProducer.flatMap()") {
@@ -762,6 +792,16 @@ class FlattenSpec: QuickSpec {
 				outerObserver.send(value: 4)
 				innerObserver.send(value: 4)
 				expect(observed) == 4
+			}
+
+			it("works with Property and any arbitrary error") {
+				_ = SignalProducer<Int, TestError>.empty
+					.flatMap(.latest) { _ in Property(value: 0) }
+			}
+
+			it("works with Property and NoError") {
+				_ = SignalProducer<Int, NoError>.empty
+					.flatMap(.latest) { _ in Property(value: 0) }
 			}
 		}
 		
