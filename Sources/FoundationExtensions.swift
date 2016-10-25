@@ -7,11 +7,8 @@
 //
 
 import Foundation
+import Dispatch
 import enum Result.NoError
-
-#if os(Linux)
-	import CDispatch
-#endif
 
 extension NotificationCenter: ReactiveExtensionsProvider {}
 
