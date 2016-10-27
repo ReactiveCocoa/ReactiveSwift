@@ -11,6 +11,7 @@ import Dispatch
 import enum Result.NoError
 
 #if os(Linux)
+	import let CDispatch.NSEC_PER_USEC
 	import let CDispatch.NSEC_PER_SEC
 #endif
 
