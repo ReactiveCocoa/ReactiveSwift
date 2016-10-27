@@ -10,6 +10,10 @@ import Foundation
 import Dispatch
 import enum Result.NoError
 
+#if os(Linux)
+	import let CDispatch.NSEC_PER_SEC
+#endif
+
 extension NotificationCenter: ReactiveExtensionsProvider {}
 
 extension Reactive where Base: NotificationCenter {
