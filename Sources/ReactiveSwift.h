@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <Result/Result.h>
 
 //! Project version number for ReactiveSwift.
 FOUNDATION_EXPORT double ReactiveSwiftVersionNumber;
