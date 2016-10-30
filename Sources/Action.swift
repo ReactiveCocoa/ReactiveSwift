@@ -12,7 +12,7 @@ import enum Result.NoError
 public final class Action<Input, Output, Error: Swift.Error> {
 	private let deinitToken: Lifetime.Token
 
-	private let executeClosure: (Input) -> SignalProducer<Output, Error>
+	private let executeClosure: (Input) -> SignalProducer<Output, ActionError<Error>>
 	private let eventsObserver: Signal<Event<Output, Error>, NoError>.Observer
 	private let disabledErrorsObserver: Signal<(), NoError>.Observer
 
@@ -57,16 +57,20 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// Initializes an action that will be conditionally enabled, and creates a
 	/// SignalProducer for each input.
 	///
+	/// - warning: This is an internal implementation detail of `Action.init(input:_:)`
+	///            and will be removed in a future version of ReactiveSwift.
+	///            Use `Action.init(enabledIf:_:)` instead.
+	///
 	/// - parameters:
 	///   - enabledIf: Boolean property that shows whether the action is
 	///                enabled.
 	///   - execute: A closure that returns the signal producer returned by
 	///              calling `apply(Input)` on the action.
-	public init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+	public init<P: PropertyProtocol>(_internalEnabledIf property: P, tryExecute: @escaping (Input) -> SignalProducer<Output, ActionError<Error>>) where P.Value == Bool {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
 
-		executeClosure = execute
+		executeClosure = tryExecute
 
 		(events, eventsObserver) = Signal<Event<Output, Error>, NoError>.pipe()
 		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
@@ -87,6 +91,20 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 		isEnabled = state.map { $0.isEnabled }
 		isExecuting = state.map { $0.isExecuting }
+	}
+
+	/// Initializes an action that will be conditionally enabled, and creates a
+	/// SignalProducer for each input.
+	///
+	/// - parameters:
+	///   - enabledIf: Boolean property that shows whether the action is
+	///                enabled.
+	///   - execute: A closure that returns the signal producer returned by
+	///              calling `apply(Input)` on the action.
+	public convenience init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+		self.init(_internalEnabledIf: property) {
+			execute($0).mapError(ActionError.producerFailed)
+		}
 	}
 
 	/// Initializes an action that will be enabled by default, and creates a
@@ -136,8 +154,20 @@ public final class Action<Input, Output, Error: Swift.Error> {
 				disposable += signalDisposable
 
 				signal.observe { event in
-					observer.action(event.mapError(ActionError.producerFailed))
-					self.eventsObserver.send(value: event)
+					observer.action(event)
+
+					switch event {
+					case .failed(.disabled):
+						self.disabledErrorsObserver.send(value: ())
+					case let .failed(.producerFailed(error)):
+						self.eventsObserver.send(value: .failed(error))
+					case let .value(value):
+						self.eventsObserver.send(value: .value(value))
+					case .completed:
+						self.eventsObserver.send(value: .completed)
+					case .interrupted:
+						self.eventsObserver.send(value: .interrupted)
+					}
 				}
 			}
 
@@ -173,12 +203,16 @@ public protocol ActionProtocol: BindingTargetProtocol {
 	/// Initializes an action that will be conditionally enabled, and creates a
 	/// SignalProducer for each input.
 	///
+	/// - warning: This is an internal implementation detail of `Action.init(input:_:)`
+	///            and will be removed in a future version of ReactiveSwift.
+	///            Use `Action.init(enabledIf:_:)` instead.
+	///
 	/// - parameters:
 	///   - enabledIf: Boolean property that shows whether the action is
 	///                enabled.
 	///   - execute: A closure that returns the signal producer returned by
 	///              calling `apply(Input)` on the action.
-	init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool
+	init<P: PropertyProtocol>(_internalEnabledIf property: P, tryExecute: @escaping (Input) -> SignalProducer<Output, ActionError<Error>>) where P.Value == Bool
 
 	/// Whether the action is currently enabled.
 	var isEnabled: Property<Bool> { get }
@@ -224,8 +258,9 @@ extension ActionProtocol where Input == Void {
 	///   - execute: A closure to return a new SignalProducer based on the
 	///              current value of `input`.
 	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
-		self.init(enabledIf: input.map { $0 != nil }) {
-			execute(input.value!)
+		self.init(_internalEnabledIf: input.map { $0 != nil }) {
+			guard let input = input.value else { return SignalProducer(error: .disabled) }
+			return execute(input).mapError(ActionError.producerFailed)
 		}
 	}
 
