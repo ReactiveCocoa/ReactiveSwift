@@ -8,7 +8,7 @@
 🎉 [Getting Started](#getting-started)
 
 ## What is ReactiveSwift?
-__ReactiveSwift__ offers composable, declaractive and flexible primitives that are built around the grand concept of ___streams of values over time___. These primitives can be used to uniformly represent common Cocoa and generic programming patterns that are fundementally an act of observation, e.g.:
+__ReactiveSwift__ offers composable, declarative and flexible primitives that are built around the grand concept of ___streams of values over time___. These primitives can be used to uniformly represent common Cocoa and generic programming patterns that are fundamentally an act of observation, e.g.:
 
  * Delegate methods
  * Callback blocks
@@ -58,7 +58,7 @@ let searchResults = searchStrings
     }
     .map { (data, response) -> [SearchResult] in
         let string = String(data: data, encoding: .utf8)!
-        return self.searchResults(fromJsonString: string)
+        return self.searchResults(fromJSONString: string)
     }
     .observe(on: UIScheduler())
 ```
@@ -144,7 +144,7 @@ let searchResults = searchStrings
     }
     .map { (data, response) -> [SearchResult] in
         let string = String(data: data, encoding: .utf8)!
-        return self.searchResults(fromJsonString: string)
+        return self.searchResults(fromJSONString: string)
     }
     .observe(on: UIScheduler())
 ```
@@ -277,7 +277,7 @@ ReactiveSwift supports macOS 10.9+, iOS 8.0+, watchOS 2.0+, tvOS 9.0+ and Linux.
 
 #### Carthage
 
-If you are using [Carthage][] to manage your dependency, simply add
+If you use [Carthage][] to manage your dependencies, simply add
 ReactiveSwift to your `Cartfile`:
 
 ```
@@ -288,7 +288,7 @@ If you use Carthage to build your dependencies, make sure you have added `Reacti
 
 #### CocoaPods
 
-If you are using [CocoaPods][] to manage your dependency, simply add
+If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
@@ -297,7 +297,7 @@ pod 'ReactiveSwift', :git => 'https://github.com/ReactiveCocoa/ReactiveSwift.git
 
 #### Swift Package Manager
 
-If you are using Swift Package Manager, simply add ReactiveSwift as a dependency
+If you use Swift Package Manager, simply add ReactiveSwift as a dependency
 of your package in `Package.swift`:
 
 ```
