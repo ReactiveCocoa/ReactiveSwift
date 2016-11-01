@@ -43,7 +43,7 @@ The first step is to observe edits to the text field, using a RAC extension to
 let searchStrings = textField.reactive.continuousTextValues
 ```
 
-This gives us a [Signal][Signals] which sends values of type `String?`.
+This gives us a [Signal][] which sends values of type `String?`.
 
 #### Making network requests
 
@@ -179,8 +179,8 @@ let searchString = textField.reactive.continuousTextValues
     .on(event: { print ($0) }) // the side effect
 ```
 
-This will print the stream's [events][Events], while preserving the original stream behaviour. Both [`SignalProducer`][Signal producers]
-and [`Signal`][Signals] provide the `logEvents` operator, that will do this automatically for you:
+This will print the stream's [events][Events], while preserving the original stream behaviour. Both [`SignalProducer`][SignalProducer]
+and [`Signal`][Signal] provide the `logEvents` operator, that will do this automatically for you:
 
 ```swift
 let searchString = textField.reactive.continuousTextValues
@@ -192,32 +192,19 @@ For more information and advance usage, check the [Debugging Techniques](Documen
 
 ## How does ReactiveSwift relate to Rx?
 
-ReactiveCocoa was originally inspired, and therefore heavily influenced, by
-Microsoft’s [Reactive
-Extensions](https://msdn.microsoft.com/en-us/data/gg577609.aspx) (Rx) library. There are many ports of Rx, including [RxSwift](https://github.com/ReactiveX/RxSwift), but ReactiveCocoa is _intentionally_ not a direct port.
+While ReactiveCocoa was inspired and heavily influenced by [ReactiveX][] (Rx), ReactiveSwift is
+an opinionated implementation of the grand concept, and _intentionally_ not a direct port like
+RxSwift.
 
-**Where ReactiveSwift differs from Rx**, it is usually to:
+ReactiveSwift differs from ReactiveX in places that: 
 
- * Create a simpler API
- * Address common sources of confusion
- * More closely match Cocoa conventions
+ * Results in a simpler API
+ * Addresses common sources of confusion
+ * Matches closely to Swift, and sometimes Cocoa, conventions
 
-The following are some of the concrete differences, along with their rationales.
+The following are a few important differences, along with their rationales.
 
-### Naming
-
-In most versions of Rx, Streams over time are known as `Observable`s, which
-parallels the `Enumerable` type in .NET. Additionally, most operations in Rx.NET
-borrow names from [LINQ](https://msdn.microsoft.com/en-us/library/bb397926.aspx),
-which uses terms reminiscent of relational databases, like `Select` and `Where`.
-
-**RAC is focused on matching Swift naming first and foremost**, with terms like
-`map` and `filter` instead. Other naming differences are typically inspired by
-significantly better alternatives from [Haskell](https://www.haskell.org) or
-[Elm](http://elm-lang.org) (which is the primary source for the “signal”
-terminology).
-
-### Signals and Signal Producers (“hot” and “cold” observables)
+### Signals and SignalProducers (“hot” and “cold” observables)
 
 One of the most confusing aspects of Rx is that of [“hot”, “cold”, and “warm”
 observables](http://www.introtorx.com/content/v1.0.10621.0/14_HotAndColdObservables.html) (event streams).
@@ -237,8 +224,8 @@ This example is contrived, but it demonstrates **a real, pervasive problem**
 that makes it extremely hard to understand Rx code (and pre-3.0 ReactiveCocoa
 code) at a glance.
 
-[ReactiveCocoa 3.0][https://github.com/ReactiveCocoa/ReactiveCocoa/blob/master/CHANGELOG.md] has solved this problem by distinguishing side
-effects with the separate [`Signal`][Signals] and [`SignalProducer`][Signal producers] types. Although this
+**ReactiveSwift** addresses this by distinguishing side effects with the separate
+[`Signal`][Signal] and [`SignalProducer`][SignalProducer] types. Although this
 means there’s another type to learn about, it improves code clarity and helps
 communicate intent much better.
 
@@ -247,7 +234,7 @@ easy](http://www.infoq.com/presentations/Simple-Made-Easy)**.
 
 ### Typed errors
 
-When [signals][] and [signal producers][] are allowed to [fail][Events] in ReactiveSwift,
+When [Signals][Signal] and [SignalProducers][SignalProducer] are allowed to [fail][Events] in ReactiveSwift,
 the kind of error must be specified in the type system. For example,
 `Signal<Int, NSError>` is a signal of integer values that may fail with an error
 of type `NSError`.
@@ -258,6 +245,18 @@ failure. **This eliminates many bugs caused by unexpected failure events.**
 
 In Rx systems with types, event streams only specify the type of their
 values—not the type of their errors—so this sort of guarantee is impossible.
+
+### Naming
+
+In most versions of Rx, Streams over time are known as `Observable`s, which
+parallels the `Enumerable` type in .NET. Additionally, most operations in Rx.NET
+borrow names from [LINQ](https://msdn.microsoft.com/en-us/library/bb397926.aspx),
+which uses terms reminiscent of relational databases, like `Select` and `Where`.
+
+**ReactiveSwift**, on the other hand, focuses on being a native Swift citizen
+first and foremost, following the [Swift API Guidelines][] as appropriate. Other
+naming differences are typically inspired by significantly better alternatives
+from [Haskell](https://www.haskell.org) or [Elm](http://elm-lang.org) (which is the primary source for the “signal” terminology).
 
 ### UI programming
 
@@ -344,8 +343,8 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 [Events]: Documentation/FrameworkOverview.md#events
 [Framework Overview]: Documentation/FrameworkOverview.md
 [Schedulers]: Documentation/FrameworkOverview.md#schedulers
-[Signal producers]: Documentation/FrameworkOverview.md#signal-producers
-[Signals]: Documentation/FrameworkOverview.md#signals
+[SignalProducer]: Documentation/FrameworkOverview.md#signal-producers
+[Signal]: Documentation/FrameworkOverview.md#signals
 [Swift API]: ReactiveCocoa/Swift
 [flatMapLatest]: Documentation/BasicOperators.md#switching-to-the-latest
 [retry]: Documentation/BasicOperators.md#retrying
@@ -354,3 +353,5 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 [GitHub issues]: https://github.com/ReactiveCocoa/ReactiveSwift/issues?q=is%3Aissue+label%3Aquestion+
 [Stack Overflow]: http://stackoverflow.com/questions/tagged/reactive-cocoa
 [functional reactive programming]: https://en.wikipedia.org/wiki/Functional_reactive_programming
+[ReactiveX]: https://reactivex.io/
+[Swift API Guidelines]: https://swift.org/documentation/api-design-guidelines/
