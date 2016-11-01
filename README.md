@@ -1,45 +1,14 @@
 # ReactiveSwift
 
-[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage) [![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveCocoa.svg)](https://github.com/ReactiveCocoa/ReactiveCocoa/releases) ![Swift 3.0.x](https://img.shields.io/badge/Swift-3.0.x-orange.svg) ![platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20OS%20X%20%7C%20watchOS%20%7C%20tvOS%20-lightgrey.svg)
+#### Streams of values over time. Tailored for Swift.
 
-ReactiveSwift is a Swift framework inspired by [Functional Reactive Programming](https://en.wikipedia.org/wiki/Functional_reactive_programming). It provides APIs for composing and transforming **streams of values over time**.
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](#carthage) [![CocoaPods compatible](https://img.shields.io/cocoapods/v/ReactiveSwift.svg)](#cocoapods) [![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveCocoa.svg)](https://github.com/ReactiveCocoa/ReactiveCocoa/releases) ![Swift 3.0.x](https://img.shields.io/badge/Swift-3.0.x-orange.svg) ![platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20OS%20X%20%7C%20watchOS%20%7C%20tvOS%20-lightgrey.svg)
 
- 1. [Introduction](#introduction)
- 1. [Example: online search](#example-online-search)
- 1. [How does ReactiveSwift relate to Rx?](#how-does-reactiveswift-relate-to-rx)
- 1. [Getting started](#getting-started)
- 1.  [Playground](#playground)
+⚠️ [Looking for the Objective-C API?][] ⚠️ [Still using Swift 2.x?][]
+🎉 [Getting Started](#getting-started)
 
-If you’re already familiar with functional reactive programming or what
-ReactiveSwift is about, check out the [Documentation][] folder for more in-depth
-information about how it all works. Then, dive straight into our [documentation
-comments][Code] for learning more about individual APIs.
-
-If you'd like to use ReactiveSwift with Apple's Cocoa frameworks,
-[ReactiveCocoa](https://github.com/ReactiveCocoa/ReactiveCocoa) provides
-extensions that work with ReactiveSwift.
-
-If you have a question, please see if any discussions in our [GitHub
-issues](https://github.com/ReactiveCocoa/ReactiveSwift/issues?q=is%3Aissue+label%3Aquestion+) or [Stack
-Overflow](http://stackoverflow.com/questions/tagged/reactive-cocoa) have already
-answered it. If not, please feel free to [file your
-own](https://github.com/ReactiveCocoa/ReactiveSwift/issues/new)!
-
-#### Compatibility
-
-This documents ReactiveSwift 3.x which targets `Swift 3.0.x`. For `Swift 2.x` support see [ReactiveCocoa
-4](https://github.com/ReactiveCocoa/ReactiveCocoa/tree/v4.0.0).
-
-## Introduction
-
-ReactiveSwift is inspired by [functional reactive
-programming](https://joshaber.github.io/2013/02/11/input-and-output/).
-Rather than using mutable variables which are replaced and modified in-place,
-RAC offers “event streams,” represented by the [`Signal`][Signals] and
-[`SignalProducer`][Signal producers] types, that send values over time.
-
-Event streams unify common patterns for asynchrony and event
-handling, including:
+## What is ReactiveSwift?
+__ReactiveSwift__ offers composable, declaractive and flexible primitives that are built around the grand concept of ___streams of values over time___. These primitives can be used to uniformly represent common Cocoa and generic programming patterns that are fundementally an act of observation, e.g.:
 
  * Delegate methods
  * Callback blocks
@@ -55,10 +24,15 @@ code and state to bridge the gap.
 For more information about the concepts in ReactiveSwift, see the [Framework
 Overview][].
 
+## Looking for Cocoa extensions?
+See [ReactiveCocoa][], which hosts Cocoa extensions built on top of ReactiveSwift.
+
 ## Example: online search
 
 Let’s say you have a text field, and whenever the user types something into it,
 you want to make a network request which searches for that query.
+
+_Please note that the following examples use Cocoa extensions in [ReactiveCocoa][] for illustration._
 
 #### Observing text edits
 
@@ -66,56 +40,62 @@ The first step is to observe edits to the text field, using a RAC extension to
 `UITextField` specifically for this purpose:
 
 ```swift
-let searchStrings = textField.rac_textSignal()
-    .toSignalProducer()
-    .map { text in text as! String }
+let searchStrings = textField.reactive.continuousTextValues
 ```
 
-This gives us a [signal producer][Signal producers] which sends
-values of type `String`. _(The cast is [currently
-necessary](https://github.com/ReactiveCocoa/ReactiveCocoa/issues/2182) to bridge
-this extension method from Objective-C.)_
+This gives us a [Signal][Signals] which sends values of type `String?`.
 
 #### Making network requests
 
-With each string, we want to execute a network request. Luckily, RAC offers an
-`NSURLSession` extension for doing exactly that:
+With each string, we want to execute a network request. ReactiveSwift offers an
+`URLSession` extension for doing exactly that:
 
 ```swift
 let searchResults = searchStrings
-    .flatMap(.Latest) { (query: String) -> SignalProducer<(NSData, NSURLResponse), NSError> in
-        let URLRequest = self.searchRequestWithEscapedQuery(query)
-        return NSURLSession.sharedSession().rac_dataWithRequest(URLRequest)
+    .flatMap(.latest) { (query: String?) -> SignalProducer<(Data, URLResponse), NSError> in
+        let request = self.makeSearchRequest(escapedQuery: query)
+        return URLSession.shared.reactive.data(with: request)
     }
-    .map { (data, URLResponse) -> String in
-        let string = String(data: data, encoding: NSUTF8StringEncoding)!
-        return self.parseJSONResultsFromString(string)
+    .map { (data, response) -> [SearchResult] in
+        let string = String(data: data, encoding: .utf8)!
+        return self.searchResults(fromJsonString: string)
     }
-    .observeOn(UIScheduler())
+    .observe(on: UIScheduler())
 ```
 
 This has transformed our producer of `String`s into a producer of `Array`s
 containing the search results, which will be forwarded on the main thread
-(thanks to the [`UIScheduler`][Schedulers]).
+(using the [`UIScheduler`][Schedulers]).
 
-Additionally, [`flatMap(.Latest)`][flatMapLatest] here ensures that _only one search_—the
+Additionally, [`flatMap(.latest)`][flatMapLatest] here ensures that _only one search_—the
 latest—is allowed to be running. If the user types another character while the
 network request is still in flight, it will be cancelled before starting a new
 one. Just think of how much code that would take to do by hand!
 
 #### Receiving the results
 
-This won’t actually execute yet, because producers must be _started_ in order to
-receive the results (which prevents doing work when the results are never used).
-That’s easy enough:
+Since the source of search strings is a `Signal` which has a hot signal semantic, 
+the transformations we applied are automatically evaluated whenever new values are
+emitted from `searchString`.
+
+Therefore, we can simply observe the signal using `Signal.observe(_:)`:
 
 ```swift
-searchResults.startWithNext { results in
-    print("Search results: \(results)")
+searchResults.observe { event in
+    switch event {
+    case let .value(results):
+        print("Search results: \(results)")
+        
+    case let .error(error):
+        print("Search error: \(error)")
+        
+    case .completed, .interrupted:
+        break
+    }
 }
 ```
 
-Here, we watch for the `Next` [event][Events], which contains our results, and
+Here, we watch for the `Value` [event][Events] event, which contains our results, and
 just log them to the console. This could easily do something else instead, like
 update a table view or a label on screen.
 
@@ -129,11 +109,11 @@ To remedy this, we need to decide what to do with failures that occur. The
 quickest solution would be to log them, then ignore them:
 
 ```swift
-    .flatMap(.Latest) { (query: String) -> SignalProducer<(NSData, NSURLResponse), NSError> in
-        let URLRequest = self.searchRequestWithEscapedQuery(query)
+    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), NSError> in
+        let request = self.makeSearchRequest(escapedQuery: query)
 
-        return NSURLSession.sharedSession()
-            .rac_dataWithRequest(URLRequest)
+        return URLSession.shared.reactive
+            .data(with: request)
             .flatMapError { error in
                 print("Network error occurred: \(error)")
                 return SignalProducer.empty
@@ -151,22 +131,22 @@ Our improved `searchResults` producer might look like this:
 
 ```swift
 let searchResults = searchStrings
-    .flatMap(.Latest) { (query: String) -> SignalProducer<(NSData, NSURLResponse), NSError> in
-        let URLRequest = self.searchRequestWithEscapedQuery(query)
+    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), NSError> in
+        let request = self.makeSearchRequest(escapedQuery: query)
 
-        return NSURLSession.sharedSession()
-            .rac_dataWithRequest(URLRequest)
-            .retry(2)
+        return URLSession.shared.reactive
+            .data(with: request)
+            .retry(upTo: 2)
             .flatMapError { error in
                 print("Network error occurred: \(error)")
                 return SignalProducer.empty
             }
     }
-    .map { (data, URLResponse) -> String in
-        let string = String(data: data, encoding: NSUTF8StringEncoding)!
-        return self.parseJSONResultsFromString(string)
+    .map { (data, response) -> [SearchResult] in
+        let string = String(data: data, encoding: .utf8)!
+        return self.searchResults(fromJsonString: string)
     }
-    .observeOn(UIScheduler())
+    .observe(on: UIScheduler())
 ```
 
 #### Throttling requests
@@ -178,10 +158,8 @@ ReactiveCocoa has a declarative `throttle` operator that we can apply to our
 search strings:
 
 ```swift
-let searchStrings = textField.rac_textSignal()
-    .toSignalProducer()
-    .map { text in text as! String }
-    .throttle(0.5, onScheduler: QueueScheduler.mainQueueScheduler)
+let searchStrings = textField.reactive.continuousTextValues
+    .throttle(0.5, on: QueueScheduler.main)
 ```
 
 This prevents values from being sent less than 0.5 seconds apart.
@@ -196,10 +174,8 @@ Due to its nature, a stream's stack trace might have dozens of frames, which, mo
 A naive way of debugging, is by injecting side effects into the stream, like so:
 
 ```swift
-let searchString = textField.rac_textSignal()
-    .toSignalProducer()
-    .map { text in text as! String }
-    .throttle(0.5, onScheduler: QueueScheduler.mainQueueScheduler)
+let searchString = textField.reactive.continuousTextValues
+    .throttle(0.5, on: QueueScheduler.main)
     .on(event: { print ($0) }) // the side effect
 ```
 
@@ -207,10 +183,8 @@ This will print the stream's [events][Events], while preserving the original str
 and [`Signal`][Signals] provide the `logEvents` operator, that will do this automatically for you:
 
 ```swift
-let searchString = textField.rac_textSignal()
-    .toSignalProducer()
-    .map { text in text as! String }
-    .throttle(0.5, onScheduler: QueueScheduler.mainQueueScheduler)
+let searchString = textField.reactive.continuousTextValues
+    .throttle(0.5, on: QueueScheduler.main)
     .logEvents()
 ```
 
@@ -299,32 +273,41 @@ specifically for this purpose**—even when it means diverging further from Rx.
 
 ## Getting started
 
-ReactiveSwift supports `OS X 10.9+`, `iOS 8.0+`, `watchOS 2.0`, and `tvOS 9.0`.
+ReactiveSwift supports macOS 10.9+, iOS 8.0+, watchOS 2.0+, tvOS 9.0+ and Linux.
 
-To add RAC to your application:
+#### Carthage
 
- 1. Add the ReactiveSwift repository as a
-    [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) of your
-    application’s repository.
- 1. Run `git submodule update --init --recursive` from within the ReactiveSwift folder.
- 1. Drag and drop `ReactiveSwift.xcodeproj` and `Carthage/Checkouts/Result/Result.xcodeproj`
-    into your application’s Xcode project or workspace.
- 1. On the “General” tab of your application target’s settings, add
-    `ReactiveSwift.framework` and `Result.framework` to the “Embedded Binaries” section.
- 1. If your application target does not contain Swift code at all, you should also
-    set the `EMBEDDED_CONTENT_CONTAINS_SWIFT` build setting to “Yes”.
-
-Or, if you’re using [Carthage](https://github.com/Carthage/Carthage), simply add
+If you are using [Carthage][] to manage your dependency, simply add
 ReactiveSwift to your `Cartfile`:
 
 ```
 github "ReactiveCocoa/ReactiveSwift"
 ```
-Make sure to add both `ReactiveSwift.framework` and `Result.framework` to "Linked Frameworks and Libraries" and "copy-frameworks" Build Phases.
 
-Once you’ve set up your project, check out the [Framework Overview][] for
-a tour of ReactiveSwift’s concepts, and the [Basic Operators][] for some
-introductory examples of using it.
+If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework`, and `Result.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
+
+#### CocoaPods
+
+If you are using [CocoaPods][] to manage your dependency, simply add
+ReactiveSwift to your `Podfile`:
+
+```
+pod 'ReactiveSwift', :git => 'https://github.com/ReactiveCocoa/ReactiveSwift.git'
+```
+
+#### Git submodule
+
+ 1. Add the ReactiveSwift repository as a [submodule][] of your
+    application’s repository.
+ 1. Run `git submodule update --init --recursive` from within the ReactiveCocoa folder.
+ 1. Drag and drop `ReactiveSwift.xcodeproj` and
+    `Carthage/Checkouts/Result/Result.xcodeproj` into your application’s Xcode
+    project or workspace.
+ 1. On the “General” tab of your application target’s settings, add
+    `ReactiveSwift.framework`, and `Result.framework`
+    to the “Embedded Binaries” section.
+ 1. If your application target does not contain Swift code at all, you should also
+    set the `EMBEDDED_CONTENT_CONTAINS_SWIFT` build setting to “Yes”.
 
 ## Playground
 
@@ -339,7 +322,11 @@ We also provide a great Playground, so you can get used to ReactiveCocoa's opera
  1. Build `ReactiveSwift-macOS` scheme
  1. Finally open the `ReactiveSwift.playground`
  1. Choose `View > Show Debug Area`
+ 
+## Have a question?
+If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. Feel free to file an issue if you do not manage to find any solution from the archives.
 
+[ReactiveCocoa]: https://github.com/ReactiveCocoa/ReactiveCocoa/#readme
 [Actions]: Documentation/FrameworkOverview.md#actions
 [Basic Operators]: Documentation/BasicOperators.md
 [CHANGELOG]: CHANGELOG.md
@@ -353,3 +340,8 @@ We also provide a great Playground, so you can get used to ReactiveCocoa's opera
 [Swift API]: ReactiveCocoa/Swift
 [flatMapLatest]: Documentation/BasicOperators.md#switching-to-the-latest
 [retry]: Documentation/BasicOperators.md#retrying
+[Looking for the Objective-C API?]: https://github.com/ReactiveCocoa/ReactiveObjC/#readme
+[Still using Swift 2.x?]: https://github.com/ReactiveCocoa/ReactiveCocoa/tree/v4.0.0
+[GitHub issues]: https://github.com/ReactiveCocoa/ReactiveSwift/issues?q=is%3Aissue+label%3Aquestion+
+[Stack Overflow]: http://stackoverflow.com/questions/tagged/reactive-cocoa
+[functional reactive programming]: https://en.wikipedia.org/wiki/Functional_reactive_programming
