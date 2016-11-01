@@ -95,7 +95,7 @@ searchResults.observe { event in
 }
 ```
 
-Here, we watch for the `Value` [event][Events] event, which contains our results, and
+Here, we watch for the `Value` [event][Events], which contains our results, and
 just log them to the console. This could easily do something else instead, like
 update a table view or a label on screen.
 
