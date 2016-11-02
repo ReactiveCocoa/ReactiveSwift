@@ -2,10 +2,11 @@
 
 #### Streams of values over time. Tailored for Swift.
 
-[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](#carthage) [![CocoaPods compatible](https://img.shields.io/cocoapods/v/ReactiveSwift.svg)](#cocoapods) [![SwiftPM compatible](https://img.shields.io/badge/SwiftPM-compatible-orange.svg)](#swift-package-manager) [![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveCocoa.svg)](https://github.com/ReactiveCocoa/ReactiveCocoa/releases) ![Swift 3.0.x](https://img.shields.io/badge/Swift-3.0.x-orange.svg) ![platforms](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux-lightgrey.svg)
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](#carthage) [![CocoaPods compatible](https://img.shields.io/cocoapods/v/ReactiveSwift.svg)](#cocoapods) [![SwiftPM compatible](https://img.shields.io/badge/SwiftPM-compatible-orange.svg)](#swift-package-manager) [![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveSwift.svg)](https://github.com/ReactiveCocoa/ReactiveSwift/releases) ![Swift 3.0.x](https://img.shields.io/badge/Swift-3.0.x-orange.svg) ![platforms](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux-lightgrey.svg)
 
-⚠️ [Looking for the Objective-C API?][] ⚠️ [Still using Swift 2.x?][]
+☕️ [Looking for Cocoa extensions?][ReactiveCocoa]
 🎉 [Getting Started](#getting-started)
+⚠️ [Still using Swift 2.x?][]
 
 ## What is ReactiveSwift?
 __ReactiveSwift__ offers composable, declarative and flexible primitives that are built around the grand concept of ___streams of values over time___. These primitives can be used to uniformly represent common Cocoa and generic programming patterns that are fundamentally an act of observation, e.g.:
@@ -23,9 +24,6 @@ code and state to bridge the gap.
 
 For more information about the concepts in ReactiveSwift, see the [Framework
 Overview][].
-
-## Looking for Cocoa extensions?
-See [ReactiveCocoa][], which hosts Cocoa extensions built on top of ReactiveSwift.
 
 ## Example: online search
 
@@ -193,8 +191,8 @@ For more information and advance usage, check the [Debugging Techniques](Documen
 ## How does ReactiveSwift relate to Rx?
 
 While ReactiveCocoa was inspired and heavily influenced by [ReactiveX][] (Rx), ReactiveSwift is
-an opinionated implementation of the grand concept, and _intentionally_ not a direct port like
-RxSwift.
+an opinionated implementation of [functional reactive programming][], and _intentionally_ not a
+direct port like [RxSwift][].
 
 ReactiveSwift differs from ReactiveX in places that: 
 
@@ -354,4 +352,5 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 [Stack Overflow]: http://stackoverflow.com/questions/tagged/reactive-cocoa
 [functional reactive programming]: https://en.wikipedia.org/wiki/Functional_reactive_programming
 [ReactiveX]: https://reactivex.io/
+[RxSwift]: https://github.com/ReactiveX/RxSwift/#readme
 [Swift API Guidelines]: https://swift.org/documentation/api-design-guidelines/
