@@ -1291,7 +1291,7 @@ extension SignalProducerProtocol {
 
 			self.startWithSignal { signal, disposable in
 				compositeDisposable += disposable
-				compositeDisposable += signal
+				signal
 					.on(
 						event: event,
 						failed: failed,
