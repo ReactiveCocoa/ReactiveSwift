@@ -40,6 +40,12 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// A signal which is triggered by `ActionError.disabled`.
 	public let disabledErrors: Signal<(), NoError>
 
+	/// A signal of all completed events generated from applications of the action.
+	///
+	/// In other words, this will send completed events from every signal generated
+	/// by each SignalProducer returned from apply().
+	public let completed: Signal<(), NoError>
+
 	/// Whether the action is currently executing.
 	public let isExecuting: Property<Bool>
 
@@ -86,6 +92,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 		values = events.map { $0.value }.skipNil()
 		errors = events.map { $0.error }.skipNil()
+		completed = events.filter { $0.isCompleted }.map { _ in }
 
 		isEnabled = Property(_isEnabled)
 		isExecuting = Property(_isExecuting)
