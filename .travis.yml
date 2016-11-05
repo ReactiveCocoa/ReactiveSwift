@@ -82,7 +82,7 @@ matrix:
         # https://github.com/Quick/Nimble/pull/342 is needed.
         - swift package update
         - cd Packages/Nimble-*
-        - git checkout 8b71ca345b9b41e3555f87dd904c6f23e4ccdc34
+        - git checkout v5.1.1
         - cd ../../
         - swift build
         - swift test
