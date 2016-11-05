@@ -1419,6 +1419,8 @@ class SignalProducerSpec: QuickSpec {
 				var execute: ((FlattenStrategy) -> Void)!
 
 				var innerDisposable = SimpleDisposable()
+				var isInnerInterrupted = false
+				var isInnerDisposed = false
 				var interrupted = false
 
 				beforeEach {
@@ -1426,7 +1428,10 @@ class SignalProducerSpec: QuickSpec {
 						let (outerProducer, outerObserver) = SignalProducer<SignalProducer<Int, NoError>, NoError>.pipe()
 
 						innerDisposable = SimpleDisposable()
+						isInnerInterrupted = false
+						isInnerDisposed = false
 						let innerProducer = SignalProducer<Int, NoError> { $1.add(innerDisposable) }
+							.on(interrupted: { isInnerInterrupted = true }, disposed: { isInnerDisposed = true })
 						
 						interrupted = false
 						let outerDisposable = outerProducer.flatten(strategy).startWithInterrupted {
@@ -1446,10 +1451,15 @@ class SignalProducerSpec: QuickSpec {
 
 						expect(innerDisposable.isDisposed) == false
 						expect(interrupted) == false
+						expect(isInnerInterrupted) == false
+						expect(isInnerDisposed) == false
+
 						disposeOuter()
 
 						expect(innerDisposable.isDisposed) == true
 						expect(interrupted) == true
+						expect(isInnerInterrupted) == true
+						expect(isInnerDisposed) == true
 					}
 
 					it("should cancel inner work when disposed after the outer producer completes") {
@@ -1459,10 +1469,15 @@ class SignalProducerSpec: QuickSpec {
 
 						expect(innerDisposable.isDisposed) == false
 						expect(interrupted) == false
+						expect(isInnerInterrupted) == false
+						expect(isInnerDisposed) == false
+
 						disposeOuter()
 
 						expect(innerDisposable.isDisposed) == true
 						expect(interrupted) == true
+						expect(isInnerInterrupted) == true
+						expect(isInnerDisposed) == true
 					}
 				}
 
@@ -1472,10 +1487,15 @@ class SignalProducerSpec: QuickSpec {
 
 						expect(innerDisposable.isDisposed) == false
 						expect(interrupted) == false
+						expect(isInnerInterrupted) == false
+						expect(isInnerDisposed) == false
+
 						disposeOuter()
 
 						expect(innerDisposable.isDisposed) == true
 						expect(interrupted) == true
+						expect(isInnerInterrupted) == true
+						expect(isInnerDisposed) == true
 					}
 
 					it("should cancel inner work when disposed after the outer producer completes") {
@@ -1485,10 +1505,15 @@ class SignalProducerSpec: QuickSpec {
 
 						expect(innerDisposable.isDisposed) == false
 						expect(interrupted) == false
+						expect(isInnerInterrupted) == false
+						expect(isInnerDisposed) == false
+
 						disposeOuter()
 
 						expect(innerDisposable.isDisposed) == true
 						expect(interrupted) == true
+						expect(isInnerInterrupted) == true
+						expect(isInnerDisposed) == true
 					}
 				}
 
@@ -1498,10 +1523,16 @@ class SignalProducerSpec: QuickSpec {
 
 						expect(innerDisposable.isDisposed) == false
 						expect(interrupted) == false
+						expect(isInnerInterrupted) == false
+						expect(isInnerDisposed) == false
+
 						disposeOuter()
 
 						expect(innerDisposable.isDisposed) == true
 						expect(interrupted) == true
+						expect(isInnerInterrupted) == true
+						expect(isInnerDisposed) == true
+
 					}
 
 					it("should cancel inner work when disposed after the outer producer completes") {
@@ -1511,10 +1542,15 @@ class SignalProducerSpec: QuickSpec {
 
 						expect(innerDisposable.isDisposed) == false
 						expect(interrupted) == false
+						expect(isInnerInterrupted) == false
+						expect(isInnerDisposed) == false
+
 						disposeOuter()
 
 						expect(innerDisposable.isDisposed) == true
 						expect(interrupted) == true
+						expect(isInnerInterrupted) == true
+						expect(isInnerDisposed) == true
 					}
 				}
 			}
