@@ -20,6 +20,7 @@ class ActionSpec: QuickSpec {
 			var enabled: MutableProperty<Bool>!
 
 			var executionCount = 0
+			var completedCount = 0
 			var values: [String] = []
 			var errors: [NSError] = []
 
@@ -28,6 +29,7 @@ class ActionSpec: QuickSpec {
 
 			beforeEach {
 				executionCount = 0
+				completedCount = 0
 				values = []
 				errors = []
 				enabled = MutableProperty(false)
@@ -54,6 +56,7 @@ class ActionSpec: QuickSpec {
 
 				action.values.observeValues { values.append($0) }
 				action.errors.observeValues { errors.append($0) }
+				action.completed.observeValues { completedCount += 1 }
 			}
 
 			it("should be disabled and not executing after initialization") {
@@ -89,6 +92,44 @@ class ActionSpec: QuickSpec {
 				enabled.value = false
 				expect(action.isEnabled.value) == false
 				expect(action.isExecuting.value) == false
+			}
+
+			describe("completed") {
+				beforeEach {
+					enabled.value = true
+				}
+
+				it("should send a value whenever the producer completes") {
+					action.apply(0).start()
+					expect(completedCount) == 0
+
+					scheduler.run()
+					expect(completedCount) == 1
+
+					action.apply(2).start()
+					scheduler.run()
+					expect(completedCount) == 2
+				}
+
+				it("should not send a value when the producer fails") {
+					action.apply(1).start()
+					scheduler.run()
+					expect(completedCount) == 0
+				}
+
+				it("should not send a value when the producer is interrupted") {
+					let disposable = action.apply(0).start()
+					disposable.dispose()
+					scheduler.run()
+					expect(completedCount) == 0
+				}
+
+				it("should not send a value when the action is disabled") {
+					enabled.value = false
+					action.apply(0).start()
+					scheduler.run()
+					expect(completedCount) == 0
+				}
 			}
 
 			describe("execution") {

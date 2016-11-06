@@ -28,6 +28,17 @@ public enum Event<Value, Error: Swift.Error> {
 	///              completion of the signal.
 	case interrupted
 
+	/// Whether this event is a completed event.
+	public var isCompleted: Bool {
+		switch self {
+		case .completed:
+			return true
+
+		case .value, .failed, .interrupted:
+			return false
+		}
+	}
+
 	/// Whether this event indicates signal termination (i.e., that no further
 	/// events will be received).
 	public var isTerminating: Bool {
