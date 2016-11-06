@@ -315,6 +315,12 @@ extension DateSchedulerProtocol {
 
 	@available(*, unavailable, renamed:"schedule(after:interval:leeway:)")
 	func scheduleAfter(date: Date, repeatingEvery: TimeInterval, withLeeway: TimeInterval, action: () -> Void) -> Disposable? { fatalError() }
+
+	@available(*, unavailable, message:"schedule(after:interval:leeway:action:) now uses DispatchTimeInterval")
+	func schedule(after date: Date, interval: TimeInterval, leeway: TimeInterval, action: @escaping () -> Void) -> Disposable? { fatalError() }
+
+	@available(*, unavailable, message:"schedule(after:interval:action:) now uses DispatchTimeInterval")
+	public func schedule(after date: Date, interval: TimeInterval, action: @escaping () -> Void) -> Disposable? { fatalError() }
 }
 
 extension TestScheduler {
@@ -323,6 +329,12 @@ extension TestScheduler {
 
 	@available(*, unavailable, renamed:"advance(to:)")
 	public func advanceToDate(_ date: Date) { fatalError() }
+
+	@available(*, unavailable, message:"advance(by:) now uses DispatchTimeInterval")
+	public func advance(by interval: TimeInterval) { fatalError() }
+
+	@available(*, unavailable, message:"rewind(by:) now uses DispatchTimeInterval")
+	public func rewind(by interval: TimeInterval) { fatalError() }
 }
 
 extension QueueScheduler {
@@ -341,6 +353,12 @@ extension URLSession {
 }
 
 // Free functions
+
+@available(*, unavailable, message:"timer(interval:on:) now uses DispatchTimeInterval")
+public func timer(interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Date, NoError> { fatalError() }
+
+@available(*, unavailable, message:"timer(interval:on:leeway:) now uses DispatchTimeInterval")
+public func timer(interval: TimeInterval, on scheduler: DateSchedulerProtocol, leeway: TimeInterval) -> SignalProducer<Date, NoError> { fatalError() }
 
 @available(*, unavailable, renamed:"Signal.combineLatest")
 public func combineLatest<A, B, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>) -> Signal<(A, B), Error> { fatalError() }

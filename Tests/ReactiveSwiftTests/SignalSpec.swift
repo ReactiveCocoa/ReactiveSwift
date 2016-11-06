@@ -1182,7 +1182,7 @@ class SignalSpec: QuickSpec {
 					testScheduler.schedule {
 						observer.send(value: 1)
 					}
-					testScheduler.schedule(after: 5) {
+					testScheduler.schedule(after: .seconds(5)) {
 						observer.send(value: 2)
 						observer.sendCompleted()
 					}
@@ -1205,14 +1205,14 @@ class SignalSpec: QuickSpec {
 						}
 					}
 				
-				testScheduler.advance(by: 4) // send initial value
+				testScheduler.advance(by: .seconds(4)) // send initial value
 				expect(result).to(beEmpty())
 				
-				testScheduler.advance(by: 10) // send second value and receive first
+				testScheduler.advance(by: .seconds(10)) // send second value and receive first
 				expect(result) == [ 1 ]
 				expect(completed) == false
 				
-				testScheduler.advance(by: 10) // send second value and receive first
+				testScheduler.advance(by: .seconds(10)) // send second value and receive first
 				expect(result) == [ 1, 2 ]
 				expect(completed) == true
 			}
@@ -1270,10 +1270,10 @@ class SignalSpec: QuickSpec {
 				observer.send(value: 2)
 				expect(values) == [ 0 ]
 
-				scheduler.advance(by: 1.5)
+				scheduler.advance(by: .milliseconds(1500))
 				expect(values) == [ 0, 2 ]
 
-				scheduler.advance(by: 3)
+				scheduler.advance(by: .seconds(3))
 				expect(values) == [ 0, 2 ]
 
 				observer.send(value: 3)
@@ -1287,7 +1287,7 @@ class SignalSpec: QuickSpec {
 				scheduler.advance()
 				expect(values) == [ 0, 2, 3 ]
 				
-				scheduler.rewind(by: 2)
+				scheduler.rewind(by: .seconds(2))
 				expect(values) == [ 0, 2, 3 ]
 				
 				observer.send(value: 6)
@@ -1369,10 +1369,10 @@ class SignalSpec: QuickSpec {
 				observer.send(value: 2)
 				expect(values) == []
 
-				scheduler.advance(by: 1.5)
+				scheduler.advance(by: .milliseconds(1500))
 				expect(values) == [ 2 ]
 
-				scheduler.advance(by: 3)
+				scheduler.advance(by: .seconds(3))
 				expect(values) == [ 2 ]
 
 				observer.send(value: 3)
@@ -1862,7 +1862,7 @@ class SignalSpec: QuickSpec {
 					}
 				}
 
-				testScheduler.schedule(after: 1) {
+				testScheduler.schedule(after: .seconds(1)) {
 					observer.sendCompleted()
 				}
 
@@ -1888,7 +1888,7 @@ class SignalSpec: QuickSpec {
 					}
 				}
 
-				testScheduler.schedule(after: 3) {
+				testScheduler.schedule(after: .seconds(3)) {
 					observer.sendCompleted()
 				}
 

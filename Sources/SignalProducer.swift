@@ -1919,12 +1919,16 @@ private struct ReplayState<Value, Error: Swift.Error> {
 ///
 /// - precondition: Interval must be non-negative number.
 ///
+///	- note: If you plan to specify an `interval` value greater than 200,000
+///			seconds, use `timer(interval:on:leeway:)` instead
+///			and specify your own `leeway` value to avoid potential overflow.
+///
 /// - parameters:
 ///   - interval: An interval between invocations.
 ///   - scheduler: A scheduler to deliver events on.
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
-public func timer(interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Date, NoError> {
+public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Date, NoError> {
 	// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
 	// at least 10% of the timer interval.
 	return timer(interval: interval, on: scheduler, leeway: interval * 0.1)
@@ -1947,9 +1951,9 @@ public func timer(interval: TimeInterval, on scheduler: DateSchedulerProtocol) -
 ///             recommends a leeway of at least 10% of the timer interval.
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
-public func timer(interval: TimeInterval, on scheduler: DateSchedulerProtocol, leeway: TimeInterval) -> SignalProducer<Date, NoError> {
-	precondition(interval >= 0)
-	precondition(leeway >= 0)
+public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerProtocol, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> {
+	precondition(interval.timeInterval >= 0)
+	precondition(leeway.timeInterval >= 0)
 
 	return SignalProducer { observer, compositeDisposable in
 		compositeDisposable += scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval),
