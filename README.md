@@ -321,7 +321,7 @@ We also provide a great Playground, so you can get used to ReactiveCocoa's opera
 
  1. Clone the ReactiveSwift repository.
  1. Retrieve the project dependencies using one of the following terminal commands from the ReactiveSwift project root directory:
-     - `git submodule update --init --recursive` **OR**, if you have [Carthage](https://github.com/Carthage/Carthage) installed    
+     - `git submodule update --init --recursive` **OR**, if you have [Carthage][] installed    
      - `carthage checkout`
  1. Open `ReactiveSwift.xcworkspace`
  1. Build `Result-Mac` scheme
@@ -335,6 +335,8 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 [ReactiveCocoa]: https://github.com/ReactiveCocoa/ReactiveCocoa/#readme
 [Actions]: Documentation/FrameworkOverview.md#actions
 [Basic Operators]: Documentation/BasicOperators.md
+[Carthage]: https://github.com/Carthage/Carthage/#readme
+[CocoaPods]: https://cocoapods.org/
 [CHANGELOG]: CHANGELOG.md
 [Code]: Sources
 [Documentation]: Documentation
@@ -350,6 +352,7 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 [Still using Swift 2.x?]: https://github.com/ReactiveCocoa/ReactiveCocoa/tree/v4.0.0
 [GitHub issues]: https://github.com/ReactiveCocoa/ReactiveSwift/issues?q=is%3Aissue+label%3Aquestion+
 [Stack Overflow]: http://stackoverflow.com/questions/tagged/reactive-cocoa
+[submodule]: https://git-scm.com/docs/git-submodule
 [functional reactive programming]: https://en.wikipedia.org/wiki/Functional_reactive_programming
 [ReactiveX]: https://reactivex.io/
 [RxSwift]: https://github.com/ReactiveX/RxSwift/#readme
