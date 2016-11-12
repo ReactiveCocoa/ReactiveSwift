@@ -82,13 +82,13 @@ class LifetimeProviderSpec: QuickSpec {
 			func testRetainCycle<U>(_ transform: @escaping (TestObject) -> (U) -> Void) {
 				weak var weakSignal: Signal<U, NoError>?
 
-				autoreleasepool {
+				_ = {
 					let lifted = object!.lift(transform)
 					let (signal, _) = Signal<U, NoError>.pipe()
 
 					lifted(signal)
 					weakSignal = signal
-				}
+				}()
 
 				expect(weakSignal).toNot(beNil())
 
