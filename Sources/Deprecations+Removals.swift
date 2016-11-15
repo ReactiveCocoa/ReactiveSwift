@@ -229,6 +229,9 @@ extension SignalProducerProtocol {
 	@available(*, unavailable, renamed:"skip(first:)")
 	public func skip(_ count: Int) -> SignalProducer<Value, Error> { fatalError() }
 
+	@available(*, unavailable, renamed:"retry(upTo:)")
+	public func retry(_ count: Int) -> SignalProducer<Value, Error> { fatalError() }
+
 	@available(*, unavailable, renamed:"observe(on:)")
 	public func observeOn(_ scheduler: UIScheduler) -> SignalProducer<Value, Error> { fatalError() }
 
