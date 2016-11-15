@@ -179,7 +179,7 @@ extension SignalProtocol {
 	public func skip(_ count: Int) -> Signal<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"observe(on:)")
-	public func observeOn(_ scheduler: UIScheduler) -> Signal<Value, Error> { fatalError() }
+	public func observeOn(_ scheduler: SchedulerProtocol) -> Signal<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"combineLatest(with:)")
 	public func combineLatestWith<S: SignalProtocol>(_ otherSignal: S) -> Signal<(Value, S.Value), Error> { fatalError() }
@@ -203,7 +203,7 @@ extension SignalProtocol {
 	public func takeWhile(_ predicate: (Value) -> Bool) -> Signal<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"timeout(after:raising:on:)")
-	public func timeoutWithError(_ error: Error, afterInterval: TimeInterval, onScheduler: SchedulerProtocol) -> Signal<Value, Error> { fatalError() }
+	public func timeoutWithError(_ error: Error, afterInterval: TimeInterval, onScheduler: DateSchedulerProtocol) -> Signal<Value, Error> { fatalError() }
 
 	@available(*, unavailable, message: "This Signal may emit errors which must be handled explicitly, or observed using `observeResult(_:)`")
 	public func observeNext(_ next: (Value) -> Void) -> Disposable? { fatalError() }
@@ -233,10 +233,10 @@ extension SignalProducerProtocol {
 	public func retry(_ count: Int) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"observe(on:)")
-	public func observeOn(_ scheduler: UIScheduler) -> SignalProducer<Value, Error> { fatalError() }
+	public func observeOn(_ scheduler: SchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"start(on:)")
-	public func startOn(_ scheduler: UIScheduler) -> SignalProducer<Value, Error> { fatalError() }
+	public func startOn(_ scheduler: SchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"combineLatest(with:)")
 	public func combineLatestWith<U>(_ otherProducer: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> { fatalError() }
@@ -275,7 +275,7 @@ extension SignalProducerProtocol {
 	public func takeWhile(_ predicate: (Value) -> Bool) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"timeout(after:raising:on:)")
-	public func timeoutWithError(_ error: Error, afterInterval: TimeInterval, onScheduler: SchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
+	public func timeoutWithError(_ error: Error, afterInterval: TimeInterval, onScheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, message:"This SignalProducer may emit errors which must be handled explicitly, or observed using `startWithResult(_:)`.")
 	public func startWithNext(_ next: (Value) -> Void) -> Disposable { fatalError() }
