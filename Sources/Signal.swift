@@ -1575,7 +1575,7 @@ extension SignalProtocol {
 		where P.Value == Bool
 	{
 		return Signal { observer in
-			let initial: ThrottleWhileState<Value> = shouldThrottle.value ? .throttled(nil) : .resumed
+			let initial: ThrottleWhileState<Value> = .resumed
 			let state = Atomic(initial)
 			let schedulerDisposable = SerialDisposable()
 
