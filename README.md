@@ -84,7 +84,7 @@ searchResults.observe { event in
     case let .value(results):
         print("Search results: \(results)")
         
-    case let .error(error):
+    case let .failed(error):
         print("Search error: \(error)")
         
     case .completed, .interrupted:
