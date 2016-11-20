@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. New property operator: `filter` (#586, kudos to @iv-mexx)
+
 # 3.1.0-rc.1
 1. Fixed a scenario of downstream interruptions being dropped. (#577, kudos to @andersio)
 

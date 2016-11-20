@@ -113,6 +113,20 @@ extension PropertyProtocol {
 		return lift { $0.map(keyPath) }
 	}
 
+	/// Passes only the values of the property that pass the given predicate
+	/// to a new property.
+	///
+	/// - parameters:
+	///   - initial: A `Property` always needs a `value`. The initial `value` is necessary in case the
+	///              predicate excludes the first (or all) `value`s of this `Property`
+	///   - predicate: A closure that accepts value and returns `Bool` denoting
+	///                whether current `value` of this `Property`  has passed the test.
+	///
+	/// - returns: A property that holds only values from `self` passing the given predicate.
+	public func filter(initial: Value, _ predicate: @escaping (Value) -> Bool) -> Property<Value> {
+		return Property(initial: initial, then: self.producer.filter(predicate))
+	}
+
 	/// Combines the current value and the subsequent values of two `Property`s in
 	/// the manner described by `Signal.combineLatest(with:)`.
 	///
