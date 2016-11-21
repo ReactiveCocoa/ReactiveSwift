@@ -144,7 +144,7 @@ The current value of a property can be obtained from the `value` getter. The
 the property’s current value, followed by all changes over time. The `signal` getter returns a [signal](#signals) that will send all changes over time, but not the initial value.
 
 The `<~` operator can be used to bind properties in different ways. Note that in
-all cases, the target has to be a [`BindingTarget`][BindingTarget], [`MutableProperty`][MutableProperty] is the only property that implements this.
+all cases, the target has to be a binding target, represented by the [`BindingTargetProtocol`][BindingTarget]. All mutable property types, represented by the  [`MutablePropertyProtocol`][MutableProperty], are inherently binding targets.
 
 * `property <~ signal` binds a [signal](#signals) to the property, updating the
   property’s value to the latest value sent by the signal.
