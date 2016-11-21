@@ -153,15 +153,7 @@ all cases, the target has to be a binding target, represented by the [`BindingTa
 * `property <~ otherProperty` binds one property to another, so that the destination
   property’s value is updated whenever the source property is updated.
 
-The [`DynamicProperty`][Property] type can be used to bridge to Objective-C APIs
-that require Key-Value Coding (KVC) or Key-Value Observing (KVO), like
-`NSOperation`. Note that most AppKit and UIKit properties do _not_ support KVO,
-so their changes should be observed through other mechanisms.
-
 [ReactiveCocoa][ReactiveCocoa] implements a number of extensions on AppKit and UIKit to allow observation of and binding to properties via the `.reactive` structure.
-
-[`MutableProperty`][Property] should be preferred over dynamic properties
-whenever possible!
 
 Properties provide a number of transformations like `map`, `combineLatest` or `zip` for manipulation similar to [signal](#signals) and [signal producer](#signal-producers)
 
