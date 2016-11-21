@@ -154,23 +154,6 @@ scopedExample("`skipRepeats`") {
         print("Skip-Repeats property received \($0)")
     }
     
-    property.value = 0
-    property.value = 1
-    property.value = 1
-    property.value = 0
-}
-
-scopedExample("`skipRepeats`") {
-    let property = MutableProperty(0)
-    let skipRepeatsProperty = property.skipRepeats()
-    
-    property.producer.startWithValues {
-        print("Property received \($0)")
-    }
-    skipRepeatsProperty.producer.startWithValues {
-        print("Skip-Repeats property received \($0)")
-    }
-    
     print("Setting new value for property: 0")
     property.value = 0
     print("Setting new value for property: 1")
