@@ -102,12 +102,12 @@ extension SignalProducerProtocol {
 		return self.on(
 			starting: log(.starting),
 			started: log(.started),
-			value: log(.value),
 			failed: log(.failed),
 			completed: log(.completed),
 			interrupted: log(.interrupted),
 			terminated: log(.terminated),
-			disposed: log(.disposed)
+			disposed: log(.disposed),
+			value: log(.value)
 		)
 	}
 }
