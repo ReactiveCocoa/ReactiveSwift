@@ -4,5 +4,6 @@
         <page name='Sandbox'/>
         <page name='SignalProducer'/>
         <page name='Signal'/>
+        <page name='Property'/>
     </pages>
 </playground>

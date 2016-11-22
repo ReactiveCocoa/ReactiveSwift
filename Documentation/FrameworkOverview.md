@@ -136,15 +136,15 @@ For interaction with `NSControl` or `UIControl`, RAC provides the
 
 ## Properties
 
-A **property**, represented by the [`PropertyType`][Property] protocol,
+A **property**, represented by the [`PropertyProtocol`][Property],
 stores a value and notifies observers about future changes to that value.
 
 The current value of a property can be obtained from the `value` getter. The
 `producer` getter returns a [signal producer](#signal-producers) that will send
-the property’s current value, followed by all changes over time.
+the property’s current value, followed by all changes over time. The `signal` getter returns a [signal](#signals) that will send all changes over time, but not the initial value.
 
 The `<~` operator can be used to bind properties in different ways. Note that in
-all cases, the target has to be a [`MutablePropertyType`][Property].
+all cases, the target has to be a binding target, represented by the [`BindingTargetProtocol`][BindingTarget]. All mutable property types, represented by the  [`MutablePropertyProtocol`][MutableProperty], are inherently binding targets.
 
 * `property <~ signal` binds a [signal](#signals) to the property, updating the
   property’s value to the latest value sent by the signal.
@@ -153,12 +153,7 @@ all cases, the target has to be a [`MutablePropertyType`][Property].
 * `property <~ otherProperty` binds one property to another, so that the destination
   property’s value is updated whenever the source property is updated.
 
-The [`DynamicProperty`][Property] type can be used to bridge to Objective-C APIs
-that require Key-Value Coding (KVC) or Key-Value Observing (KVO), like
-`NSOperation`. Note that most AppKit and UIKit properties do _not_ support KVO,
-so their changes should be observed through other mechanisms.
-[`MutableProperty`][Property] should be preferred over dynamic properties
-whenever possible!
+Properties provide a number of transformations like `map`, `combineLatest` or `zip` for manipulation similar to [signal](#signals) and [signal producer](#signal-producers)
 
 ## Disposables
 
@@ -199,6 +194,7 @@ do not allow tasks to be reordered or depend on one another.
 [Design Guidelines]: DesignGuidelines.md
 [BasicOperators]: BasicOperators.md
 [README]: ../README.md
+[ReactiveCocoa]: https://github.com/ReactiveCocoa/
 [Signal]: ../Sources/Signal.swift
 [SignalProducer]: ../Sources/SignalProducer.swift
 [Action]: ../Sources/Action.swift
@@ -208,3 +204,4 @@ do not allow tasks to be reordered or depend on one another.
 [Property]: ../Sources/Property.swift
 [Event]: ../Sources/Event.swift
 [Observer]: ../Sources/Observer.swift
+[BindingTarget]: ../Sources/UnidirectionalBinding.swift
