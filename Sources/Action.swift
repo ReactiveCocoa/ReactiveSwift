@@ -180,18 +180,26 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 private struct ActionState {
 	var isExecuting: Bool = false
-	var value: Any
-	private let userEnabled: (Any) -> Bool
+
+	var value: Any {
+		didSet {
+			userEnabled = userEnabledClosure(value)
+		}
+	}
+
+	private var userEnabled: Bool
+	private let userEnabledClosure: (Any) -> Bool
 
 	init(value: Any, isEnabled: @escaping (Any) -> Bool) {
 		self.value = value
-		self.userEnabled = isEnabled
+		self.userEnabled = isEnabled(value)
+		self.userEnabledClosure = isEnabled
 	}
 
 	/// Whether the action should be enabled for the given combination of user
 	/// enabledness and executing status.
 	fileprivate var isEnabled: Bool {
-		return userEnabled(value) && !isExecuting
+		return userEnabled && !isExecuting
 	}
 }
 
