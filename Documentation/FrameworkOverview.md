@@ -187,6 +187,7 @@ do not allow tasks to be reordered or depend on one another.
 [Disposable]: ../Sources/Disposable.swift
 [Scheduler]: ../Sources/Scheduler.swift
 [Property]: ../Sources/Property.swift
+[MutableProperty]: ../Sources/Property.swift#L28
 [Event]: ../Sources/Event.swift
 [Observer]: ../Sources/Observer.swift
 [BindingTarget]: ../Sources/UnidirectionalBinding.swift
