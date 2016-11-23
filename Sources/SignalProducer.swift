@@ -176,11 +176,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		// upstream producers.
 		let producerDisposable = CompositeDisposable()
 
-		var observer: Signal<Value, Error>.Observer!
-		let signal = Signal<Value, Error> { innerObserver in
-			observer = innerObserver
-			return producerDisposable
-		}
+		let (signal, observer) = Signal<Value, Error>.pipe(disposable: producerDisposable)
 
 		// Directly disposed of when `start()` or `startWithSignal()` is
 		// disposed.
