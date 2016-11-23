@@ -337,7 +337,8 @@ class SignalProducerSpec: QuickSpec {
 					return
 				}
 
-				producer.startWithSignal { _, innerDisposable in
+				producer.startWithSignal { signal, innerDisposable in
+					signal.observe { _ in }
 					disposable = innerDisposable
 				}
 
@@ -432,7 +433,7 @@ class SignalProducerSpec: QuickSpec {
 					observer = incomingObserver
 				}
 
-				producer.startWithSignal { _ in }
+				producer.start()
 				expect(addedDisposable.isDisposed) == false
 
 				observer.sendCompleted()
@@ -448,7 +449,7 @@ class SignalProducerSpec: QuickSpec {
 					observer = incomingObserver
 				}
 
-				producer.startWithSignal { _ in }
+				producer.start()
 				expect(addedDisposable.isDisposed) == false
 
 				observer.send(error: .default)
@@ -1970,6 +1971,7 @@ class SignalProducerSpec: QuickSpec {
 				producer
 					.observe(on: TestScheduler())
 					.startWithSignal { signal, innerDisposable in
+						signal.observe { _ in }
 						downstreamDisposable = innerDisposable
 					}
 				
