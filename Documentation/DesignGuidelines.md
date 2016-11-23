@@ -10,10 +10,10 @@ resource for getting up to speed on the main types and concepts provided by RAC.
 
 **[The `Event` contract](#the-event-contract)**
 
- 1. [`Next`s provide values or indicate the occurrence of events](#nexts-provide-values-or-indicate-the-occurrence-of-events)
- 1. [Failures behave like exceptions and propagate immediately](#failures-behave-like-exceptions-and-propagate-immediately)
- 1. [Completion indicates success](#completion-indicates-success)
- 1. [Interruption cancels outstanding work and usually propagates immediately](#interruption-cancels-outstanding-work-and-usually-propagates-immediately)
+ 1. [`value`s provide values or indicate the occurrence of events](#values-provide-values-or-indicate-the-occurrence-of-events)
+ 1. [`failure`s behave like exceptions and propagate immediately](#failures-behave-like-exceptions-and-propagate-immediately)
+ 1. [`completion` indicates success](#completion-indicates-success)
+ 1. [`interruption`s cancel outstanding work and usually propagate immediately](#interruptions-cancel-outstanding-work-and-usually-propagate-immediately)
  1. [Events are serial](#events-are-serial)
  1. [Events cannot be sent recursively](#events-cannot-be-sent-recursively)
  1. [Events are sent synchronously by default](#events-are-sent-synchronously-by-default)
@@ -59,35 +59,35 @@ events, and may be collectively called “event streams.”
 Event streams must conform to the following grammar:
 
 ```
-Next* (Interrupted | Failed | Completed)?
+value* (interrupted | failed | completed)?
 ```
 
 This states that an event stream consists of:
 
- 1. Any number of `Next` events
- 1. Optionally followed by one terminating event, which is any of `Interrupted`, `Failed`, or `Completed`
+ 1. Any number of `value` events
+ 1. Optionally followed by one terminating event, which is any of `interrupted`, `failed`, or `completed`
 
 After a terminating event, no other events will be received.
 
-#### `Next`s provide values or indicate the occurrence of events
+#### `value`s provide values or indicate the occurrence of events
 
-`Next` events contain a payload known as the “value.” Only `Next` events are
-said to have a value. Since an event stream can contain any number of `Next`s,
+`value` events contain a payload known as the “value”. Only `value` events are
+said to have a value. Since an event stream can contain any number of `value`s,
 there are few restrictions on what those values can mean or be used for, except
 that they must be of the same type.
 
 As an example, the value might represent an element from a collection, or
-a progress update about some long-running operation. The value of a `Next` event
+a progress update about some long-running operation. The value of a `value` event
 might even represent nothing at all—for example, it’s common to use a value type
 of `()` to indicate that something happened, without being more specific about
 what that something was.
 
-Most of the event stream [operators][] act upon `Next` events, as they represent the
+Most of the event stream [operators][] act upon `value` events, as they represent the
 “meaningful data” of a signal or producer.
 
-#### Failures behave like exceptions and propagate immediately
+#### `failure`s behave like exceptions and propagate immediately
 
-`Failed` events indicate that something went wrong, and contain a concrete error
+`failed` events indicate that something went wrong, and contain a concrete error
 that indicates what happened. Failures are fatal, and propagate as quickly as
 possible to the consumer for handling.
 
@@ -95,30 +95,30 @@ Failures also behave like exceptions, in that they “skip” operators, termina
 them along the way. In other words, most [operators][] immediately stop doing
 work when a failure is received, and then propagate the failure onward. This even applies to time-shifted operators, like [`delay`][delay]—which, despite its name, will forward any failures immediately.
 
-Consequently, failures should only be used to represent “abnormal” termination. If it is important to let operators (or consumers) finish their work, a `Next`
+Consequently, failures should only be used to represent “abnormal” termination. If it is important to let operators (or consumers) finish their work, a `value`
 event describing the result might be more appropriate.
 
 If an event stream can _never_ fail, it should be parameterized with the
-special [`NoError`][NoError] type, which statically guarantees that a `Failed`
+special [`NoError`][NoError] type, which statically guarantees that a `failed`
 event cannot be sent upon the stream.
 
-#### Completion indicates success
+#### `completion` indicates success
 
-An event stream sends `Completed` when the operation has completed successfully,
+An event stream sends `completed` when the operation has completed successfully,
 or to indicate that the stream has terminated normally.
 
-Many operators manipulate the `Completed` event to shorten or extend the
+Many operators manipulate the `completed` event to shorten or extend the
 lifetime of an event stream.
 
 For example, [`take`][take] will complete after the specified number of values have
 been received, thereby terminating the stream early. On the other hand, most
 operators that accept multiple signals or producers will wait until _all_ of
-them have completed before forwarding a `Completed` event, since a successful
+them have completed before forwarding a `completed` event, since a successful
 outcome will usually depend on all the inputs.
 
-#### Interruption cancels outstanding work and usually propagates immediately
+#### `interruption`s cancel outstanding work and usually propagate immediately
 
-An `Interrupted` event is sent when an event stream should cancel processing.
+An `interrupted` event is sent when an event stream should cancel processing.
 Interruption is somewhere between [success](#completion-indicates-success)
 and [failure](#failures-behave-like-exceptions-and-propagate-immediately)—the
 operation was not successful, because it did not get to finish, but it didn’t
@@ -126,10 +126,10 @@ necessarily “fail” either.
 
 Most [operators][] will propagate interruption immediately, but there are some
 exceptions. For example, the [flattening operators][flatten] will ignore
-`Interrupted` events that occur on the _inner_ producers, since the cancellation
+`interrupted` events that occur on the _inner_ producers, since the cancellation
 of an inner operation should not necessarily cancel the larger unit of work.
 
-RAC will automatically send an `Interrupted` event upon [disposal][Disposables], but it can
+RAC will automatically send an `interrupted` event upon [disposal][Disposables], but it can
 also be sent manually if necessary. Additionally, [custom
 operators](#implementing-new-operators) must make sure to forward interruption
 events to the observer.
@@ -177,7 +177,7 @@ distributed.
 
 A [signal][Signals] is a stream of values that obeys [the `Event` contract](#the-event-contract).
 
-`Signal` is a reference type, because each signal has identity—in other words, each
+`Signal` is a reference type, because each signal has identity — in other words, each
 signal has its own lifetime, and may eventually terminate. Once terminated,
 a signal cannot be restarted.
 
@@ -212,7 +212,7 @@ observers effectively see the same stream of events.
 
 There is one exception to this rule: adding an observer to a signal _after_ it
 has already terminated will result in exactly one
-[`Interrupted`](#interruption-cancels-outstanding-work-and-usually-propagates-immediately)
+[`interrupted`](#interruption-cancels-outstanding-work-and-usually-propagates-immediately)
 event sent to that specific observer.
 
 #### A signal is alive as long as it is publicly reachable or is being observed
@@ -297,7 +297,7 @@ automatically created and passed back.
 Disposing of this object will
 [interrupt](#interruption-cancels-outstanding-work-and-usually-propagates-immediately)
 the produced `Signal`, thereby canceling outstanding work and sending an
-`Interrupted` [event][Events] to all [observers][], and will also dispose of
+`interrupted` [event][Events] to all [observers][], and will also dispose of
 everything added to the [`CompositeDisposable`][CompositeDisposable] in
 [SignalProducer.init].
 
@@ -418,7 +418,7 @@ on simplicity, to avoid introducing bugs into the calling code.
 
 These guidelines cover some of the common pitfalls and help preserve the
 expected API contracts. It may also help to look at the implementations of
-existing `Signal` and `SignalProducer` operators for reference points.
+existing [`Signal`][Signals] and [`SignalProducer`][Signal Producers] operators for reference points.
 
 #### Prefer writing operators that apply to both signals and producers
 
@@ -450,15 +450,13 @@ little code written from scratch.
 
 Unless an operator is specifically built to handle
 [failures](#failures-behave-like-exceptions-and-propagate-immediately) and
-[interruption](#interruption-cancels-outstanding-work-and-usually-propagates-immedaitely)
+[interruptions](#interruption-cancels-outstanding-work-and-usually-propagates-immedaitely)
 in a custom way, it should propagate those events to the observer as soon as
 possible, to ensure that their semantics are honored.
 
 #### Switch over `Event` values
 
-Instead of using [`start(failed:completed:interrupted:next:)`][start] or
-[`observe(failed:completed:interrupted:next:)`][observe], create your own
-[observer][Observers] to process raw [`Event`][Events] values, and use
+Create your own [observer][Observers] to process raw [`Event`][Events] values, and use
 a `switch` statement to determine the event type.
 
 For example:
