@@ -834,27 +834,7 @@ extension SignalProducerProtocol {
 	/// - returns: A producer that will deliver events until `trigger` sends
 	///            `value` or `completed` events.
 	public func take(until trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
-		// This should be the implementation of this method:
-		// return liftRight(Signal.takeUntil)(trigger)
-		//
-		// However, due to a Swift miscompilation (with `-O`) we need to inline
-		// `liftRight` here.
-		//
-		// See https://github.com/ReactiveCocoa/ReactiveCocoa/issues/2751 for
-		// more details.
-		//
-		// This can be reverted once tests with -O work correctly.
-		return SignalProducer { observer, outerDisposable in
-			self.startWithSignal { signal, disposable in
-				outerDisposable.add(disposable)
-
-				trigger.startWithSignal { triggerSignal, triggerDisposable in
-					outerDisposable += triggerDisposable
-
-					signal.take(until: triggerSignal).observe(observer)
-				}
-			}
-		}
+		return liftRight(Signal.take(until:))(trigger)
 	}
 
 	/// Forward events from `self` until `trigger` sends a `value` or
