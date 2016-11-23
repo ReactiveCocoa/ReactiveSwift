@@ -841,21 +841,18 @@ class SignalProducerSpec: QuickSpec {
 				var value = 0
 				var completed = 0
 				var terminated = 0
+				var valueSent = 0
+				var disposed = 0
 
 				let producer = baseProducer
-					.on(starting: {
-						starting += 1
-					}, started: {
-						started += 1
-					}, event: { e in
-						event += 1
-					}, value: { n in
-						value += 1
-					}, completed: {
-						completed += 1
-					}, terminated: {
-						terminated += 1
-					})
+					.on(starting: { starting += 1 },
+					    started: { started += 1 },
+					    event: { _ in event += 1 },
+					    completed: { completed += 1 },
+					    terminated: { terminated += 1 },
+					    disposed: { disposed += 1 },
+					    valueSent: { _ in valueSent += 1 },
+					    value: { _ in value += 1 })
 
 				producer.start()
 				expect(starting) == 1
@@ -868,11 +865,13 @@ class SignalProducerSpec: QuickSpec {
 				observer.send(value: 1)
 				expect(event) == 2
 				expect(value) == 2
+				expect(valueSent) == 2
 
 				observer.sendCompleted()
 				expect(event) == 4
 				expect(completed) == 2
 				expect(terminated) == 2
+				expect(disposed) == 2
 			}
 
 			it("should attach event handlers for disposal") {
@@ -916,6 +915,27 @@ class SignalProducerSpec: QuickSpec {
 					.start()
 
 				expect(numbers) == [3, 2, 1]
+			}
+
+			it("should invoke the `valueSent` action after the next event is posted") {
+				let (baseProducer, baseObserver) = SignalProducer<Int, NoError>.pipe()
+				var pre = [Int]()
+				var post = [Int]()
+
+				var number = 0
+
+				_ = baseProducer
+					.on(valueSent: { _ in post.append(number) },
+					    value: { _ in pre.append(number) })
+					.startWithValues { number = $0 }
+
+				baseObserver.send(value: 1)
+				expect(pre) == [0]
+				expect(post) == [1]
+
+				baseObserver.send(value: 10)
+				expect(pre) == [0, 1]
+				expect(post) == [1, 10]
 			}
 		}
 
@@ -2283,6 +2303,7 @@ class SignalProducerSpec: QuickSpec {
 						{ event in expect(event) == "[] starting" },
 						{ event in expect(event) == "[] started" },
 						{ event in expect(event) == "[] value 1" },
+						{ event in expect(event) == "[] valueSent 1" },
 						{ event in expect(event) == "[] completed" },
 						{ event in expect(event) == "[] terminated" },
 						{ event in expect(event) == "[] disposed" }

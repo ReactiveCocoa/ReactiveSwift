@@ -2220,6 +2220,7 @@ class SignalSpec: QuickSpec {
 				it("should output the correct event without identifier") {
 					let expectations: [(String) -> Void] = [
 						{ event in expect(event) == "[] value 1" },
+						{ event in expect(event) == "[] valueSent 1" },
 						{ event in expect(event) == "[] completed" },
 						{ event in expect(event) == "[] terminated" },
 						{ event in expect(event) == "[] disposed" },
@@ -2239,6 +2240,7 @@ class SignalSpec: QuickSpec {
 				it("should output the correct event with identifier") {
 					let expectations: [(String) -> Void] = [
 						{ event in expect(event) == "[test.rac] value 1" },
+						{ event in expect(event) == "[test.rac] valueSent 1" },
 						{ event in expect(event) == "[test.rac] failed error1" },
 						{ event in expect(event) == "[test.rac] terminated" },
 						{ event in expect(event) == "[test.rac] disposed" },
