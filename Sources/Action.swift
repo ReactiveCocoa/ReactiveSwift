@@ -88,7 +88,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		errors = events.map { $0.error }.skipNil()
 		completed = events.filter { $0.isCompleted }.map { _ in }
 
-		let initial = ActionState(isExecuting: false, value: property.value, isEnabled: { isEnabled($0 as! State.Value) })
+		let initial = ActionState(value: property.value, isEnabled: { isEnabled($0 as! State.Value) })
 		state = MutableProperty(initial)
 
 		property.signal
@@ -179,12 +179,11 @@ public final class Action<Input, Output, Error: Swift.Error> {
 }
 
 private struct ActionState {
-	var isExecuting: Bool
+	var isExecuting: Bool = false
 	var value: Any
 	private let userEnabled: (Any) -> Bool
 
-	init(isExecuting: Bool, value: Any, isEnabled: @escaping (Any) -> Bool) {
-		self.isExecuting = isExecuting
+	init(value: Any, isEnabled: @escaping (Any) -> Bool) {
 		self.value = value
 		self.userEnabled = isEnabled
 	}
