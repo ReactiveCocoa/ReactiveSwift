@@ -1,7 +1,7 @@
 # Framework Overview
 
 This document contains a high-level description of the different components
-within the ReactiveCocoa framework, and an attempt to explain how they work
+within the ReactiveSwift framework, and an attempt to explain how they work
 together and divide responsibilities. This is meant to be a starting point for
 learning about new modules and finding more specific documentation.
 
@@ -11,7 +11,7 @@ the [Design Guidelines][].
 ## Events
 
 An **event**, represented by the [`Event`][Event] type, is the formalized representation
-of the fact that _something has happened_. In ReactiveCocoa, events are the centerpiece
+of the fact that _something has happened_. In ReactiveSwift, events are the centerpiece
 of communication. An event might represent the press of a button, a piece
 of information received from an API, the occurrence of an error, or the completion
 of a long-running operation. In any case, something generates the events and sends them over a
@@ -20,15 +20,15 @@ of a long-running operation. In any case, something generates the events and sen
 `Event` is an enumerated type representing either a value or one of three
 terminal events:
 
- * The `Next` event provides a new value from the source.
- * The `Failed` event indicates that an error occurred before the signal could
+ * The `value` event provides a new value from the source.
+ * The `failed` event indicates that an error occurred before the signal could
    finish. Events are parameterized by an `ErrorType`, which determines the kind
    of failure that’s permitted to appear in the event. If a failure is not
    permitted, the event can use type `NoError` to prevent any from being
    provided.
- * The `Completed` event indicates that the signal finished successfully, and
+ * The `completed` event indicates that the signal finished successfully, and
    that no more values will be sent by the source.
- * The `Interrupted` event indicates that the signal has terminated due to
+ * The `interrupted` event indicates that the signal has terminated due to
    cancellation, meaning that the operation was neither successful nor
    unsuccessful.
 
@@ -52,11 +52,11 @@ is no random access to values of a signal.
 Signals can be manipulated by applying [primitives][BasicOperators] to them.
 Typical primitives to manipulate a single signal like `filter`, `map` and
 `reduce` are available, as well as primitives to manipulate multiple signals
-at once (`zip`). Primitives operate only on the `Next` events of a signal.
+at once (`zip`). Primitives operate only on the `value` events of a signal.
 
-The lifetime of a signal consists of any number of `Next` events, followed by
-one terminating event, which may be any one of `Failed`, `Completed`, or
-`Interrupted` (but not a combination).
+The lifetime of a signal consists of any number of `value` events, followed by
+one terminating event, which may be any one of `failed`, `completed`, or
+`interrupted` (but not a combination).
 Terminating events are not included in the signal’s values—they must be
 handled specially.
 
@@ -100,22 +100,10 @@ using the `lift` method.
 Furthermore, there are additional primitives that control _when_ and _how_ work
 is started—for example, `times`.
 
-### Buffers
-
-A **buffer**, created by `SignalProducer.buffer()`, is a (optionally bounded)
-queue for [events](#events) that replays those events when new
-[signals](#signals) are created from the producer.
-
-Similar to a [pipe](#pipes), the method returns an [observer](#observers).
-Events sent to this observer will be added to the queue. If the buffer is already
-at capacity when a new value arrives, the earliest (oldest) value will be
-dropped to make room for it.
-
 ## Observers
 
 An **observer** is anything that is waiting or capable of waiting for [events](#events)
-from a [signal](#signals). Within RAC, an observer is represented as
-an [`Observer`][Observer] that accepts [`Event`][Event] values.
+from a [signal](#signals). Within RAC, an observer is represented as an [`Observer`][Observer] that accepts [`Event`][Event] values.
 
 Observers can be implicitly created by using the callback-based versions of the
 `Signal.observe` or `SignalProducer.start` methods.
@@ -130,9 +118,6 @@ Actions are useful for performing side-effecting work upon user interaction, lik
 clicked. Actions can also be automatically disabled based on a [property](#properties), and this
 disabled state can be represented in a UI by disabling any controls associated
 with the action.
-
-For interaction with `NSControl` or `UIControl`, RAC provides the
-[`CocoaAction`][CocoaAction] type for bridging actions to Objective-C.
 
 ## Properties
 
@@ -163,7 +148,7 @@ for memory management and cancellation.
 When starting a [signal producer](#signal-producers), a disposable will be returned.
 This disposable can be used by the caller to cancel the work that has been started
 (e.g. background processing, network requests, etc.), clean up all temporary
-resources, then send a final `Interrupted` event upon the particular
+resources, then send a final `interrupted` event upon the particular
 [signal](#signals) that was created.
 
 Observing a [signal](#signals) may also return a disposable. Disposing it will
@@ -174,7 +159,7 @@ For more information about cancellation, see the RAC [Design Guidelines][].
 
 ## Schedulers
 
-A **scheduler**, represented by the [`SchedulerType`][Scheduler] protocol, is a
+A **scheduler**, represented by the [`SchedulerProtocol`][Scheduler] protocol, is a
 serial execution queue to perform work or deliver results upon.
 
 [Signals](#signals) and [signal producers](#signal-producers) can be ordered to
