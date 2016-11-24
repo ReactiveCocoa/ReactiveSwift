@@ -80,11 +80,6 @@ matrix:
         - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
       script:
         - mv .Package.test.swift Package.swift
-        # https://github.com/Quick/Nimble/pull/342 is needed.
-        - swift package update
-        - cd Packages/Nimble-*
-        - git checkout v5.1.1
-        - cd ../../
         - swift build
         - swift test
       env: JOB=SWIFTPM_LINUX
