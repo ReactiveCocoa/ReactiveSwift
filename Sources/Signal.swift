@@ -269,7 +269,13 @@ private struct InterruptingState {
 	///         `!isIdle`.
 	var isInterrupted: Bool {
 		mutating get {
-			return state.swap(.finalized) == .interrupted
+			return state.modify { state in
+				if state == .interrupted {
+					state = .finalized
+					return true
+				}
+				return false
+			}
 		}
 	}
 
