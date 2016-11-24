@@ -41,8 +41,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		state = Atomic(SignalState())
 
 		/// Used to ensure that events are serialized during delivery to observers.
-		let sendLock = NSLock()
-		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
+		let sendLock = PosixThreadMutex()
 
 		/// When set to `true`, the Signal should interrupt as soon as possible.
 		let interrupted = Atomic(false)
@@ -624,7 +623,7 @@ private final class CombineLatestState<Value> {
 }
 
 extension SignalProtocol {
-	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: NSLock, _ observer: Signal<(), Error>.Observer) -> Disposable? {
+	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: PosixThreadMutex, _ observer: Signal<(), Error>.Observer) -> Disposable? {
 		return self.observe { event in
 			switch event {
 			case let .value(value):
@@ -672,8 +671,7 @@ extension SignalProtocol {
 	///            and given signal.
 	public func combineLatest<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal { observer in
-			let lock = NSLock()
-			lock.name = "org.reactivecocoa.ReactiveSwift.combineLatestWith"
+			let lock = PosixThreadMutex()
 
 			let signalState = CombineLatestState<Value>()
 			let otherState = CombineLatestState<U>()
