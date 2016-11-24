@@ -359,28 +359,22 @@ extension PropertyProtocol {
 	}
 }
 
-/// A read-only property that can be observed for its changes over time. There are
-/// three categories of read-only property:
+/// A read-only property that can be observed for its changes over time. There
+/// are two categories of read-only properties:
 ///
 /// # Constant property
 /// Created by `Property(value:)`, the producer and signal of a constant
 /// property would complete immediately when it is initialized.
 ///
-/// # Existential property
-/// Created by `Property(_:)`, an existential property passes through the
-/// behavior of the wrapped property.
-///
 /// # Composed property
-/// Created by either the compositional operators in `PropertyProtocol`, or
-/// `Property(initial:followingBy:)`, a composed property presents a
-/// composed view of its source, which can be a set of properties,
-/// a producer, or a signal.
+/// A composed property presents a composed view of its sources, which can be
+/// one or more properties, a producer, or a signal.
 ///
-/// A composed property respects the lifetime of its source rather than its own.
-/// In other words, its producer and signal can outlive the property itself, if
-/// its source outlives it too.
+/// It respects and have no effect on the lifetime of its root sources. In other
+/// words, the producer and signal of a composed property could complete before
+/// or outlive the composed property, depending on its sources and the
+/// composition.
 public final class Property<Value>: PropertyProtocol {
-	private let sources: [AnyObject]
 	private let disposable: Disposable?
 
 	private let _value: () -> Value
@@ -410,23 +404,20 @@ public final class Property<Value>: PropertyProtocol {
 	/// - parameters:
 	///   - property: A value of the constant property.
 	public init(value: Value) {
-		sources = []
 		disposable = nil
 		_value = { value }
 		_producer = { SignalProducer(value: value) }
 		_signal = { Signal<Value, NoError>.empty }
 	}
 
-	/// Initializes an existential property which wraps the given property.
+	/// Initializes a composed property which reflects the given property.
+	///
+	/// - note: The resulting property does not retain the given property.
 	///
 	/// - parameters:
 	///   - property: A property to be wrapped.
-	public init<P: PropertyProtocol>(_ property: P) where P.Value == Value {
-		sources = Property.capture(property)
-		disposable = nil
-		_value = { property.value }
-		_producer = { property.producer }
-		_signal = { property.signal }
+	public convenience init<P: PropertyProtocol>(_ property: P) where P.Value == Value {
+		self.init(unsafeProducer: property.producer)
 	}
 
 	/// Initializes a composed property that first takes on `initial`, then each
@@ -437,8 +428,7 @@ public final class Property<Value>: PropertyProtocol {
 	///   - producer: A producer that will start immediately and send values to
 	///               the property.
 	public convenience init(initial: Value, then producer: SignalProducer<Value, NoError>) {
-		self.init(unsafeProducer: producer.prefix(value: initial),
-		          capturing: [])
+		self.init(unsafeProducer: producer.prefix(value: initial))
 	}
 
 	/// Initialize a composed property that first takes on `initial`, then each
@@ -448,8 +438,7 @@ public final class Property<Value>: PropertyProtocol {
 	///   - initialValue: Starting value for the property.
 	///   - signal: A signal that will send values to the property.
 	public convenience init(initial: Value, then signal: Signal<Value, NoError>) {
-		self.init(unsafeProducer: SignalProducer(signal: signal).prefix(value: initial),
-		          capturing: [])
+		self.init(unsafeProducer: SignalProducer(signal: signal).prefix(value: initial))
 	}
 
 	/// Initialize a composed property by applying the unary `SignalProducer`
@@ -463,10 +452,7 @@ public final class Property<Value>: PropertyProtocol {
 		_ property: P,
 		transform: @escaping (SignalProducer<P.Value, NoError>) -> SignalProducer<Value, NoError>
 	) {
-		self.init(
-			unsafeProducer: transform(property.producer),
-			capturing: Property.capture(property)
-		)
+		self.init(unsafeProducer: transform(property.producer))
 	}
 
 	/// Initialize a composed property by applying the binary `SignalProducer`
@@ -478,8 +464,7 @@ public final class Property<Value>: PropertyProtocol {
 	///   - transform: A binary `SignalProducer` transform to be applied on
 	///             `firstProperty` and `secondProperty`.
 	fileprivate convenience init<P1: PropertyProtocol, P2: PropertyProtocol>(_ firstProperty: P1, _ secondProperty: P2, transform: @escaping (SignalProducer<P1.Value, NoError>) -> (SignalProducer<P2.Value, NoError>) -> SignalProducer<Value, NoError>) {
-		self.init(unsafeProducer: transform(firstProperty.producer)(secondProperty.producer),
-		          capturing: Property.capture(firstProperty) + Property.capture(secondProperty))
+		self.init(unsafeProducer: transform(firstProperty.producer)(secondProperty.producer))
 	}
 
 	/// Initialize a composed property from a producer that promises to send
@@ -494,8 +479,7 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - parameters:
 	///   - unsafeProducer: The composed producer for creating the property.
-	///   - sources: The property sources to be captured.
-	private init(unsafeProducer: SignalProducer<Value, NoError>, capturing sources: [AnyObject]) {
+	private init(unsafeProducer: SignalProducer<Value, NoError>) {
 		// Share a replayed producer with `self.producer` and `self.signal` so
 		// they see a consistent view of the `self.value`.
 		// https://github.com/ReactiveCocoa/ReactiveCocoa/pull/3042
@@ -510,7 +494,6 @@ public final class Property<Value>: PropertyProtocol {
 			fatalError("A producer promised to send at least one value. Received none.")
 		}
 
-		self.sources = sources
 		_value = { atomic.value! }
 		_producer = { producer }
 		_signal = { producer.startAndRetrieveSignal() }
@@ -518,20 +501,6 @@ public final class Property<Value>: PropertyProtocol {
 
 	deinit {
 		disposable?.dispose()
-	}
-
-	/// Inspect if `property` is an `AnyProperty` and has already captured its
-	/// sources using a closure. Returns that closure if it does. Otherwise,
-	/// returns a closure which captures `property`.
-	///
-	/// - parameters:
-	///   - property: The property to be insepcted.
-	private static func capture<P: PropertyProtocol>(_ property: P) -> [AnyObject] {
-		if let property = property as? Property<P.Value> {
-			return property.sources
-		} else {
-			return [property]
-		}
 	}
 }
 

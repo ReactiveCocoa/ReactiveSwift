@@ -373,23 +373,16 @@ class PropertySpec: QuickSpec {
 						expect(latestValue) == 4
 					}
 
-					it("should retain its source property") {
+					it("should not retain its source property") {
 						var property = Optional(MutableProperty(1))
 						weak var weakProperty = property
 
-						var firstMappedProperty = Optional(property!.map { $0 + 1 })
-						var secondMappedProperty = Optional(firstMappedProperty!.map { $0 + 2 })
+						let mapped = Optional(property!.map { $0 + 2 })
 
 						// Suppress the "written to but never read" warning on `secondMappedProperty`.
-						_ = secondMappedProperty
+						_ = mapped
 
 						property = nil
-						expect(weakProperty).toNot(beNil())
-
-						firstMappedProperty = nil
-						expect(weakProperty).toNot(beNil())
-
-						secondMappedProperty = nil
 						expect(weakProperty).to(beNil())
 					}
 
@@ -426,15 +419,15 @@ class PropertySpec: QuickSpec {
 						expect(producerCompleted) == 0
 
 						property = nil
-						expect(signalCompleted) == 0
-						expect(producerCompleted) == 0
+						expect(signalCompleted) == 3
+						expect(producerCompleted) == 3
 
 						thirdMappedProperty = nil
 						expect(signalCompleted) == 3
 						expect(producerCompleted) == 3
 					}
 
-					it("should not capture intermediate properties but only the ultimate sources") {
+					it("should capture no properties") {
 						func increment(input: Int) -> Int {
 							return input + 1
 						}
@@ -465,7 +458,7 @@ class PropertySpec: QuickSpec {
 						scope()
 
 						expect(finalProperty.value) == 5
-						expect(weakSourceProperty).toNot(beNil())
+						expect(weakSourceProperty).to(beNil())
 						expect(weakPropertyA).to(beNil())
 						expect(weakPropertyB).to(beNil())
 						expect(weakPropertyC).to(beNil())
@@ -1139,9 +1132,9 @@ class PropertySpec: QuickSpec {
 							var errored = false
 							var completed = false
 
-							var flattenedProperty = Optional(outerProperty!.flatten(.concat))
+							let flattenedProperty = outerProperty!.flatten(.concat)
 
-							flattenedProperty!.producer.start { event in
+							flattenedProperty.producer.start { event in
 								switch event {
 								case let .value(value):
 									receivedValues.append(value)
@@ -1184,9 +1177,6 @@ class PropertySpec: QuickSpec {
 							expect(completed) == false
 
 							thirdProperty = nil
-							expect(completed) == false
-
-							flattenedProperty = nil
 							expect(completed) == true
 							expect(errored) == false
 						}
@@ -1204,9 +1194,9 @@ class PropertySpec: QuickSpec {
 							var errored = false
 							var completed = false
 
-							var flattenedProperty = Optional(outerProperty!.flatten(.merge))
+							let flattenedProperty = outerProperty!.flatten(.merge)
 
-							flattenedProperty!.producer.start { event in
+							flattenedProperty.producer.start { event in
 								switch event {
 								case let .value(value):
 									receivedValues.append(value)
@@ -1249,9 +1239,6 @@ class PropertySpec: QuickSpec {
 							expect(completed) == false
 
 							thirdProperty = nil
-							expect(completed) == false
-
-							flattenedProperty = nil
 							expect(completed) == true
 							expect(errored) == false
 						}
