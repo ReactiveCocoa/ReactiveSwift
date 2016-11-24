@@ -8,7 +8,7 @@
 
 import Foundation
 
-final class PosixThreadMutex: NSLocking {
+internal final class PosixThreadMutex: NSLocking {
 	private var mutex = pthread_mutex_t()
 
 	init() {
@@ -19,6 +19,10 @@ final class PosixThreadMutex: NSLocking {
 	deinit {
 		let result = pthread_mutex_destroy(&mutex)
 		precondition(result == 0, "Failed to destroy mutex with error \(result).")
+	}
+
+	func `try`() -> Bool {
+		return pthread_mutex_trylock(&mutex) == 0
 	}
 
 	func lock() {
