@@ -578,7 +578,7 @@ class PropertySpec: QuickSpec {
 
 						let (signal, observer) = Signal<Int, NoError>.pipe()
 						var property: Property<Int>? = Property(initial: 1,
-																											 then: SignalProducer(signal: signal))
+						                                        then: SignalProducer(signal))
 						let propertySignal = property!.signal
 
 						propertySignal.observeCompleted { signalCompleted = true }
@@ -1539,7 +1539,7 @@ class PropertySpec: QuickSpec {
 			describe("from a SignalProducer") {
 				it("should start a signal and update the property with its values") {
 					let signalValues = [initialPropertyValue, subsequentPropertyValue]
-					let signalProducer = SignalProducer<String, NoError>(values: signalValues)
+					let signalProducer = SignalProducer<String, NoError>(signalValues)
 
 					let mutableProperty = MutableProperty(initialPropertyValue)
 
@@ -1562,7 +1562,7 @@ class PropertySpec: QuickSpec {
 
 				it("should tear down the binding when the property deallocates") {
 					let (signal, _) = Signal<String, NoError>.pipe()
-					let signalProducer = SignalProducer(signal: signal)
+					let signalProducer = SignalProducer(signal)
 
 					var mutableProperty: MutableProperty<String>? = MutableProperty(initialPropertyValue)
 

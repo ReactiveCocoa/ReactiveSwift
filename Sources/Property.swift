@@ -469,7 +469,7 @@ public final class Property<Value>: PropertyProtocol {
 	///   - initialValue: Starting value for the property.
 	///   - signal: A signal that will send values to the property.
 	public convenience init(initial: Value, then signal: Signal<Value, NoError>) {
-		self.init(unsafeProducer: SignalProducer(signal: signal).prefix(value: initial))
+		self.init(unsafeProducer: SignalProducer(signal).prefix(value: initial))
 	}
 
 	/// Initialize a composed property by applying the unary `SignalProducer`

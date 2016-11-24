@@ -29,7 +29,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - signal: A signal to observe after starting the producer.
-	public init<S: SignalProtocol>(signal: S) where S.Value == Value, S.Error == Error {
+	public init<S: SignalProtocol>(_ signal: S) where S.Value == Value, S.Error == Error {
 		self.init { observer, disposable in
 			disposable += signal.observe(observer)
 		}
@@ -100,9 +100,9 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
-	public init<S: Sequence>(values: S) where S.Iterator.Element == Value {
+	public init<S: Sequence>(_ sequence: S) where S.Iterator.Element == Value {
 		self.init { observer, disposable in
-			for value in values {
+			for value in sequence {
 				observer.send(value: value)
 
 				if disposable.isDisposed {
@@ -122,7 +122,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - second: Second value for the `Signal` to send.
 	///   - tail: Rest of the values to be sent by the `Signal`.
 	public init(values first: Value, _ second: Value, _ tail: Value...) {
-		self.init(values: [ first, second ] + tail)
+		self.init([ first, second ] + tail)
 	}
 
 	/// A producer for a Signal that will immediately complete without sending
@@ -448,7 +448,7 @@ extension SignalProducerProtocol {
 	///            `SignalProducer`.
 	public func lift<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (Signal<U, F>) -> SignalProducer<V, G> {
 		return { otherSignal in
-			return self.liftRight(transform)(SignalProducer(signal: otherSignal))
+			return self.liftRight(transform)(SignalProducer(otherSignal))
 		}
 	}
 

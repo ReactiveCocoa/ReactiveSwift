@@ -999,7 +999,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 			
 			it("should emit an initial value if the sampler is a synchronous SignalProducer") {
-				let producer = SignalProducer<Int, NoError>(values: [1])
+				let producer = SignalProducer<Int, NoError>([1])
 				let sampler = SignalProducer<String, NoError>(value: "a")
 				
 				let result = producer.sample(with: sampler)
@@ -1064,7 +1064,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should emit an initial value if the sampler is a synchronous SignalProducer") {
-				let producer = SignalProducer<Int, NoError>(values: [1])
+				let producer = SignalProducer<Int, NoError>([1])
 				let sampler = SignalProducer<(), NoError>(value: ())
 				
 				let result = producer.sample(on: sampler)
