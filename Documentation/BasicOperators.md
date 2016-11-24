@@ -305,25 +305,17 @@ Note, how the values interleave and which values are even included in the result
 
 ### Merging
 
-The `.merge` strategy immediately forwards every value of the inner `SignalProducer`s to the outer `SignalProducer`. Any failure sent on the outer producer or any inner producer is immediately sent on the flattened producer and terminates it.
+The `.merge` strategy immediately forwards every value of the inner `Signal`s to the outer `Signal`. Any failure sent on the outer signal or any inner signal is immediately sent on the flattened signal and terminates it.
 
 ```Swift
 let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
 let (numbersSignal, numbersObserver) = Signal<String, NoError>.pipe()
+let (signal, observer) = Signal<Signal<String, NoError>, NoError>.pipe()
 
-let lettersProducer = SignalProducer(signal: lettersSignal).replayLazily(upTo: 3)
-let numbersProducer = SignalProducer(signal: numbersSignal).replayLazily(upTo: 3)
+signal.flatten(.merge).observeValues { print($0) }
 
-lettersProducer.start()
-numbersProducer.start()
-
-let (signal, observer) = Signal<SignalProducer<String, NoError>, NoError>.pipe()
-let producer = SignalProducer(signal: signal)
-
-producer.flatten(.merge).startWithValues { print($0) }
-
-observer.send(value: lettersProducer)
-observer.send(value: numbersProducer)
+observer.send(value: lettersSignal)
+observer.send(value: numbersSignal)
 observer.sendCompleted()
 
 lettersObserver.send(value: "a")    // prints "a"
@@ -338,26 +330,17 @@ numbersObserver.send(value: "3")    // prints "3"
 
 ### Concatenating
 
-The `.concat` strategy is used to serialize work of the inner `Signal`s. The outer producer is started immediately. Each subsequent producer is not started until the preceeding one has completed. Failures are immediately forwarded to the flattened producer.
+The `.concat` strategy is used to serialize work of the inner `Signal`s. The outer signal is started observed. Each subsequent signal is not observed until the preceeding one has completed. Failures are immediately forwarded to the flattened signal.
 
 ```Swift
 let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
 let (numbersSignal, numbersObserver) = Signal<String, NoError>.pipe()
+let (signal, observer) = Signal<Signal<String, NoError>, NoError>.pipe()
 
-let lettersProducer = SignalProducer(signal: lettersSignal).replayLazily(upTo: 3)
-let numbersProducer = SignalProducer(signal: numbersSignal).replayLazily(upTo: 3)
+signal.flatten(.concat).observeValues { print($0) }
 
-lettersProducer.start()
-numbersProducer.start()
-
-let (signal, observer) = Signal<SignalProducer<String, NoError>, NoError>.pipe()
-
-let producer = SignalProducer(signal: signal)
-
-producer.flatten(.concat).startWithValues { print($0) }
-
-observer.send(value: lettersProducer)
-observer.send(value: numbersProducer)
+observer.send(value: lettersSignal)
+observer.send(value: numbersSignal)
 observer.sendCompleted()
 
 numbersObserver.send(value: "1")    // nothing printed
@@ -374,39 +357,17 @@ numbersObserver.sendCompleted()
 
 ### Switching to the latest
 
-The `.latest` strategy forwards only values from the latest input `SignalProducer`.
+The `.latest` strategy forwards only values from the latest input `Signal`.
 
 ```Swift
-let (signalA, observerA) = Signal<String, NoError>.pipe()
-let (signalB, observerB) = Signal<String, NoError>.pipe()
-let (signalC, observerC) = Signal<String, NoError>.pipe()
-
-let producerA = SignalProducer(signal: signalA).replayLazily(upTo: 3)
-let producerB = SignalProducer(signal: signalB).replayLazily(upTo: 3)
-let producerC = SignalProducer(signal: signalC).replayLazily(upTo: 3)
-
-producerA.start()
-producerB.start()
-producerC.start()
-
-let (signal, observer) = Signal<SignalProducer<String, NoError>, NoError>.pipe()
-let producer = SignalProducer(signal: signal)
-
-producer.flatten(.latest).startWithValues { print($0) }
-
-observer.send(value: producerA)   // nothing printed
-observerC.send(value: "X")        // nothing printed
-observerA.send(value: "a")        // prints "a"
-observerB.send(value: "1")        // nothing printed
-observer.send(value: producerB)   // prints "1"
-observerA.send(value: "b")        // nothing printed
-observerB.send(value: "2")        // prints "2"
-observerC.send(value: "Y")        // nothing printed
-observerB.send(value: "3")        // prints "3"
-observerA.send(value: "c")        // nothing printed
-observer.send(value: producerC)   // prints "X", "Y"
-observerB.send(value: "3")        // nothing printed
-observerC.send(value: "Z")        // prints "Z"
+observer.send(value: lettersSignal) // nothing printed
+numbersObserver.send(value: "1")    // nothing printed
+lettersObserver.send(value: "a")    // prints "a"
+lettersObserver.send(value: "b")    // prints "b"
+numbersObserver.send(value: "2")    // nothing printed
+observer.send(value: numbersSignal) // nothing printed
+lettersObserver.send(value: "c")    // nothing printed
+numbersObserver.send(value: "3")    // prints "3"
 ```
 
 ## Handling failures
