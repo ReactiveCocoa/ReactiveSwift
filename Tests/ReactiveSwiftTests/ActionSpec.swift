@@ -222,5 +222,35 @@ class ActionSpec: QuickSpec {
 				}
 			}
 		}
+
+		describe("using a property as input") {
+			let echo: (Int) -> SignalProducer<Int, NoError> = SignalProducer.init(value:)
+
+			it("executes the action with the property's current value") {
+				let input = MutableProperty(0)
+				let action = Action(input: input, echo)
+
+				var values: [Int] = []
+				action.values.observeValues { values.append($0) }
+
+				input.value = 1
+				action.apply().start()
+				input.value = 2
+				action.apply().start()
+				input.value = 3
+				action.apply().start()
+
+				expect(values) == [1, 2, 3]
+			}
+
+			it("is disabled if the property is nil") {
+				let input = MutableProperty<Int?>(1)
+				let action = Action(input: input, echo)
+
+				expect(action.isEnabled.value) == true
+				input.value = nil
+				expect(action.isEnabled.value) == false
+			}
+		}
 	}
 }

@@ -12,7 +12,7 @@ import enum Result.NoError
 public final class Action<Input, Output, Error: Swift.Error> {
 	private let deinitToken: Lifetime.Token
 
-	private let executeClosure: (Input) -> SignalProducer<Output, Error>
+	private let executeClosure: (_ state: Any, _ input: Input) -> SignalProducer<Output, Error>
 	private let eventsObserver: Signal<Event<Output, Error>, NoError>.Observer
 	private let disabledErrorsObserver: Signal<(), NoError>.Observer
 
@@ -49,43 +49,37 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// Whether the action is currently executing.
 	public let isExecuting: Property<Bool>
 
-	private let _isExecuting: MutableProperty<Bool> = MutableProperty(false)
-
 	/// Whether the action is currently enabled.
-	public var isEnabled: Property<Bool>
+	public let isEnabled: Property<Bool>
 
-	private let _isEnabled: MutableProperty<Bool> = MutableProperty(false)
+	private let state: MutableProperty<ActionState>
 
-	/// Whether the instantiator of this action wants it to be enabled.
-	private let isUserEnabled: Property<Bool>
-
-	/// This queue is used for read-modify-write operations on the `_executing`
-	/// property.
-	private let executingQueue = DispatchQueue(
-		label: "org.reactivecocoa.ReactiveSwift.Action.executingQueue",
-		attributes: []
-	)
-
-	/// Whether the action should be enabled for the given combination of user
-	/// enabledness and executing status.
-	private static func shouldBeEnabled(userEnabled: Bool, executing: Bool) -> Bool {
-		return userEnabled && !executing
-	}
-
-	/// Initializes an action that will be conditionally enabled, and creates a
-	/// SignalProducer for each input.
+	/// Initializes an action that will be conditionally enabled based on the
+	/// value of `state`. Creates a `SignalProducer` for each input and the
+	/// current value of `state`.
+	///
+	/// - note: `Action` guarantees that changes to `state` are observed in a
+	///         thread-safe way. Thus, the value passed to `isEnabled` will
+	///         always be identical to the value passed to `execute`, for each
+	///         application of the action.
+	///
+	/// - note: This initializer should only be used if you need to provide
+	///         custom input can also influence whether the action is enabled.
+	///         The various convenience initializers should cover most use cases.
 	///
 	/// - parameters:
-	///   - enabledIf: Boolean property that shows whether the action is
-	///                enabled.
-	///   - execute: A closure that returns the signal producer returned by
-	///              calling `apply(Input)` on the action.
-	public init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+	///   - state: A property that provides the current state of the action
+	///            whenever `apply()` is called.
+	///   - enabledIf: A predicate that, given the current value of `state`,
+	///                returns whether the action should be enabled.
+	///   - execute: A closure that returns the `SignalProducer` returned by
+	///              calling `apply(Input)` on the action, optionally using
+	///              the current value of `state`.
+	public init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
 
-		executeClosure = execute
-		isUserEnabled = Property(property)
+		executeClosure = { state, input in execute(state as! State.Value, input) }
 
 		(events, eventsObserver) = Signal<Event<Output, Error>, NoError>.pipe()
 		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
@@ -94,12 +88,33 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		errors = events.map { $0.error }.skipNil()
 		completed = events.filter { $0.isCompleted }.map { _ in }
 
-		isEnabled = Property(_isEnabled)
-		isExecuting = Property(_isExecuting)
+		let initial = ActionState(value: property.value, isEnabled: { isEnabled($0 as! State.Value) })
+		state = MutableProperty(initial)
 
-		_isEnabled <~ property.producer
-			.combineLatest(with: isExecuting.producer)
-			.map(Action.shouldBeEnabled)
+		property.signal
+			.take(during: state.lifetime)
+			.observeValues { [weak state] newValue in
+				state?.modify {
+					$0.value = newValue
+				}
+			}
+
+		self.isEnabled = state.map { $0.isEnabled }
+		self.isExecuting = state.map { $0.isExecuting }
+	}
+
+	/// Initializes an action that will be conditionally enabled, and creates a
+	/// `SignalProducer` for each input.
+	///
+	/// - parameters:
+	///   - enabledIf: Boolean property that shows whether the action is
+	///                enabled.
+	///   - execute: A closure that returns the signal producer returned by
+	///              calling `apply(Input)` on the action.
+	public convenience init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+		self.init(state: property, enabledIf: { $0 }) { _, input in
+			execute(input)
+		}
 	}
 
 	/// Initializes an action that will be enabled by default, and creates a
@@ -130,22 +145,22 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///            producer.
 	public func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>> {
 		return SignalProducer { observer, disposable in
-			var startedExecuting = false
-
-			self.executingQueue.sync {
-				if self._isEnabled.value {
-					self._isExecuting.value = true
-					startedExecuting = true
+			let startingState = self.state.modify { state -> Any? in
+				if state.isEnabled {
+					state.isExecuting = true
+					return state.value
+				} else {
+					return nil
 				}
 			}
 
-			if !startedExecuting {
+			guard let state = startingState else {
 				observer.send(error: .disabled)
 				self.disabledErrorsObserver.send(value: ())
 				return
 			}
 
-			self.executeClosure(input).startWithSignal { signal, signalDisposable in
+			self.executeClosure(state, input).startWithSignal { signal, signalDisposable in
 				disposable += signalDisposable
 
 				signal.observe { event in
@@ -155,9 +170,36 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			}
 
 			disposable += {
-				self._isExecuting.value = false
+				self.state.modify {
+					$0.isExecuting = false
+				}
 			}
 		}
+	}
+}
+
+private struct ActionState {
+	var isExecuting: Bool = false
+
+	var value: Any {
+		didSet {
+			userEnabled = userEnabledClosure(value)
+		}
+	}
+
+	private var userEnabled: Bool
+	private let userEnabledClosure: (Any) -> Bool
+
+	init(value: Any, isEnabled: @escaping (Any) -> Bool) {
+		self.value = value
+		self.userEnabled = isEnabled(value)
+		self.userEnabledClosure = isEnabled
+	}
+
+	/// Whether the action should be enabled for the given combination of user
+	/// enabledness and executing status.
+	fileprivate var isEnabled: Bool {
+		return userEnabled && !isExecuting
 	}
 }
 
@@ -169,6 +211,29 @@ public protocol ActionProtocol: BindingTargetProtocol {
 	/// The type of error when the action fails. If errors aren't possible then
 	/// `NoError` can be used.
 	associatedtype Error: Swift.Error
+
+	/// Initializes an action that will be conditionally enabled based on the
+	/// value of `state`. Creates a `SignalProducer` for each input and the
+	/// current value of `state`.
+	///
+	/// - note: `Action` guarantees that changes to `state` are observed in a
+	///         thread-safe way. Thus, the value passed to `isEnabled` will
+	///         always be identical to the value passed to `execute`, for each
+	///         application of the action.
+	///
+	/// - note: This initializer should only be used if you need to provide
+	///         custom input can also influence whether the action is enabled.
+	///         The various convenience initializers should cover most use cases.
+	///
+	/// - parameters:
+	///   - state: A property that provides the current state of the action
+	///            whenever `apply()` is called.
+	///   - enabledIf: A predicate that, given the current value of `state`,
+	///                returns whether the action should be enabled.
+	///   - execute: A closure that returns the `SignalProducer` returned by
+	///              calling `apply(Input)` on the action, optionally using
+	///              the current value of `state`.
+	init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>)
 
 	/// Whether the action is currently enabled.
 	var isEnabled: Property<Bool> { get }
@@ -199,6 +264,36 @@ extension ActionProtocol {
 extension Action: ActionProtocol {
 	public var action: Action {
 		return self
+	}
+}
+
+extension ActionProtocol where Input == Void {
+	/// Initializes an action that uses an `Optional` property for its input,
+	/// and is disabled whenever the input is `nil`. When executed, a `SignalProducer`
+	/// is created with the current value of the input.
+	///
+	/// - parameters:
+	///   - input: An `Optional` property whose current value is used as input
+	///            whenever the action is executed. The action is disabled
+	///            whenever the value is `nil`.
+	///   - execute: A closure to return a new `SignalProducer` based on the
+	///              current value of `input`.
+	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
+		self.init(state: input, enabledIf: { $0 != nil }) { input, _ in
+			execute(input!)
+		}
+	}
+
+	/// Initializes an action that uses a property for its input. When executed,
+	/// a `SignalProducer` is created with the current value of the input.
+	///
+	/// - parameters:
+	///   - input: A property whose current value is used as input
+	///            whenever the action is executed.
+	///   - execute: A closure to return a new `SignalProducer` based on the
+	///              current value of `input`.
+	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
+		self.init(input: input.map(Optional.some), execute)
 	}
 }
 
