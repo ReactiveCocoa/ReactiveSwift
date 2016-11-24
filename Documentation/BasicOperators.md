@@ -32,7 +32,7 @@ types will be referred to by name.
   1. [Combining latest values](#combining-latest-values)
   1. [Zipping](#zipping)
 
-**[Flattening producers](#flattening-producers)**
+**[Flattening event streams](#flattening-event-streams)**
 
   1. [Merging](#merging)
   1. [Concatenating](#concatenating)
@@ -88,7 +88,7 @@ signal.observeInterrupted {
 
 ### Injecting effects
 
-Side effects can be injected on a `Signal` or `SignalProducer` with the `on` operator without actually subscribing to it. 
+Side effects can be injected on an event stream with the `on` operator without actually subscribing to it. 
 
 ```Swift
 let producer = signalProducer
@@ -276,7 +276,7 @@ The `zipWith` operator works in the same way, but as an operator.
 
 [Interactive visualisation of the `zip` operator.](http://neilpa.me/rac-marbles/#zip)
 
-## Flattening producers
+## Flattening event streams
 
 The `flatten` operator transforms a stream-of-streams into a single stream - where values are forwarded from the inner stream in accordance with the provided `FlattenStrategy`. The flattened result becomes that of the outer stream type - i.e. a `SignalProducer`-of-`SignalProducer`s or `SignalProducer`-of-`Signal`s gets flattened to a `SignalProducer`, and likewise a `Signal`-of-`SignalProducer`s or `Signal`-of-`Signal`s gets flattened to a `Signal`.   
 
@@ -305,7 +305,7 @@ Note, how the values interleave and which values are even included in the result
 
 ### Merging
 
-The `.merge` strategy immediately forwards every value of the inner `Signal`s to the outer `Signal`. Any failure sent on the outer signal or any inner signal is immediately sent on the flattened signal and terminates it.
+The `.merge` strategy immediately forwards every value of the inner event streams to the outer event stream. Any failure sent on the outer event stream or any inner event stream is immediately sent on the flattened event stream and terminates it.
 
 ```Swift
 let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
@@ -330,7 +330,7 @@ numbersObserver.send(value: "3")    // prints "3"
 
 ### Concatenating
 
-The `.concat` strategy is used to serialize work of the inner `Signal`s. The outer signal is started observed. Each subsequent signal is not observed until the preceeding one has completed. Failures are immediately forwarded to the flattened signal.
+The `.concat` strategy is used to serialize events of the inner event streams. The outer event stream is started observed. Each subsequent event stream is not observed until the preceeding one has completed. Failures are immediately forwarded to the flattened event stream.
 
 ```Swift
 let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
@@ -357,7 +357,7 @@ numbersObserver.sendCompleted()
 
 ### Switching to the latest
 
-The `.latest` strategy forwards only values from the latest input `Signal`.
+The `.latest` strategy forwards only values from the latest input event stream.
 
 ```Swift
 observer.send(value: lettersSignal) // nothing printed
@@ -376,7 +376,7 @@ These operators are used to handle failures that might occur on an event stream.
 
 ### Catching failures
 
-The `flatMapError` operator catches any failure that may occur on the input `SignalProducer`, then starts a new `SignalProducer` in its place.
+The `flatMapError` operator catches any failure that may occur on the input event stream, then starts a new `SignalProducer` in its place.
 
 ```Swift
 let (signal, observer) = Signal<String, NSError>.pipe()
