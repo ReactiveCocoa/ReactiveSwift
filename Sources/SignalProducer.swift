@@ -1245,25 +1245,25 @@ extension SignalProducerProtocol {
 	///   - started: A closure that is invoked after the producer is started.
 	///   - event: A closure that accepts an event and is invoked on every
 	///            received event.
-	///   - value: A closure that accepts a value from `value` event.
 	///   - failed: A closure that accepts error object and is invoked for
 	///             `failed` event.
 	///   - completed: A closure that is invoked for `completed` event.
 	///   - interrupted: A closure that is invoked for `interrupted` event.
 	///   - terminated: A closure that is invoked for any terminating event.
 	///   - disposed: A closure added as disposable when signal completes.
+	///   - value: A closure that accepts a value from `value` event.
 	///
 	/// - returns: A producer with attached side-effects for given event cases.
 	public func on(
 		starting: (() -> Void)? = nil,
 		started: (() -> Void)? = nil,
 		event: ((Event<Value, Error>) -> Void)? = nil,
-		value: ((Value) -> Void)? = nil,
 		failed: ((Error) -> Void)? = nil,
 		completed: (() -> Void)? = nil,
 		interrupted: (() -> Void)? = nil,
 		terminated: (() -> Void)? = nil,
-		disposed: (() -> Void)? = nil
+		disposed: (() -> Void)? = nil,
+		value: ((Value) -> Void)? = nil
 	) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, compositeDisposable in
 			starting?()

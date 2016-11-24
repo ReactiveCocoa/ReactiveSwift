@@ -849,12 +849,12 @@ class SignalProducerSpec: QuickSpec {
 						started += 1
 					}, event: { e in
 						event += 1
-					}, value: { n in
-						value += 1
 					}, completed: {
 						completed += 1
 					}, terminated: {
 						terminated += 1
+					}, value: { n in
+						value += 1
 					})
 
 				producer.start()
