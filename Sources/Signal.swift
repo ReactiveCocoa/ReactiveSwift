@@ -160,7 +160,9 @@ public final class Signal<Value, Error: Swift.Error> {
 	public func observe(_ observer: Observer) -> Disposable? {
 		var token: RemovalToken?
 		observers.modify { observers in
-			reference = self
+			if observers != nil {
+				reference = self
+			}
 			token = observers?.insert(observer)
 		}
 
