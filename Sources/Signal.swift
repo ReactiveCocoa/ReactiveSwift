@@ -72,10 +72,13 @@ public final class Signal<Value, Error: Swift.Error> {
 
 				if sendLock.try() {
 					let shouldInterrupt = signal.interruptingState.isInterrupted
+					if shouldInterrupt {
+						signal.state.swap(nil)?.observers.forEach { $0.sendInterrupted() }
+					}
+
 					sendLock.unlock()
 
 					if shouldInterrupt {
-						signal.state.swap(nil)?.observers.forEach { $0.sendInterrupted() }
 						signal.generatorDisposable?.dispose()
 					}
 				}
@@ -85,9 +88,9 @@ public final class Signal<Value, Error: Swift.Error> {
 				if let state = (isTerminating ? signal.state.swap(nil) : signal.state.value) {
 					sendLock.lock()
 
-					if signal.interruptingState.isIdle {
+					if isTerminating || signal.interruptingState.isIdle {
 						state.observers.forEach { $0.action(event) }
-					} else if signal.interruptingState.isInterrupted {
+					} else if !isTerminating && signal.interruptingState.isInterrupted {
 						// If there are senders pending at the time the interruption starts,
 						// the first sender that observes a true `isInterrupted` is
 						// obligated to finalize the interruption by sending the
@@ -111,7 +114,7 @@ public final class Signal<Value, Error: Swift.Error> {
 					// state should be visible to a sender after `sendLock` is released.
 					// So we check again here to see if the sender needs to handle the
 					// interruption.
-					if signal.interruptingState.isInterrupted {
+					if !isTerminating && signal.interruptingState.isInterrupted {
 						signal.state.swap(nil)?.observers.forEach { $0.sendInterrupted() }
 						isTerminating = true
 					}
