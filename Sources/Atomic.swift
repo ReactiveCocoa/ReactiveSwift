@@ -214,9 +214,14 @@ public final class Atomic<Value>: AtomicProtocol {
 	@inline(__always)
 	public func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
 		lock.lock()
-		let value = try action(&_value)
-		lock.unlock()
-		return value
+		do {
+			let value = try action(&_value)
+			lock.unlock()
+			return value
+		} catch let error {
+			lock.unlock()
+			throw error
+		}
 	}
 	
 	/// Atomically perform an arbitrary action using the current value of the
@@ -230,9 +235,14 @@ public final class Atomic<Value>: AtomicProtocol {
 	@inline(__always)
 	public func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
 		lock.lock()
-		let value = try action(_value)
-		lock.unlock()
-		return value
+		do {
+			let value = try action(_value)
+			lock.unlock()
+			return value
+		} catch let error {
+			lock.unlock()
+			throw error
+		}
 	}
 
 	/// Atomically replace the contents of the variable.
@@ -296,10 +306,15 @@ internal final class RecursiveAtomic<Value>: AtomicProtocol {
 	@inline(__always)
 	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
 		lock.lock()
-		let returnValue = try action(&_value)
-		didSetObserver?(_value)
-		lock.unlock()
-		return returnValue
+		do {
+			let returnValue = try action(&_value)
+			didSetObserver?(_value)
+			lock.unlock()
+			return returnValue
+		} catch let error {
+			lock.unlock()
+			throw error
+		}
 	}
 	
 	/// Atomically perform an arbitrary action using the current value of the
@@ -313,9 +328,14 @@ internal final class RecursiveAtomic<Value>: AtomicProtocol {
 	@inline(__always)
 	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
 		lock.lock()
-		let returnValue = try action(_value)
-		lock.unlock()
-		return returnValue
+		do {
+			let returnValue = try action(_value)
+			lock.unlock()
+			return returnValue
+		} catch let error {
+			lock.unlock()
+			throw error
+		}
 	}
 }
 
