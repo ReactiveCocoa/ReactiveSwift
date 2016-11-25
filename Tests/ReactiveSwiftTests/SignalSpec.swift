@@ -213,6 +213,96 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("interruption") {
+			it("should not send events after sending an interrupted event") {
+				let queue: DispatchQueue
+				let counter = Atomic<Int>(0)
+
+				if #available(macOS 10.10, *) {
+					queue = DispatchQueue.global(qos: .userInitiated)
+				} else {
+					queue = DispatchQueue.global(priority: .high)
+				}
+
+				let (signal, observer) = Signal<Int, NoError>.pipe()
+
+				var hasSlept = false
+				var events = [Event<Int, NoError>]()
+
+				let sema = DispatchSemaphore(value: 0)
+
+				signal.observe { event in
+					if !hasSlept {
+						sema.signal()
+						sleep(5)
+						hasSlept = true
+					}
+					events.append(event)
+				}
+
+				let group = DispatchGroup()
+
+				DispatchQueue.concurrentPerform(iterations: 10) { index in
+					queue.async(group: group) {
+						observer.send(value: index)
+					}
+
+					if index == 0 {
+						sema.wait()
+						observer.sendInterrupted()
+					}
+				}
+
+				group.wait()
+
+				expect(events.count) == 2
+				expect(events.count >= 2 ? events[1].isTerminating : false) == true
+			}
+
+			it("should interrupt concurrently") {
+				let queue: DispatchQueue
+				let counter = Atomic<Int>(0)
+				let executionCounter = Atomic<Int>(0)
+
+				if #available(macOS 10.10, *) {
+					queue = DispatchQueue.global(qos: .userInitiated)
+				} else {
+					queue = DispatchQueue.global(priority: .high)
+				}
+
+				let iterations = 100000
+				let group = DispatchGroup()
+
+				queue.async(group: group) {
+					DispatchQueue.concurrentPerform(iterations: iterations) { _ in
+						let (signal, observer) = Signal<(), NoError>.pipe()
+
+						var isInterrupted = false
+						signal.observeInterrupted { counter.modify { $0 += 1 } }
+
+						let sema = DispatchSemaphore(value: 0)
+
+						queue.async(group: group) {
+							sema.signal()
+							observer.send(value: ())
+							executionCounter.modify { $0 += 1 }
+						}
+
+						queue.async(group: group) {
+							sema.wait()
+							observer.sendInterrupted()
+							executionCounter.modify { $0 += 1 }
+						}
+					}
+				}
+
+				group.wait()
+
+				expect(executionCounter.value) == iterations * 2
+				expect(counter.value).toEventually(equal(iterations), timeout: 10)
+			}
+		}
+
 		describe("observe") {
 			var testScheduler: TestScheduler!
 			
