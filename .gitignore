@@ -17,6 +17,7 @@ PlaygroundUtility.remap
 
 # SwiftPM
 .build
+Packages
 
 # Carthage
 Carthage/Build
