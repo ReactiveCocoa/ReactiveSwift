@@ -40,24 +40,20 @@ public final class Signal<Value, Error: Swift.Error> {
 	public init(_ generator: (Observer) -> Disposable?) {
 		state = Atomic(SignalState())
 
+		/// Holds the final signal state captured by an `interrupted` event. If it
+		/// is set, the Signal should interrupt as soon as possible.
+		let interruptedState = Atomic<SignalState<Value, Error>?>(nil)
+
+		/// Used to track if the signal has terminated. Protected by `sendLock`.
+		var terminated = false
+
 		/// Used to ensure that events are serialized during delivery to observers.
 		let sendLock = NSLock()
 		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
 
-		/// When set to `true`, the Signal should interrupt as soon as possible.
-		let interrupted = Atomic(false)
-
 		let observer = Observer { [weak self] event in
 			guard let signal = self else {
 				return
-			}
-
-			func interrupt() {
-				if let state = signal.state.swap(nil) {
-					for observer in state.observers {
-						observer.sendInterrupted()
-					}
-				}
 			}
 
 			if case .interrupted = event {
@@ -68,30 +64,72 @@ public final class Signal<Value, Error: Swift.Error> {
 				// So we'll flag Interrupted events specially, and if it
 				// happened to occur while we're sending something else,  we'll
 				// wait to deliver it.
-				interrupted.value = true
 
-				if sendLock.try() {
-					interrupt()
-					sendLock.unlock()
 
-					signal.generatorDisposable?.dispose()
+				// Clear the signal state to prevent new observers, but retain a copy of
+				// it.
+				if let state = signal.state.swap(nil) {
+					interruptedState.value = state
+
+					if sendLock.try() {
+						if !terminated, let state = interruptedState.swap(nil) {
+							for observer in state.observers {
+								observer.sendInterrupted()
+							}
+							terminated = true
+						}
+						sendLock.unlock()
+						signal.generatorDisposable?.dispose()
+					}
 				}
 			} else {
-				if let state = (event.isTerminating ? signal.state.swap(nil) : signal.state.value) {
+				let isTerminating = event.isTerminating
+
+				if let observers = (isTerminating ? signal.state.swap(nil)?.observers : signal.state.value?.observers) {
+					var shouldDispose = false
+
 					sendLock.lock()
 
-					for observer in state.observers {
-						observer.action(event)
-					}
+					if !terminated {
+						for observer in observers {
+							observer.action(event)
+						}
 
-					let shouldInterrupt = !event.isTerminating && interrupted.value
-					if shouldInterrupt {
-						interrupt()
+						if !isTerminating, let state = interruptedState.swap(nil) {
+							for observer in state.observers {
+								observer.sendInterrupted()
+							}
+							terminated = true
+							shouldDispose = true
+						}
+
+						if isTerminating {
+							terminated = true
+							shouldDispose = true
+						}
 					}
 
 					sendLock.unlock()
 
-					if event.isTerminating || shouldInterrupt {
+					// Based on the implicit memory order, any disposal of `interrupted`
+					// should always be visible after `sendLock` is released. So we
+					// check `interrupted` here again and handle the interruption if
+					// necessary.
+					if !shouldDispose && !terminated && !isTerminating, let state = interruptedState.swap(nil) {
+						sendLock.lock()
+
+						if !terminated {
+							for observer in state.observers {
+								observer.sendInterrupted()
+							}
+							shouldDispose = true
+							terminated = true
+						}
+
+						sendLock.unlock()
+					}
+
+					if shouldDispose {
 						// Dispose only after notifying observers, so disposal
 						// logic is consistently the last thing to run.
 						signal.generatorDisposable?.dispose()
