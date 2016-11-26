@@ -235,7 +235,7 @@ class SignalSpec: QuickSpec {
 				signal.observe { event in
 					if !hasSlept {
 						sema.signal()
-						sleep(5)
+						usleep(UInt32(USEC_PER_SEC) >> 3)
 						hasSlept = true
 					}
 					events.append(event)
@@ -271,7 +271,7 @@ class SignalSpec: QuickSpec {
 					queue = DispatchQueue.global(priority: .high)
 				}
 
-				let iterations = 100000
+				let iterations = 1000
 				let group = DispatchGroup()
 
 				queue.async(group: group) {
@@ -300,7 +300,7 @@ class SignalSpec: QuickSpec {
 				group.wait()
 
 				expect(executionCounter.value) == iterations * 2
-				expect(counter.value).toEventually(equal(iterations), timeout: 10)
+				expect(counter.value).toEventually(equal(iterations), timeout: 5)
 			}
 		}
 
