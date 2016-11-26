@@ -18,7 +18,7 @@ public final class RemovalToken {
 
 /// An unordered, non-unique collection of values of type `Element`.
 public struct Bag<Element> {
-	fileprivate var elements: [BagElement<Element>] = []
+	fileprivate var elements: ContiguousArray<BagElement<Element>> = []
 	private var currentIdentifier: UInt = 0
 
 	public init() {
@@ -95,6 +95,10 @@ extension Bag: Collection {
 	public func index(after i: Index) -> Index {
 		return i + 1
 	}
+
+	public func makeIterator() -> BagIterator<Element> {
+		return BagIterator(elements)
+	}
 }
 
 private struct BagElement<Value> {
@@ -106,5 +110,28 @@ private struct BagElement<Value> {
 extension BagElement: CustomStringConvertible {
 	var description: String {
 		return "BagElement(\(value))"
+	}
+}
+
+public struct BagIterator<Element>: IteratorProtocol {
+	private let base: ContiguousArray<BagElement<Element>>
+	private var nextIndex: Int
+	private let endIndex: Int
+
+	fileprivate init(_ base: ContiguousArray<BagElement<Element>>) {
+		self.base = base
+		nextIndex = base.startIndex
+		endIndex = base.endIndex
+	}
+
+	public mutating func next() -> Element? {
+		let currentIndex = nextIndex
+		nextIndex = currentIndex + 1
+
+		if currentIndex < endIndex {
+			return base[currentIndex].value
+		}
+
+		return nil
 	}
 }
