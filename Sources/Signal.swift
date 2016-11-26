@@ -41,8 +41,9 @@ public final class Signal<Value, Error: Swift.Error> {
 		state = Atomic(SignalState())
 
 		/// Holds the final signal state captured by an `interrupted` event. If it
-		/// is set, the Signal should interrupt as soon as possible.
-		let interruptedState = Atomic<SignalState<Value, Error>?>(nil)
+		/// is set, the Signal should interrupt as soon as possible. Implicitly
+		/// protected by `state` and `sendLock`.
+		var interruptedState: SignalState<Value, Error>? = nil
 
 		/// Used to track if the signal has terminated. Protected by `sendLock`.
 		var terminated = false
@@ -56,6 +57,15 @@ public final class Signal<Value, Error: Swift.Error> {
 				return
 			}
 
+			@inline(__always)
+			func interrupt(_ observers: Bag<Observer>) {
+				for observer in observers {
+					observer.sendInterrupted()
+				}
+				terminated = true
+				interruptedState = nil
+			}
+
 			if case .interrupted = event {
 				// Recursive events are generally disallowed. But `interrupted` is kind
 				// of a special snowflake, since it can inadvertently be sent by
@@ -66,14 +76,24 @@ public final class Signal<Value, Error: Swift.Error> {
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
 				if let state = signal.state.swap(nil) {
-					interruptedState.value = state
+					// Writes to `interruptedState` are implicitly synchronized. So we do
+					// not need to guard it with locks.
+					//
+					// Specifically, senders serialized by `sendLock` can react to and
+					// clear `interruptedState` only if they see the write made below.
+					// The write can happen only once, since `state` being swapped with
+					// `nil` is a point of no return.
+					//
+					// Even in the case that both a previous sender and its successor see
+					// the write (the `interruptedState` check before & after the unlock
+					// of `sendLock`), the senders are still bound to the `sendLock`.
+					// So whichever sender loses the battle of acquring `sendLock` is
+					// guaranteed to be blocked.
+					interruptedState = state
 
 					if sendLock.try() {
-						if !terminated, let state = interruptedState.swap(nil) {
-							for observer in state.observers {
-								observer.sendInterrupted()
-							}
-							terminated = true
+						if !terminated, let state = interruptedState {
+							interrupt(state.observers)
 						}
 						sendLock.unlock()
 						signal.generatorDisposable?.dispose()
@@ -94,11 +114,8 @@ public final class Signal<Value, Error: Swift.Error> {
 
 						// Check if a downstream consumer or a concurrent sender has
 						// interrupted the signal.
-						if !isTerminating, let state = interruptedState.swap(nil) {
-							for observer in state.observers {
-								observer.sendInterrupted()
-							}
-							terminated = true
+						if !isTerminating, let state = interruptedState {
+							interrupt(state.observers)
 							shouldDispose = true
 						}
 
@@ -114,15 +131,12 @@ public final class Signal<Value, Error: Swift.Error> {
 					// `interruptedState` should always be visible after `sendLock` is
 					// released. So we check it again and handle the interruption if
 					// it has not been taken over.
-					if !shouldDispose && !terminated && !isTerminating, let state = interruptedState.swap(nil) {
+					if !shouldDispose && !terminated && !isTerminating, let state = interruptedState {
 						sendLock.lock()
 
 						if !terminated {
-							for observer in state.observers {
-								observer.sendInterrupted()
-							}
+							interrupt(state.observers)
 							shouldDispose = true
-							terminated = true
 						}
 
 						sendLock.unlock()
