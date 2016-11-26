@@ -8,10 +8,10 @@
 
 import Foundation
 
-final class PosixThreadMutex: NSLocking {
+internal final class PosixThreadMutex: NSLocking {
 	private var mutex = pthread_mutex_t()
 
-	init() {
+	internal init() {
 		let result = pthread_mutex_init(&mutex, nil)
 		precondition(result == 0, "Failed to initialize mutex with error \(result).")
 	}
@@ -21,12 +21,16 @@ final class PosixThreadMutex: NSLocking {
 		precondition(result == 0, "Failed to destroy mutex with error \(result).")
 	}
 
-	func lock() {
+	internal func `try`() -> Bool {
+		return pthread_mutex_trylock(&mutex) == 0
+	}
+
+	internal func lock() {
 		let result = pthread_mutex_lock(&mutex)
 		precondition(result == 0, "Failed to lock \(self) with error \(result).")
 	}
 
-	func unlock() {
+	internal func unlock() {
 		let result = pthread_mutex_unlock(&mutex)
 		precondition(result == 0, "Failed to unlock \(self) with error \(result).")
 	}

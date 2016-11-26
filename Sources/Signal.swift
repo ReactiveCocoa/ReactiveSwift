@@ -24,8 +24,11 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// when the signal terminates.
 	private var generatorDisposable: Disposable?
 
-	/// The state of the signal. `nil` if the signal has terminated.
-	private let state: Atomic<SignalState<Value, Error>?>
+	/// Observers of the signal.
+	private let observers: Atomic<Bag<Signal<Value, Error>.Observer>?>
+
+	/// A reference that retains `self` when the signal has active observers.
+	private var reference: Signal<Value, Error>?
 
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given observer.
@@ -38,11 +41,11 @@ public final class Signal<Value, Error: Swift.Error> {
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
-		state = Atomic(SignalState())
+		observers = Atomic(Bag())
+		reference = nil
 
 		/// Used to ensure that events are serialized during delivery to observers.
-		let sendLock = NSLock()
-		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
+		let sendLock = PosixThreadMutex()
 
 		/// When set to `true`, the Signal should interrupt as soon as possible.
 		let interrupted = Atomic(false)
@@ -53,8 +56,8 @@ public final class Signal<Value, Error: Swift.Error> {
 			}
 
 			func interrupt() {
-				if let state = signal.state.swap(nil) {
-					for observer in state.observers {
+				if let observers = signal.observers.swap(nil) {
+					for observer in observers {
 						observer.sendInterrupted()
 					}
 				}
@@ -75,12 +78,13 @@ public final class Signal<Value, Error: Swift.Error> {
 					sendLock.unlock()
 
 					signal.generatorDisposable?.dispose()
+					signal.reference = nil
 				}
 			} else {
-				if let state = (event.isTerminating ? signal.state.swap(nil) : signal.state.value) {
+				if let observers = (event.isTerminating ? signal.observers.swap(nil) : signal.observers.value) {
 					sendLock.lock()
 
-					for observer in state.observers {
+					for observer in observers {
 						observer.action(event)
 					}
 
@@ -95,6 +99,7 @@ public final class Signal<Value, Error: Swift.Error> {
 						// Dispose only after notifying observers, so disposal
 						// logic is consistently the last thing to run.
 						signal.generatorDisposable?.dispose()
+						signal.reference = nil
 					}
 				}
 			}
@@ -104,7 +109,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	}
 
 	deinit {
-		if state.swap(nil) != nil {
+		if observers.swap(nil) != nil {
 			// As the signal can deinitialize only when it has no observers attached,
 			// only the generator disposable has to be disposed of at this point.
 			generatorDisposable?.dispose()
@@ -154,18 +159,20 @@ public final class Signal<Value, Error: Swift.Error> {
 	@discardableResult
 	public func observe(_ observer: Observer) -> Disposable? {
 		var token: RemovalToken?
-		state.modify {
-			$0?.retainedSignal = self
-			token = $0?.observers.insert(observer)
+		observers.modify { observers in
+			if observers != nil {
+				reference = self
+			}
+			token = observers?.insert(observer)
 		}
 
 		if let token = token {
 			return ActionDisposable { [weak self] in
 				if let strongSelf = self {
-					strongSelf.state.modify { state in
-						state?.observers.remove(using: token)
-						if state?.observers.isEmpty ?? false {
-							state!.retainedSignal = nil
+					strongSelf.observers.modify { observers in
+						observers?.remove(using: token)
+						if observers?.isEmpty ?? false {
+							strongSelf.reference = nil
 						}
 					}
 				}
@@ -175,11 +182,6 @@ public final class Signal<Value, Error: Swift.Error> {
 			return nil
 		}
 	}
-}
-
-private struct SignalState<Value, Error: Swift.Error> {
-	var observers: Bag<Signal<Value, Error>.Observer> = Bag()
-	var retainedSignal: Signal<Value, Error>?
 }
 
 public protocol SignalProtocol {
@@ -624,7 +626,7 @@ private final class CombineLatestState<Value> {
 }
 
 extension SignalProtocol {
-	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: NSLock, _ observer: Signal<(), Error>.Observer) -> Disposable? {
+	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: PosixThreadMutex, _ observer: Signal<(), Error>.Observer) -> Disposable? {
 		return self.observe { event in
 			switch event {
 			case let .value(value):
@@ -672,8 +674,7 @@ extension SignalProtocol {
 	///            and given signal.
 	public func combineLatest<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal { observer in
-			let lock = NSLock()
-			lock.name = "org.reactivecocoa.ReactiveSwift.combineLatestWith"
+			let lock = PosixThreadMutex()
 
 			let signalState = CombineLatestState<Value>()
 			let otherState = CombineLatestState<U>()
