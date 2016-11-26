@@ -57,17 +57,14 @@ public final class Signal<Value, Error: Swift.Error> {
 			}
 
 			if case .interrupted = event {
-				// Normally we disallow recursive events, but `interrupted` is
-				// kind of a special snowflake, since it can inadvertently be
-				// sent by downstream consumers.
+				// Recursive events are generally disallowed. But `interrupted` is kind
+				// of a special snowflake, since it can inadvertently be sent by
+				// downstream consumers.
 				//
-				// So we'll flag Interrupted events specially, and if it
-				// happened to occur while we're sending something else,  we'll
-				// wait to deliver it.
-
-
-				// Clear the signal state to prevent new observers, but retain a copy of
-				// it.
+				// So we would treat `interrupted` events specially. If it happens
+				// to occur while the `sendLock` is acquired, the observer call-out and
+				// the disposal would be delegated to the current sender, or
+				// occasionally one of the senders waiting on `sendLock`.
 				if let state = signal.state.swap(nil) {
 					interruptedState.value = state
 
@@ -95,6 +92,8 @@ public final class Signal<Value, Error: Swift.Error> {
 							observer.action(event)
 						}
 
+						// Check if a downstream consumer or a concurrent sender has
+						// interrupted the signal.
 						if !isTerminating, let state = interruptedState.swap(nil) {
 							for observer in state.observers {
 								observer.sendInterrupted()
@@ -111,10 +110,10 @@ public final class Signal<Value, Error: Swift.Error> {
 
 					sendLock.unlock()
 
-					// Based on the implicit memory order, any disposal of `interrupted`
-					// should always be visible after `sendLock` is released. So we
-					// check `interrupted` here again and handle the interruption if
-					// necessary.
+					// Based on the implicit memory order, any updates to the
+					// `interruptedState` should always be visible after `sendLock` is
+					// released. So we check it again and handle the interruption if
+					// it has not been taken over.
 					if !shouldDispose && !terminated && !isTerminating, let state = interruptedState.swap(nil) {
 						sendLock.lock()
 
