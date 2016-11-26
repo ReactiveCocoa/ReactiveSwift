@@ -622,6 +622,9 @@ public final class MutableProperty<Value>: MutablePropertyProtocol {
 
 	/// Atomically modifies the variable.
 	///
+	/// - note: Throwing in `action` does not revert any changes made, and a
+	///         `next` event would be sent regardless.
+	///
 	/// - parameters:
 	///   - action: A closure that accepts old property value and returns a new
 	///             property value.
