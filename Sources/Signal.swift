@@ -1,4 +1,7 @@
 import Foundation
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+import MachO
+#endif
 import Result
 
 /// A push-driven stream that sends Events over time, parameterized by the type
@@ -27,6 +30,9 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// The state of the signal. `nil` if the signal has terminated.
 	private let state: Atomic<SignalState<Value, Error>?>
 
+	/// The state of interruption of the signal should it happen.
+	private var interruptingState: InterruptingState
+
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given observer.
 	///
@@ -39,25 +45,14 @@ public final class Signal<Value, Error: Swift.Error> {
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
 		state = Atomic(SignalState())
+		interruptingState = InterruptingState()
 
-		/// Used to ensure that events are serialized during delivery to observers.
+		// Used to ensure that events are serialized during delivery to observers.
 		let sendLock = NSLock()
-		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
-
-		/// When set to `true`, the Signal should interrupt as soon as possible.
-		let interrupted = Atomic(false)
 
 		let observer = Observer { [weak self] event in
 			guard let signal = self else {
 				return
-			}
-
-			func interrupt() {
-				if let state = signal.state.swap(nil) {
-					for observer in state.observers {
-						observer.sendInterrupted()
-					}
-				}
 			}
 
 			if case .interrupted = event {
@@ -65,33 +60,66 @@ public final class Signal<Value, Error: Swift.Error> {
 				// kind of a special snowflake, since it can inadvertently be
 				// sent by downstream consumers.
 				//
-				// So we'll flag Interrupted events specially, and if it
+				// So we'll flag `interrupted` events specially, and if it
 				// happened to occur while we're sending something else,  we'll
 				// wait to deliver it.
-				interrupted.value = true
+
+				// Synchronize the start of interruption with the atomic state, so that
+				// future attempts to attach observer would be consistently blocked.
+				signal.state.modify { _ in
+					signal.interruptingState.interrupt()
+				}
 
 				if sendLock.try() {
-					interrupt()
+					let shouldInterrupt = signal.interruptingState.isInterrupted
+					if shouldInterrupt {
+						signal.state.swap(nil)?.observers.forEach { $0.sendInterrupted() }
+					}
+
 					sendLock.unlock()
 
-					signal.generatorDisposable?.dispose()
+					if shouldInterrupt {
+						signal.generatorDisposable?.dispose()
+					}
 				}
 			} else {
-				if let state = (event.isTerminating ? signal.state.swap(nil) : signal.state.value) {
+				var isTerminating = event.isTerminating
+
+				if let state = (isTerminating ? signal.state.swap(nil) : signal.state.value) {
 					sendLock.lock()
 
-					for observer in state.observers {
-						observer.action(event)
-					}
-
-					let shouldInterrupt = !event.isTerminating && interrupted.value
-					if shouldInterrupt {
-						interrupt()
+					if isTerminating || signal.interruptingState.isIdle {
+						state.observers.forEach { $0.action(event) }
+					} else if !isTerminating && signal.interruptingState.isInterrupted {
+						// If there are senders pending at the time the interruption starts,
+						// the first sender that observes a true `isInterrupted` is
+						// obligated to finalize the interruption by sending the
+						// `interrupted` event to the observers.
+						//
+						// `isInterrupted` can only be observed as `true` once. So other
+						// senders would be dropped silently.
+						//
+						// Note that there is no strong constraint on the interruption
+						// process - it is only guaranteed that the signal must terminate
+						// with a possibility of *up to* two pending events being emitted
+						// due to the runtime memory order in a multithreaded scenario.
+						state.observers.forEach { $0.action(event) }
+						signal.state.swap(nil)?.observers.forEach { $0.sendInterrupted() }
+						isTerminating = true
 					}
 
 					sendLock.unlock()
 
-					if event.isTerminating || shouldInterrupt {
+					// Based on the implicit memory order, any changes in the interrupting
+					// state should be visible to a sender after `sendLock` is released.
+					// So we check again here to see if the sender needs to handle the
+					// interruption.
+					if !isTerminating && signal.interruptingState.isInterrupted {
+						signal.state.swap(nil)?.observers.forEach { $0.sendInterrupted() }
+						isTerminating = true
+					}
+
+					if isTerminating {
 						// Dispose only after notifying observers, so disposal
 						// logic is consistently the last thing to run.
 						signal.generatorDisposable?.dispose()
@@ -155,8 +183,10 @@ public final class Signal<Value, Error: Swift.Error> {
 	public func observe(_ observer: Observer) -> Disposable? {
 		var token: RemovalToken?
 		state.modify {
-			$0?.retainedSignal = self
-			token = $0?.observers.insert(observer)
+			if interruptingState.isIdle {
+				$0?.retainedSignal = self
+				token = $0?.observers.insert(observer)
+			}
 		}
 
 		if let token = token {
@@ -178,8 +208,85 @@ public final class Signal<Value, Error: Swift.Error> {
 }
 
 private struct SignalState<Value, Error: Swift.Error> {
+	/// Observers of the signal.
 	var observers: Bag<Signal<Value, Error>.Observer> = Bag()
+
+	/// Used to retain the signal if `observers` is unempty.
 	var retainedSignal: Signal<Value, Error>?
+}
+
+private struct InterruptingState {
+	private enum State: Int32 {
+		case idle = 0
+		case interrupted = 1
+		case finalized = 2
+	}
+
+#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+	private var bits: Int32 = 0
+
+	/// Indicates if the signal has not been interrupted.
+	var isIdle: Bool {
+		mutating get {
+			return OSAtomicCompareAndSwap32Barrier(State.idle.rawValue,
+			                                       State.idle.rawValue,
+			                                       &bits)
+		}
+	}
+
+	/// Indicates if the signal has been interrupted, but the interruption is not
+	/// finalized yet.
+	///
+	/// - note: `isInterrupted` is used for differentiating pending event senders.
+	///         To query if the signal has been interrupted or not, use
+	///         `!isIdle`.
+	var isInterrupted: Bool {
+		mutating get {
+			return OSAtomicCompareAndSwap32Barrier(State.interrupted.rawValue,
+			                                       State.finalized.rawValue,
+			                                       &bits)
+		}
+	}
+
+	/// Interrupt the signal.
+	mutating func interrupt() {
+		OSAtomicCompareAndSwap32Barrier(State.idle.rawValue,
+		                                State.interrupted.rawValue,
+		                                &bits)
+	}
+#else
+	private let state = Atomic(State.idle)
+
+	/// Indicates if the signal has not been interrupted.
+	var isIdle: Bool {
+		mutating get {
+			return state.withValue { $0 == .idle }
+		}
+	}
+
+	/// Indicates if the signal has been interrupted, but the interruption is not
+	/// finalized yet.
+	///
+	/// - note: `isInterrupted` is used for differentiating pending event senders.
+	///         To query if the signal has been interrupted or not, use
+	///         `!isIdle`.
+	var isInterrupted: Bool {
+		mutating get {
+			return state.modify { state in
+				if state == .interrupted {
+					state = .finalized
+					return true
+				}
+				return false
+			}
+		}
+	}
+
+	/// Interrupt the signal.
+	mutating func interrupt() {
+		state.modify { $0 = .interrupted }
+	}
+#endif
 }
 
 public protocol SignalProtocol {
