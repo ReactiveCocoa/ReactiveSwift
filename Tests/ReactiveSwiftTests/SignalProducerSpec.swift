@@ -455,6 +455,23 @@ class SignalProducerSpec: QuickSpec {
 				observer.send(error: .default)
 				expect(addedDisposable.isDisposed) == true
 			}
+
+			it("should dispose of the added disposable if the signal is unretained and unobserved upon exiting the scope") {
+				let addedDisposable = SimpleDisposable()
+
+				let producer = SignalProducer<Int, TestError> { _, disposable in
+					disposable += addedDisposable
+				}
+
+				var started = false
+
+				producer
+					.on(started: { started = true })
+					.startWithSignal { _ in }
+
+				expect(started) == true
+				expect(addedDisposable.isDisposed) == true
+			}
 		}
 
 		describe("start") {
