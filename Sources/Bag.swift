@@ -8,40 +8,25 @@
 
 /// A uniquely identifying token for removing a value that was inserted into a
 /// Bag.
-public final class RemovalToken {
-	fileprivate var identifier: UInt?
-
-	fileprivate init(identifier: UInt) {
-		self.identifier = identifier
-	}
-}
+public final class RemovalToken {}
 
 /// An unordered, non-unique collection of values of type `Element`.
 public struct Bag<Element> {
 	fileprivate var elements: ContiguousArray<BagElement<Element>> = []
-	private var currentIdentifier: UInt = 0
 
-	public init() {
-	}
+	public init() {}
 
 	/// Insert the given value into `self`, and return a token that can
-	/// later be passed to `removeValueForToken()`.
+	/// later be passed to `remove(using:)`.
 	///
 	/// - parameters:
 	///   - value: A value that will be inserted.
 	@discardableResult
 	public mutating func insert(_ value: Element) -> RemovalToken {
-		let (nextIdentifier, overflow) = UInt.addWithOverflow(currentIdentifier, 1)
-		if overflow {
-			reindex()
-		}
-
-		let token = RemovalToken(identifier: currentIdentifier)
-		let element = BagElement(value: value, identifier: currentIdentifier, token: token)
+		let token = RemovalToken()
+		let element = BagElement(value: value, token: token)
 
 		elements.append(element)
-		currentIdentifier = nextIdentifier
-
 		return token
 	}
 
@@ -52,27 +37,13 @@ public struct Bag<Element> {
 	/// - parameters:
 	///   - token: A token returned from a call to `insert()`.
 	public mutating func remove(using token: RemovalToken) {
-		if let identifier = token.identifier {
-			// Removal is more likely for recent objects than old ones.
-			for i in elements.indices.reversed() {
-				if elements[i].identifier == identifier {
-					elements.remove(at: i)
-					token.identifier = nil
-					break
-				}
+		let tokenIdentifier = ObjectIdentifier(token)
+		// Removal is more likely for recent objects than old ones.
+		for i in elements.indices.reversed() {
+			if ObjectIdentifier(elements[i].token) == tokenIdentifier {
+				elements.remove(at: i)
+				break
 			}
-		}
-	}
-
-	/// In the event of an identifier overflow (highly, highly unlikely), reset
-	/// all current identifiers to reclaim a contiguous set of available
-	/// identifiers for the future.
-	private mutating func reindex() {
-		for i in elements.indices {
-			currentIdentifier = UInt(i)
-
-			elements[i].identifier = currentIdentifier
-			elements[i].token.identifier = currentIdentifier
 		}
 	}
 }
@@ -103,7 +74,6 @@ extension Bag: Collection {
 
 private struct BagElement<Value> {
 	let value: Value
-	var identifier: UInt
 	let token: RemovalToken
 }
 
