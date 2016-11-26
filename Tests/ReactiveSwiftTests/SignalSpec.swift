@@ -235,7 +235,8 @@ class SignalSpec: QuickSpec {
 				signal.observe { event in
 					if !hasSlept {
 						sema.signal()
-						usleep(UInt32(USEC_PER_SEC) >> 3)
+						// 100000 us = 0.1 s
+						usleep(100000)
 						hasSlept = true
 					}
 					events.append(event)
