@@ -134,6 +134,10 @@ public final class Signal<Value, Error: Swift.Error> {
 					if !shouldDispose && !terminated && !isTerminating, let state = interruptedState {
 						sendLock.lock()
 
+						// `terminated` before acquring the lock could be a false negative,
+						// since it might race against other concurrent senders until the
+						// lock acquisition above succeeds. So we have to check again if the
+						// signal is really still alive.
 						if !terminated {
 							interrupt(state.observers)
 							shouldDispose = true
