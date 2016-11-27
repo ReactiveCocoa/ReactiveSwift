@@ -464,12 +464,14 @@ class SignalProducerSpec: QuickSpec {
 				}
 
 				var started = false
+				var disposed = false
 
 				producer
-					.on(started: { started = true })
+					.on(started: { started = true }, disposed: { disposed = true })
 					.startWithSignal { _ in }
 
 				expect(started) == true
+				expect(disposed) == true
 				expect(addedDisposable.isDisposed) == true
 			}
 		}
