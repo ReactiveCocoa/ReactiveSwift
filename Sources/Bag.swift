@@ -96,9 +96,9 @@ public struct BagIterator<Element>: IteratorProtocol {
 
 	public mutating func next() -> Element? {
 		let currentIndex = nextIndex
-		nextIndex = currentIndex + 1
 
 		if currentIndex < endIndex {
+			nextIndex = currentIndex + 1
 			return base[currentIndex].value
 		}
 
