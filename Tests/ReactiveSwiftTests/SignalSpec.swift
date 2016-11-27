@@ -228,13 +228,15 @@ class SignalSpec: QuickSpec {
 				let (signal, observer) = Signal<Int, NoError>.pipe()
 
 				var hasSlept = false
-				var events = [Event<Int, NoError>]()
+				var events: [Event<Int, NoError>] = []
 
-				let sema = DispatchSemaphore(value: 0)
+				// Used to synchronize the `interrupt` sender to only act after the
+				// chosen observer has started sending its event, but before it is done.
+				let semaphore = DispatchSemaphore(value: 0)
 
 				signal.observe { event in
 					if !hasSlept {
-						sema.signal()
+						semaphore.signal()
 						// 100000 us = 0.1 s
 						usleep(100000)
 						hasSlept = true
@@ -250,7 +252,7 @@ class SignalSpec: QuickSpec {
 					}
 
 					if index == 0 {
-						sema.wait()
+						semaphore.wait()
 						observer.sendInterrupted()
 					}
 				}
@@ -258,7 +260,10 @@ class SignalSpec: QuickSpec {
 				group.wait()
 
 				expect(events.count) == 2
-				expect(events.count >= 2 ? events[1].isTerminating : false) == true
+
+				if events.count >= 2 {
+					expect(events[1].isTerminating) == true
+				}
 			}
 
 			it("should interrupt concurrently") {
@@ -282,16 +287,18 @@ class SignalSpec: QuickSpec {
 						var isInterrupted = false
 						signal.observeInterrupted { counter.modify { $0 += 1 } }
 
-						let sema = DispatchSemaphore(value: 0)
+						// Used to synchronize the `value` sender and the `interrupt`
+						// sender, giving a slight priority to the former.
+						let semaphore = DispatchSemaphore(value: 0)
 
 						queue.async(group: group) {
-							sema.signal()
+							semaphore.signal()
 							observer.send(value: ())
 							executionCounter.modify { $0 += 1 }
 						}
 
 						queue.async(group: group) {
-							sema.wait()
+							semaphore.wait()
 							observer.sendInterrupted()
 							executionCounter.modify { $0 += 1 }
 						}
