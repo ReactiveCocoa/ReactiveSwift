@@ -106,16 +106,16 @@ public final class Signal<Value, Error: Swift.Error> {
 		private let updateLock: Lock
 
 		/// Used to ensure that events are serialized during delivery to observers.
-		private let sendLock: Lock
+		private var sendLock: SendLock
 
 		/// Used to indicate if the `Signal` has deinitialized.
 		private var hasDeinitialized: Bool
 
-		fileprivate init(_ generator: (Observer) -> Disposable?) {
+		fileprivate init(_ serialization: Serialization, _ generator: (Observer) -> Disposable?) {
 			state = .alive(AliveState())
 
 			updateLock = Lock.make()
-			sendLock = Lock.make()
+			sendLock = SendLock(nonatomic: serialization == .nonatomic)
 
 			hasDeinitialized = false
 			disposable = SerialDisposable()
@@ -292,7 +292,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		///               `tryTerminate` would attempt to acquire the `sendLock`.
 		///
 		/// - returns: `.shouldDispose` if the attempt succeeds. `.none` otherwise.
-		private func tryToCommitTermination(acquired sendLock: Lock? = nil) -> OperationResult {
+		private func tryToCommitTermination(acquired sendLock: SendLock? = nil) -> OperationResult {
 			assert(sendLock == nil || sendLock === self.sendLock,
 			       "`tryTerminate` receives a lock that is not the `sendLock` of the signal.")
 			func commit() -> OperationResult {
@@ -400,7 +400,11 @@ public final class Signal<Value, Error: Swift.Error> {
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
-		core = Core(generator)
+		core = Core(.default, generator)
+	}
+
+	internal init(_ attributes: Serialization, _ generator: (Observer) -> Disposable?) {
+		core = Core(attributes, generator)
 	}
 
 	/// Observe the Signal by sending any future events to the given observer.
@@ -420,6 +424,19 @@ public final class Signal<Value, Error: Swift.Error> {
 
 	deinit {
 		core.signalDidDeinitialize()
+	}
+
+	/// Describes how a `Signal` should serialize.
+	internal enum Serialization {
+		/// The `Signal` may assume that all senders to the input sink are serialized.
+		/// Generally speaking, `nonatomic` is **only** applicable when an operator:
+		///
+		/// 1. is sourced from only one upstream, and is not asynchronous in any sense; or
+		/// 2. forwards **all** events on the same `Scheduler`.
+		case nonatomic
+
+		/// The `Signal` should always serialize the events received from the input sink.
+		case `default`
 	}
 
 	/// The state of a `Signal`.
@@ -481,6 +498,47 @@ public final class Signal<Value, Error: Swift.Error> {
 	}
 }
 
+private struct SendLock {
+	fileprivate let _lock: Lock?
+	private var isSendingNonatomic: Bool
+
+	init(nonatomic: Bool) {
+		_lock = !nonatomic ? Lock.make() : nil
+		isSendingNonatomic = false
+	}
+
+	mutating func lock() {
+		if let lock = _lock {
+			return lock.lock()
+		}
+
+		isSendingNonatomic = true
+	}
+
+	mutating func unlock() {
+		if let lock = _lock {
+			return lock.unlock()
+		}
+
+		isSendingNonatomic = false
+	}
+
+	mutating func `try`() -> Bool {
+		if let lock = _lock {
+			return lock.try()
+		}
+
+		return !isSendingNonatomic
+	}
+}
+
+private func ===(left: SendLock?, right: SendLock?) -> Bool {
+	if let left = left, let right = right, left._lock === right._lock {
+		return true
+	}
+	return false
+}
+
 extension Signal {
 	/// A Signal that never sends any events to its observers.
 	public static var never: Signal {
@@ -509,8 +567,12 @@ extension Signal {
 	/// - returns: A tuple of `output: Signal`, the output end of the pipe,
 	///            and `input: Observer`, the input end of the pipe.
 	public static func pipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
+		return pipe(attributes: .default, disposable: disposable)
+	}
+
+	internal static func pipe(attributes: Serialization, disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
 		var observer: Observer!
-		let signal = self.init { innerObserver in
+		let signal = self.init(attributes) { innerObserver in
 			observer = innerObserver
 			return disposable
 		}
@@ -639,7 +701,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will send new values.
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Signal<U, Error> {
-		return Signal<U, Error> { observer in
+		return Signal<U, Error>(.nonatomic) { observer in
 			return self.observe { event in
 				observer.action(event.map(transform))
 			}
@@ -654,7 +716,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will send new type of errors.
 	public func mapError<F>(_ transform: @escaping (Error) -> F) -> Signal<Value, F> {
-		return Signal<Value, F> { observer in
+		return Signal<Value, F>(.nonatomic) { observer in
 			return self.observe { event in
 				observer.action(event.mapError(transform))
 			}
@@ -691,7 +753,7 @@ extension Signal {
 	///
 	/// - returns: A signal that forwards the values passing the given closure.
 	public func filter(_ isIncluded: @escaping (Value) -> Bool) -> Signal<Value, Error> {
-		return Signal { observer in
+		return Signal(.nonatomic) { observer in
 			return self.observe { (event: Event) -> Void in
 				guard let value = event.value else {
 					observer.action(event)
@@ -712,7 +774,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
 	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
-		return Signal<U, Error> { observer in
+		return Signal<U, Error>(.nonatomic) { observer in
 			return self.observe { (event: Event) -> Void in
 				switch event {
 				case let .value(value):
@@ -753,7 +815,7 @@ extension Signal {
 	public func take(first count: Int) -> Signal<Value, Error> {
 		precondition(count >= 0)
 
-		return Signal { observer in
+		return Signal(.nonatomic) { observer in
 			if count == 0 {
 				observer.sendCompleted()
 				return nil
@@ -880,7 +942,7 @@ extension Signal {
 	/// - returns: A signal of arrays of values, as instructed by the `shouldEmit`
 	///            closure.
 	public func collect(_ shouldEmit: @escaping (_ collectedValues: [Value]) -> Bool) -> Signal<[Value], Error> {
-		return Signal<[Value], Error> { observer in
+		return Signal<[Value], Error>(.nonatomic) { observer in
 			let state = CollectState<Value>()
 
 			return self.observe { event in
@@ -943,7 +1005,7 @@ extension Signal {
 	/// - returns: A signal of arrays of values, as instructed by the `shouldEmit`
 	///            closure.
 	public func collect(_ shouldEmit: @escaping (_ collected: [Value], _ latest: Value) -> Bool) -> Signal<[Value], Error> {
-		return Signal<[Value], Error> { observer in
+		return Signal<[Value], Error>(.nonatomic) { observer in
 			let state = CollectState<Value>()
 
 			return self.observe { event in
@@ -976,7 +1038,10 @@ extension Signal {
 	///
 	/// - returns: A signal that will yield `self` values on provided scheduler.
 	public func observe(on scheduler: Scheduler) -> Signal<Value, Error> {
-		return Signal { observer in
+		// While `observe` is an asynchronous operator, the resulting signal can
+		// inherit the serialization from the scheduler, since all the events
+		// are being forwarded through it.
+		return Signal(.nonatomic) { observer in
 			return self.observe { event in
 				scheduler.schedule {
 					observer.action(event)
@@ -1025,7 +1090,10 @@ extension Signal {
 	public func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
 		precondition(interval >= 0)
 
-		return Signal { observer in
+		// While `delay` is an asynchronous operator, the resulting signal can
+		// inherit the serialization from the scheduler, since all the events are
+		// forwarded through it.
+		return Signal(.nonatomic) { observer in
 			return self.observe { event in
 				switch event {
 				case .failed, .interrupted:
@@ -1059,7 +1127,7 @@ extension Signal {
 			return self
 		}
 
-		return Signal { observer in
+		return Signal(.nonatomic) { observer in
 			var skipped = 0
 
 			return self.observe { event in
@@ -1084,7 +1152,7 @@ extension Signal {
 	///
 	/// - returns: A signal that sends events as its values.
 	public func materialize() -> Signal<Event, NoError> {
-		return Signal<Event, NoError> { observer in
+		return Signal<Event, NoError>(.nonatomic) { observer in
 			return self.observe { event in
 				observer.send(value: event)
 
@@ -1109,7 +1177,7 @@ extension Signal where Value: EventProtocol, Error == NoError {
 	///
 	/// - returns: A signal that sends values carried by `self` events.
 	public func dematerialize() -> Signal<Value.Value, Value.Error> {
-		return Signal<Value.Value, Value.Error> { observer in
+		return Signal<Value.Value, Value.Error>(.nonatomic) { observer in
 			return self.observe { event in
 				switch event {
 				case let .value(innerEvent):
@@ -1153,7 +1221,7 @@ extension Signal {
 		disposed: (() -> Void)? = nil,
 		value: ((Value) -> Void)? = nil
 	) -> Signal<Value, Error> {
-		return Signal { observer in
+		return Signal(.nonatomic) { observer in
 			let disposable = CompositeDisposable()
 
 			_ = disposed.map(disposable.add)
@@ -1534,7 +1602,7 @@ extension Signal {
 	/// - returns: A signal that sends the partial results of the accumuation, and the
 	///            final result as `self` completes.
 	public func scan<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
-		return Signal<U, Error> { observer in
+		return Signal<U, Error>(.nonatomic) { observer in
 			var accumulator = initialResult
 
 			return self.observe { event in
@@ -1594,9 +1662,8 @@ extension Signal {
 	///
 	/// - returns: A signal which conditionally forwards values from `self`.
 	public func skip(while shouldContinue: @escaping (Value) -> Bool) -> Signal<Value, Error> {
-		return Signal { observer in
+		return Signal(.nonatomic) { observer in
 			var isSkipping = true
-
 			return self.observe { event in
 				switch event {
 				case let .value(value):
@@ -1657,7 +1724,7 @@ extension Signal {
 	/// - returns: A signal that receives up to `count` values from `self`
 	///            after `self` completes.
 	public func take(last count: Int) -> Signal<Value, Error> {
-		return Signal { observer in
+		return Signal(.nonatomic) { observer in
 			var buffer: [Value] = []
 			buffer.reserveCapacity(count)
 
@@ -1694,7 +1761,7 @@ extension Signal {
 	///
 	/// - returns: A signal which conditionally forwards values from `self`.
 	public func take(while shouldContinue: @escaping (Value) -> Bool) -> Signal<Value, Error> {
-		return Signal { observer in
+		return Signal(.nonatomic) { observer in
 			return self.observe { event in
 				if let value = event.value, !shouldContinue(value) {
 					observer.sendCompleted()
@@ -1750,7 +1817,10 @@ extension Signal {
 	public func throttle(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
 		precondition(interval >= 0)
 
-		return Signal { observer in
+		// While `throttle` is an asynchronous operator, the resulting signal can
+		// inherit the serialization from the scheduler, since all events are being
+		// forwarded through it.
+		return Signal(.nonatomic) { observer in
 			let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState())
 			let schedulerDisposable = SerialDisposable()
 
@@ -1960,7 +2030,7 @@ extension Signal {
 	///
 	/// - returns: A signal that sends unique values during its lifetime.
 	public func uniqueValues<Identity: Hashable>(_ transform: @escaping (Value) -> Identity) -> Signal<Value, Error> {
-		return Signal { observer in
+		return Signal(.nonatomic) { observer in
 			var seenValues: Set<Identity> = []
 			
 			return self
@@ -2415,7 +2485,7 @@ extension Signal where Error == NoError {
 	///
 	/// - returns: A signal that has an instantiatable `ErrorType`.
 	public func promoteError<F: Swift.Error>(_: F.Type = F.self) -> Signal<Value, F> {
-		return Signal<Value, F> { observer in
+		return Signal<Value, F>(.nonatomic) { observer in
 			return self.observe { event in
 				switch event {
 				case let .value(value):
@@ -2532,7 +2602,7 @@ extension Signal {
 	///
 	/// - returns: A signal which forwards the transformed values.
 	public func attemptMap<U>(_ transform: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
-		return Signal<U, Error> { observer in
+		return Signal<U, Error>(.nonatomic) { observer in
 			self.observe { event in
 				switch event {
 				case let .value(value):

@@ -635,7 +635,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - parameters:
 	///   - initialValue: Starting value for the mutable property.
 	public init(_ initialValue: Value) {
-		(signal, observer) = Signal.pipe()
+		(signal, observer) = Signal.pipe(attributes: .nonatomic)
 		token = Lifetime.Token()
 		lifetime = Lifetime(token)
 
