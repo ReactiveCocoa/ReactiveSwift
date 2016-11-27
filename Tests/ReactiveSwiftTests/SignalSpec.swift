@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Dispatch
 
 import Result
 import Nimble
@@ -210,6 +211,104 @@ class SignalSpec: QuickSpec {
 						}
 					}
 				}
+			}
+		}
+
+		describe("interruption") {
+			it("should not send events after sending an interrupted event") {
+				let queue: DispatchQueue
+				let counter = Atomic<Int>(0)
+
+				if #available(macOS 10.10, *) {
+					queue = DispatchQueue.global(qos: .userInitiated)
+				} else {
+					queue = DispatchQueue.global(priority: .high)
+				}
+
+				let (signal, observer) = Signal<Int, NoError>.pipe()
+
+				var hasSlept = false
+				var events: [Event<Int, NoError>] = []
+
+				// Used to synchronize the `interrupt` sender to only act after the
+				// chosen observer has started sending its event, but before it is done.
+				let semaphore = DispatchSemaphore(value: 0)
+
+				signal.observe { event in
+					if !hasSlept {
+						semaphore.signal()
+						// 100000 us = 0.1 s
+						usleep(100000)
+						hasSlept = true
+					}
+					events.append(event)
+				}
+
+				let group = DispatchGroup()
+
+				DispatchQueue.concurrentPerform(iterations: 10) { index in
+					queue.async(group: group) {
+						observer.send(value: index)
+					}
+
+					if index == 0 {
+						semaphore.wait()
+						observer.sendInterrupted()
+					}
+				}
+
+				group.wait()
+
+				expect(events.count) == 2
+
+				if events.count >= 2 {
+					expect(events[1].isTerminating) == true
+				}
+			}
+
+			it("should interrupt concurrently") {
+				let queue: DispatchQueue
+				let counter = Atomic<Int>(0)
+				let executionCounter = Atomic<Int>(0)
+
+				if #available(macOS 10.10, *) {
+					queue = DispatchQueue.global(qos: .userInitiated)
+				} else {
+					queue = DispatchQueue.global(priority: .high)
+				}
+
+				let iterations = 1000
+				let group = DispatchGroup()
+
+				queue.async(group: group) {
+					DispatchQueue.concurrentPerform(iterations: iterations) { _ in
+						let (signal, observer) = Signal<(), NoError>.pipe()
+
+						var isInterrupted = false
+						signal.observeInterrupted { counter.modify { $0 += 1 } }
+
+						// Used to synchronize the `value` sender and the `interrupt`
+						// sender, giving a slight priority to the former.
+						let semaphore = DispatchSemaphore(value: 0)
+
+						queue.async(group: group) {
+							semaphore.signal()
+							observer.send(value: ())
+							executionCounter.modify { $0 += 1 }
+						}
+
+						queue.async(group: group) {
+							semaphore.wait()
+							observer.sendInterrupted()
+							executionCounter.modify { $0 += 1 }
+						}
+					}
+				}
+
+				group.wait()
+
+				expect(executionCounter.value) == iterations * 2
+				expect(counter.value).toEventually(equal(iterations), timeout: 5)
 			}
 		}
 
