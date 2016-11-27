@@ -604,18 +604,18 @@ scopedExample("`zip(with:)`") {
 }
 
 /*:
-### `times`
+### `repeat`
 Repeats `self` a total of `count` times. Repeating `1` times results in
 an equivalent signal producer.
 */
-scopedExample("`times`") {
+scopedExample("`repeat`") {
 	var counter = 0
 
 	SignalProducer<(), NoError> { observer, disposable in
 		counter += 1
 		observer.sendCompleted()
 	}
-		.times(42)
+		.repeat(42)
 		.start()
 
 	print(counter)
@@ -764,4 +764,4 @@ scopedExample("`log events`") {
  	baseProducer
  		.logEvents(identifier: "Playground is fun!")
  		.start()
- }
+}

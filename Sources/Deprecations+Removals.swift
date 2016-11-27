@@ -1,5 +1,5 @@
 import Foundation
-import enum Result.NoError
+import Result
 
 // MARK: Removed Types and APIs in ReactiveCocoa 5.0.
 
@@ -279,6 +279,9 @@ extension SignalProducerProtocol {
 
 	@available(*, unavailable, message:"This SignalProducer may emit errors which must be handled explicitly, or observed using `startWithResult(_:)`.")
 	public func startWithNext(_ next: (Value) -> Void) -> Disposable { fatalError() }
+
+	@available(*, unavailable, renamed:"repeat(_:)")
+	public func times(_ count: Int) -> SignalProducer<Value, Error> { fatalError() }
 }
 
 extension SignalProducerProtocol where Value: OptionalProtocol {
