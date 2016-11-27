@@ -360,20 +360,28 @@ extension PropertyProtocol {
 }
 
 /// A read-only property that can be observed for its changes over time. There
-/// are two categories of read-only properties:
+/// are three categories of read-only properties:
 ///
 /// # Constant property
 /// Created by `Property(value:)`, the producer and signal of a constant
 /// property would complete immediately when it is initialized.
 ///
+/// # Existential property
+/// Created by `Property(_:)`, it wraps any arbitrary `PropertyProtocol` types.
+/// It would retain the wrapped property.
+///
 /// # Composed property
 /// A composed property presents a composed view of its sources, which can be
-/// one or more properties, a producer, or a signal.
+/// one or more properties, a producer, or a signal. It can be created using
+/// property composition operators, `Property(initial:then:)` or
+/// `Property(reflecting:)`.
 ///
 /// It respects and have no effect on the lifetime of its root sources. In other
 /// words, the producer and signal of a composed property could complete before
 /// or outlive the composed property, depending on its sources and the
 /// composition.
+///
+/// Note that composed properties do not retain any of its sources.
 public final class Property<Value>: PropertyProtocol {
 	private let disposable: Disposable?
 
@@ -410,13 +418,26 @@ public final class Property<Value>: PropertyProtocol {
 		_signal = { Signal<Value, NoError>.empty }
 	}
 
+	/// Initializes an existential property which wraps the given property.
+	///
+	/// - note: The resulting property retains the given property.
+	///
+	/// - parameters:
+	///   - property: A property to be wrapped.
+	public init<P: PropertyProtocol>(_ property: P) where P.Value == Value {
+		disposable = nil
+		_value = { property.value }
+		_producer = { property.producer }
+		_signal = { property.signal }
+	}
+
 	/// Initializes a composed property which reflects the given property.
 	///
 	/// - note: The resulting property does not retain the given property.
 	///
 	/// - parameters:
 	///   - property: A property to be wrapped.
-	public convenience init<P: PropertyProtocol>(_ property: P) where P.Value == Value {
+	public convenience init<P: PropertyProtocol>(reflecting property: P) where P.Value == Value {
 		self.init(unsafeProducer: property.producer)
 	}
 
