@@ -317,63 +317,65 @@ class PropertySpec: QuickSpec {
 			}
 
 			describe("existential property") {
-				it("should pass through behaviors of the wrapped property") {
-					let constantProperty = Property(value: initialPropertyValue)
-					let property = Property(constantProperty)
+				describe("Property(capturing:)") {
+					it("should pass through behaviors of the wrapped property") {
+						let constantProperty = Property(value: initialPropertyValue)
+						let property = Property(capturing: constantProperty)
 
-					var sentValue: String?
-					var signalSentValue: String?
-					var producerCompleted = false
-					var signalInterrupted = false
+						var sentValue: String?
+						var signalSentValue: String?
+						var producerCompleted = false
+						var signalInterrupted = false
 
-					property.producer.start { event in
-						switch event {
-						case let .value(value):
-							sentValue = value
-						case .completed:
-							producerCompleted = true
-						case .failed, .interrupted:
-							break
+						property.producer.start { event in
+							switch event {
+							case let .value(value):
+								sentValue = value
+							case .completed:
+								producerCompleted = true
+							case .failed, .interrupted:
+								break
+							}
 						}
+
+						property.signal.observe { event in
+							switch event {
+							case let .value(value):
+								signalSentValue = value
+							case .interrupted:
+								signalInterrupted = true
+							case .failed, .completed:
+								break
+							}
+						}
+
+						expect(sentValue) == initialPropertyValue
+						expect(signalSentValue).to(beNil())
+						expect(producerCompleted) == true
+						expect(signalInterrupted) == true
 					}
 
-					property.signal.observe { event in
-						switch event {
-						case let .value(value):
-							signalSentValue = value
-						case .interrupted:
-							signalInterrupted = true
-						case .failed, .completed:
-							break
-						}
+					it("should retain the wrapped property") {
+						var property = Optional(MutableProperty(1))
+						weak var weakProperty = property
+						var existential = Optional(Property(capturing: property!))
+
+						expect(weakProperty).toNot(beNil())
+
+						property = nil
+						expect(weakProperty).toNot(beNil())
+
+						existential = nil
+						expect(weakProperty).to(beNil())
 					}
-
-					expect(sentValue) == initialPropertyValue
-					expect(signalSentValue).to(beNil())
-					expect(producerCompleted) == true
-					expect(signalInterrupted) == true
-				}
-
-				it("should retain the wrapped property") {
-					var property = Optional(MutableProperty(1))
-					weak var weakProperty = property
-					var existential = Optional(Property(property!))
-
-					expect(weakProperty).toNot(beNil())
-
-					property = nil
-					expect(weakProperty).toNot(beNil())
-
-					existential = nil
-					expect(weakProperty).to(beNil())
 				}
 			}
 
 			describe("composed properties") {
-				describe("Property(reflecting:)") {
+				describe("Property(_:)") {
 					it("should pass through behaviors of the wrapped property") {
 						let constantProperty = Property(value: initialPropertyValue)
-						let property = Property(reflecting: constantProperty)
+						let property = Property(constantProperty)
 
 						var sentValue: String?
 						var signalSentValue: String?
@@ -411,7 +413,7 @@ class PropertySpec: QuickSpec {
 					it("should not retain the wrapped property, and remain accessible after its the property being reflected has deinitialized.") {
 						var property = Optional(MutableProperty(initialPropertyValue))
 						weak var weakProperty = property
-						let reflected = Property(reflecting: property!)
+						let reflected = Property(property!)
 
 						expect(weakProperty).toNot(beNil())
 

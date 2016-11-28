@@ -367,14 +367,17 @@ extension PropertyProtocol {
 /// property would complete immediately when it is initialized.
 ///
 /// # Existential property
-/// Created by `Property(_:)`, it wraps any arbitrary `PropertyProtocol` types.
-/// It would retain the wrapped property.
+/// Created by `Property(capturing:)`, it wraps any arbitrary `PropertyProtocol`
+/// types, and passes through the behavior. Note that it would retain the
+/// wrapped property.
+///
+/// Existential property would be deprecated when generalized existential
+/// eventually lands in Swift.
 ///
 /// # Composed property
 /// A composed property presents a composed view of its sources, which can be
 /// one or more properties, a producer, or a signal. It can be created using
-/// property composition operators, `Property(initial:then:)` or
-/// `Property(reflecting:)`.
+/// property composition operators, `Property(_:)` or `Property(initial:then:)`.
 ///
 /// It respects and have no effect on the lifetime of its root sources. In other
 /// words, the producer and signal of a composed property could complete before
@@ -424,7 +427,7 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - parameters:
 	///   - property: A property to be wrapped.
-	public init<P: PropertyProtocol>(_ property: P) where P.Value == Value {
+	public init<P: PropertyProtocol>(capturing property: P) where P.Value == Value {
 		disposable = nil
 		_value = { property.value }
 		_producer = { property.producer }
@@ -437,7 +440,7 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - parameters:
 	///   - property: A property to be wrapped.
-	public convenience init<P: PropertyProtocol>(reflecting property: P) where P.Value == Value {
+	public convenience init<P: PropertyProtocol>(_ property: P) where P.Value == Value {
 		self.init(unsafeProducer: property.producer)
 	}
 
