@@ -183,14 +183,19 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// observer.
 	///
 	/// - note: The Signal will remain alive until a terminating event is sent
-	///         to the observer.
+	///         to the observer, or until it has no observer if it is not
+	///         retained.
+	///
+	/// - parameters:
+	///   - disposable: An optional disposable to associate with the signal, and
+	///                 to be disposed of when the signal terminates.
 	///
 	/// - returns: A tuple made of signal and observer.
-	public static func pipe() -> (Signal, Observer) {
+	public static func pipe(disposable: Disposable? = nil) -> (Signal, Observer) {
 		var observer: Observer!
 		let signal = self.init { innerObserver in
 			observer = innerObserver
-			return nil
+			return disposable
 		}
 
 		return (signal, observer)

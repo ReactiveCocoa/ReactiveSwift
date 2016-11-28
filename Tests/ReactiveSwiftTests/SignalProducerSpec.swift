@@ -337,7 +337,8 @@ class SignalProducerSpec: QuickSpec {
 					return
 				}
 
-				producer.startWithSignal { _, innerDisposable in
+				producer.startWithSignal { signal, innerDisposable in
+					signal.observe { _ in }
 					disposable = innerDisposable
 				}
 
@@ -432,7 +433,7 @@ class SignalProducerSpec: QuickSpec {
 					observer = incomingObserver
 				}
 
-				producer.startWithSignal { _ in }
+				producer.start()
 				expect(addedDisposable.isDisposed) == false
 
 				observer.sendCompleted()
@@ -448,10 +449,29 @@ class SignalProducerSpec: QuickSpec {
 					observer = incomingObserver
 				}
 
-				producer.startWithSignal { _ in }
+				producer.start()
 				expect(addedDisposable.isDisposed) == false
 
 				observer.send(error: .default)
+				expect(addedDisposable.isDisposed) == true
+			}
+
+			it("should dispose of the added disposable if the signal is unretained and unobserved upon exiting the scope") {
+				let addedDisposable = SimpleDisposable()
+
+				let producer = SignalProducer<Int, TestError> { _, disposable in
+					disposable += addedDisposable
+				}
+
+				var started = false
+				var disposed = false
+
+				producer
+					.on(started: { started = true }, disposed: { disposed = true })
+					.startWithSignal { _ in }
+
+				expect(started) == true
+				expect(disposed) == true
 				expect(addedDisposable.isDisposed) == true
 			}
 		}
@@ -1970,6 +1990,7 @@ class SignalProducerSpec: QuickSpec {
 				producer
 					.observe(on: TestScheduler())
 					.startWithSignal { signal, innerDisposable in
+						signal.observe { _ in }
 						downstreamDisposable = innerDisposable
 					}
 				

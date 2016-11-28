@@ -172,18 +172,15 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - setUp: A closure that accepts a `signal` and `interrupter`.
 	public func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interrupter: Disposable) -> Void) {
-		let (signal, observer) = Signal<Value, Error>.pipe()
-
 		// Disposes of the work associated with the SignalProducer and any
 		// upstream producers.
 		let producerDisposable = CompositeDisposable()
 
+		let (signal, observer) = Signal<Value, Error>.pipe(disposable: producerDisposable)
+
 		// Directly disposed of when `start()` or `startWithSignal()` is
 		// disposed.
-		let cancelDisposable = ActionDisposable {
-			observer.sendInterrupted()
-			producerDisposable.dispose()
-		}
+		let cancelDisposable = ActionDisposable(action: observer.sendInterrupted)
 
 		setup(signal, cancelDisposable)
 
@@ -191,17 +188,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			return
 		}
 
-		let wrapperObserver: Signal<Value, Error>.Observer = Observer { event in
-			observer.action(event)
-
-			if event.isTerminating {
-				// Dispose only after notifying the Signal, so disposal
-				// logic is consistently the last thing to run.
-				producerDisposable.dispose()
-			}
-		}
-
-		startHandler(wrapperObserver, producerDisposable)
+		startHandler(observer, producerDisposable)
 	}
 }
 
@@ -445,7 +432,6 @@ extension SignalProducerProtocol {
 			}
 		}
 	}
-	
 
 	/// Lift a binary Signal operator to operate upon a Signal and a
 	/// SignalProducer instead.
@@ -462,27 +448,9 @@ extension SignalProducerProtocol {
 	///            `SignalProducer`.
 	public func lift<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (Signal<U, F>) -> SignalProducer<V, G> {
 		return { otherSignal in
-			return SignalProducer { observer, outerDisposable in
-				let (wrapperSignal, otherSignalObserver) = Signal<U, F>.pipe()
-
-				// Avoid memory leak caused by the direct use of the given
-				// signal.
-				//
-				// See https://github.com/ReactiveCocoa/ReactiveCocoa/pull/2758
-				// for the details.
-				outerDisposable += ActionDisposable {
-					otherSignalObserver.sendInterrupted()
-				}
-				outerDisposable += otherSignal.observe(otherSignalObserver)
-
-				self.startWithSignal { signal, disposable in
-					outerDisposable += disposable
-					outerDisposable += transform(signal)(wrapperSignal).observe(observer)
-				}
-			}
+			return self.liftRight(transform)(SignalProducer(signal: otherSignal))
 		}
 	}
-	
 
 	/// Map each value in the producer to a new value.
 	///

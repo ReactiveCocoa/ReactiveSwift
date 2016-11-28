@@ -193,6 +193,16 @@ class SignalSpec: QuickSpec {
 				expect(completed) == true
 			}
 
+			it("should dispose the supplied disposable when the signal terminates") {
+				let disposable = SimpleDisposable()
+				let (signal, observer) = Signal<(), NoError>.pipe(disposable: disposable)
+
+				expect(disposable.isDisposed) == false
+
+				observer.sendCompleted()
+				expect(disposable.isDisposed) == true
+			}
+
 			context("memory") {
 				it("should not crash allocating memory with a few observers") {
 					let (signal, _) = Signal<Int, NoError>.pipe()
