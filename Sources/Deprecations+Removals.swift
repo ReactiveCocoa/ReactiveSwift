@@ -308,10 +308,10 @@ extension PropertyProtocol {
 }
 
 extension Property {
-	@available(*, unavailable, renamed:"AnyProperty(initial:then:)")
+	@available(*, unavailable, renamed:"Property(initial:then:)")
 	public convenience init(initialValue: Value, producer: SignalProducer<Value, NoError>) { fatalError() }
 
-	@available(*, unavailable, renamed:"AnyProperty(initial:then:)")
+	@available(*, unavailable, renamed:"Property(initial:then:)")
 	public convenience init(initialValue: Value, signal: Signal<Value, NoError>) { fatalError() }
 }
 
