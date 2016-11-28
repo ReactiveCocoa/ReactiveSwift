@@ -1021,6 +1021,75 @@ extension SignalProtocol {
 			.map { $0.0 }
 	}
 
+	/// Forward the latest value from `samplee` with the value from `self` as a
+	/// tuple, only when `self` sends a `value` event.
+	/// This is like a flipped version of `sample(with:)` and Rx's `withLatestFrom`.
+	///
+	/// - note: If `self` fires before a value has been observed on `samplee`,
+	///         nothing happens.
+	///
+	/// - parameters:
+	///   - samplee: A signal that its latest value is sampled by `self`.
+	///
+	/// - returns: A signal that will send values from `self` and `samplee`,
+	///            sampled (possibly multiple times) by `self`, then terminate
+	///            once `self` has terminated. **`samplee`'s terminated events
+	///            are ignored**.
+	public func sample<U>(from samplee: Signal<U, NoError>) -> Signal<(Value, U), Error> {
+		return Signal { observer in
+			let state = Atomic<U?>(nil)
+			let disposable = CompositeDisposable()
+
+			disposable += samplee.observeValues { value in
+				state.value = value
+			}
+
+			disposable += self.observe { event in
+				switch event {
+				case let .value(value):
+					if let value2 = state.value {
+						observer.send(value: (value, value2))
+					}
+				case .completed:
+					observer.sendCompleted()
+				case let .failed(error):
+					observer.send(error: error)
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
+
+			return disposable
+		}
+	}
+
+	/// Forward the latest value from `samplee` with the value from `self` as a
+	/// tuple, only when `self` sends a `value` event.
+	/// This is like a flipped version of `sample(with:)` and Rx's `withLatestFrom`.
+	///
+	/// - note: If `self` fires before a value has been observed on `samplee`,
+	///         nothing happens.
+	///
+	/// - parameters:
+	///   - samplee: A producer that its latest value is sampled by `self`.
+	///
+	/// - returns: A signal that will send values from `self` and `samplee`,
+	///            sampled (possibly multiple times) by `self`, then terminate
+	///            once `self` has terminated. **`samplee`'s terminated events
+	///            are ignored**.
+	public func sample<U>(from samplee: SignalProducer<U, NoError>) -> Signal<(Value, U), Error> {
+		return Signal { observer in
+			let d = CompositeDisposable()
+			samplee.startWithSignal { signal, disposable in
+				d += disposable
+				d += self.sample(from: signal).observe(observer)
+			}
+			return d
+		}
+	}
+}
+
+extension SignalProtocol {
 	/// Forwards events from `self` until `lifetime` ends, at which point the
 	/// returned signal will complete.
 	///
