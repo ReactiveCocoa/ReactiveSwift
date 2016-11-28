@@ -1053,6 +1053,10 @@ extension SignalProducerProtocol {
 	///         that value will be discarded and the returned signal will
 	///         terminate immediately.
 	///
+	/// - note: If `shouldThrottle` completes before the receiver, and its last
+	///         value is `true`, the returned signal will remain in the throttled
+	///         state, emitting no further values until it terminates.
+	///
 	/// - parameters:
 	///   - shouldThrottle: A boolean property that controls whether values
 	///                     should be throttled.

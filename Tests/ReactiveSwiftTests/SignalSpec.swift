@@ -1498,6 +1498,34 @@ class SignalSpec: QuickSpec {
 				expect(values) == [1, 2, 3]
 			}
 
+			it("stays throttled if the property completes while throttled") {
+				var values: [Int] = []
+				signal.observeValues { values.append($0) }
+
+				shouldThrottle.value = false
+				observer.send(value: 1)
+				shouldThrottle.value = true
+				observer.send(value: 2)
+				shouldThrottle = nil
+				observer.send(value: 3)
+
+				expect(values) == [1]
+			}
+
+			it("stays resumed if the property completes while resumed") {
+				var values: [Int] = []
+				signal.observeValues { values.append($0) }
+
+				shouldThrottle.value = true
+				observer.send(value: 1)
+				shouldThrottle.value = false
+				observer.send(value: 2)
+				shouldThrottle = nil
+				observer.send(value: 3)
+
+				expect(values) == [1, 2, 3]
+			}
+
 			it("doesn't extend the lifetime of the throttle property") {
 				var completed = false
 				shouldThrottle.lifetime.ended.observeCompleted { completed = true }
