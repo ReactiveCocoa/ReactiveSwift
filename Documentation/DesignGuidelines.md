@@ -1,12 +1,12 @@
 # Design Guidelines
 
 This document contains guidelines for projects that want to make use of
-ReactiveCocoa. The content here is heavily inspired by the [Rx Design
+ReactiveSwift. The content here is heavily inspired by the [Rx Design
 Guidelines](http://blogs.msdn.com/b/rxteam/archive/2010/10/28/rx-design-guidelines.aspx).
 
 This document assumes basic familiarity
-with the features of ReactiveCocoa. The [Framework Overview][] is a better
-resource for getting up to speed on the main types and concepts provided by RAC.
+with the features of ReactiveSwift. The [Framework Overview][] is a better
+resource for getting up to speed on the main types and concepts provided by ReactiveSwift.
 
 **[The `Event` contract](#the-event-contract)**
 
@@ -53,7 +53,7 @@ resource for getting up to speed on the main types and concepts provided by RAC.
 
 ## The `Event` contract
 
-[Events][] are fundamental to ReactiveCocoa. [Signals][] and [signal producers][] both send
+[Events][] are fundamental to ReactiveSwift. [Signals][] and [signal producers][] both send
 events, and may be collectively called “event streams.”
 
 Event streams must conform to the following grammar:
@@ -129,14 +129,14 @@ exceptions. For example, the [flattening operators][flatten] will ignore
 `interrupted` events that occur on the _inner_ producers, since the cancellation
 of an inner operation should not necessarily cancel the larger unit of work.
 
-RAC will automatically send an `interrupted` event upon [disposal][Disposables], but it can
+ReactiveSwift will automatically send an `interrupted` event upon [disposal][Disposables], but it can
 also be sent manually if necessary. Additionally, [custom
 operators](#implementing-new-operators) must make sure to forward interruption
 events to the observer.
 
 #### Events are serial
 
-RAC guarantees that all events upon a stream will arrive serially. In other
+ReactiveSwift guarantees that all events upon a stream will arrive serially. In other
 words, it’s impossible for the observer of a signal or producer to receive
 multiple `Event`s concurrently, even if the events are sent on multiple threads
 simultaneously.
@@ -145,7 +145,7 @@ This simplifies [operator][Operators] implementations and [observers][].
 
 #### Events cannot be sent recursively
 
-Just like RAC guarantees that [events will not be received
+Just like ReactiveSwift guarantees that [events will not be received
 concurrently](#events-are-serial), it also guarantees that they won’t be
 received recursively. As a consequence, [operators][] and [observers][] _do not_ need to
 be reentrant.
@@ -161,7 +161,7 @@ an already-running event handler.
 
 #### Events are sent synchronously by default
 
-RAC does not implicitly introduce concurrency or asynchrony. [Operators][] that
+ReactiveSwift does not implicitly introduce concurrency or asynchrony. [Operators][] that
 accept a [scheduler][Schedulers] may, but they must be explicitly invoked by the consumer of
 the framework.
 
@@ -306,7 +306,7 @@ by the same `SignalProducer`.
 
 ## Best practices
 
-The following recommendations are intended to help keep RAC-based code
+The following recommendations are intended to help keep ReactiveSwift-based code
 predictable, understandable, and performant.
 
 They are, however, only guidelines. Use best judgement when determining whether
@@ -408,9 +408,9 @@ disposal:
 
 ## Implementing new operators
 
-RAC provides a long list of built-in [operators][] that should cover most use
-cases; however, RAC is not a closed system. It's entirely valid to implement
-additional operators for specialized uses, or for consideration in ReactiveCocoa
+ReactiveSwift provides a long list of built-in [operators][] that should cover most use
+cases; however, ReactiveSwift is not a closed system. It's entirely valid to implement
+additional operators for specialized uses, or for consideration in ReactiveSwift
 itself.
 
 Implementing a new operator requires a careful attention to detail and a focus
@@ -436,7 +436,7 @@ instead.
 
 #### Compose existing operators when possible
 
-Considerable thought has been put into the operators provided by RAC, and they
+Considerable thought has been put into the operators provided by ReactiveSwift, and they
 have been validated through automated tests and through their real world use in
 other projects. An operator that has been written from scratch may not be as
 robust, or might not handle a special case that the built-in operators are aware
@@ -489,7 +489,7 @@ the potential for deadlocks and race conditions, operators should not
 concurrently perform their work.
 
 Callers always have the ability to [observe events on a specific
-scheduler](#observe-events-on-a-known-scheduler), and RAC offers built-in ways
+scheduler](#observe-events-on-a-known-scheduler), and ReactiveSwift offers built-in ways
 to parallelize work, so custom operators don’t need to be concerned with it.
 
 #### Avoid blocking in operators
