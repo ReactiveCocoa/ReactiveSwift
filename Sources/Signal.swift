@@ -1581,7 +1581,6 @@ extension SignalProtocol {
 
 			let disposable = CompositeDisposable()
 			disposable += schedulerDisposable
-			disposable += { _ = shouldThrottle }
 
 			disposable += shouldThrottle.producer
 				.skipRepeats()

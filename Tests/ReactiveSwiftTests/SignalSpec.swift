@@ -1497,6 +1497,16 @@ class SignalSpec: QuickSpec {
 
 				expect(values) == [1, 2, 3]
 			}
+
+			it("doesn't extend the lifetime of the throttle property") {
+				var completed = false
+				shouldThrottle.lifetime.ended.observeCompleted { completed = true }
+
+				observer.send(value: 1)
+				shouldThrottle = nil
+
+				expect(completed) == true
+			}
 		}
 
 		describe("debounce") {

@@ -851,6 +851,36 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
+		describe("throttle while") {
+			var scheduler: ImmediateScheduler!
+			var shouldThrottle: MutableProperty<Bool>!
+			var observer: Signal<Int, NoError>.Observer!
+			var producer: SignalProducer<Int, NoError>!
+
+			beforeEach {
+				scheduler = ImmediateScheduler()
+				shouldThrottle = MutableProperty(false)
+
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				observer = baseObserver
+
+				producer = SignalProducer(signal: baseSignal)
+					.throttle(while: shouldThrottle, on: scheduler)
+
+				expect(producer).notTo(beNil())
+			}
+
+			it("doesn't extend the lifetime of the throttle property") {
+				var completed = false
+				shouldThrottle.lifetime.ended.observeCompleted { completed = true }
+
+				observer.send(value: 1)
+				shouldThrottle = nil
+
+				expect(completed) == true
+			}
+		}
+
 		describe("on") {
 			it("should attach event handlers to each started signal") {
 				let (baseProducer, observer) = SignalProducer<Int, TestError>.pipe()

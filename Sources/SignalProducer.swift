@@ -1062,6 +1062,10 @@ extension SignalProducerProtocol {
 	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: SchedulerProtocol) -> SignalProducer<Value, Error>
 		where P.Value == Bool
 	{
+		// Using `Property.init(_:)` avoids capturing a strong reference
+		// to `shouldThrottle`, so that we don't extend its lifetime.
+		let shouldThrottle = Property(shouldThrottle)
+
 		return lift { $0.throttle(while: shouldThrottle, on: scheduler) }
 	}
 
