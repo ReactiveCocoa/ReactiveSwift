@@ -1500,7 +1500,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A signal producer start sequentially starts `self` after
 	///            previously started producer completes.
-	public func times(_ count: Int) -> SignalProducer<Value, Error> {
+	public func `repeat`(_ count: Int) -> SignalProducer<Value, Error> {
 		precondition(count >= 0)
 
 		if count == 0 {

@@ -1559,7 +1559,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("times") {
 			it("should start a signal N times upon completion") {
 				let original = SignalProducer<Int, NoError>(values: [ 1, 2, 3 ])
-				let producer = original.times(3)
+				let producer = original.repeat(3)
 
 				let result = producer.collect().single()
 				expect(result?.value) == [ 1, 2, 3, 1, 2, 3, 1, 2, 3 ]
@@ -1567,7 +1567,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should produce an equivalent signal producer if count is 1") {
 				let original = SignalProducer<Int, NoError>(value: 1)
-				let producer = original.times(1)
+				let producer = original.repeat(1)
 
 				let result = producer.collect().single()
 				expect(result?.value) == [ 1 ]
@@ -1575,7 +1575,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should produce an empty signal if count is 0") {
 				let original = SignalProducer<Int, NoError>(value: 1)
-				let producer = original.times(0)
+				let producer = original.repeat(0)
 
 				let result = producer.first()
 				expect(result).to(beNil())
@@ -1589,7 +1589,7 @@ class SignalProducerSpec: QuickSpec {
 				]
 
 				let original = SignalProducer.attemptWithResults(results)
-				let producer = original.times(3)
+				let producer = original.repeat(3)
 
 				let events = producer
 					.materialize()
@@ -1617,7 +1617,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should evaluate lazily") {
 				let original = SignalProducer<Int, NoError>(value: 1)
-				let producer = original.times(Int.max)
+				let producer = original.repeat(Int.max)
 
 				let result = producer.take(first: 1).single()
 				expect(result?.value) == 1
