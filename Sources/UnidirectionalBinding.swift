@@ -16,6 +16,7 @@ public protocol BindingSourceProtocol {
 	associatedtype Value
 	associatedtype Error: Swift.Error
 	
+	/// Observe the binding source by sending any evenst to the given observer.
 	@discardableResult
 	func observe(_ observer: Observer<Value, Error>) -> Disposable?
 }
