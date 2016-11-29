@@ -140,7 +140,7 @@ extension PropertyProtocol where Value: PropertyProtocol {
 	///   - strategy: The preferred flatten strategy.
 	///
 	/// - returns: A property that sends the values of its inner properties.
-	public func flatten(_ strategy: FlattenStrategy) -> Property<Value.Value> {
+	public func flatten(_ strategy: FlatteningStrategy) -> Property<Value.Value> {
 		return lift { $0.flatMap(strategy) { $0.producer } }
 	}
 }
@@ -155,7 +155,7 @@ extension PropertyProtocol {
 	///   - transform: The transform to be applied on `self` before flattening.
 	///
 	/// - returns: A property that sends the values of its inner properties.
-	public func flatMap<P: PropertyProtocol>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> P) -> Property<P.Value> {
+	public func flatMap<P: PropertyProtocol>(_ strategy: FlatteningStrategy, transform: @escaping (Value) -> P) -> Property<P.Value> {
 		return lift { $0.flatMap(strategy) { transform($0).producer } }
 	}
 

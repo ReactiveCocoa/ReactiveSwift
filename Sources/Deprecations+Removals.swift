@@ -45,6 +45,9 @@ public struct AnyProperty<Value> {}
 @available(*, unavailable, message:"Use 'Property(value:)' to create a constant property instead. 'ConstantProperty' is removed in RAC 5.0.")
 public struct ConstantProperty<Value> {}
 
+@available(*, unavailable, renamed:"FlatteningStrategy")
+public enum FlattenStrategy {}
+
 // Renamed Properties
 
 extension Disposable {
@@ -84,15 +87,16 @@ extension ActionError {
 	public static var NotEnabled: ActionError { fatalError() }
 }
 
-extension FlattenStrategy {
+
+extension FlatteningStrategy {
 	@available(*, unavailable, renamed:"latest")
-	public static var Latest: FlattenStrategy { fatalError() }
+	public static var Latest: FlatteningStrategy { fatalError() }
 
 	@available(*, unavailable, renamed:"concat")
-	public static var Concat: FlattenStrategy { fatalError() }
+	public static var Concat: FlatteningStrategy { fatalError() }
 
 	@available(*, unavailable, renamed:"merge")
-	public static var Merge: FlattenStrategy { fatalError() }
+	public static var Merge: FlatteningStrategy { fatalError() }
 }
 
 extension LoggingEvent.Signal {

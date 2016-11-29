@@ -1342,7 +1342,7 @@ class SignalProducerSpec: QuickSpec {
 			describe("interruption") {
 				var innerObserver: Signal<(), NoError>.Observer!
 				var outerObserver: Signal<SignalProducer<(), NoError>, NoError>.Observer!
-				var execute: ((FlattenStrategy) -> Void)!
+				var execute: ((FlatteningStrategy) -> Void)!
 
 				var interrupted = false
 				var completed = false
@@ -1436,7 +1436,7 @@ class SignalProducerSpec: QuickSpec {
 			describe("disposal") {
 				var completeOuter: (() -> Void)!
 				var disposeOuter: (() -> Void)!
-				var execute: ((FlattenStrategy) -> Void)!
+				var execute: ((FlatteningStrategy) -> Void)!
 
 				var innerDisposable = SimpleDisposable()
 				var isInnerInterrupted = false
