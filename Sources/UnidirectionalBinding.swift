@@ -19,9 +19,6 @@ public protocol BindingTargetProtocol: class {
 	/// the binding should be teared down.
 	var lifetime: Lifetime { get }
 
-	/// Consume a value from the binding.
-	func consume(_ value: Value)
-
 	/// Binds a signal to a target, updating the target's value to the latest
 	/// value sent by the signal.
 	///
@@ -52,48 +49,10 @@ public protocol BindingTargetProtocol: class {
 	///            deinitialization of the target or the signal's `completed`
 	///            event.
 	@discardableResult
-	static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError
+	static func <~ (target: Self, signal: Signal<Value, NoError>) -> Disposable?
 }
 
 extension BindingTargetProtocol {
-	/// Binds a signal to a target, updating the target's value to the latest
-	/// value sent by the signal.
-	///
-	/// - note: The binding will automatically terminate when the target is
-	///         deinitialized, or when the signal sends a `completed` event.
-	///
-	/// ````
-	/// let property = MutableProperty(0)
-	/// let signal = Signal({ /* do some work after some time */ })
-	/// property <~ signal
-	/// ````
-	///
-	/// ````
-	/// let property = MutableProperty(0)
-	/// let signal = Signal({ /* do some work after some time */ })
-	/// let disposable = property <~ signal
-	/// ...
-	/// // Terminates binding before property dealloc or signal's
-	/// // `completed` event.
-	/// disposable.dispose()
-	/// ````
-	///
-	/// - parameters:
-	///   - target: A target to be bond to.
-	///   - signal: A signal to bind.
-	///
-	/// - returns: A disposable that can be used to terminate binding before the
-	///            deinitialization of the target or the signal's `completed`
-	///            event.
-	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
-		return signal
-			.take(during: target.lifetime)
-			.observeValues { [weak target] value in
-				target?.consume(value)
-			}
-	}
-
 	/// Binds a producer to a target, updating the target's value to the latest
 	/// value sent by the producer.
 	///
@@ -125,7 +84,7 @@ extension BindingTargetProtocol {
 	///            deinitialization of the target or the producer's `completed
 	///            event.
 	@discardableResult
-	public static func <~ <Source: SignalProducerProtocol>(target: Self, producer: Source) -> Disposable where Source.Value == Value, Source.Error == NoError {
+	public static func <~ (target: Self, producer: SignalProducer<Value, NoError>) -> Disposable {
 		var disposable: Disposable!
 
 		producer
@@ -203,7 +162,7 @@ extension BindingTargetProtocol where Value: OptionalProtocol {
 	///            deinitialization of the target or the signal's `completed`
 	///            event.
 	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value.Wrapped, Source.Error == NoError {
+	public static func <~ (target: Self, signal: Signal<Value.Wrapped, NoError>) -> Disposable? {
 		return target <~ signal.map(Value.init(reconstructing:))
 	}
 
@@ -238,7 +197,7 @@ extension BindingTargetProtocol where Value: OptionalProtocol {
 	///            deinitialization of the target or the producer's `completed`
 	///            event.
 	@discardableResult
-	public static func <~ <Source: SignalProducerProtocol>(target: Self, producer: Source) -> Disposable where Source.Value == Value.Wrapped, Source.Error == NoError {
+	public static func <~ (target: Self, producer: SignalProducer<Value.Wrapped, NoError>) -> Disposable {
 		return target <~ producer.map(Value.init(reconstructing:))
 	}
 
@@ -280,7 +239,9 @@ extension BindingTargetProtocol where Value: OptionalProtocol {
 }
 
 /// A binding target that can be used with the `<~` operator.
-public final class BindingTarget<Value>: BindingTargetProtocol {
+public final class BindingTarget<U>: BindingTargetProtocol {
+	public typealias Value = U
+
 	public let lifetime: Lifetime
 	private let setter: (Value) -> Void
 
@@ -309,12 +270,8 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 		self.init(lifetime: lifetime, setter: setter)
 	}
 
-	public func consume(_ value: Value) {
-		setter(value)
-	}
-
 	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: BindingTarget<Value>, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
+	public static func <~ (target: BindingTarget<Value>, signal: Signal<Value, NoError>) -> Disposable? {
 		return signal
 			.take(during: target.lifetime)
 			.observeValues { [setter = target.setter] value in
