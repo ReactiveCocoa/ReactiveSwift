@@ -1552,6 +1552,96 @@ extension SignalProtocol {
 		}
 	}
 
+	/// Conditionally throttles values sent on the receiver whenever
+	/// `shouldThrottle` is true, forwarding values on the given scheduler.
+	///
+	/// - note: While `shouldThrottle` remains false, values are forwarded on the
+	///         given scheduler. If multiple values are received while
+	///         `shouldThrottle` is true, the latest value is the one that will
+	///         be passed on.
+	///
+	/// - note: If the input signal terminates while a value is being throttled,
+	///         that value will be discarded and the returned signal will
+	///         terminate immediately.
+	///
+	/// - note: If `shouldThrottle` completes before the receiver, and its last
+	///         value is `true`, the returned signal will remain in the throttled
+	///         state, emitting no further values until it terminates.
+	///
+	/// - parameters:
+	///   - shouldThrottle: A boolean property that controls whether values
+	///                     should be throttled.
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A signal that sends values only while `shouldThrottle` is false.
+	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: SchedulerProtocol) -> Signal<Value, Error>
+		where P.Value == Bool
+	{
+		return Signal { observer in
+			let initial: ThrottleWhileState<Value> = .resumed
+			let state = Atomic(initial)
+			let schedulerDisposable = SerialDisposable()
+
+			let disposable = CompositeDisposable()
+			disposable += schedulerDisposable
+
+			disposable += shouldThrottle.producer
+				.skipRepeats()
+				.startWithValues { shouldThrottle in
+					let valueToSend = state.modify { state -> Value? in
+						guard !state.isTerminated else { return nil }
+
+						if shouldThrottle {
+							state = .throttled(nil)
+						} else {
+							defer { state = .resumed }
+
+							if case let .throttled(value?) = state {
+								return value
+							}
+						}
+
+						return nil
+					}
+
+					if let value = valueToSend {
+						schedulerDisposable.innerDisposable = scheduler.schedule {
+							observer.send(value: value)
+						}
+					}
+				}
+
+			disposable += self.observe { event in
+				let eventToSend = state.modify { state -> Event<Value, Error>? in
+					switch event {
+					case let .value(value):
+						switch state {
+						case .throttled:
+							state = .throttled(value)
+							return nil
+						case .resumed:
+							return event
+						case .terminated:
+							return nil
+						}
+
+					case .completed, .interrupted, .failed:
+						state = .terminated
+						return event
+					}
+				}
+
+				if let event = eventToSend {
+					schedulerDisposable.innerDisposable = scheduler.schedule {
+						observer.action(event)
+					}
+				}
+			}
+
+			return disposable
+		}
+	}
+
 	/// Debounce values sent by the receiver, such that at least `interval`
 	/// seconds pass after the receiver has last sent a value, then forward the
 	/// latest value on the given scheduler.
@@ -1636,6 +1726,21 @@ extension SignalProtocol where Value: Hashable {
 private struct ThrottleState<Value> {
 	var previousDate: Date? = nil
 	var pendingValue: Value? = nil
+}
+
+private enum ThrottleWhileState<Value> {
+	case resumed
+	case throttled(Value?)
+	case terminated
+
+	var isTerminated: Bool {
+		switch self {
+		case .terminated:
+			return true
+		case .resumed, .throttled:
+			return false
+		}
+	}
 }
 
 extension SignalProtocol {

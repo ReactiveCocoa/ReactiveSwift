@@ -1040,6 +1040,38 @@ extension SignalProducerProtocol {
 		return lift { $0.throttle(interval, on: scheduler) }
 	}
 
+	/// Conditionally throttles values sent on the receiver whenever
+	/// `shouldThrottle` is true, forwarding values on the given scheduler.
+	///
+	/// - note: While `shouldThrottle` remains false, values are forwarded on the
+	///         given scheduler. If multiple values are received while
+	///         `shouldThrottle` is true, the latest value is the one that will
+	///         be passed on.
+	///
+	/// - note: If the input signal terminates while a value is being throttled,
+	///         that value will be discarded and the returned signal will
+	///         terminate immediately.
+	///
+	/// - note: If `shouldThrottle` completes before the receiver, and its last
+	///         value is `true`, the returned signal will remain in the throttled
+	///         state, emitting no further values until it terminates.
+	///
+	/// - parameters:
+	///   - shouldThrottle: A boolean property that controls whether values
+	///                     should be throttled.
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A producer that sends values only while `shouldThrottle` is false.
+	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: SchedulerProtocol) -> SignalProducer<Value, Error>
+		where P.Value == Bool
+	{
+		// Using `Property.init(_:)` avoids capturing a strong reference
+		// to `shouldThrottle`, so that we don't extend its lifetime.
+		let shouldThrottle = Property(shouldThrottle)
+
+		return lift { $0.throttle(while: shouldThrottle, on: scheduler) }
+	}
+
 	/// Debounce values sent by the receiver, such that at least `interval`
 	/// seconds pass after the receiver has last sent a value, then
 	/// forward the latest value on the given scheduler.

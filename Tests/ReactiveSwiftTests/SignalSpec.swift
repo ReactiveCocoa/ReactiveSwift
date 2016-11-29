@@ -1445,6 +1445,98 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("throttle while") {
+			var scheduler: ImmediateScheduler!
+			var shouldThrottle: MutableProperty<Bool>!
+			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<Int, NoError>!
+
+			beforeEach {
+				scheduler = ImmediateScheduler()
+				shouldThrottle = MutableProperty(false)
+
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				observer = baseObserver
+
+				signal = baseSignal.throttle(while: shouldThrottle, on: scheduler)
+				expect(signal).notTo(beNil())
+			}
+
+			it("passes through unthrottled values") {
+				var values: [Int] = []
+				signal.observeValues { values.append($0) }
+
+				observer.send(value: 1)
+				observer.send(value: 2)
+				observer.send(value: 3)
+
+				expect(values) == [1, 2, 3]
+			}
+
+			it("emits the latest throttled value when resumed") {
+				var values: [Int] = []
+				signal.observeValues { values.append($0) }
+
+				shouldThrottle.value = true
+				observer.send(value: 1)
+				observer.send(value: 2)
+				shouldThrottle.value = false
+
+				expect(values) == [2]
+			}
+
+			it("continues sending values after being resumed") {
+				var values: [Int] = []
+				signal.observeValues { values.append($0) }
+
+				shouldThrottle.value = true
+				observer.send(value: 1)
+				shouldThrottle.value = false
+				observer.send(value: 2)
+				observer.send(value: 3)
+
+				expect(values) == [1, 2, 3]
+			}
+
+			it("stays throttled if the property completes while throttled") {
+				var values: [Int] = []
+				signal.observeValues { values.append($0) }
+
+				shouldThrottle.value = false
+				observer.send(value: 1)
+				shouldThrottle.value = true
+				observer.send(value: 2)
+				shouldThrottle = nil
+				observer.send(value: 3)
+
+				expect(values) == [1]
+			}
+
+			it("stays resumed if the property completes while resumed") {
+				var values: [Int] = []
+				signal.observeValues { values.append($0) }
+
+				shouldThrottle.value = true
+				observer.send(value: 1)
+				shouldThrottle.value = false
+				observer.send(value: 2)
+				shouldThrottle = nil
+				observer.send(value: 3)
+
+				expect(values) == [1, 2, 3]
+			}
+
+			it("doesn't extend the lifetime of the throttle property") {
+				var completed = false
+				shouldThrottle.lifetime.ended.observeCompleted { completed = true }
+
+				observer.send(value: 1)
+				shouldThrottle = nil
+
+				expect(completed) == true
+			}
+		}
+
 		describe("debounce") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
