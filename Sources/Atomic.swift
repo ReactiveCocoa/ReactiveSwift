@@ -24,7 +24,7 @@ internal protocol AtomicStateProtocol {
 	///
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
-	mutating func tryTransiting(from expected: State, to next: State) -> Bool
+	func tryTransiting(from expected: State, to next: State) -> Bool
 }
 
 /// A simple, generic lock-free finite state machine.
