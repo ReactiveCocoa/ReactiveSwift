@@ -1044,10 +1044,9 @@ extension SignalProducerProtocol {
 	/// `shouldThrottle` is true, forwarding values on the given scheduler.
 	///
 	/// - note: While `shouldThrottle` remains false, values are forwarded on the
-	///         given scheduler.
-	///
-	/// - note: If multiple values are received while `shouldThrottle` is true,
-	///         the latest value is the one that will be passed on.
+	///         given scheduler. If multiple values are received while
+	///         `shouldThrottle` is true, the latest value is the one that will
+	///         be passed on.
 	///
 	/// - note: If the input signal terminates while a value is being throttled,
 	///         that value will be discarded and the returned signal will
