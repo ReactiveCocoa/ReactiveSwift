@@ -42,7 +42,7 @@ public protocol BindingTargetProtocol: class {
 	associatedtype Value
 
 	/// The lifetime of `self`. The binding operators use this to determine when
-	/// the binding should be teared down.
+	/// the binding should be torn down.
 	var lifetime: Lifetime { get }
 
 	/// Consume a value from the binding.
