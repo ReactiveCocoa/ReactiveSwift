@@ -209,8 +209,8 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - observer: An observer to forward the events to.
 	///
-	/// - returns: An optional `Disposable` which can be used to disconnect the
-	///            observer.
+	/// - returns: A `Disposable` which can be used to disconnect the observer,
+	///            or `nil` if the signal has already completed.
 	@discardableResult
 	public func observe(_ observer: Observer) -> Disposable? {
 		var token: RemovalToken?
