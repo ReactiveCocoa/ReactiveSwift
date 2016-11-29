@@ -34,7 +34,7 @@ extension AtomicStateProtocol where State == DisposableState {
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
 	@inline(__always)
-	fileprivate mutating func tryDispose() -> Bool {
+	fileprivate func tryDispose() -> Bool {
 		return tryTransiting(from: .active, to: .disposed)
 	}
 }
