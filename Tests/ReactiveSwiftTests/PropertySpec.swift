@@ -1554,7 +1554,7 @@ class PropertySpec: QuickSpec {
 					let mutableProperty = MutableProperty(initialPropertyValue)
 					let disposable = mutableProperty <~ signalProducer
 
-					disposable.dispose()
+					disposable?.dispose()
 
 					observer.send(value: subsequentPropertyValue)
 					expect(mutableProperty.value) == initialPropertyValue
@@ -1603,7 +1603,7 @@ class PropertySpec: QuickSpec {
 					let destinationProperty = MutableProperty("")
 
 					let bindingDisposable = destinationProperty <~ sourceProperty.producer
-					bindingDisposable.dispose()
+					bindingDisposable?.dispose()
 
 					sourceProperty.value = subsequentPropertyValue
 

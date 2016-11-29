@@ -17,35 +17,22 @@ public protocol BindingSourceProtocol {
 	associatedtype Error: Swift.Error
 	
 	@discardableResult
-	func observe(_ observer: Observer<Value, Error>, lifetime: Lifetime) -> Disposable?
+	func observe(_ observer: Observer<Value, Error>) -> Disposable?
 }
 
-extension Signal: BindingSourceProtocol {
-	@discardableResult
-	public func observe(_ observer: Observer, lifetime: Lifetime) -> Disposable? {
-		return take(during: lifetime).observe(observer)
-	}
-}
+extension Signal: BindingSourceProtocol { }
 
 extension SignalProducer: BindingSourceProtocol {
 	@discardableResult
-	public func observe(_ observer: Observer<Value, Error>, lifetime: Lifetime) -> Disposable? {
+	public func observe(_ observer: Observer<Value, Error>) -> Disposable? {
 		var disposable: Disposable!
 
-		take(during: lifetime)
-			.startWithSignal { signal, signalDisposable in
-				disposable = signalDisposable
-				signal.observe(observer)
-			}
+		startWithSignal { signal, signalDisposable in
+			disposable = signalDisposable
+			signal.observe(observer)
+		}
 
 		return disposable
-	}
-}
-
-extension Property: BindingSourceProtocol {
-	@discardableResult
-	public func observe(_ observer: Observer<Value, NoError>, lifetime: Lifetime) -> Disposable? {
-		return producer.observe(observer, lifetime: lifetime)
 	}
 }
 
@@ -61,116 +48,88 @@ public protocol BindingTargetProtocol: class {
 	func consume(_ value: Value)
 }
 
+/// Binds a signal to a target, updating the target's value to the latest
+/// value sent by the signal.
+///
+/// - note: The binding will automatically terminate when the target is
+///         deinitialized, or when the signal sends a `completed` event.
+///
+/// ````
+/// let property = MutableProperty(0)
+/// let signal = Signal({ /* do some work after some time */ })
+/// property <~ signal
+/// ````
+///
+/// ````
+/// let property = MutableProperty(0)
+/// let signal = Signal({ /* do some work after some time */ })
+/// let disposable = property <~ signal
+/// ...
+/// // Terminates binding before property dealloc or signal's
+/// // `completed` event.
+/// disposable.dispose()
+/// ````
+///
+/// - parameters:
+///   - target: A target to be bond to.
+///   - signal: A signal to bind.
+///
+/// - returns: A disposable that can be used to terminate binding before the
+///            deinitialization of the target or the signal's `completed`
+///            event.
 @discardableResult
-public func <~ <Target: BindingTargetProtocol, Source: BindingSourceProtocol>(target: Target, source: Source) -> Disposable? where Source.Value == Target.Value, Source.Error == NoError {
-	return source.observe(Observer(value: target.consume), lifetime: target.lifetime)
+public func <~
+	<Target: BindingTargetProtocol, Source: BindingSourceProtocol>
+	(target: Target, source: Source) -> Disposable?
+	where Source.Value == Target.Value, Source.Error == NoError
+{
+	let disposable = source.observe(Observer(value: { [weak target] in target?.consume($0) }))
+	if let disposable = disposable {
+		target.lifetime.ended.observeCompleted { disposable.dispose() }
+	}
+	return disposable
 }
 
-extension BindingTargetProtocol where Value: OptionalProtocol {
-	/// Binds a signal to a target, updating the target's value to the latest
-	/// value sent by the signal.
-	///
-	/// - note: The binding will automatically terminate when the target is
-	///         deinitialized, or when the signal sends a `completed` event.
-	///
-	/// ````
-	/// let property = MutableProperty(0)
-	/// let signal = Signal({ /* do some work after some time */ })
-	/// property <~ signal
-	/// ````
-	///
-	/// ````
-	/// let property = MutableProperty(0)
-	/// let signal = Signal({ /* do some work after some time */ })
-	/// let disposable = property <~ signal
-	/// ...
-	/// // Terminates binding before property dealloc or signal's
-	/// // `completed` event.
-	/// disposable.dispose()
-	/// ````
-	///
-	/// - parameters:
-	///   - target: A target to be bond to.
-	///   - signal: A signal to bind.
-	///
-	/// - returns: A disposable that can be used to terminate binding before the
-	///            deinitialization of the target or the signal's `completed`
-	///            event.
-	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: Self, signal: Source) -> Disposable? where Source.Value == Value.Wrapped, Source.Error == NoError {
-		return target <~ signal.map(Value.init(reconstructing:))
+/// Binds a source to a target, updating the target's value to the latest
+/// value sent by the signal.
+///
+/// - note: The binding will automatically terminate when the target is
+///         deinitialized, or when the signal sends a `completed` event.
+///
+/// ````
+/// let property = MutableProperty(0)
+/// let signal = Signal({ /* do some work after some time */ })
+/// property <~ signal
+/// ````
+///
+/// ````
+/// let property = MutableProperty(0)
+/// let signal = Signal({ /* do some work after some time */ })
+/// let disposable = property <~ signal
+/// ...
+/// // Terminates binding before property dealloc or signal's
+/// // `completed` event.
+/// disposable.dispose()
+/// ````
+///
+/// - parameters:
+///   - target: A target to be bond to.
+///   - signal: A signal to bind.
+///
+/// - returns: A disposable that can be used to terminate binding before the
+///            deinitialization of the target or the signal's `completed`
+///            event.
+@discardableResult
+public func <~
+	<Target: BindingTargetProtocol, Source: BindingSourceProtocol>
+	(target: Target, source: Source) -> Disposable?
+	where Target.Value: OptionalProtocol, Source.Value == Target.Value.Wrapped, Source.Error == NoError
+{
+	let disposable = source.observe(Observer(value: { [weak target] in target?.consume(Target.Value(reconstructing: $0)) }))
+	if let disposable = disposable {
+		target.lifetime.ended.observeCompleted { disposable.dispose() }
 	}
-
-	/// Binds a producer to a target, updating the target's value to the latest
-	/// value sent by the producer.
-	///
-	/// - note: The binding will automatically terminate when the target is
-	///         deinitialized, or when the producer sends a `completed` event.
-	///
-	/// ````
-	/// let property = MutableProperty(0)
-	/// let producer = SignalProducer<Int, NoError>(value: 1)
-	/// property <~ producer
-	/// print(property.value) // prints `1`
-	/// ````
-	///
-	/// ````
-	/// let property = MutableProperty(0)
-	/// let producer = SignalProducer({ /* do some work after some time */ })
-	/// let disposable = (property <~ producer)
-	/// ...
-	/// // Terminates binding before property dealloc or
-	/// // signal's `completed` event.
-	/// disposable.dispose()
-	/// ````
-	///
-	/// - parameters:
-	///   - target: A target to be bond to.
-	///   - producer: A producer to bind.
-	///
-	/// - returns: A disposable that can be used to terminate binding before the
-	///            deinitialization of the target or the producer's `completed`
-	///            event.
-	@discardableResult
-	public static func <~ <Source: SignalProducerProtocol>(target: Self, producer: Source) -> Disposable? where Source.Value == Value.Wrapped, Source.Error == NoError {
-		return target <~ producer.map(Value.init(reconstructing:))
-	}
-
-	/// Binds a property to a target, updating the target's value to the latest
-	/// value sent by the property.
-	///
-	/// - note: The binding will automatically terminate when either the target or
-	///         the property deinitializes.
-	///
-	/// ````
-	/// let dstProperty = MutableProperty(0)
-	/// let srcProperty = ConstantProperty(10)
-	/// dstProperty <~ srcProperty
-	/// print(dstProperty.value) // prints 10
-	/// ````
-	///
-	/// ````
-	/// let dstProperty = MutableProperty(0)
-	/// let srcProperty = ConstantProperty(10)
-	/// let disposable = (dstProperty <~ srcProperty)
-	/// ...
-	/// disposable.dispose() // terminate the binding earlier if
-	///                      // needed
-	/// ````
-	///
-	/// - note: The binding will automatically terminate when either property is
-	///         deinitialized.
-	///
-	/// - parameters:
-	///   - target: A target to be bond to.
-	///   - property: A property to bind.
-	///
-	/// - returns: A disposable that can be used to terminate binding before the
-	///            deinitialization of the target or the source property.
-	@discardableResult
-	public static func <~ <Source: PropertyProtocol>(target: Self, property: Source) -> Disposable? where Source.Value == Value.Wrapped {
-		return target <~ property.producer
-	}
+	return disposable
 }
 
 /// A binding target that can be used with the `<~` operator.
@@ -205,15 +164,6 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 
 	public func consume(_ value: Value) {
 		setter(value)
-	}
-
-	@discardableResult
-	public static func <~ <Source: SignalProtocol>(target: BindingTarget<Value>, signal: Source) -> Disposable? where Source.Value == Value, Source.Error == NoError {
-		return signal
-			.take(during: target.lifetime)
-			.observeValues { [setter = target.setter] value in
-				setter(value)
-			}
 	}
 }
 
