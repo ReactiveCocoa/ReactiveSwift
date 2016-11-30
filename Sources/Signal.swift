@@ -40,21 +40,10 @@ public final class Signal<Value, Error: Swift.Error> {
 	public init(_ generator: (Observer) -> Disposable?) {
 		state = Atomic(SignalState())
 
-		/// WARNING:
-		/// The implementation assumes 32- or 64-bit platforms with 64 byte cache
-		/// lines. It might break if the granularity of the cache coherence is
-		/// decreased, but this is very unlikely to happen.
-
 		/// Holds the final signal state captured by a termination event. If it
 		/// is set, the Signal should terminate as soon as possible. Implicitly
 		/// protected by `state` and `sendLock`.
-		var terminationState: SignalState<Value, Error>? = nil
-
-		/// The termination event received.
-		///
-		/// Do not pack it with `terminationState`, or the packed tuple might span
-		/// over a cache line, resulting in all kinds of weird corrupted states.
-		var terminationEvent: Event<Value, Error>? = nil
+		var terminationState: SignalTerminationState<Value, Error>? = nil
 
 		/// Used to track if the signal has terminated. Protected by `sendLock`.
 		var terminated = false
@@ -63,18 +52,16 @@ public final class Signal<Value, Error: Swift.Error> {
 		let sendLock = NSLock()
 		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
 
+		@inline(__always)
+		func terminate(with state: SignalTerminationState<Value, Error>) {
+			state.send()
+			terminated = true
+			terminationState = nil
+		}
+
 		let observer = Observer { [weak self] event in
 			guard let signal = self else {
 				return
-			}
-
-			@inline(__always)
-			func interrupt(_ observers: Bag<Observer>, event: Event<Value, Error>) {
-				for observer in observers {
-					observer.action(event)
-				}
-				terminated = true
-				terminationState = nil
 			}
 
 			if event.isTerminating {
@@ -97,10 +84,8 @@ public final class Signal<Value, Error: Swift.Error> {
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
 				if let state = signal.state.swap(nil) {
-					// `terminationEvent` must be written before `terminationState`, or
-					// concurrent readers might not see the value of `terminationEvent`.
-					terminationEvent = event
-					terminationState = state
+					terminationState = SignalTerminationState(state: state,
+					                                          event: event)
 
 					// Writes to `terminationState` are implicitly synchronized. So we do
 					// not need to guard it with locks.
@@ -117,7 +102,7 @@ public final class Signal<Value, Error: Swift.Error> {
 					// guaranteed to be blocked.
 					if sendLock.try() {
 						if !terminated, let state = terminationState {
-							interrupt(state.observers, event: terminationEvent!)
+							terminate(with: state)
 						}
 						sendLock.unlock()
 						signal.generatorDisposable?.dispose()
@@ -136,7 +121,7 @@ public final class Signal<Value, Error: Swift.Error> {
 					// Check if a downstream consumer or a concurrent sender has
 					// interrupted the signal.
 					if let state = terminationState {
-						interrupt(state.observers, event: terminationEvent!)
+						terminate(with: state)
 						shouldDispose = true
 					}
 				}
@@ -155,7 +140,7 @@ public final class Signal<Value, Error: Swift.Error> {
 					// lock acquisition above succeeds. So we have to check again if the
 					// signal is really still alive.
 					if !terminated {
-						interrupt(state.observers, event: terminationEvent!)
+						terminate(with: state)
 						shouldDispose = true
 					}
 
@@ -252,8 +237,41 @@ public final class Signal<Value, Error: Swift.Error> {
 	}
 }
 
+/// A snapshot of the state of a `Signal` when it receives a termination event.
+///
+/// - note: The snapshot must be a reference type, as the total size of all
+///         stored properties might span beyond a cache line, resulting in
+///         corrupted states being observed by the event emitter.
+private final class SignalTerminationState<Value, Error: Swift.Error> {
+	private let state: SignalState<Value, Error>
+	private let event: Event<Value, Error>
+
+	/// Create a snapshot.
+	///
+	/// - parameters:
+	///   - state: The latest signal state.
+	///   - event: The termination event.
+	init(state: SignalState<Value, Error>, event: Event<Value, Error>) {
+		self.state = state
+		self.event = event
+	}
+
+	/// Send the termination event to the observers.
+	@inline(__always)
+	func send() {
+		for observer in state.observers {
+			observer.action(event)
+		}
+	}
+}
+
+/// The state of a `Signal`.
 private struct SignalState<Value, Error: Swift.Error> {
+	/// The observers of the `Signal`.
 	var observers: Bag<Signal<Value, Error>.Observer> = Bag()
+
+	/// A self-retaining reference. It is set when there are one or more active
+	/// observers.
 	var retaining: Signal<Value, Error>?
 }
 
