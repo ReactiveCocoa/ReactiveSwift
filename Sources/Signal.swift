@@ -1023,7 +1023,8 @@ extension SignalProtocol {
 
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
-	/// This is like a flipped version of `sample(with:)` and Rx's `withLatestFrom`.
+	/// This is like a flipped version of `sample(with:)`, but `samplee`'s
+	/// terminal events are completely ignored.
 	///
 	/// - note: If `self` fires before a value has been observed on `samplee`,
 	///         nothing happens.
@@ -1035,7 +1036,7 @@ extension SignalProtocol {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func sample<U>(from samplee: Signal<U, NoError>) -> Signal<(Value, U), Error> {
+	public func withLatest<U>(_ samplee: Signal<U, NoError>) -> Signal<(Value, U), Error> {
 		return Signal { observer in
 			let state = Atomic<U?>(nil)
 			let disposable = CompositeDisposable()
@@ -1065,7 +1066,8 @@ extension SignalProtocol {
 
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
-	/// This is like a flipped version of `sample(with:)` and Rx's `withLatestFrom`.
+	/// This is like a flipped version of `sample(with:)`, but `samplee`'s
+	/// terminal events are completely ignored.
 	///
 	/// - note: If `self` fires before a value has been observed on `samplee`,
 	///         nothing happens.
@@ -1077,12 +1079,12 @@ extension SignalProtocol {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func sample<U>(from samplee: SignalProducer<U, NoError>) -> Signal<(Value, U), Error> {
+	public func withLatest<U>(_ samplee: SignalProducer<U, NoError>) -> Signal<(Value, U), Error> {
 		return Signal { observer in
 			let d = CompositeDisposable()
 			samplee.startWithSignal { signal, disposable in
 				d += disposable
-				d += self.sample(from: signal).observe(observer)
+				d += self.withLatest(signal).observe(observer)
 			}
 			return d
 		}

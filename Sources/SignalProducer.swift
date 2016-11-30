@@ -814,7 +814,8 @@ extension SignalProducerProtocol {
 
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
-	/// This is like a flipped version of `sample(with:)` and Rx's `withLatestFrom`.
+	/// This is like a flipped version of `sample(with:)`, but `samplee`'s
+	/// terminal events are completely ignored.
 	///
 	/// - note: If `self` fires before a value has been observed on `samplee`,
 	///         nothing happens.
@@ -826,13 +827,14 @@ extension SignalProducerProtocol {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func sample<U>(from samplee: SignalProducer<U, NoError>) -> SignalProducer<(Value, U), Error> {
-		return liftRight(Signal.sample(from:))(samplee)
+	public func withLatest<U>(_ samplee: SignalProducer<U, NoError>) -> SignalProducer<(Value, U), Error> {
+		return liftRight(Signal.withLatest)(samplee)
 	}
 
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
-	/// This is like a flipped version of `sample(with:)` and Rx's `withLatestFrom`.
+	/// This is like a flipped version of `sample(with:)`, but `samplee`'s
+	/// terminal events are completely ignored.
 	///
 	/// - note: If `self` fires before a value has been observed on `samplee`,
 	///         nothing happens.
@@ -844,8 +846,8 @@ extension SignalProducerProtocol {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func sample<U>(from samplee: Signal<U, NoError>) -> SignalProducer<(Value, U), Error> {
-		return lift(Signal.sample(from:))(samplee)
+	public func withLatest<U>(_ samplee: Signal<U, NoError>) -> SignalProducer<(Value, U), Error> {
+		return lift(Signal.withLatest)(samplee)
 	}
 
 	/// Forwards events from `self` until `lifetime` ends, at which point the
