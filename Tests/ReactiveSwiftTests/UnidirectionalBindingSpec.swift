@@ -23,6 +23,20 @@ class UnidirectionalBindingSpec: QuickSpec {
 			it("should pass through the lifetime") {
 				expect(target.lifetime).to(beIdenticalTo(lifetime))
 			}
+			
+			it("should stay bound after deallocation") {
+				weak var weakTarget = target
+				
+				let property = MutableProperty(1)
+				target <~ property
+				expect(value) == 1
+				
+				target = nil
+				
+				property.value = 2
+				expect(value) == 2
+				expect(weakTarget).to(beNil())
+			}
 
 			it("should trigger the supplied setter") {
 				expect(value).to(beNil())
