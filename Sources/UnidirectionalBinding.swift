@@ -167,5 +167,3 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 		setter(value)
 	}
 }
-
-private let specificKey = DispatchSpecificKey<ObjectIdentifier>()
