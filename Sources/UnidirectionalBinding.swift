@@ -16,7 +16,7 @@ public protocol BindingSourceProtocol {
 	associatedtype Value
 	associatedtype Error: Swift.Error
 	
-	/// Observe the binding source by sending any evenst to the given observer.
+	/// Observe the binding source by sending any events to the given observer.
 	@discardableResult
 	func observe(_ observer: Observer<Value, Error>) -> Disposable?
 }
@@ -49,11 +49,11 @@ public protocol BindingTargetProtocol: class {
 	func consume(_ value: Value)
 }
 
-/// Binds a signal to a target, updating the target's value to the latest
-/// value sent by the signal.
+/// Binds a source to a target, updating the target's value to the latest
+/// value sent by the source.
 ///
 /// - note: The binding will automatically terminate when the target is
-///         deinitialized, or when the signal sends a `completed` event.
+///         deinitialized, or when the source sends a `completed` event.
 ///
 /// ````
 /// let property = MutableProperty(0)
@@ -73,10 +73,10 @@ public protocol BindingTargetProtocol: class {
 ///
 /// - parameters:
 ///   - target: A target to be bond to.
-///   - signal: A signal to bind.
+///   - source: A source to bind.
 ///
 /// - returns: A disposable that can be used to terminate binding before the
-///            deinitialization of the target or the signal's `completed`
+///            deinitialization of the target or the source's `completed`
 ///            event.
 @discardableResult
 public func <~
@@ -92,10 +92,10 @@ public func <~
 }
 
 /// Binds a source to a target, updating the target's value to the latest
-/// value sent by the signal.
+/// value sent by the source.
 ///
 /// - note: The binding will automatically terminate when the target is
-///         deinitialized, or when the signal sends a `completed` event.
+///         deinitialized, or when the source sends a `completed` event.
 ///
 /// ````
 /// let property = MutableProperty(0)
@@ -115,10 +115,10 @@ public func <~
 ///
 /// - parameters:
 ///   - target: A target to be bond to.
-///   - signal: A signal to bind.
+///   - source: A source to bind.
 ///
 /// - returns: A disposable that can be used to terminate binding before the
-///            deinitialization of the target or the signal's `completed`
+///            deinitialization of the target or the source's `completed`
 ///            event.
 @discardableResult
 public func <~
