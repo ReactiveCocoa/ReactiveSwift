@@ -52,7 +52,6 @@ public final class Signal<Value, Error: Swift.Error> {
 		let sendLock = NSLock()
 		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
 
-		@inline(__always)
 		func terminate(with state: SignalTerminationState<Value, Error>) {
 			state.send()
 			terminated = true
@@ -257,7 +256,6 @@ private final class SignalTerminationState<Value, Error: Swift.Error> {
 	}
 
 	/// Send the termination event to the observers.
-	@inline(__always)
 	func send() {
 		for observer in state.observers {
 			observer.action(event)
