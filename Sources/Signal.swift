@@ -27,6 +27,13 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// The state of the signal. `nil` if the signal has terminated.
 	private let state: Atomic<SignalState<Value, Error>?>
 
+	/// Holds the status of the signal. Implicitly protected by `state` and
+	/// `sendLock`.
+	private var status: SignalStatus<Value, Error>
+
+	/// Used to ensure that events are serialized during delivery to observers.
+	private let sendLock: NSLock
+
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given observer.
 	///
@@ -39,24 +46,9 @@ public final class Signal<Value, Error: Swift.Error> {
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
 		state = Atomic(SignalState())
-
-		/// Holds the final signal state captured by a termination event. If it
-		/// is set, the Signal should terminate as soon as possible. Implicitly
-		/// protected by `state` and `sendLock`.
-		var terminationState: SignalTerminationState<Value, Error>? = nil
-
-		/// Used to track if the signal has terminated. Protected by `sendLock`.
-		var terminated = false
-
-		/// Used to ensure that events are serialized during delivery to observers.
-		let sendLock = NSLock()
+		status = .green
+		sendLock = NSLock()
 		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
-
-		func terminate(with state: SignalTerminationState<Value, Error>) {
-			state.send()
-			terminated = true
-			terminationState = nil
-		}
 
 		let observer = Observer { [weak self] event in
 			guard let signal = self else {
@@ -83,66 +75,70 @@ public final class Signal<Value, Error: Swift.Error> {
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
 				if let state = signal.state.swap(nil) {
-					terminationState = SignalTerminationState(state: state, event: event)
-
-					// Writes to `terminationState` are implicitly synchronized. So we do
-					// not need to guard it with locks.
+					// Updates to `status` are implicitly synchronized against `sendLock`.
+					// So we do not need to guard it with an explicit lock.
 					//
-					// Specifically, senders serialized by `sendLock` can react to and
-					// clear `terminationState` only if they see the write made below.
-					// The write can happen only once, since `state` being swapped with
+					// Specifically, senders are serialized by `sendLock`, and can react
+					// to and bump the status to `red` only after they see the status
+					// being `yellow`.
+					//
+					// `yellow` can happen only once, since `state` being swapped with
 					// `nil` is a point of no return.
 					//
 					// Even in the case that both a previous sender and its successor see
-					// the write (the `terminationState` check before & after the unlock
-					// of `sendLock`), the senders are still bound to the `sendLock`.
-					// So whichever sender loses the battle of acquring `sendLock` is
-					// guaranteed to be blocked.
-					if sendLock.try() {
-						if !terminated, let state = terminationState {
-							terminate(with: state)
+					// `yellow`, the senders are still bound to the `sendLock`. So
+					// whichever sender loses the battle of acquring `sendLock` is
+					// guaranteed to be blocked by a status of `red`.
+					signal.status = .yellow(SignalTerminationSnapshot(state: state, event: event))
+
+					if signal.sendLock.try() {
+						if case let .yellow(state) = signal.status {
+							state.send()
+							signal.status = .red
 						}
-						sendLock.unlock()
+						signal.sendLock.unlock()
 						signal.generatorDisposable?.dispose()
 					}
 				}
 			} else if let observers = signal.state.value?.observers {
 				var shouldDispose = false
 
-				sendLock.lock()
+				signal.sendLock.lock()
 
-				if !terminated {
+				if case .green = signal.status {
 					for observer in observers {
 						observer.action(event)
 					}
 
 					// Check if a downstream consumer or a concurrent sender has
 					// interrupted the signal.
-					if let state = terminationState {
-						terminate(with: state)
+					if case let .yellow(state) = signal.status {
+						state.send()
+						signal.status = .red
 						shouldDispose = true
 					}
 				}
 
-				sendLock.unlock()
+				signal.sendLock.unlock()
 
 				// Based on the implicit memory order, any updates to the
-				// `terminationState` should always be visible after `sendLock` is
+				// `terminationSnapshot` should always be visible after `sendLock` is
 				// released. So we check it again and handle the termination if
 				// it has not been taken over.
-				if !shouldDispose && !terminated, let state = terminationState {
-					sendLock.lock()
+				if !shouldDispose, case let .yellow(state) = signal.status {
+					signal.sendLock.lock()
 
-					// `terminated` before acquring the lock could be a false negative,
-					// since it might race against other concurrent senders until the
-					// lock acquisition above succeeds. So we have to check again if the
-					// signal is really still alive.
-					if !terminated {
-						terminate(with: state)
+					// The status check before acquring `sendLock` could be a false
+					// positive, since it might race against other concurrent senders
+					// until the lock acquisition above succeeds. So we have to check
+					// again if the signal is still at `yellow`.
+					if case .yellow = signal.status {
+						state.send()
+						signal.status = .red
 						shouldDispose = true
 					}
 
-					sendLock.unlock()
+					signal.sendLock.unlock()
 				}
 
 				if shouldDispose {
@@ -157,9 +153,13 @@ public final class Signal<Value, Error: Swift.Error> {
 	}
 
 	deinit {
-		if state.swap(nil) != nil {
-			// As the signal can deinitialize only when it has no observers attached,
-			// only the generator disposable has to be disposed of at this point.
+		// A signal can deinitialize only when it is not retained and has no
+		// active observers. So `state` need not be swapped.
+		//
+		// The generator disposable needs to be disposed of only if a `green` status
+		// is observed here, since `red` would mean it has already been disposed of,
+		// and `yellow` is impossible to be observed here.
+		if case .green = status {
 			generatorDisposable?.dispose()
 		}
 	}
@@ -235,12 +235,25 @@ public final class Signal<Value, Error: Swift.Error> {
 	}
 }
 
+/// The status of a `Signal`.
+private enum SignalStatus<Value, Error: Swift.Error> {
+	/// The `Signal` is alive.
+	case green
+
+	/// The `Signal` has received a termination event, and is about to be
+	/// terminated.
+	case yellow(SignalTerminationSnapshot<Value, Error>)
+
+	/// The `Signal` has terminated.
+	case red
+}
+
 /// A snapshot of the state of a `Signal` when it receives a termination event.
 ///
 /// - note: The snapshot must be a reference type, as the total size of all
 ///         stored properties might span beyond a cache line, resulting in
 ///         corrupted states being observed by the event emitter.
-private final class SignalTerminationState<Value, Error: Swift.Error> {
+private final class SignalTerminationSnapshot<Value, Error: Swift.Error> {
 	private let state: SignalState<Value, Error>
 	private let event: Event<Value, Error>
 
@@ -255,6 +268,7 @@ private final class SignalTerminationState<Value, Error: Swift.Error> {
 	}
 
 	/// Send the termination event to the observers.
+	@inline(__always)
 	func send() {
 		for observer in state.observers {
 			observer.action(event)
