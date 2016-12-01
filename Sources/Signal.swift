@@ -68,8 +68,8 @@ public final class Signal<Value, Error: Swift.Error> {
 				// for termination events. Specifically:
 				//
 				// `interrupted`
-				// It is kind of a special snowflake, as it can inadvertently be sent by
-				// downstream consumers as part of the `SignalProducer` mechanics.
+				// It can inadvertently be sent by downstream consumers as part of the
+				// `SignalProducer` mechanics.
 				//
 				// `completed`
 				// If a downstream consumer weakly references an object, invocation of
@@ -83,8 +83,7 @@ public final class Signal<Value, Error: Swift.Error> {
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
 				if let state = signal.state.swap(nil) {
-					terminationState = SignalTerminationState(state: state,
-					                                          event: event)
+					terminationState = SignalTerminationState(state: state, event: event)
 
 					// Writes to `terminationState` are implicitly synchronized. So we do
 					// not need to guard it with locks.
