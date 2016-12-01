@@ -827,7 +827,7 @@ extension SignalProducerProtocol {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func withLatest<U>(_ samplee: SignalProducer<U, NoError>) -> SignalProducer<(Value, U), Error> {
+	public func withLatest<U>(from samplee: SignalProducer<U, NoError>) -> SignalProducer<(Value, U), Error> {
 		return liftRight(Signal.withLatest)(samplee)
 	}
 
@@ -846,7 +846,7 @@ extension SignalProducerProtocol {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func withLatest<U>(_ samplee: Signal<U, NoError>) -> SignalProducer<(Value, U), Error> {
+	public func withLatest<U>(from samplee: Signal<U, NoError>) -> SignalProducer<(Value, U), Error> {
 		return lift(Signal.withLatest)(samplee)
 	}
 

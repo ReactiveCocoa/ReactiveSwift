@@ -1628,7 +1628,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("withLatest(signal)") {
+		describe("withLatest(from: signal)") {
 			var withLatestSignal: Signal<(Int, String), NoError>!
 			var observer: Signal<Int, NoError>.Observer!
 			var sampleeObserver: Signal<String, NoError>.Observer!
@@ -1636,7 +1636,7 @@ class SignalSpec: QuickSpec {
 			beforeEach {
 				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
 				let (samplee, incomingSampleeObserver) = Signal<String, NoError>.pipe()
-				withLatestSignal = signal.withLatest(samplee)
+				withLatestSignal = signal.withLatest(from: samplee)
 				observer = incomingObserver
 				sampleeObserver = incomingSampleeObserver
 			}
@@ -1697,7 +1697,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("withLatest(producer)") {
+		describe("withLatest(from: producer)") {
 			var withLatestSignal: Signal<(Int, String), NoError>!
 			var observer: Signal<Int, NoError>.Observer!
 			var sampleeObserver: Signal<String, NoError>.Observer!
@@ -1705,7 +1705,7 @@ class SignalSpec: QuickSpec {
 			beforeEach {
 				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
 				let (samplee, incomingSampleeObserver) = SignalProducer<String, NoError>.pipe()
-				withLatestSignal = signal.withLatest(samplee)
+				withLatestSignal = signal.withLatest(from: samplee)
 				observer = incomingObserver
 				sampleeObserver = incomingSampleeObserver
 			}
