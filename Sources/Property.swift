@@ -5,7 +5,7 @@ import enum Result.NoError
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: class {
+public protocol PropertyProtocol: class, BindingSourceProtocol {
 	associatedtype Value
 
 	/// The current value of the property.
@@ -22,6 +22,13 @@ public protocol PropertyProtocol: class {
 	/// completes when the property has deinitialized, or has no further
 	/// change.
 	var signal: Signal<Value, NoError> { get }
+}
+
+extension PropertyProtocol {
+	@discardableResult
+	public func observe(_ observer: Observer<Value, NoError>) -> Disposable? {
+		return producer.observe(observer)
+	}
 }
 
 /// Represents an observable property that can be mutated directly.
