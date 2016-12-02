@@ -97,7 +97,7 @@ public final class Signal<Value, Error: Swift.Error> {
 							signal.status = .red
 						}
 						signal.sendLock.unlock()
-						signal.generatorDisposable?.dispose()
+						signal.swapDisposable()?.dispose()
 					}
 				}
 			} else if let observers = signal.state.value?.observers {
@@ -144,7 +144,7 @@ public final class Signal<Value, Error: Swift.Error> {
 				if shouldDispose {
 					// Dispose only after notifying observers, so disposal
 					// logic is consistently the last thing to run.
-					signal.generatorDisposable?.dispose()
+					signal.swapDisposable()?.dispose()
 				}
 			}
 		}
@@ -152,16 +152,19 @@ public final class Signal<Value, Error: Swift.Error> {
 		generatorDisposable = generator(observer)
 	}
 
+	@inline(__always)
+	private func swapDisposable() -> Disposable? {
+		if let d = generatorDisposable {
+			generatorDisposable = nil
+			return d
+		}
+		return nil
+	}
+
 	deinit {
 		// A signal can deinitialize only when it is not retained and has no
 		// active observers. So `state` need not be swapped.
-		//
-		// The generator disposable needs to be disposed of only if a `green` status
-		// is observed here, since `red` would mean it has already been disposed of,
-		// and `yellow` is impossible to be observed here.
-		if case .green = status {
-			generatorDisposable?.dispose()
-		}
+		swapDisposable()?.dispose()
 	}
 
 	/// A Signal that never sends any events to its observers.
