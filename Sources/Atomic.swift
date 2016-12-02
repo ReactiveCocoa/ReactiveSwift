@@ -125,7 +125,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 #endif
 }
 
-internal struct _PosixThreadMutex {
+internal struct PosixThreadMutex {
 	private let mutex: UnsafeMutablePointer<pthread_mutex_t>
 
 	init() {
@@ -159,27 +159,9 @@ internal struct _PosixThreadMutex {
 	}
 }
 
-internal final class PosixThreadMutex: NSLocking {
-	private let mutex = _PosixThreadMutex()
-
-	deinit {
-		mutex.deinitialize()
-	}
-
-	@inline(__always)
-	func lock() {
-		mutex.lock()
-	}
-
-	@inline(__always)
-	func unlock() {
-		mutex.unlock()
-	}
-}
-
 /// An atomic variable.
 public final class Atomic<Value>: AtomicProtocol {
-	private let lock: _PosixThreadMutex
+	private let lock: PosixThreadMutex
 	private var _value: Value
 
 	/// Atomically get or set the value of the variable.
@@ -201,7 +183,7 @@ public final class Atomic<Value>: AtomicProtocol {
 	///   - value: Initial value for `self`.
 	public init(_ value: Value) {
 		_value = value
-		lock = _PosixThreadMutex()
+		lock = PosixThreadMutex()
 	}
 
 	deinit {
