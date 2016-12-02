@@ -358,6 +358,11 @@ extension URLSession {
 	public func rac_data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), NSError> { fatalError() }
 }
 
+extension Reactive where Base: URLSession {
+	@available(*, unavailable, message:"Use the overload which returns `SignalProducer<(Data, URLResponse), AnyError>` instead, and cast `AnyError.error` to `NSError` as you need")
+	public func data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), NSError> { fatalError() }
+}
+
 // Free functions
 
 @available(*, unavailable, message:"timer(interval:on:) now uses DispatchTimeInterval")
