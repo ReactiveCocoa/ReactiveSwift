@@ -100,9 +100,9 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
-	public init<S: Sequence>(_ sequence: S) where S.Iterator.Element == Value {
+	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
 		self.init { observer, disposable in
-			for value in sequence {
+			for value in values {
 				observer.send(value: value)
 
 				if disposable.isDisposed {
