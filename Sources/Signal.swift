@@ -27,8 +27,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// The state of the signal. `nil` if the signal has terminated.
 	private let state: Atomic<SignalState<Value, Error>?>
 
-	/// Holds the status of the signal. Implicitly protected by `state` and
-	/// `sendLock`.
+	/// The status of the signal. It synchronizes with `sendLock`.
 	private var status: SignalStatus<Value, Error>
 
 	/// Used to ensure that events are serialized during delivery to observers.
@@ -46,7 +45,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
 		state = Atomic(SignalState())
-		status = .green
+		status = .alive
 		sendLock = NSLock()
 		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
 
@@ -79,22 +78,23 @@ public final class Signal<Value, Error: Swift.Error> {
 					// So we do not need to guard it with an explicit lock.
 					//
 					// Specifically, senders are serialized by `sendLock`, and can react
-					// to and bump the status to `red` only after they see the status
-					// being `yellow`.
+					// to and bump the status to `terminated` only after they see the
+					// status being `terminating`.
 					//
-					// `yellow` can happen only once, since `state` being swapped with
-					// `nil` is a point of no return.
+					// `terminating` can happen only once in the lifetime of a `Signal`,
+					// since `state` being swapped with `nil` is a point of no return.
 					//
 					// Even in the case that both a previous sender and its successor see
-					// `yellow`, the senders are still bound to the `sendLock`. So
+					// `terminating`, the senders are still bound to the `sendLock`. So
 					// whichever sender loses the battle of acquring `sendLock` is
-					// guaranteed to be blocked by a status of `red`.
-					signal.status = .yellow(SignalTerminationSnapshot(state: state, event: event))
+					// guaranteed to see a status of `terminated`, and eventually be
+					// blocked.
+					signal.status = .terminating(SignalTerminationSnapshot(state: state, event: event))
 
 					if signal.sendLock.try() {
-						if case let .yellow(state) = signal.status {
+						if case let .terminating(state) = signal.status {
 							state.send()
-							signal.status = .red
+							signal.status = .terminated
 						}
 						signal.sendLock.unlock()
 						signal.swapDisposable()?.dispose()
@@ -105,36 +105,35 @@ public final class Signal<Value, Error: Swift.Error> {
 
 				signal.sendLock.lock()
 
-				if case .green = signal.status {
+				if case .alive = signal.status {
 					for observer in observers {
 						observer.action(event)
 					}
 
 					// Check if a downstream consumer or a concurrent sender has
 					// interrupted the signal.
-					if case let .yellow(state) = signal.status {
+					if case let .terminating(state) = signal.status {
 						state.send()
-						signal.status = .red
+						signal.status = .terminated
 						shouldDispose = true
 					}
 				}
 
 				signal.sendLock.unlock()
 
-				// Based on the implicit memory order, any updates to the
-				// `terminationSnapshot` should always be visible after `sendLock` is
-				// released. So we check it again and handle the termination if
-				// it has not been taken over.
-				if !shouldDispose, case let .yellow(state) = signal.status {
+				// Based on the implicit memory order, any updates to `status` should
+				// always be visible after `sendLock` is released. So we check it again
+				// and handle the termination if it has not been taken over.
+				if !shouldDispose, case .terminating = signal.status {
 					signal.sendLock.lock()
 
-					// The status check before acquring `sendLock` could be a false
+					// The `terminating` check before acquring `sendLock` could be a false
 					// positive, since it might race against other concurrent senders
 					// until the lock acquisition above succeeds. So we have to check
-					// again if the signal is still at `yellow`.
-					if case .yellow = signal.status {
+					// again if the status is still `terminating`.
+					if case let .terminating(state) = signal.status {
 						state.send()
-						signal.status = .red
+						signal.status = .terminated
 						shouldDispose = true
 					}
 
@@ -152,6 +151,10 @@ public final class Signal<Value, Error: Swift.Error> {
 		generatorDisposable = generator(observer)
 	}
 
+	/// Swap the generator disposable with `nil`.
+	///
+	/// - returns:
+	///   The generator disposable, or `nil` if it has been disposed of.
 	@inline(__always)
 	private func swapDisposable() -> Disposable? {
 		if let d = generatorDisposable {
@@ -241,14 +244,14 @@ public final class Signal<Value, Error: Swift.Error> {
 /// The status of a `Signal`.
 private enum SignalStatus<Value, Error: Swift.Error> {
 	/// The `Signal` is alive.
-	case green
+	case alive
 
 	/// The `Signal` has received a termination event, and is about to be
 	/// terminated.
-	case yellow(SignalTerminationSnapshot<Value, Error>)
+	case terminating(SignalTerminationSnapshot<Value, Error>)
 
 	/// The `Signal` has terminated.
-	case red
+	case terminated
 }
 
 /// A snapshot of the state of a `Signal` when it receives a termination event.
