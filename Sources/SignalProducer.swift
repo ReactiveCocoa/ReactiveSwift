@@ -821,7 +821,7 @@ extension SignalProducerProtocol {
 	///         nothing happens.
 	///
 	/// - parameters:
-	///   - samplee: A producer that its latest value is sampled by `self`.
+	///   - samplee: A producer whose latest value is sampled by `self`.
 	///
 	/// - returns: A signal that will send values from `self` and `samplee`,
 	///            sampled (possibly multiple times) by `self`, then terminate
@@ -840,7 +840,7 @@ extension SignalProducerProtocol {
 	///         nothing happens.
 	///
 	/// - parameters:
-	///   - samplee: A signal that its latest value is sampled by `self`.
+	///   - samplee: A signal whose latest value is sampled by `self`.
 	///
 	/// - returns: A signal that will send values from `self` and `samplee`,
 	///            sampled (possibly multiple times) by `self`, then terminate
