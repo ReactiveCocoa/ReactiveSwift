@@ -103,15 +103,32 @@ public final class Signal<Value, Error: Swift.Error> {
 			} else if let observers = signal.state.value?.observers {
 				var shouldDispose = false
 
+				// The `terminating` status check is performed twice for two different
+				// purposes:
+				//
+				// 1. Within the main protected section
+				//    It guarantees that recursive termination event, synchronously sent
+				//    by a downstream consumer, is immediately processed and need not
+				//    compete with concurrent pending senders (if any).
+				//
+				//    Termination events sent concurrently may also be caught here, but
+				//    not necessarily all of them due to data races.
+				//
+				// 2. After the main protected section
+				//    It ensures the termination event sent concurrently that are not
+				//    caught by (1) due to data races would still be processed.
+				//
+				// The related PR on the data race:
+				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
+
 				signal.sendLock.lock()
+				// Start of the main protected section.
 
 				if case .alive = signal.status {
 					for observer in observers {
 						observer.action(event)
 					}
 
-					// Check if a downstream consumer or a concurrent sender has
-					// interrupted the signal.
 					if case let .terminating(state) = signal.status {
 						state.send()
 						signal.status = .terminated
@@ -119,6 +136,7 @@ public final class Signal<Value, Error: Swift.Error> {
 					}
 				}
 
+				// End of the main protected section.
 				signal.sendLock.unlock()
 
 				// Based on the implicit memory order, any updates to `status` should
@@ -242,6 +260,12 @@ public final class Signal<Value, Error: Swift.Error> {
 }
 
 /// The status of a `Signal`.
+///
+/// - note: This three-case, single-payload enum was verified to be a packed
+///         object reference on i386, x86-64, armv7 and armv8 under the Swift
+///         3.0.1 ABI. Should any changes be made to the enum, please first
+///         verify that the change would not cause the enum to spill over the
+///         size of an object reference on all platforms.
 private enum SignalStatus<Value, Error: Swift.Error> {
 	/// The `Signal` is alive.
 	case alive
