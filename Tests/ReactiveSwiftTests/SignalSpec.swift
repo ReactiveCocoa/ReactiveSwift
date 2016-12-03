@@ -2279,7 +2279,56 @@ class SignalSpec: QuickSpec {
 				expect(error) == TestError.default
 			}
 		}
-		
+
+		describe("attempt throws") {
+			it("should forward original values upon success") {
+				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let signal = baseSignal.attempt { _ in
+					_ = try operation(value: 1)
+				}
+
+				var current: Int?
+				signal
+					.assumeNoErrors()
+					.observeValues { value in
+						current = value
+					}
+
+				for value in 1...5 {
+					observer.send(value: value)
+					expect(current) == value
+				}
+			}
+
+			it("should error if an attempt fails") {
+				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let signal = baseSignal.attempt { _ in
+					_ = try operation(value: nil) as Int
+				}
+
+				var error: TestError?
+				signal.observeFailed { err in
+					error = err.error as? TestError
+				}
+
+				observer.send(value: 42)
+				expect(error) == TestError.default
+			}
+
+			it("should allow throwing closures with NoError") {
+				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let signal = baseSignal.attempt { _ in
+					_ = try operation(value: 1)
+				}
+
+				var value: Int?
+				signal.observeResult { value = $0.value }
+
+				observer.send(value: 42)
+				expect(value) == 42
+			}
+		}
+
 		describe("attemptMap") {
 			it("should forward mapped values upon success") {
 				let (baseSignal, observer) = Signal<Int, TestError>.pipe()
@@ -2316,7 +2365,57 @@ class SignalSpec: QuickSpec {
 				expect(error) == TestError.default
 			}
 		}
-		
+
+		describe("attemptMap throws") {
+			it("should forward mapped values upon success") {
+				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let signal = baseSignal.attemptMap { num -> Bool in
+					try operation(value: num % 2 == 0)
+				}
+
+				var even: Bool?
+				signal
+					.assumeNoErrors()
+					.observeValues { value in
+						even = value
+					}
+
+				observer.send(value: 1)
+				expect(even) == false
+
+				observer.send(value: 2)
+				expect(even) == true
+			}
+
+			it("should error if a mapping fails") {
+				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let signal = baseSignal.attemptMap { _ -> Bool in
+					try operation(value: nil)
+				}
+
+				var error: TestError?
+				signal.observeFailed { err in
+					error = err.error as? TestError
+				}
+
+				observer.send(value: 42)
+				expect(error) == TestError.default
+			}
+
+			it("should allow throwing closures with NoError") {
+				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let signal = baseSignal.attemptMap { num in
+					try operation(value: num % 2 == 0)
+				}
+
+				var value: Bool?
+				signal.observeResult { value = $0.value }
+
+				observer.send(value: 2)
+				expect(value) == true
+			}
+		}
+
 		describe("combinePrevious") {
 			var observer: Signal<Int, NoError>.Observer!
 			let initialValue: Int = 0
@@ -2609,4 +2708,9 @@ class SignalSpec: QuickSpec {
 			}
 		}
 	}
+}
+
+private func operation<T>(value: T?) throws -> T {
+	guard let value = value else { throw TestError.default }
+	return value
 }

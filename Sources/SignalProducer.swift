@@ -1227,6 +1227,82 @@ extension SignalProducerProtocol where Error == NoError {
 			.promoteErrors(NewError.self)
 			.then(replacement)
 	}
+
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results forwarded on the returned producer and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value.
+	///
+	/// - returns: A producer that forwards successes as `value` events and thrown
+	///            errors as `failed` events.
+	public func attempt(_ operation: @escaping (Value) throws -> Void) -> SignalProducer<Value, AnyError> {
+		return lift { $0.attempt(operation) }
+	}
+
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results mapped on the returned producer and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value and attempts to
+	///                transform it.
+	///
+	/// - returns: A producer that sends successfully mapped values from `self`,
+	///            or thrown errors as `failed` events.
+	public func attemptMap<U>(_ operation: @escaping (Value) throws -> U) -> SignalProducer<U, AnyError> {
+		return lift { $0.attemptMap(operation) }
+	}
+}
+
+extension SignalProducerProtocol where Error == AnyError {
+	/// Create a `SignalProducer` that will attempt the given failable operation once for
+	/// each invocation of `start()`.
+	///
+	/// Upon success, the started producer will send the resulting value then
+	/// complete. Upon failure, the started signal will fail with the error that
+	/// occurred.
+	///
+	/// - parameters:
+	///   - operation: A failable closure.
+	///
+	/// - returns: A `SignalProducer` that will forward a success as a `value`
+	///            event and then complete or `failed` event if the closure throws.
+	public static func attempt(_ operation: @escaping () throws -> Value) -> SignalProducer<Value, Error> {
+		return .attempt {
+			ReactiveSwift.materialize {
+				try operation()
+			}
+		}
+	}
+
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results forwarded on the returned producer and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value.
+	///
+	/// - returns: A producer that forwards successes as `value` events and thrown
+	///            errors as `failed` events.
+	public func attempt(_ operation: @escaping (Value) throws -> Void) -> SignalProducer<Value, AnyError> {
+		return lift { $0.attempt(operation) }
+	}
+
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results mapped on the returned producer and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value and attempts to
+	///                transform it.
+	///
+	/// - returns: A producer that sends successfully mapped values from `self`,
+	///            or thrown errors as `failed` events.
+	public func attemptMap<U>(_ operation: @escaping (Value) throws -> U) -> SignalProducer<U, AnyError> {
+		return lift { $0.attemptMap(operation) }
+	}
 }
 
 extension SignalProducerProtocol where Value: Equatable {
