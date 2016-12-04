@@ -24,8 +24,20 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// when the signal terminates.
 	private var generatorDisposable: Disposable?
 
-	/// The state of the signal. `nil` if the signal has terminated.
-	private let state: Atomic<SignalState<Value, Error>?>
+	/// The observers of the signal. `nil` if the signal has terminated.
+	///
+	/// `observers` synchronizes using Read-Copy-Update. Reads are thus wait-free,
+	/// but writes are required not to mutate in place. This suits `Signal` as
+	/// reads to `state` happens on the critical path of event delivery, while
+	/// adding and removing observers generally has a constant occurrence.
+	private var observers: Bag<Observer>?
+
+	/// Used to ensure changes to `state` is serialized.
+	private let observersLock: NSLock
+
+	/// Used to hold the self retaining reference when there are one or more
+	/// active observers.
+	private var retaining: Signal<Value, Error>?
 
 	/// The status of the signal. It synchronizes with `sendLock`.
 	private var status: SignalStatus<Value, Error>
@@ -44,10 +56,13 @@ public final class Signal<Value, Error: Swift.Error> {
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
-		state = Atomic(SignalState())
 		status = .alive
 		sendLock = NSLock()
-		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
+		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal.sendLock"
+		observers = Bag()
+		observersLock = NSLock()
+		observersLock.name = "org.reactivecocoa.ReactiveSwift.Signal.observersLock"
+		retaining = nil
 
 		let observer = Observer { [weak self] event in
 			guard let signal = self else {
@@ -73,7 +88,14 @@ public final class Signal<Value, Error: Swift.Error> {
 				// occur while the `sendLock` is acquired, the observer call-out and
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
-				if let state = signal.state.swap(nil) {
+				signal.observersLock.lock()
+
+				if let observers = signal.observers {
+					let retaining = signal.retaining
+					signal.observers = nil
+					signal.retaining = nil
+					signal.observersLock.unlock()
+
 					// Updates to `status` are implicitly synchronized against `sendLock`.
 					// So we do not need to guard it with an explicit lock.
 					//
@@ -89,7 +111,9 @@ public final class Signal<Value, Error: Swift.Error> {
 					// whichever sender loses the battle of acquring `sendLock` is
 					// guaranteed to see a status of `terminated`, and eventually be
 					// blocked.
-					signal.status = .terminating(SignalTerminationSnapshot(state: state, event: event))
+					signal.status = .terminating(SignalTerminationSnapshot(observers: observers,
+					                                                       event: event,
+					                                                       retaining: retaining))
 
 					if signal.sendLock.try() {
 						if case let .terminating(state) = signal.status {
@@ -99,8 +123,10 @@ public final class Signal<Value, Error: Swift.Error> {
 						signal.sendLock.unlock()
 						signal.swapDisposable()?.dispose()
 					}
+				} else {
+					signal.observersLock.unlock()
 				}
-			} else if let observers = signal.state.value?.observers {
+			} else if let observers = signal.observers {
 				var shouldDispose = false
 
 				// The `terminating` status check is performed twice for two different
@@ -236,20 +262,30 @@ public final class Signal<Value, Error: Swift.Error> {
 	@discardableResult
 	public func observe(_ observer: Observer) -> Disposable? {
 		var token: RemovalToken?
-		state.modify {
-			$0?.retaining = self
-			token = $0?.observers.insert(observer)
+
+		observersLock.lock()
+		if let observers = self.observers {
+			var observers = observers
+			token = observers.insert(observer)
+			self.observers = observers
+			retaining = self
 		}
+		observersLock.unlock()
 
 		if let token = token {
 			return ActionDisposable { [weak self] in
 				if let strongSelf = self {
-					strongSelf.state.modify { state in
-						state?.observers.remove(using: token)
-						if state?.observers.isEmpty ?? false {
-							state?.retaining = nil
+					strongSelf.observersLock.lock()
+					if let observers = strongSelf.observers {
+						var observers = observers
+						observers.remove(using: token)
+						strongSelf.observers = observers
+
+						if observers.isEmpty {
+							strongSelf.retaining = nil
 						}
 					}
+					strongSelf.observersLock.unlock()
 				}
 			}
 		} else {
@@ -284,36 +320,29 @@ private enum SignalStatus<Value, Error: Swift.Error> {
 ///         stored properties might span beyond a cache line, resulting in
 ///         corrupted states being observed by the event emitter.
 private final class SignalTerminationSnapshot<Value, Error: Swift.Error> {
-	private let state: SignalState<Value, Error>
+	private let observers: Bag<Observer<Value, Error>>
 	private let event: Event<Value, Error>
+	private let retaining: Signal<Value, Error>?
 
 	/// Create a snapshot.
 	///
 	/// - parameters:
-	///   - state: The latest signal state.
+	///   - observers: The latest bag of observers.
 	///   - event: The termination event.
-	init(state: SignalState<Value, Error>, event: Event<Value, Error>) {
-		self.state = state
+	///   - retaining: The self retaining reference of the signal, if any.
+	init(observers: Bag<Observer<Value, Error>>, event: Event<Value, Error>, retaining: Signal<Value, Error>?) {
+		self.observers = observers
 		self.event = event
+		self.retaining = retaining
 	}
 
 	/// Send the termination event to the observers.
 	@inline(__always)
 	func send() {
-		for observer in state.observers {
+		for observer in observers {
 			observer.action(event)
 		}
 	}
-}
-
-/// The state of a `Signal`.
-private struct SignalState<Value, Error: Swift.Error> {
-	/// The observers of the `Signal`.
-	var observers: Bag<Signal<Value, Error>.Observer> = Bag()
-
-	/// A self-retaining reference. It is set when there are one or more active
-	/// observers.
-	var retaining: Signal<Value, Error>?
 }
 
 public protocol SignalProtocol {
