@@ -104,19 +104,19 @@ public final class Signal<Value, Error: Swift.Error> {
 					signal.statusLock.unlock()
 
 					if signal.sendLock.try() {
-						// Is it terminating? (False positive is allowed.)
-						if case .terminating = signal.status {
-							// Acquire `statusLock`, and handle the termination if the signal
-							// is still at `terminating` state.
-							signal.statusLock.lock()
-							if case let .terminating(state) = signal.status {
-								signal.status = .terminated
-								signal.statusLock.unlock()
-								state.sendTerminated()
-							} else {
-								signal.statusLock.unlock()
-							}
+						// Acquire `statusLock`. If the termination has still not yet been
+						// handled, take it over and bump the status to `terminated`.
+						signal.statusLock.lock()
+
+						if case let .terminating(state) = signal.status {
+							signal.status = .terminated
+							signal.statusLock.unlock()
+
+							state.sendTerminated()
+						} else {
+							signal.statusLock.unlock()
 						}
+
 						signal.sendLock.unlock()
 						signal.swapDisposable()?.dispose()
 					}
@@ -130,9 +130,9 @@ public final class Signal<Value, Error: Swift.Error> {
 				// purposes:
 				//
 				// 1. Within the main protected section
-				//    It guarantees that recursive termination event, synchronously sent
-				//    by a downstream consumer, is immediately processed and need not
-				//    compete with concurrent pending senders (if any).
+				//    It guarantees that a recursive termination event sent by a
+				//    downstream consumer, is immediately processed and need not compete
+				//    with concurrent pending senders (if any).
 				//
 				//    Termination events sent concurrently may also be caught here, but
 				//    not necessarily all of them due to data races.
@@ -141,7 +141,7 @@ public final class Signal<Value, Error: Swift.Error> {
 				//    It ensures the termination event sent concurrently that are not
 				//    caught by (1) due to data races would still be processed.
 				//
-				// The related PR on the data race:
+				// The related PR on the race conditions:
 				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
 
 				signal.sendLock.lock()
@@ -150,13 +150,21 @@ public final class Signal<Value, Error: Swift.Error> {
 				if case let .alive(state) = signal.status {
 					state.send(event)
 
+					// Check if the status has been bumped to `terminating` due to a
+					// concurrent or a recursive termination event.
+					//
+					// Note that as the check happens before acquiring `statusLock`, it
+					// could be a false positive, and thus a second check after the lock
+					// is acquired is mandatory.
 					if case .terminating = signal.status {
-						// Acquire `statusLock`, and handle the termination if the signal
-						// is still at `terminating` state.
+						// Acquire `statusLock`. If the termination has still not yet been
+						// handled, take it over and bump the status to `terminated`.
 						signal.statusLock.lock()
+
 						if case let .terminating(state) = signal.status {
 							signal.status = .terminated
 							signal.statusLock.unlock()
+
 							state.sendTerminated()
 							shouldDispose = true
 						} else {
@@ -168,16 +176,24 @@ public final class Signal<Value, Error: Swift.Error> {
 				// End of the main protected section.
 				signal.sendLock.unlock()
 
-				// Is it terminating? (False positive is allowed.)
+				// Check if the status has been bumped to `terminating` due to a
+				// concurrent termination event that has not been caught in the main
+				// protected section.
+				//
+				// Note that as the check happens before acquiring `statusLock`, it
+				// could be a false positive, and thus a second check after the lock is
+				// acquired is mandatory.
 				if !shouldDispose, case .terminating = signal.status {
 					signal.sendLock.lock()
 
-					// Acquire `statusLock`, and handle the termination if the signal
-					// is still at `terminating` state.
+					// Acquire `statusLock`. If the termination has still not yet been
+					// handled, take it over and bump the status to `terminated`.
 					signal.statusLock.lock()
+
 					if case let .terminating(state) = signal.status {
 						signal.status = .terminated
 						signal.statusLock.unlock()
+
 						state.sendTerminated()
 						shouldDispose = true
 					} else {
