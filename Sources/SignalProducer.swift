@@ -1850,12 +1850,11 @@ extension SignalProducerProtocol {
 			disposable += { _ = lifetimeToken }
 
 			while true {
-				var result: Result<RemovalToken?, ReplayError<Value>>!
-				state.modify {
-					result = $0.observe(observer)
+				let result = state.modify {
+					return $0.observe(observer)
 				}
 
-				switch result! {
+				switch result {
 				case let .success(token):
 					if let token = token {
 						disposable += {
