@@ -1867,7 +1867,7 @@ extension SignalProducerProtocol {
 					// Start the underlying producer if it has never been started.
 					start.swap(nil)?()
 
-					// Terminate the replay loop.
+					// Terminate the observation loop.
 					return
 
 				case let .failure(error):
