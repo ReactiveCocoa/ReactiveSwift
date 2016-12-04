@@ -1730,6 +1730,141 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("withLatest(from: signal)") {
+			var withLatestSignal: Signal<(Int, String), NoError>!
+			var observer: Signal<Int, NoError>.Observer!
+			var sampleeObserver: Signal<String, NoError>.Observer!
+
+			beforeEach {
+				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
+				let (samplee, incomingSampleeObserver) = Signal<String, NoError>.pipe()
+				withLatestSignal = signal.withLatest(from: samplee)
+				observer = incomingObserver
+				sampleeObserver = incomingSampleeObserver
+			}
+
+			it("should forward the latest value when the receiver fires") {
+				var result: [String] = []
+				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+
+				sampleeObserver.send(value: "a")
+				sampleeObserver.send(value: "b")
+				observer.send(value: 1)
+				expect(result) == [ "1b" ]
+			}
+
+			it("should do nothing if receiver fires before samplee sends value") {
+				var result: [String] = []
+				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+
+				observer.send(value: 1)
+				expect(result).to(beEmpty())
+			}
+
+			it("should send latest value with samplee value multiple times when receiver fires multiple times") {
+				var result: [String] = []
+				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+
+				sampleeObserver.send(value: "a")
+				observer.send(value: 1)
+				observer.send(value: 2)
+				expect(result) == [ "1a", "2a" ]
+			}
+
+			it("should complete when receiver has completed") {
+				var completed = false
+				withLatestSignal.observeCompleted { completed = true }
+
+				sampleeObserver.sendCompleted()
+				expect(completed) == false
+
+				observer.sendCompleted()
+				expect(completed) == true
+			}
+
+			it("should not affect when samplee has completed") {
+				var event: Event<(Int, String), NoError>? = nil
+				withLatestSignal.observe { event = $0 }
+
+				sampleeObserver.sendCompleted()
+				expect(event).to(beNil())
+			}
+
+			it("should not affect when samplee has interrupted") {
+				var event: Event<(Int, String), NoError>? = nil
+				withLatestSignal.observe { event = $0 }
+
+				sampleeObserver.sendInterrupted()
+				expect(event).to(beNil())
+			}
+		}
+
+		describe("withLatest(from: producer)") {
+			var withLatestSignal: Signal<(Int, String), NoError>!
+			var observer: Signal<Int, NoError>.Observer!
+			var sampleeObserver: Signal<String, NoError>.Observer!
+
+			beforeEach {
+				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
+				let (samplee, incomingSampleeObserver) = SignalProducer<String, NoError>.pipe()
+				withLatestSignal = signal.withLatest(from: samplee)
+				observer = incomingObserver
+				sampleeObserver = incomingSampleeObserver
+			}
+
+			it("should forward the latest value when the receiver fires") {
+				var result: [String] = []
+				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+
+				sampleeObserver.send(value: "a")
+				sampleeObserver.send(value: "b")
+				observer.send(value: 1)
+				expect(result) == [ "1b" ]
+			}
+
+			it("should do nothing if receiver fires before samplee sends value") {
+				var result: [String] = []
+				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+
+				observer.send(value: 1)
+				expect(result).to(beEmpty())
+			}
+
+			it("should send latest value with samplee value multiple times when receiver fires multiple times") {
+				var result: [String] = []
+				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+
+				sampleeObserver.send(value: "a")
+				observer.send(value: 1)
+				observer.send(value: 2)
+				expect(result) == [ "1a", "2a" ]
+			}
+
+			it("should complete when receiver has completed") {
+				var completed = false
+				withLatestSignal.observeCompleted { completed = true }
+
+				observer.sendCompleted()
+				expect(completed) == true
+			}
+
+			it("should not affect when samplee has completed") {
+				var event: Event<(Int, String), NoError>? = nil
+				withLatestSignal.observe { event = $0 }
+
+				sampleeObserver.sendCompleted()
+				expect(event).to(beNil())
+			}
+
+			it("should not affect when samplee has interrupted") {
+				var event: Event<(Int, String), NoError>? = nil
+				withLatestSignal.observe { event = $0 }
+
+				sampleeObserver.sendInterrupted()
+				expect(event).to(beNil())
+			}
+		}
+
 		describe("combineLatestWith") {
 			var combinedSignal: Signal<(Int, Double), NoError>!
 			var observer: Signal<Int, NoError>.Observer!
