@@ -73,26 +73,30 @@ public final class Signal<Value, Error: Swift.Error> {
 			//
 			//   Read directly.
 			//
-			// - Deliver `value` events in the `alive` state.
+			// - Deliver `value` events with the alive state.
 			//
 			//   `sendLock` must be acquired.
 			//
-			// - Replace the snapshot of a signal that is alive.
+			// - Replace the alive state with another.
 			//   (e.g. observers bag manipulation)
 			//
 			//   `updateLock` must be acquired.
 			//
-			// - Transition from `alive` to `terminating`.
+			// - Transition from `alive` to `terminating` as a result of receiving
+			//   a termination event.
 			//
-			//   `updateLock` must be acquired.
+			//   `updateLock` must be acquired, and should fail gracefully if the
+			//   signal has terminated.
 			//
-			// - Deliver the termination event in the `terminating` state, and
-			//   transition from `terminating` to `terminated`.
+			// - Check if the signal is terminating, and transition from `terminating`
+			//   to `terminated` if it is. Deliver the termination event after the
+			//   transitioning.
 			//
-			//   Both `sendLock` and `updateLock` must be acquired. The state must
-			//   also be checked again after the locks are acquired. Fail gracefully
-			//   if the state has changed since the relaxed read, i.e. a concurrent
-			//   sender has already handled the termination event.
+			//   Both `sendLock` and `updateLock` must be acquired. The check can be
+			//   relaxed, but the state must be checked again after the locks are
+			//   acquired. Fail gracefully if the state has changed since the relaxed
+			//   read, i.e. a concurrent sender has already handled the termination
+			//   event.
 			//
 			// Exploiting the relaxation of reads, please note that false positives
 			// are intentionally allowed in the `terminating` checks below. As a
