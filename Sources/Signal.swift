@@ -56,7 +56,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
-		state = .alive(SignalStateSnapshot())
+		state = .alive(AliveState())
 		updateLock = NSLock()
 		updateLock.name = "org.reactivecocoa.ReactiveSwift.Signal.updateLock"
 		sendLock = NSLock()
@@ -73,8 +73,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			//
 			//   Read directly.
 			//
-			// - Extract the snapshot of a signal that is alive, and deliver events
-			//   using the snapshot.
+			// - Deliver `value` events in the `alive` state.
 			//
 			//   `sendLock` must be acquired.
 			//
@@ -83,12 +82,12 @@ public final class Signal<Value, Error: Swift.Error> {
 			//
 			//   `updateLock` must be acquired.
 			//
-			// - Transit from `alive` to `terminating`.
+			// - Transition from `alive` to `terminating`.
 			//
 			//   `updateLock` must be acquired.
 			//
-			// - Extract the snapshot of a terminating signal to deliver the
-			//   termination event, and transit from `terminating` to `terminated`.
+			// - Deliver the termination event in the `terminating` state, and
+			//   transition from `terminating` to `terminated`.
 			//
 			//   Both `sendLock` and `updateLock` must be acquired. The state must
 			//   also be checked again after the locks are acquired. Fail gracefully
@@ -123,19 +122,18 @@ public final class Signal<Value, Error: Swift.Error> {
 				// occasionally one of the senders waiting on `sendLock`.
 				signal.updateLock.lock()
 
-				if case let .alive(snapshot) = signal.state {
-					let newSnapshot = SignalStateSnapshot(observers: snapshot.observers,
-					                                      retaining: snapshot.retaining,
-					                                      associated: event)
+				if case let .alive(state) = signal.state {
+					let newSnapshot = TerminatingState(observers: state.observers,
+					                                   event: event)
 					signal.state = .terminating(newSnapshot)
 					signal.updateLock.unlock()
 
 					if signal.sendLock.try() {
-						// Check whether the termination event has been handled by a
+						// Check whether the terminating state has been handled by a
 						// concurrent sender. If not, handle it.
-						if let snapshot = signal.shouldReallyTerminate() {
-							for observer in snapshot.observers {
-								observer.action(snapshot.associated)
+						if let terminatingState = signal.shouldReallyTerminate() {
+							for observer in terminatingState.observers {
+								observer.action(terminatingState.event)
 							}
 						}
 
@@ -169,16 +167,16 @@ public final class Signal<Value, Error: Swift.Error> {
 				signal.sendLock.lock()
 				// Start of the main protected section.
 
-				if case let .alive(snapshot) = signal.state {
-					for observer in snapshot.observers {
+				if case let .alive(state) = signal.state {
+					for observer in state.observers {
 						observer.action(event)
 					}
 
 					// Check if the status has been bumped to `terminating` due to a
 					// concurrent or a recursive termination event.
-					if case .terminating = signal.state, let snapshot = signal.shouldReallyTerminate() {
-						for observer in snapshot.observers {
-							observer.action(snapshot.associated)
+					if case .terminating = signal.state, let terminatingState = signal.shouldReallyTerminate() {
+						for observer in terminatingState.observers {
+							observer.action(terminatingState.event)
 						}
 
 						shouldDispose = true
@@ -194,9 +192,9 @@ public final class Signal<Value, Error: Swift.Error> {
 				if !shouldDispose, case .terminating = signal.state {
 					signal.sendLock.lock()
 
-					if let snapshot = signal.shouldReallyTerminate() {
-						for observer in snapshot.observers {
-							observer.action(snapshot.associated)
+					if let terminatingState = signal.shouldReallyTerminate() {
+						for observer in terminatingState.observers {
+							observer.action(terminatingState.event)
 						}
 
 						shouldDispose = true
@@ -311,7 +309,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		if case let .alive(snapshot) = state {
 			var observers = snapshot.observers
 			token = observers.insert(observer)
-			state = .alive(SignalStateSnapshot(observers: observers, retaining: self))
+			state = .alive(AliveState(observers: observers, retaining: self))
 		}
 		updateLock.unlock()
 
@@ -322,8 +320,8 @@ public final class Signal<Value, Error: Swift.Error> {
 					if case let .alive(snapshot) = s.state {
 						var observers = snapshot.observers
 						observers.remove(using: token)
-						s.state = .alive(SignalStateSnapshot(observers: observers,
-						                                     retaining: observers.isEmpty ? nil : self))
+						s.state = .alive(AliveState(observers: observers,
+						                            retaining: observers.isEmpty ? nil : self))
 					}
 					s.updateLock.unlock()
 				}
@@ -343,28 +341,27 @@ public final class Signal<Value, Error: Swift.Error> {
 /// The Swift compiler has also an optimization for enums with payloads that are
 /// all reference counted, and at most one no-payload case.
 private enum SignalState<Value, Error: Swift.Error> {
-	// FIXME: Change `()?` to `()` when concrete same-type requirement lands.
 	/// The `Signal` is alive.
-	case alive(SignalStateSnapshot<Value, Error, ()?>)
+	case alive(AliveState<Value, Error>)
 
 	/// The `Signal` has received a termination event, and is about to be
 	/// terminated.
-	case terminating(SignalStateSnapshot<Value, Error, Event<Value, Error>>)
+	case terminating(TerminatingState<Value, Error>)
 
 	/// The `Signal` has terminated.
 	case terminated
 }
 
-/// The state snapshot of a `Signal` which contains the bag of observers,
-/// an optional self-retaining reference and an optional associated value.
-///
-/// As the amount of state would definitely span over a cache line,
-/// `SignalStateSnapshot` is set to be a reference type so that we can
-/// atomically update the reference instead.
-///
-/// - warning: In-place mutation should not be introduced to
-///            `SignalStateSnapshot`. Copy the states and create a new instance.
-private final class SignalStateSnapshot<Value, Error: Swift.Error, U> {
+// As the amount of state would definitely span over a cache line,
+// `AliveState` and `TerminatingState` is set to be a reference type so
+// that we can atomically update the reference instead.
+//
+// Note that in-place mutation should not be introduced to `AliveState` and
+// `TerminatingState`. Copy the states and create a new instance.
+
+/// The state of a `Signal` that is alive. It contains a bag of observers and
+/// an optional self-retaining reference.
+private final class AliveState<Value, Error: Swift.Error> {
 	/// The observers of the `Signal`.
 	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
 
@@ -372,29 +369,34 @@ private final class SignalStateSnapshot<Value, Error: Swift.Error, U> {
 	/// observers.
 	fileprivate let retaining: Signal<Value, Error>?
 
-	fileprivate let associated: U
-
-	/// Create a snapshot.
+	/// Create an alive state.
 	///
 	/// - parameters:
 	///   - observers: The latest bag of observers.
 	///   - retaining: The self-retaining reference of the `Signal`, if necessary.
-	///   - associated: An associated value.
-	init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil, associated: U) {
+	init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil) {
 		self.observers = observers
 		self.retaining = retaining
-		self.associated = associated
 	}
 }
 
-extension SignalStateSnapshot where U: ExpressibleByNilLiteral {
-	/// Create a snapshot.
+/// The state of a terminating `Signal`. It contains a bag of observers and the
+/// termination event.
+private final class TerminatingState<Value, Error: Swift.Error> {
+	/// The observers of the `Signal`.
+	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
+
+	///  The termination event.
+	fileprivate let event: Event<Value, Error>
+
+	/// Create a terminating state.
 	///
 	/// - parameters:
 	///   - observers: The latest bag of observers.
-	///   - retaining: The self-retaining reference of the `Signal`, if necessary.
-	convenience init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil) {
-		self.init(observers: observers, retaining: retaining, associated: nil)
+	///   - event: The termination event.
+	init(observers: Bag<Signal<Value, Error>.Observer>, event: Event<Value, Error>) {
+		self.observers = observers
+		self.event = event
 	}
 }
 
