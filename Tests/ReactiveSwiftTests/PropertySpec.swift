@@ -270,7 +270,7 @@ class PropertySpec: QuickSpec {
 				let queue: DispatchQueue
 
 				if #available(macOS 10.10, *) {
-					queue = DispatchQueue.global(qos: .userInitiated)
+					queue = DispatchQueue.global(qos: .userInteractive)
 				} else {
 					queue = DispatchQueue.global(priority: .high)
 				}
