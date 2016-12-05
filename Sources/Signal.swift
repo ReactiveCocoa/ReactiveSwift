@@ -117,9 +117,10 @@ public final class Signal<Value, Error: Swift.Error> {
 				signal.updateLock.lock()
 
 				if case let .alive(snapshot) = signal.state {
-					signal.state = .terminating(SignalStateSnapshot(observers: snapshot.observers,
-					                                                retaining: snapshot.retaining,
-					                                                associatedStorage: event))
+					let newSnapshot = SignalStateSnapshot(observers: snapshot.observers,
+					                                      retaining: snapshot.retaining,
+					                                      associated: event)
+					signal.state = .terminating(newSnapshot)
 					signal.updateLock.unlock()
 
 					if signal.sendLock.try() {
@@ -127,11 +128,15 @@ public final class Signal<Value, Error: Swift.Error> {
 						// handled, take it over and bump the status to `terminated`.
 						signal.updateLock.lock()
 
-						if case let .terminating(snapshot) = signal.state {
+						// It is either `terminating` with `newSnapshot` or `terminated`
+						// anyway. So retrieving the snapshot is unnecessary.
+						if case .terminating = signal.state {
 							signal.state = .terminated
 							signal.updateLock.unlock()
 
-							snapshot.sendTerminated()
+							for observer in newSnapshot.observers {
+								observer.action(newSnapshot.associated)
+							}
 						} else {
 							signal.updateLock.unlock()
 						}
@@ -167,7 +172,9 @@ public final class Signal<Value, Error: Swift.Error> {
 				// Start of the main protected section.
 
 				if case let .alive(snapshot) = signal.state {
-					snapshot.send(event)
+					for observer in snapshot.observers {
+						observer.action(event)
+					}
 
 					// Check if the status has been bumped to `terminating` due to a
 					// concurrent or a recursive termination event.
@@ -184,7 +191,10 @@ public final class Signal<Value, Error: Swift.Error> {
 							signal.state = .terminated
 							signal.updateLock.unlock()
 
-							snapshot.sendTerminated()
+							for observer in snapshot.observers {
+								observer.action(snapshot.associated)
+							}
+
 							shouldDispose = true
 						} else {
 							signal.updateLock.unlock()
@@ -213,7 +223,10 @@ public final class Signal<Value, Error: Swift.Error> {
 						signal.state = .terminated
 						signal.updateLock.unlock()
 
-						snapshot.sendTerminated()
+						for observer in snapshot.observers {
+							observer.action(snapshot.associated)
+						}
+
 						shouldDispose = true
 					} else {
 						signal.updateLock.unlock()
@@ -336,8 +349,9 @@ public final class Signal<Value, Error: Swift.Error> {
 /// The Swift compiler has also an optimization for enums with payloads that are
 /// all reference counted, and at most one no-payload case.
 private enum SignalState<Value, Error: Swift.Error> {
+	// FIXME: Change `()?` to `()` when concrete same-type requirement lands.
 	/// The `Signal` is alive.
-	case alive(SignalStateSnapshot<Value, Error, ()>)
+	case alive(SignalStateSnapshot<Value, Error, ()?>)
 
 	/// The `Signal` has received a termination event, and is about to be
 	/// terminated.
@@ -364,37 +378,29 @@ private final class SignalStateSnapshot<Value, Error: Swift.Error, U> {
 	/// observers.
 	fileprivate let retaining: Signal<Value, Error>?
 
-	fileprivate let associatedStorage: U?
+	fileprivate let associated: U
 
 	/// Create a snapshot.
 	///
 	/// - parameters:
 	///   - observers: The latest bag of observers.
 	///   - retaining: The self-retaining reference of the `Signal`, if necessary.
-	///   - associatedStorage: The optional associated value.
-	init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil, associatedStorage: U? = nil) {
+	///   - associated: An associated value.
+	init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil, associated: U) {
 		self.observers = observers
 		self.retaining = retaining
-		self.associatedStorage = associatedStorage
-	}
-
-	/// Send the given event to all observers.
-	///
-	/// - parameters:
-	///   - event: The event to send.
-	@inline(__always)
-	func send(_ event: Event<Value, Error>) {
-		for observer in observers {
-			observer.action(event)
-		}
+		self.associated = associated
 	}
 }
 
-extension SignalStateSnapshot where U: EventProtocol, U.Value == Value, U.Error == Error {
-	/// Send the stored termination event to the observers.
-	@inline(__always)
-	func sendTerminated() {
-		send(associatedStorage!.event)
+extension SignalStateSnapshot where U: ExpressibleByNilLiteral {
+	/// Create a snapshot.
+	///
+	/// - parameters:
+	///   - observers: The latest bag of observers.
+	///   - retaining: The self-retaining reference of the `Signal`, if necessary.
+	convenience init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil) {
+		self.init(observers: observers, retaining: retaining, associated: nil)
 	}
 }
 
