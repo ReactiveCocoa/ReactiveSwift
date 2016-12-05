@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Dispatch
 
 import Result
 import Nimble
@@ -264,6 +265,106 @@ class PropertySpec: QuickSpec {
 
 				property = nil
 				expect(isEnded) == true
+			}
+		}
+
+		describe("MutablePropertyFacade") {
+			it("should be able to pass through the specified behavior") {
+				let property = MutableProperty(0)
+
+				let facade = MutablePropertyFacade<Int>(getter: { property.value },
+				                                        setter: { property.value = $0 },
+				                                        changes: property.signal,
+				                                        lifetime: property.lifetime,
+				                                        setOn: nil)
+
+				expect(property.lifetime).to(beIdenticalTo(facade.lifetime))
+
+				var values = [Int]()
+				facade.signal.observeValues { values.append($0) }
+
+				expect(facade.value) == 0
+				expect(values) == []
+
+				property.value = 1
+				expect(facade.value) == 1
+				expect(values) == [1]
+
+				facade.value = 2
+				expect(property.value) == 2
+				expect(values) == [1, 2]
+			}
+
+			it("should accept bindings from properties") {
+				let property = MutableProperty(0)
+				let facade = MutablePropertyFacade<Int>(getter: { property.value },
+				                                        setter: { property.value = $0 },
+				                                        changes: property.signal,
+				                                        lifetime: property.lifetime,
+				                                        setOn: nil)
+
+				let source = MutableProperty(100)
+
+				facade <~ source
+				expect(facade.value) == 100
+				expect(property.value) == 100
+
+				source.value = 200
+				expect(facade.value) == 200
+				expect(property.value) == 200
+			}
+
+			it("should not deadlock on the same queue") {
+				let property = MutableProperty(0)
+				let facade = MutablePropertyFacade<Int>(getter: { property.value },
+				                                        setter: { property.value = $0 },
+				                                        changes: property.signal,
+				                                        lifetime: property.lifetime,
+				                                        setOn: UIScheduler())
+
+				let source = MutableProperty(1)
+				facade <~ source
+				expect(facade.value) == 1
+			}
+
+			it("should not deadlock even if the value is originated from the same queue indirectly") {
+				let key = DispatchSpecificKey<Void>()
+				DispatchQueue.main.setSpecific(key: key, value: ())
+
+				let mainQueueCounter = Atomic(0)
+
+				let property = MutableProperty(0)
+				let setter: (Int) -> Void = {
+					property.value = $0
+					mainQueueCounter.modify { $0 += DispatchQueue.getSpecific(key: key) != nil ? 1 : 0 }
+				}
+
+				let facade = MutablePropertyFacade<Int>(getter: { property.value },
+				                                        setter: setter,
+				                                        changes: property.signal,
+				                                        lifetime: property.lifetime,
+				                                        setOn: UIScheduler())
+
+				let scheduler: QueueScheduler
+				if #available(OSX 10.10, *) {
+					scheduler = QueueScheduler()
+				} else {
+					scheduler = QueueScheduler(queue: DispatchQueue(label: "com.reactivecocoa.ReactiveSwift.PropertySpec"))
+				}
+
+				let source = MutableProperty(1)
+				facade <~ source.producer
+					.start(on: scheduler)
+					.observe(on: scheduler)
+
+				expect(facade.value).toEventually(equal(1))
+				expect(property.value).toEventually(equal(1))
+				expect(mainQueueCounter.value).toEventually(equal(1))
+
+				source.value = 2
+				expect(facade.value).toEventually(equal(2))
+				expect(property.value).toEventually(equal(2))
+				expect(mainQueueCounter.value).toEventually(equal(2))
 			}
 		}
 

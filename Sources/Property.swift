@@ -637,3 +637,72 @@ public final class MutableProperty<Value>: MutablePropertyProtocol {
 		observer.sendCompleted()
 	}
 }
+
+/// A facade that provides `MutableProperty` like semantics.
+public final class MutablePropertyFacade<Value>: MutablePropertyProtocol {
+	private let getter: () -> Value
+	private let setter: (Value) -> Void
+	private let scheduler: SchedulerProtocol?
+
+	/// The lifetime of the property.
+	public let lifetime: Lifetime
+
+	/// A producer which emits the current value, and then forwards all
+	/// subsequent changes of the property.
+	///
+	/// - note: `producer` may be inconsistent, since unlike `MutableProperty`
+	///         the type itself does not guarantee atomicity.
+	public var producer: SignalProducer<Value, NoError> {
+		return SignalProducer(signal: signal).prefix(value: getter())
+	}
+
+	/// The signal which emits changes of the property.
+	public let signal: Signal<Value, NoError>
+
+	/// The current value of the property.
+	public var value: Value {
+		get { return getter() }
+		set {
+			if let scheduler = scheduler {
+				scheduler.schedule { self.setter(newValue) }
+			} else {
+				setter(newValue)
+			}
+		}
+	}
+
+	/// Create a mutable property facade.
+	///
+	/// - parameters:
+	///   - getter: The getter of the current value.
+	///   - setter: The setter of the current value.
+	///   - signal: The signal which emits changes.
+	///   - lifetime: The lifetime of the facade.
+	///   - scheduler: The scheduler on which the setter is triggered. `nil` means
+	///                the setter should be called right in place.
+	public init(
+		getter: @escaping () -> Value,
+		setter: @escaping (Value) -> Void,
+		changes signal: Signal<Value, NoError>,
+		lifetime: Lifetime,
+		setOn scheduler: SchedulerProtocol?
+	) {
+		self.getter = getter
+		self.setter = setter
+		self.signal = signal
+		self.lifetime = lifetime
+		self.scheduler = scheduler
+	}
+
+	public static func <~ <S: SignalProtocol>(target: MutablePropertyFacade, source: S) -> Disposable? where S.Value == Value, S.Error == NoError {
+		return source.signal
+			.take(during: target.lifetime)
+			.observeValues { [scheduler = target.scheduler, setter = target.setter] newValue in
+				if let scheduler = scheduler {
+					scheduler.schedule { setter(newValue) }
+				} else {
+					setter(newValue)
+				}
+		}
+	}
+}
