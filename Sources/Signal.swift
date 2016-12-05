@@ -94,6 +94,13 @@ public final class Signal<Value, Error: Swift.Error> {
 			//   also be checked again after the locks are acquired. Fail gracefully
 			//   if the state has changed since the relaxed read, i.e. a concurrent
 			//   sender has already handled the termination event.
+			//
+			// Exploiting the relaxation of reads, please note that false positives
+			// are intentionally allowed in the `terminating` checks below. As a
+			// result, normal event deliveries need not acquire `updateLock`.
+			// Nevertheless, this should not cause the termination event being
+			// sent multiple times, since `shouldReallyTerminate` would not
+			// respond to false positives.
 
 			if event.isTerminating {
 				// Recursive events are disallowed for `value` events, but are permitted
@@ -124,21 +131,12 @@ public final class Signal<Value, Error: Swift.Error> {
 					signal.updateLock.unlock()
 
 					if signal.sendLock.try() {
-						// Acquire `updateLock`. If the termination has still not yet been
-						// handled, take it over and bump the status to `terminated`.
-						signal.updateLock.lock()
-
-						// It is either `terminating` with `newSnapshot` or `terminated`
-						// anyway. So retrieving the snapshot is unnecessary.
-						if case .terminating = signal.state {
-							signal.state = .terminated
-							signal.updateLock.unlock()
-
-							for observer in newSnapshot.observers {
-								observer.action(newSnapshot.associated)
+						// Check whether the termination event has been handled by a
+						// concurrent sender. If not, handle it.
+						if let snapshot = signal.shouldReallyTerminate() {
+							for observer in snapshot.observers {
+								observer.action(snapshot.associated)
 							}
-						} else {
-							signal.updateLock.unlock()
 						}
 
 						signal.sendLock.unlock()
@@ -178,27 +176,12 @@ public final class Signal<Value, Error: Swift.Error> {
 
 					// Check if the status has been bumped to `terminating` due to a
 					// concurrent or a recursive termination event.
-					//
-					// Note that as the check happens before acquiring `updateLock`, it
-					// could be a false positive, and thus a second check after the lock
-					// is acquired is mandatory.
-					if case .terminating = signal.state {
-						// Acquire `updateLock`. If the termination has still not yet been
-						// handled, take it over and bump the status to `terminated`.
-						signal.updateLock.lock()
-
-						if case let .terminating(snapshot) = signal.state {
-							signal.state = .terminated
-							signal.updateLock.unlock()
-
-							for observer in snapshot.observers {
-								observer.action(snapshot.associated)
-							}
-
-							shouldDispose = true
-						} else {
-							signal.updateLock.unlock()
+					if case .terminating = signal.state, let snapshot = signal.shouldReallyTerminate() {
+						for observer in snapshot.observers {
+							observer.action(snapshot.associated)
 						}
+
+						shouldDispose = true
 					}
 				}
 
@@ -208,28 +191,15 @@ public final class Signal<Value, Error: Swift.Error> {
 				// Check if the status has been bumped to `terminating` due to a
 				// concurrent termination event that has not been caught in the main
 				// protected section.
-				//
-				// Note that as the check happens before acquiring `updateLock`, it
-				// could be a false positive, and thus a second check after the lock is
-				// acquired is mandatory.
 				if !shouldDispose, case .terminating = signal.state {
 					signal.sendLock.lock()
 
-					// Acquire `updateLock`. If the termination has still not yet been
-					// handled, take it over and bump the status to `terminated`.
-					signal.updateLock.lock()
-
-					if case let .terminating(snapshot) = signal.state {
-						signal.state = .terminated
-						signal.updateLock.unlock()
-
+					if let snapshot = signal.shouldReallyTerminate() {
 						for observer in snapshot.observers {
 							observer.action(snapshot.associated)
 						}
 
 						shouldDispose = true
-					} else {
-						signal.updateLock.unlock()
 					}
 
 					signal.sendLock.unlock()
@@ -246,11 +216,35 @@ public final class Signal<Value, Error: Swift.Error> {
 		generatorDisposable = generator(observer)
 	}
 
+	/// Return the state snapshot if the signal is in the `terminating` state, or
+	/// `nil` otherwise.
+	///
+	/// Calling this method as a result of a false positive `terminating` check
+	/// is permitted. `nil` would be returned in this case.
+	///
+	/// - note: The `updateLock` would be acquired.
+	///
+	/// - returns:
+	///   The state snapshot associated with a termination event, or `nil`.
+	private func shouldReallyTerminate() -> SignalStateSnapshot<Value, Error, Event<Value, Error>>? {
+		// Acquire `updateLock`. If the termination has still not yet been
+		// handled, take it over and bump the status to `terminated`.
+		updateLock.lock()
+
+		if case let .terminating(snapshot) = state {
+			state = .terminated
+			updateLock.unlock()
+			return snapshot
+		}
+
+		updateLock.unlock()
+		return nil
+	}
+
 	/// Swap the generator disposable with `nil`.
 	///
 	/// - returns:
 	///   The generator disposable, or `nil` if it has been disposed of.
-	@inline(__always)
 	private func swapDisposable() -> Disposable? {
 		if let d = generatorDisposable {
 			generatorDisposable = nil
