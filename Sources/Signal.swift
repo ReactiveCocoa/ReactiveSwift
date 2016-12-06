@@ -88,9 +88,9 @@ public final class Signal<Value, Error: Swift.Error> {
 			//   `updateLock` must be acquired, and should fail gracefully if the
 			//   signal has terminated.
 			//
-			// - Check if the signal is terminating, and transition from `terminating`
-			//   to `terminated` if it is. Deliver the termination event after the
-			//   transitioning.
+			// - Check if the signal is terminating. If it is, invoke `tryTerminate`
+			//   which transitions the state from `terminating` to `terminated`, and
+			//   delivers the termination event.
 			//
 			//   Both `sendLock` and `updateLock` must be acquired. The check can be
 			//   relaxed, but the state must be checked again after the locks are
@@ -102,20 +102,20 @@ public final class Signal<Value, Error: Swift.Error> {
 			// are intentionally allowed in the `terminating` checks below. As a
 			// result, normal event deliveries need not acquire `updateLock`.
 			// Nevertheless, this should not cause the termination event being
-			// sent multiple times, since `shouldReallyTerminate` would not
-			// respond to false positives.
+			// sent multiple times, since `tryTerminate` would not respond to false
+			// positives.
 
-			/// Return the terminating state if the signal is terminating , or `nil`
-			/// otherwise.
+			/// Try to terminate the signal.
 			///
-			/// Calling this method as a result of a false positive `terminating` check
-			/// is permitted. `nil` would be returned in this case.
+			/// If the signal is alive or has terminated, it fails gracefully. In
+			/// other words, calling this method as a result of a false positive
+			/// `terminating` check is permitted.
 			///
 			/// - note: The `updateLock` would be acquired.
 			///
-			/// - returns: The terminating state or `nil`.
+			/// - returns: `true` if the attempt succeeds. `false` otherwise.
 			@inline(__always)
-			func shouldReallyTerminate() -> TerminatingState<Value, Error>? {
+			func tryTerminate() -> Bool {
 				// Acquire `updateLock`. If the termination has still not yet been
 				// handled, take it over and bump the status to `terminated`.
 				signal.updateLock.lock()
@@ -123,11 +123,16 @@ public final class Signal<Value, Error: Swift.Error> {
 				if case let .terminating(state) = signal.state {
 					signal.state = .terminated
 					signal.updateLock.unlock()
-					return state
+
+					for observer in state.observers {
+						observer.action(state.event)
+					}
+
+					return true
 				}
-				
+
 				signal.updateLock.unlock()
-				return nil
+				return false
 			}
 
 			if event.isTerminating {
@@ -160,14 +165,12 @@ public final class Signal<Value, Error: Swift.Error> {
 					if signal.sendLock.try() {
 						// Check whether the terminating state has been handled by a
 						// concurrent sender. If not, handle it.
-						if let terminatingState = shouldReallyTerminate() {
-							for observer in terminatingState.observers {
-								observer.action(terminatingState.event)
-							}
-						}
-
+						let shouldDispose = tryTerminate()
 						signal.sendLock.unlock()
-						signal.swapDisposable()?.dispose()
+
+						if shouldDispose {
+							signal.swapDisposable()?.dispose()
+						}
 					}
 				} else {
 					signal.updateLock.unlock()
@@ -203,12 +206,8 @@ public final class Signal<Value, Error: Swift.Error> {
 
 					// Check if the status has been bumped to `terminating` due to a
 					// concurrent or a recursive termination event.
-					if case .terminating = signal.state, let terminatingState = shouldReallyTerminate() {
-						for observer in terminatingState.observers {
-							observer.action(terminatingState.event)
-						}
-
-						shouldDispose = true
+					if case .terminating = signal.state {
+						shouldDispose = tryTerminate()
 					}
 				}
 
@@ -220,15 +219,7 @@ public final class Signal<Value, Error: Swift.Error> {
 				// protected section.
 				if !shouldDispose, case .terminating = signal.state {
 					signal.sendLock.lock()
-
-					if let terminatingState = shouldReallyTerminate() {
-						for observer in terminatingState.observers {
-							observer.action(terminatingState.event)
-						}
-
-						shouldDispose = true
-					}
-
+					shouldDispose = tryTerminate()
 					signal.sendLock.unlock()
 				}
 
