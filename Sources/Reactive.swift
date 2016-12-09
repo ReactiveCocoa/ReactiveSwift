@@ -18,8 +18,9 @@ extension ReactiveExtensionsProvider {
 	}
 }
 
-// A `Reactive` proxy hosts reactive extensions to `Base`.
+/// A proxy which hosts reactive extensions of `Base`.
 public struct Reactive<Base> {
+	/// The `Base` instance the extensions would be invoked with.
 	public let base: Base
 
 	// Construct a proxy.

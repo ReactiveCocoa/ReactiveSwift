@@ -247,6 +247,7 @@ internal final class RecursiveAtomic<Value>: AtomicProtocol {
 	}
 }
 
+/// A protocol used to constraint convenience `Atomic` methods and properties.
 public protocol AtomicProtocol: class {
 	associatedtype Value
 
