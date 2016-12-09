@@ -18,13 +18,62 @@ it’s easy to declaratively compose them together, with less spaghetti
 code and state to bridge the gap.
 
 ### Core Reactive Primitives
-| Primitive | Description |
-| --------- | ------------|
-| `Signal` | `Signal` is a unidirectional stream of events. Senders push events on one end, and observers receive events on the other end. They do not know each other, but only the stream.<br /><br />It is like a live TV feed — you can observe and react to the content, but you cannot have a side effect on the live feed. |
-| `Event`  | An `Event` is a basic transfer unit in a `Signal`. A `Signal` may have any arbitrary number of events carrying a value, following by an eventual terminal event of a specific reason.<br /><br />It is like a frame in a one-time live feed — seas of data frames carry the visual and audio data, but the feed would eventually be terminated with a special frame to indicate "end of stream". |
-| `SignalProducer` | `SignalProducer` _produces_ a customized `Signal` for you upon being _started_.<br /><br />It is like a on-demand streaming service — you can choose what you watch, when to start watching and when to pause it. |
-| `Property` | `Property` is a box that always holds a value at any time, and can be observed for its changes.<br /><br />It is like the display of a digital stopwatch — at any instance of time a remaining time can always be observed, and it could be updated by the stopwatch logic at any time. |
-| `Action` | `Action` is a serialized worker that performs a preset routine with varying inputs and state, and generate a certain output.<br /><br />It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snacks. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently. |
+#### `Signal`
+`Signal` is a unidirectional stream of events. The senders have unilateral control of the stream, and observers may register their interests in the future events at any time, but without any side effect on the stream or the senders.
+
+It is like a live TV feed — you can observe and react to the content, but you cannot have a side effect on the live feed or the TV station.
+
+```swift
+tvStation.channelOne.observeValues { programme in ... }
+```
+
+#### `Event`
+An `Event` is a basic transfer unit in a `Signal`. A `Signal` may have any arbitrary number of events carrying a value, following by an eventual terminal event of a specific reason.
+
+It is like a frame in a one-time live feed — seas of data frames carry the visual and audio data, but the feed would eventually be terminated with a special frame to indicate "end of stream".
+
+#### `SignalProducer`
+
+`SignalProducer` _produces_ a customized `Signal` for you upon being _started_.
+
+It is like a on-demand streaming service — even though the episode is streamed like a live TV feed, you can choose what you watch, when to start watching and when to interrupt it.
+
+
+```swift
+let interrupter = vidStreamer.streamAsset(id: tvShowId).start { frame in ... }
+interrupter.dispose()
+```
+
+#### `Property`
+`Property` is a box that always holds a value at any time, and can be observed for its changes.
+
+It is like the time bar of a video player — there is always a certain playback position at any time, and it could be updated by the playback logic at any time.
+
+```swift
+video.currentTime.value
+video.currentTime.observeValues { timeBar.timeLabel.text = "\($0)" }
+```
+
+#### `Action`
+`Action` is a serialized worker that performs a preset action. When being invoked with an input, `Action` apply the input and the latest state to the preset action, and pushes the output to the interesting parties.
+
+It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snacks. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
+
+```swift
+vendingMachine.purchase = Action(state: vendingMachine.coins, enabledIf: { $0 > 0 }) { ... }
+vendingMachine.purchase.apply(purchaseOption).startWithResults { result
+    switch results {
+    case let .success(snacks):
+        print("Snack: \(snacks)")
+        
+    case let .failure(error):
+        // Out of stock? Insufficient fund?
+        print("Transaction aborted: \(error)")
+    }
+}
+```
+
+#### References
 
 For more details about the concepts and primitives in ReactiveSwift, check these documentations out:
 
