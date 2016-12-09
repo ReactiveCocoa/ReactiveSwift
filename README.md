@@ -9,21 +9,36 @@
 ⚠️ [Still using Swift 2.x?][]
 
 ## What is ReactiveSwift?
-__ReactiveSwift__ offers composable, declarative and flexible primitives that are built around the grand concept of ___streams of values over time___. These primitives can be used to uniformly represent common Cocoa and generic programming patterns that are fundamentally an act of observation, e.g.:
+__ReactiveSwift__ offers composable, declarative and flexible primitives that are built around the grand concept of ___streams of values over time___.
 
- * Delegate methods
- * Callback blocks
- * Notifications
- * Control actions and responder chain events
- * [Futures and promises](https://en.wikipedia.org/wiki/Futures_and_promises)
- * [Key-value observing](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/KeyValueObserving/KeyValueObserving.html) (KVO)
+These primitives can be used to uniformly represent common Cocoa and generic programming patterns that are fundamentally an act of observation, e.g. delegate pattern, callback closures, notifications, control actions, responder chain events, [futures, promises](https://en.wikipedia.org/wiki/Futures_and_promises) and [key-value observing](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/KeyValueObserving/KeyValueObserving.html) (KVO).
 
 Because all of these different mechanisms can be represented in the _same_ way,
-it’s easy to declaratively chain and combine them together, with less spaghetti
+it’s easy to declaratively compose them together, with less spaghetti
 code and state to bridge the gap.
 
-For more information about the concepts in ReactiveSwift, see the [Framework
-Overview][].
+### Core Reactive Primitives
+| Primitive | Description |
+| --------- | ------------|
+| `Signal` | `Signal` is a unilateral stream of events.<br /><br />It is like a live TV feed - you can observe and react to the content, but you cannot have a side effect on the live feed. |
+| `Event`  | An `Event` may represent a value at any time instance, or the termination of a `Signal` with a specific reason.<br /><br />It is like frames in a one-time live feed - seas of data frames carry the visual and audio data, but the feed would eventually be terminated with a special frame to indicate "end of stream". |
+| `SignalProducer` | `SignalProducer` _produces_ a customized `Signal` for you upon being _started_.<br /><br />It is like a on-demand streaming service - you can choose what you watch, when to start watching and when to pause it. |
+| `Property` | `Property` is a box that always holds a value at any time, and can be observed for its changes.<br /><br />It is like the display of a digital stopwatch - at any instance of time a remaining time can always be observed, and it could be updated by the stopwatch logic at any time. |
+| `Action` | `Action` is a serialized worker that performs a preset routine with the varying input and state, and generate a certain output.<br /><br />It is like an automatic vending machine - after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snacks. Notice that the entire process is mutually exclusive - you cannot have the machine to serve two customers concurrently. |
+
+For more details about the concepts and primitives in ReactiveSwift, check these documentations out:
+
+1. **[Framework Overview][]**
+
+   An overview of the behaviors and the suggested use cases of the ReactiveSwift primitives and utilities.
+
+1. **[Basic Operators][]**
+
+   An overview of the operators provided to compose and transform these primitives.
+
+1. **[Design Guidelines][]**
+
+   Contracts of the ReactiveSwift primitives, Best Practices with ReactiveSwift, and Guidelines on implementing custom operators.
 
 ## Example: online search
 
@@ -335,6 +350,7 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 [ReactiveCocoa]: https://github.com/ReactiveCocoa/ReactiveCocoa/#readme
 [Actions]: Documentation/FrameworkOverview.md#actions
 [Basic Operators]: Documentation/BasicOperators.md
+[Design Guidelines]: Documentation/DesignGuidelines.md
 [Carthage]: https://github.com/Carthage/Carthage/#readme
 [CocoaPods]: https://cocoapods.org/
 [CHANGELOG]: CHANGELOG.md
