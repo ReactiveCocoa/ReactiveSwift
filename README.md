@@ -18,8 +18,8 @@ it’s easy to declaratively compose them together, with less spaghetti
 code and state to bridge the gap.
 
 ### Core Reactive Primitives
-#### `Signal`, a unidirectional stream of events.
-The owner of a `Signal` has unilateral control of the stream. Observers may register their interests in the future events at any time, but they would not have any side effect on the stream or the owner of the stream.
+#### `Signal`: a unidirectional stream of events.
+The owner of a `Signal` has unilateral control of the event stream. Observers may register their interests in the future events at any time, but the observation would have no side effect on the stream or its owner.
 
 It is like a live TV feed — you can observe and react to the content, but you cannot have a side effect on the live feed or the TV station.
 
@@ -28,13 +28,13 @@ let channel: Signal<Programme, NoError> = tvStation.channelOne
 channel.observeValues { programme in ... }
 ```
 
-#### `Event`, the basic transfer unit of a `Signal`.
+#### `Event`: the basic transfer unit of an event stream.
 A `Signal` may have any arbitrary number of events carrying a value, following by an eventual terminal event of a specific reason.
 
 It is like a frame in a one-time live feed — seas of data frames carry the visual and audio data, but the feed would eventually be terminated with a special frame to indicate "end of stream".
 
-#### `SignalProducer` creates a `Signal` when deferred work is started.
-`SignalProducer` defers work — of which the output is represented as `Signal`, i.e. a stream of value — until it is started. For every invocation to start the `SignalProducer`, a new `Signal` is created and the deferred work is subsequently invoked.
+#### `SignalProducer`: deferred work that creates a stream of value.
+`SignalProducer` defers work — of which the output is represented as a stream of value — until it is started. For every invocation to start the `SignalProducer`, a new `Signal` is created and the deferred work is subsequently invoked.
 
 It is like a on-demand streaming service — even though the episode is streamed like a live TV feed, you can choose what you watch, when to start watching and when to interrupt it.
 
@@ -45,8 +45,8 @@ let interrupter = frames.start { frame in ... }
 interrupter.dispose()
 ```
 
-#### `Property`, an observable box that always holds a value.
-`Property` is a `Signal` with a stronger compiler-time guarantee — the latest value is always available.
+#### `Property`: an observable box that always holds a value.
+`Property` is a variable that can be observed for its changes. In other words, it is a stream of value with a stronger guarantee than `Signal` — the latest value is always available, and the stream would never fail.
 
 It is like the continuously updated current time offset of a video playback — the playback is always at a certain time offset at any time, and it would be updated by the playback logic as the playback continues.
 
@@ -56,8 +56,8 @@ print("Current time offset: \(currentTime.value)")
 currentTime.observeValues { timeBar.timeLabel.text = "\($0)" }
 ```
 
-#### `Action`, a serialized worker with a preset action.
-When being invoked with an input, `Action` apply the input and the latest state to the preset action, and pushes the output to the interesting parties.
+#### `Action`: a serialized worker with a preset action.
+When being invoked with an input, `Action` apply the input and the latest state to the preset action, and pushes the output to any interested parties.
 
 It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snacks. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
 
