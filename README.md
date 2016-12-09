@@ -24,7 +24,8 @@ The owner of a `Signal` has unilateral control of the stream. Observers may regi
 It is like a live TV feed — you can observe and react to the content, but you cannot have a side effect on the live feed or the TV station.
 
 ```swift
-tvStation.channelOne.observeValues { programme in ... }
+let channel: Signal<Programme, NoError> = tvStation.channelOne
+channel.observeValues { programme in ... }
 ```
 
 #### `Event`, the basic transfer unit of a `Signal`.
@@ -39,7 +40,8 @@ It is like a on-demand streaming service — even though the episode is streamed
 
 
 ```swift
-let interrupter = vidStreamer.streamAsset(id: tvShowId).start { frame in ... }
+let frames: SignalProducer<VideoFrame, ConnectionError> = vidStreamer.streamAsset(id: tvShowId)
+let interrupter = frames.start { frame in ... }
 interrupter.dispose()
 ```
 
@@ -49,8 +51,9 @@ interrupter.dispose()
 It is like the continuously updated current time offset of a video playback — the playback is always at a certain time offset at any time, and it would be updated by the playback logic as the playback continues.
 
 ```swift
-video.currentTime.value
-video.currentTime.observeValues { timeBar.timeLabel.text = "\($0)" }
+let currentTime: Property<TimeInterval> = video.currentTime
+print("Current time offset: \(currentTime.value)")
+currentTime.observeValues { timeBar.timeLabel.text = "\($0)" }
 ```
 
 #### `Action`, a serialized worker with a preset action.
