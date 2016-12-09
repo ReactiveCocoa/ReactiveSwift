@@ -47,7 +47,7 @@ interrupter.dispose()
 #### `Property`
 `Property` is a box that always holds a value at any time, and can be observed for its changes.
 
-It is like the time bar of a video player — there is always a certain playback position at any time, and it could be updated by the playback logic at any time.
+It is like the continuously updated current time offset of a video playback — the playback is always at a certain time offset at any time, and it would be updated by the playback logic as the playback continues.
 
 ```swift
 video.currentTime.value
