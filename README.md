@@ -62,7 +62,7 @@ When being invoked with an input, `Action` apply the input and the latest state 
 It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snacks. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
 
 ```swift
-// Purchase from the vending machine with the specific option.
+// Purchase from the vending machine with a specific option.
 vendingMachine.purchase
     .apply(snackId)
     .startWithResults { result
@@ -86,14 +86,12 @@ class VendingMachine {
         coins = MutableProperty(0)
         purchase = Action(state: coins, enabledIf: { $0 > 0 }) { coins, snackId in 
             return SignalProducer { observer, _ in
-                // The purchasing magic happens here.
+                // The sales magic happens here.
             }
         }
         
         // The sales recorders are notified for any successful sales.
-        purchase.values.observeValues { snacks in
-            salesRecorder.record(snacks)
-        }
+        purchase.values.observeValues(salesRecorder.record)
     }
 }
 ```
