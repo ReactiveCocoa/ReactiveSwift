@@ -62,15 +62,38 @@ When being invoked with an input, `Action` apply the input and the latest state 
 It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snacks. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
 
 ```swift
-vendingMachine.purchase = Action(state: vendingMachine.coins, enabledIf: { $0 > 0 }) { ... }
-vendingMachine.purchase.apply(purchaseOption).startWithResults { result
-    switch results {
-    case let .success(snacks):
-        print("Snack: \(snacks)")
+// Purchase from the vending machine with the specific option.
+vendingMachine.purchase
+    .apply(snackId)
+    .startWithResults { result
+        switch results {
+        case let .success(snacks):
+            print("Snack: \(snacks)")
         
-    case let .failure(error):
-        // Out of stock? Insufficient fund?
-        print("Transaction aborted: \(error)")
+        case let .failure(error):
+            // Out of stock? Insufficient fund?
+            print("Transaction aborted: \(error)")
+        }
+    }
+
+// The vending machine.
+class VendingMachine {
+    let purchase: Action<(), [Snack], VendingMachineError>
+    let coins: MutableProperty<Int>
+    
+    // The vending machine is connected with a sales recorder.
+    init(_ salesRecorder: SalesRecorder) {
+        coins = MutableProperty(0)
+        purchase = Action(state: coins, enabledIf: { $0 > 0 }) { coins, snackId in 
+            return SignalProducer { observer, _ in
+                // The purchasing magic happens here.
+            }
+        }
+        
+        // The sales recorders are notified for any successful sales.
+        purchase.values.observeValues { snacks in
+            salesRecorder.record(snacks)
+        }
     }
 }
 ```
