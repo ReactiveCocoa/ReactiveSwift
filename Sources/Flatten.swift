@@ -249,7 +249,7 @@ extension SignalProtocol where Value: Sequence, Error == NoError {
 	/// Flattens the `sequence` value sent by `signal` according to
 	/// the semantics of the given strategy.
 	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> {
-		return self.flatMap(strategy) { .init(values: $0) }
+		return self.flatMap(strategy) { .init($0) }
 	}
 }
 
@@ -316,7 +316,7 @@ extension SignalProducerProtocol where Value: Sequence, Error == NoError {
 	/// Flattens the `sequence` value sent by `producer` according to
 	/// the semantics of the given strategy.
 	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Iterator.Element, Error> {
-		return self.flatMap(strategy) { .init(values: $0) }
+		return self.flatMap(strategy) { .init($0) }
 	}
 }
 
@@ -440,7 +440,7 @@ extension SignalProducerProtocol where Value: SignalProducerProtocol, Error == V
 extension SignalProducerProtocol {
 	/// `concat`s `next` onto `self`.
 	public func concat(_ next: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return SignalProducer<SignalProducer<Value, Error>, Error>(values: [ self.producer, next ]).flatten(.concat)
+		return SignalProducer<SignalProducer<Value, Error>, Error>([ self.producer, next ]).flatten(.concat)
 	}
 	
 	/// `concat`s `value` onto `self`.
@@ -578,7 +578,7 @@ extension SignalProtocol {
 	public static func merge<Seq: Sequence, S: SignalProtocol>(_ signals: Seq) -> Signal<Value, Error>
 		where S.Value == Value, S.Error == Error, Seq.Iterator.Element == S
 	{
-		return SignalProducer<S, Error>(values: signals)
+		return SignalProducer<S, Error>(signals)
 			.flatten(.merge)
 			.startAndRetrieveSignal()
 	}
@@ -599,7 +599,7 @@ extension SignalProducerProtocol {
 	public static func merge<Seq: Sequence, S: SignalProducerProtocol>(_ producers: Seq) -> SignalProducer<Value, Error>
 		where S.Value == Value, S.Error == Error, Seq.Iterator.Element == S
 	{
-		return SignalProducer(values: producers).flatten(.merge)
+		return SignalProducer(producers).flatten(.merge)
 	}
 	
 	/// Merges the given producers into a single `SignalProducer` that will emit

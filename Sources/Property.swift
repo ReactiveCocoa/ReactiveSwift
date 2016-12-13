@@ -456,10 +456,10 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - parameters:
 	///   - initial: Starting value for the property.
-	///   - producer: A producer that will start immediately and send values to
-	///               the property.
-	public convenience init(initial: Value, then producer: SignalProducer<Value, NoError>) {
-		self.init(unsafeProducer: producer.prefix(value: initial))
+	///   - values: A producer that will start immediately and send values to
+	///             the property.
+	public convenience init(initial: Value, then values: SignalProducer<Value, NoError>) {
+		self.init(unsafeProducer: values.prefix(value: initial))
 	}
 
 	/// Initialize a composed property that first takes on `initial`, then each
@@ -467,9 +467,9 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - parameters:
 	///   - initialValue: Starting value for the property.
-	///   - signal: A signal that will send values to the property.
-	public convenience init(initial: Value, then signal: Signal<Value, NoError>) {
-		self.init(unsafeProducer: SignalProducer(signal: signal).prefix(value: initial))
+	///   - values: A signal that will send values to the property.
+	public convenience init(initial: Value, then values: Signal<Value, NoError>) {
+		self.init(unsafeProducer: SignalProducer(values).prefix(value: initial))
 	}
 
 	/// Initialize a composed property by applying the unary `SignalProducer`
