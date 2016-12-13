@@ -34,7 +34,7 @@ A `Signal` may have any arbitrary number of events carrying a value, following b
 It is like a frame in a one-time live feed — seas of data frames carry the visual and audio data, but the feed would eventually be terminated with a special frame to indicate "end of stream".
 
 #### `SignalProducer`: deferred work that creates a stream of values.
-`SignalProducer` defers work — of which the output is represented as a stream of value — until it is started. For every invocation to start the `SignalProducer`, a new `Signal` is created and the deferred work is subsequently invoked.
+`SignalProducer` defers work — of which the output is represented as a stream of values — until it is started. For every invocation to start the `SignalProducer`, a new `Signal` is created and the deferred work is subsequently invoked.
 
 It is like a on-demand streaming service — even though the episode is streamed like a live TV feed, you can choose what you watch, when to start watching and when to interrupt it.
 
@@ -46,7 +46,7 @@ interrupter.dispose()
 ```
 
 #### `Property`: an observable box that always holds a value.
-`Property` is a variable that can be observed for its changes. In other words, it is a stream of value with a stronger guarantee than `Signal` — the latest value is always available, and the stream would never fail.
+`Property` is a variable that can be observed for its changes. In other words, it is a stream of values with a stronger guarantee than `Signal` — the latest value is always available, and the stream would never fail.
 
 It is like the continuously updated current time offset of a video playback — the playback is always at a certain time offset at any time, and it would be updated by the playback logic as the playback continues.
 
