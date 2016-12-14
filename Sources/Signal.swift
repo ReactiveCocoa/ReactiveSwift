@@ -24,8 +24,26 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// when the signal terminates.
 	private var generatorDisposable: Disposable?
 
-	/// The state of the signal. `nil` if the signal has terminated.
-	private let state: Atomic<SignalState<Value, Error>?>
+	/// The observers of the signal. `nil` if the signal has terminated.
+	///
+	/// `observers` synchronizes using Read-Copy-Update. Reads are thus wait-free,
+	/// but writes are required not to mutate in place. This suits `Signal` as
+	/// reads to `state` happens on the critical path of event delivery, while
+	/// adding and removing observers generally has a constant occurrence.
+	private var observers: Bag<Observer>?
+
+	/// Used to ensure changes to `state` is serialized.
+	private let observersLock: NSLock
+
+	/// Used to hold the self retaining reference when there are one or more
+	/// active observers.
+	private var retaining: Signal<Value, Error>?
+
+	/// The status of the signal. It synchronizes with `sendLock`.
+	private var status: SignalStatus<Value, Error>
+
+	/// Used to ensure that events are serialized during delivery to observers.
+	private let sendLock: NSLock
 
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given observer.
@@ -38,119 +56,138 @@ public final class Signal<Value, Error: Swift.Error> {
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
-		state = Atomic(SignalState())
-
-		/// Holds the final signal state captured by an `interrupted` event. If it
-		/// is set, the Signal should interrupt as soon as possible. Implicitly
-		/// protected by `state` and `sendLock`.
-		var interruptedState: SignalState<Value, Error>? = nil
-
-		/// Used to track if the signal has terminated. Protected by `sendLock`.
-		var terminated = false
-
-		/// Used to ensure that events are serialized during delivery to observers.
-		let sendLock = NSLock()
-		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal"
+		status = .alive
+		sendLock = NSLock()
+		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal.sendLock"
+		observers = Bag()
+		observersLock = NSLock()
+		observersLock.name = "org.reactivecocoa.ReactiveSwift.Signal.observersLock"
+		retaining = nil
 
 		let observer = Observer { [weak self] event in
 			guard let signal = self else {
 				return
 			}
 
-			@inline(__always)
-			func interrupt(_ observers: Bag<Observer>) {
-				for observer in observers {
-					observer.sendInterrupted()
-				}
-				terminated = true
-				interruptedState = nil
-			}
-
-			if case .interrupted = event {
-				// Recursive events are generally disallowed. But `interrupted` is kind
-				// of a special snowflake, since it can inadvertently be sent by
-				// downstream consumers.
+			if event.isTerminating {
+				// Recursive events are disallowed for `value` events, but are permitted
+				// for termination events. Specifically:
 				//
-				// So we would treat `interrupted` events specially. If it happens
-				// to occur while the `sendLock` is acquired, the observer call-out and
+				// `interrupted`
+				// It can inadvertently be sent by downstream consumers as part of the
+				// `SignalProducer` mechanics.
+				//
+				// `completed`
+				// If a downstream consumer weakly references an object, invocation of
+				// such consumer may cause a race condition with its weak retain against
+				// the last strong release of the object. If the `Lifetime` of the
+				// object is being referenced by an upstream `take(during:)`, a
+				// signal recursion might occur.
+				//
+				// So we would treat termination events specially. If it happens to
+				// occur while the `sendLock` is acquired, the observer call-out and
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
-				if let state = signal.state.swap(nil) {
-					// Writes to `interruptedState` are implicitly synchronized. So we do
-					// not need to guard it with locks.
+				signal.observersLock.lock()
+
+				if let observers = signal.observers {
+					let retaining = signal.retaining
+					signal.observers = nil
+					signal.retaining = nil
+					signal.observersLock.unlock()
+
+					// Updates to `status` are implicitly synchronized against `sendLock`.
+					// So we do not need to guard it with an explicit lock.
 					//
-					// Specifically, senders serialized by `sendLock` can react to and
-					// clear `interruptedState` only if they see the write made below.
-					// The write can happen only once, since `state` being swapped with
-					// `nil` is a point of no return.
+					// Specifically, senders are serialized by `sendLock`, and can react
+					// to and bump the status to `terminated` only after they see the
+					// status being `terminating`.
+					//
+					// `terminating` can happen only once in the lifetime of a `Signal`,
+					// since `state` being swapped with `nil` is a point of no return.
 					//
 					// Even in the case that both a previous sender and its successor see
-					// the write (the `interruptedState` check before & after the unlock
-					// of `sendLock`), the senders are still bound to the `sendLock`.
-					// So whichever sender loses the battle of acquring `sendLock` is
-					// guaranteed to be blocked.
-					interruptedState = state
+					// `terminating`, the senders are still bound to the `sendLock`. So
+					// whichever sender loses the battle of acquring `sendLock` is
+					// guaranteed to see a status of `terminated`, and eventually be
+					// blocked.
+					signal.status = .terminating(SignalTerminationSnapshot(observers: observers,
+					                                                       event: event,
+					                                                       retaining: retaining))
 
-					if sendLock.try() {
-						if !terminated, let state = interruptedState {
-							interrupt(state.observers)
+					if signal.sendLock.try() {
+						if case let .terminating(state) = signal.status {
+							state.send()
+							signal.status = .terminated
 						}
-						sendLock.unlock()
-						signal.generatorDisposable?.dispose()
+						signal.sendLock.unlock()
+						signal.swapDisposable()?.dispose()
+					}
+				} else {
+					signal.observersLock.unlock()
+				}
+			} else if let observers = signal.observers {
+				var shouldDispose = false
+
+				// The `terminating` status check is performed twice for two different
+				// purposes:
+				//
+				// 1. Within the main protected section
+				//    It guarantees that recursive termination event, synchronously sent
+				//    by a downstream consumer, is immediately processed and need not
+				//    compete with concurrent pending senders (if any).
+				//
+				//    Termination events sent concurrently may also be caught here, but
+				//    not necessarily all of them due to data races.
+				//
+				// 2. After the main protected section
+				//    It ensures the termination event sent concurrently that are not
+				//    caught by (1) due to data races would still be processed.
+				//
+				// The related PR on the data race:
+				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
+
+				signal.sendLock.lock()
+				// Start of the main protected section.
+
+				if case .alive = signal.status {
+					for observer in observers {
+						observer.action(event)
+					}
+
+					if case let .terminating(state) = signal.status {
+						state.send()
+						signal.status = .terminated
+						shouldDispose = true
 					}
 				}
-			} else {
-				let isTerminating = event.isTerminating
 
-				if let observers = (isTerminating ? signal.state.swap(nil)?.observers : signal.state.value?.observers) {
-					var shouldDispose = false
+				// End of the main protected section.
+				signal.sendLock.unlock()
 
-					sendLock.lock()
+				// Based on the implicit memory order, any updates to `status` should
+				// always be visible after `sendLock` is released. So we check it again
+				// and handle the termination if it has not been taken over.
+				if !shouldDispose, case .terminating = signal.status {
+					signal.sendLock.lock()
 
-					if !terminated {
-						for observer in observers {
-							observer.action(event)
-						}
-
-						// Check if a downstream consumer or a concurrent sender has
-						// interrupted the signal.
-						if !isTerminating, let state = interruptedState {
-							interrupt(state.observers)
-							shouldDispose = true
-						}
-
-						if isTerminating {
-							terminated = true
-							shouldDispose = true
-						}
+					// The `terminating` check before acquring `sendLock` could be a false
+					// positive, since it might race against other concurrent senders
+					// until the lock acquisition above succeeds. So we have to check
+					// again if the status is still `terminating`.
+					if case let .terminating(state) = signal.status {
+						state.send()
+						signal.status = .terminated
+						shouldDispose = true
 					}
 
-					sendLock.unlock()
+					signal.sendLock.unlock()
+				}
 
-					// Based on the implicit memory order, any updates to the
-					// `interruptedState` should always be visible after `sendLock` is
-					// released. So we check it again and handle the interruption if
-					// it has not been taken over.
-					if !shouldDispose && !terminated && !isTerminating, let state = interruptedState {
-						sendLock.lock()
-
-						// `terminated` before acquring the lock could be a false negative,
-						// since it might race against other concurrent senders until the
-						// lock acquisition above succeeds. So we have to check again if the
-						// signal is really still alive.
-						if !terminated {
-							interrupt(state.observers)
-							shouldDispose = true
-						}
-
-						sendLock.unlock()
-					}
-
-					if shouldDispose {
-						// Dispose only after notifying observers, so disposal
-						// logic is consistently the last thing to run.
-						signal.generatorDisposable?.dispose()
-					}
+				if shouldDispose {
+					// Dispose only after notifying observers, so disposal
+					// logic is consistently the last thing to run.
+					signal.swapDisposable()?.dispose()
 				}
 			}
 		}
@@ -158,12 +195,23 @@ public final class Signal<Value, Error: Swift.Error> {
 		generatorDisposable = generator(observer)
 	}
 
-	deinit {
-		if state.swap(nil) != nil {
-			// As the signal can deinitialize only when it has no observers attached,
-			// only the generator disposable has to be disposed of at this point.
-			generatorDisposable?.dispose()
+	/// Swap the generator disposable with `nil`.
+	///
+	/// - returns:
+	///   The generator disposable, or `nil` if it has been disposed of.
+	@inline(__always)
+	private func swapDisposable() -> Disposable? {
+		if let d = generatorDisposable {
+			generatorDisposable = nil
+			return d
 		}
+		return nil
+	}
+
+	deinit {
+		// A signal can deinitialize only when it is not retained and has no
+		// active observers. So `state` need not be swapped.
+		swapDisposable()?.dispose()
 	}
 
 	/// A Signal that never sends any events to its observers.
@@ -214,20 +262,30 @@ public final class Signal<Value, Error: Swift.Error> {
 	@discardableResult
 	public func observe(_ observer: Observer) -> Disposable? {
 		var token: RemovalToken?
-		state.modify {
-			$0?.retainedSignal = self
-			token = $0?.observers.insert(observer)
+
+		observersLock.lock()
+		if let observers = self.observers {
+			var observers = observers
+			token = observers.insert(observer)
+			self.observers = observers
+			retaining = self
 		}
+		observersLock.unlock()
 
 		if let token = token {
 			return ActionDisposable { [weak self] in
 				if let strongSelf = self {
-					strongSelf.state.modify { state in
-						state?.observers.remove(using: token)
-						if state?.observers.isEmpty ?? false {
-							state!.retainedSignal = nil
+					strongSelf.observersLock.lock()
+					if let observers = strongSelf.observers {
+						var observers = observers
+						observers.remove(using: token)
+						strongSelf.observers = observers
+
+						if observers.isEmpty {
+							strongSelf.retaining = nil
 						}
 					}
+					strongSelf.observersLock.unlock()
 				}
 			}
 		} else {
@@ -237,9 +295,54 @@ public final class Signal<Value, Error: Swift.Error> {
 	}
 }
 
-private struct SignalState<Value, Error: Swift.Error> {
-	var observers: Bag<Signal<Value, Error>.Observer> = Bag()
-	var retainedSignal: Signal<Value, Error>?
+/// The status of a `Signal`.
+///
+/// - note: This three-case, single-payload enum was verified to be a packed
+///         object reference on i386, x86-64, armv7 and armv8 under the Swift
+///         3.0.1 ABI. Should any changes be made to the enum, please first
+///         verify that the change would not cause the enum to spill over the
+///         size of an object reference on all platforms.
+private enum SignalStatus<Value, Error: Swift.Error> {
+	/// The `Signal` is alive.
+	case alive
+
+	/// The `Signal` has received a termination event, and is about to be
+	/// terminated.
+	case terminating(SignalTerminationSnapshot<Value, Error>)
+
+	/// The `Signal` has terminated.
+	case terminated
+}
+
+/// A snapshot of the state of a `Signal` when it receives a termination event.
+///
+/// - note: The snapshot must be a reference type, as the total size of all
+///         stored properties might span beyond a cache line, resulting in
+///         corrupted states being observed by the event emitter.
+private final class SignalTerminationSnapshot<Value, Error: Swift.Error> {
+	private let observers: Bag<Observer<Value, Error>>
+	private let event: Event<Value, Error>
+	private let retaining: Signal<Value, Error>?
+
+	/// Create a snapshot.
+	///
+	/// - parameters:
+	///   - observers: The latest bag of observers.
+	///   - event: The termination event.
+	///   - retaining: The self retaining reference of the signal, if any.
+	init(observers: Bag<Observer<Value, Error>>, event: Event<Value, Error>, retaining: Signal<Value, Error>?) {
+		self.observers = observers
+		self.event = event
+		self.retaining = retaining
+	}
+
+	/// Send the termination event to the observers.
+	@inline(__always)
+	func send() {
+		for observer in observers {
+			observer.action(event)
+		}
+	}
 }
 
 public protocol SignalProtocol {

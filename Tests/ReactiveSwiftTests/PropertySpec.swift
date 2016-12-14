@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import Dispatch
 import Result
 import Nimble
 import Quick
@@ -264,6 +264,39 @@ class PropertySpec: QuickSpec {
 
 				property = nil
 				expect(isEnded) == true
+			}
+
+			it("should not deadlock") {
+				let queue: DispatchQueue
+
+				if #available(macOS 10.10, *) {
+					queue = DispatchQueue.global(qos: .userInitiated)
+				} else {
+					queue = DispatchQueue.global(priority: .high)
+				}
+
+				let group = DispatchGroup()
+
+				DispatchQueue.concurrentPerform(iterations: 500) { _ in
+					let source = MutableProperty(1)
+					var target = Optional(MutableProperty(1))
+
+					let semaphore = DispatchSemaphore(value: 0)
+
+					target! <~ source
+
+					queue.async(group: group) {
+						semaphore.wait()
+						target = nil
+					}
+
+					queue.async(group: group) {
+						semaphore.signal()
+						source.value = 2
+					}
+				}
+
+				group.wait()
 			}
 		}
 
