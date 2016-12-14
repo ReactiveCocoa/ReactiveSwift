@@ -1,5 +1,5 @@
 language: objective-c
-osx_image: xcode8.1
+osx_image: xcode8.2
 before_install: true
 install: true
 git:
@@ -24,11 +24,12 @@ matrix:
       env:
         - XCODE_SDK=iphonesimulator
         - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
+        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s,OS=10.1"
+    - xcode_scheme: ReactiveSwift-iOS
       env:
         - XCODE_SDK=iphonesimulator
         - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 5"
+        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 5,OS=10.1"
     - xcode_scheme: ReactiveSwift-tvOS
       env:
         - XCODE_SDK=appletvsimulator
