@@ -25,6 +25,7 @@ matrix:
         - XCODE_SDK=iphonesimulator
         - XCODE_ACTION="build-for-testing test-without-building"
         - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
+    - xcode_scheme: ReactiveSwift-iOS
       env:
         - XCODE_SDK=iphonesimulator
         - XCODE_ACTION="build-for-testing test-without-building"
