@@ -12,7 +12,7 @@ import Quick
 import ReactiveSwift
 
 private extension SignalProtocol {
-	typealias Pipe = (signal: Signal<Value, Error>, observer: Observer<Value, Error>)
+	typealias Pipe = (output: Signal<Value, Error>, input: Observer<Value, Error>)
 }
 
 private typealias Pipe = Signal<SignalProducer<Int, TestError>, TestError>.Pipe
@@ -26,7 +26,7 @@ class FlattenSpec: QuickSpec {
 
 				beforeEach {
 					pipe = Signal.pipe()
-					disposable = pipe.signal
+					disposable = pipe.output
 						.flatten(flattenStrategy)
 						.observe { _ in }
 				}
@@ -40,7 +40,7 @@ class FlattenSpec: QuickSpec {
 
 					beforeEach {
 						disposed = false
-						pipe.observer.send(value: SignalProducer<Int, TestError> { _, disposable in
+						pipe.input.send(value: SignalProducer<Int, TestError> { _, disposable in
 							disposable += ActionDisposable {
 								disposed = true
 							}
@@ -48,17 +48,17 @@ class FlattenSpec: QuickSpec {
 					}
 
 					it("should dispose inner signals when outer signal interrupted") {
-						pipe.observer.sendInterrupted()
+						pipe.input.sendInterrupted()
 						expect(disposed) == true
 					}
 
 					it("should dispose inner signals when outer signal failed") {
-						pipe.observer.send(error: .default)
+						pipe.input.send(error: .default)
 						expect(disposed) == true
 					}
 
 					it("should not dispose inner signals when outer signal completed") {
-						pipe.observer.sendCompleted()
+						pipe.input.sendCompleted()
 						expect(disposed) == false
 					}
 				}
