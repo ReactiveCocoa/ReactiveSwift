@@ -74,6 +74,9 @@ class ActionSpec: QuickSpec {
 				
 				action = nil
 				expect(weakProperty).to(beNil())
+				
+				// Mute "unused variable" warning.
+				_ = action
 			}
 
 			it("should be disabled and not executing after initialization") {
