@@ -367,7 +367,7 @@ If you use [Carthage][] to manage your dependencies, simply add
 ReactiveSwift to your `Cartfile`:
 
 ```
-github "ReactiveCocoa/ReactiveSwift" "1.0.0-alpha.4"
+github "ReactiveCocoa/ReactiveSwift" "1.0.0-rc.1"
 ```
 
 If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework`, and `Result.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
@@ -378,7 +378,7 @@ If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
-pod 'ReactiveSwift', '1.0.0-alpha.4'
+pod 'ReactiveSwift', '1.0.0-rc.1'
 ```
 
 #### Swift Package Manager
@@ -387,7 +387,7 @@ If you use Swift Package Manager, simply add ReactiveSwift as a dependency
 of your package in `Package.swift`:
 
 ```
-.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", "1.0.0-alpha.4")
+.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", "1.0.0-rc.1")
 ```
 
 #### Git submodule
