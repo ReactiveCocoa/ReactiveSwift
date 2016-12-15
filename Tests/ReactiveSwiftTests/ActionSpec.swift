@@ -58,6 +58,23 @@ class ActionSpec: QuickSpec {
 				action.errors.observeValues { errors.append($0) }
 				action.completed.observeValues { completedCount += 1 }
 			}
+			
+			it("should retain the state property") {
+				var property: MutableProperty<Bool>? = MutableProperty(false)
+				weak var weakProperty = property
+				
+				var action: Action<(), (), NoError>? = Action(state: property!, enabledIf: { _ in true }) { _ in
+					return .empty
+				}
+				
+				expect(weakProperty).toNot(beNil())
+				
+				property = nil
+				expect(weakProperty).toNot(beNil())
+				
+				action = nil
+				expect(weakProperty).to(beNil())
+			}
 
 			it("should be disabled and not executing after initialization") {
 				expect(action.isEnabled.value) == false
