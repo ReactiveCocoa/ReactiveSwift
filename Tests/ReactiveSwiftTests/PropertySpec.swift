@@ -1046,6 +1046,66 @@ class PropertySpec: QuickSpec {
 					property = MutableProperty(initialPropertyValue)
 				}
 
+				describe("observe(on:)") {
+					it("should be composable") {
+						let queue = DispatchQueue(label: "PropertySpecTest")
+						let scheduler = QueueScheduler(queue: queue)
+
+						// Suspending the queue would prevent emitted events from being
+						// delivered, so that the has-one-value contract can be properly
+						// validated without false positives caused by race conditions.
+						queue.suspend()
+
+						let mapped = property
+							.observe(on: scheduler)
+							.map { $0.characters.count }
+
+						expect(mapped.value) == initialPropertyValue.characters.count
+						queue.resume()
+					}
+
+					it("should emit subsequent events on the given scheduler") {
+						let queue = DispatchQueue(label: "PropertySpecTest")
+						let specific = DispatchSpecificKey<()>()
+						queue.setSpecific(key: specific, value: ())
+						let scheduler = QueueScheduler(queue: queue)
+
+						var values: [String] = []
+						var counter = 0
+
+						var hasReceivedFirst = false
+						let semaphore = DispatchSemaphore(value: 0)
+
+						property
+							.observe(on: scheduler)
+							.producer
+							.startWithValues { value in
+								if !hasReceivedFirst {
+									hasReceivedFirst = true
+								} else {
+									counter += DispatchQueue.getSpecific(key: specific) != nil ? 1 : 0
+									values.append(value)
+
+									semaphore.signal()
+								}
+							}
+
+						expect(hasReceivedFirst) == true
+						expect(values) == []
+						expect(counter) == 0
+
+						property.value = subsequentPropertyValue
+						semaphore.wait()
+						expect(values) == [subsequentPropertyValue]
+						expect(counter) == 1
+
+						property.value = finalPropertyValue
+						semaphore.wait()
+						expect(values) == [subsequentPropertyValue, finalPropertyValue]
+						expect(counter) == 2
+					}
+				}
+
 				describe("combinePrevious") {
 					it("should pack the current value and the previous value a tuple") {
 						let transformedProperty = property.combinePrevious(initialPropertyValue)
