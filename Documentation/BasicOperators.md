@@ -38,9 +38,10 @@ types will be referred to by name.
   1. [Concatenating](#concatenating)
   1. [Switching to the latest](#switching-to-the-latest)
 
-**[Handling failures](#handling-failures)**
+**[Working with errors](#working-with-errors)**
 
   1. [Catching failures](#catching-failures)
+  1. [Failable transformations](#failable-transformations)
   1. [Retrying](#retrying)
   1. [Mapping errors](#mapping-errors)
   1. [Promote](#promote)
@@ -370,9 +371,9 @@ lettersObserver.send(value: "c")    // nothing printed
 numbersObserver.send(value: "3")    // prints "3"
 ```
 
-## Handling failures
+## Working with errors
 
-These operators are used to handle failures that might occur on an event stream.
+These operators are used to handle failures that might occur on an event stream, or perform operations that might fail on an event stream.
 
 ### Catching failures
 
@@ -392,6 +393,32 @@ producer
 observer.send(value: "First")     // prints "First"
 observer.send(value: "Second")    // prints "Second"
 observer.send(error: error)       // prints "Default"
+```
+
+### Failable transformations
+
+`SignalProducer.attempt(_:)` allows you to turn a failable operation into an event stream.
+The `attempt(_:)` and `attemptMap(_:)` operators allow you to perform failable operations or transformations on an event stream.
+
+```swift
+let dictionaryPath = URL(fileURLWithPath: "/usr/share/dict/words")
+
+// Create a `SignalProducer` that lazily attempts the closure
+// whenever it is started
+let data = SignalProducer.attempt { try Data(contentsOf: dictionaryPath) }
+
+// Lazily apply a failable transformation
+let json = data.attemptMap { try JSONSerialization.jsonObject(with: $0) }
+
+json.startWithResult { result in
+    switch result {
+    case let .success(words):
+        print("Dictionary as JSON:")
+        print(words)
+    case let .failure(error):
+        print("Couldn't parse dictionary as JSON: \(error)")
+    }
+}
 ```
 
 ### Retrying

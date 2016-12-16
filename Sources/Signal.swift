@@ -1651,51 +1651,6 @@ extension SignalProtocol {
 		}
 	}
 
-	/// Apply `operation` to values from `self` with `success`ful results
-	/// forwarded on the returned signal and `failure`s sent as failed events.
-	///
-	/// - parameters:
-	///   - operation: A closure that accepts a value and returns a `Result`.
-	///
-	/// - returns: A signal that receives `success`ful `Result` as `value` event
-	///            and `failure` as failed event.
-	public func attempt(_ operation: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
-		return attemptMap { value in
-			return operation(value).map {
-				return value
-			}
-		}
-	}
-
-	/// Apply `operation` to values from `self` with `success`ful results mapped
-	/// on the returned signal and `failure`s sent as failed events.
-	///
-	/// - parameters:
-	///   - operation: A closure that accepts a value and returns a result of
-	///                a mapped value as `success`.
-	///
-	/// - returns: A signal that sends mapped values from `self` if returned
-	///            `Result` is `success`ful, `failed` events otherwise.
-	public func attemptMap<U>(_ operation: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
-		return Signal { observer in
-			self.observe { event in
-				switch event {
-				case let .value(value):
-					operation(value).analysis(
-						ifSuccess: observer.send(value:),
-						ifFailure: observer.send(error:)
-					)
-				case let .failed(error):
-					observer.send(error: error)
-				case .completed:
-					observer.sendCompleted()
-				case .interrupted:
-					observer.sendInterrupted()
-				}
-			}
-		}
-	}
-
 	/// Throttle values sent by the receiver, so that at least `interval`
 	/// seconds pass between each, then forwards them on the given scheduler.
 	///
@@ -2228,5 +2183,121 @@ extension SignalProtocol where Error == NoError {
 		return self
 			.promoteErrors(NewError.self)
 			.timeout(after: interval, raising: error, on: scheduler)
+	}
+}
+
+extension SignalProtocol {
+	/// Apply `operation` to values from `self` with `success`ful results
+	/// forwarded on the returned signal and `failure`s sent as failed events.
+	///
+	/// - parameters:
+	///   - operation: A closure that accepts a value and returns a `Result`.
+	///
+	/// - returns: A signal that receives `success`ful `Result` as `value` event
+	///            and `failure` as failed event.
+	public func attempt(_ operation: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
+		return attemptMap { value in
+			return operation(value).map {
+				return value
+			}
+		}
+	}
+
+	/// Apply `operation` to values from `self` with `success`ful results mapped
+	/// on the returned signal and `failure`s sent as failed events.
+	///
+	/// - parameters:
+	///   - operation: A closure that accepts a value and returns a result of
+	///                a mapped value as `success`.
+	///
+	/// - returns: A signal that sends mapped values from `self` if returned
+	///            `Result` is `success`ful, `failed` events otherwise.
+	public func attemptMap<U>(_ operation: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
+		return Signal { observer in
+			self.observe { event in
+				switch event {
+				case let .value(value):
+					operation(value).analysis(
+						ifSuccess: observer.send(value:),
+						ifFailure: observer.send(error:)
+					)
+				case let .failed(error):
+					observer.send(error: error)
+				case .completed:
+					observer.sendCompleted()
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
+		}
+	}
+}
+
+extension SignalProtocol where Error == NoError {
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results forwarded on the returned signal and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value.
+	///
+	/// - returns: A signal that forwards successes as `value` events and thrown
+	///            errors as `failed` events.
+	public func attempt(_ operation: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
+		return self
+			.promoteErrors(AnyError.self)
+			.attempt(operation)
+	}
+
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results mapped on the returned signal and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value and attempts to
+	///                transform it.
+	///
+	/// - returns: A signal that sends successfully mapped values from `self`, or
+	///            thrown errors as `failed` events.
+	public func attemptMap<U>(_ operation: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+		return self
+			.promoteErrors(AnyError.self)
+			.attemptMap(operation)
+	}
+}
+
+extension SignalProtocol where Error == AnyError {
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results forwarded on the returned signal and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value.
+	///
+	/// - returns: A signal that forwards successes as `value` events and thrown
+	///            errors as `failed` events.
+	public func attempt(_ operation: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
+		return attemptMap { value in
+			try operation(value)
+			return value
+		}
+	}
+
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results mapped on the returned signal and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value and attempts to
+	///                transform it.
+	///
+	/// - returns: A signal that sends successfully mapped values from `self`, or
+	///            thrown errors as `failed` events.
+	public func attemptMap<U>(_ operation: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+		return attemptMap { value in
+			ReactiveSwift.materialize {
+				try operation(value)
+			}
+		}
 	}
 }
