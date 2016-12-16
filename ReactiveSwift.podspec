@@ -1,6 +1,5 @@
 Pod::Spec.new do |s|
   s.name         = "ReactiveSwift"
-  # Version goes here and will be used to access the git tag later on, once we have a first release.
   s.version      = "1.0.0-rc.2"
   s.summary      = "Streams of values over time"
   s.description  = <<-DESC

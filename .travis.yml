@@ -7,6 +7,7 @@ git:
 branches:
   only:
     - master
+    - master-next
 before_script:
   - git submodule update --init --recursive
 script:
