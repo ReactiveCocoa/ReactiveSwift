@@ -52,15 +52,23 @@ extension MutablePropertyProtocol {
 /// A composed property would retain its ultimate source, but not
 /// any intermediate property during the composition.
 extension PropertyProtocol {
-	/// Lifts a unary SignalProducer operator to operate upon PropertyProtocol instead.
+	/// Lifts a unary SignalProducer operator to operate upon PropertyProtocol
+	/// instead.
+	///
+	/// - parameters:
+	///   - transform: A unary `SignalProducer` transform to apply on `self`.
 	fileprivate func lift<U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> SignalProducer<U, NoError>) -> Property<U> {
-		return Property(self, transform: transform)
+		return Property(unsafeProducer: transform(self.producer))
 	}
 
-	/// Lifts a binary SignalProducer operator to operate upon PropertyProtocol instead.
+	/// Lifts a binary SignalProducer operator to operate upon PropertyProtocol
+	/// instead.
+	///
+	/// - parameters:
+	///   - transform: A binary `SignalProducer` operator.
 	fileprivate func lift<P: PropertyProtocol, U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> (SignalProducer<P.Value, NoError>) -> SignalProducer<U, NoError>) -> (P) -> Property<U> {
 		return { otherProperty in
-			return Property(self, otherProperty, transform: transform)
+			return Property(unsafeProducer: transform(self.producer)(otherProperty.producer))
 		}
 	}
 
@@ -74,6 +82,41 @@ extension PropertyProtocol {
 	///            from `self`.
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Property<U> {
 		return lift { $0.map(transform) }
+	}
+
+	/// Create a property which forwards all changes and deinitialization of
+	/// `self` onto the given scheduler, instead of whichever scheduler they
+	/// originally arrived upon.
+	///
+	/// - note: The producer of the resulting property would replay the current
+	///         value synchronously. If the initial value has to be delivered on
+	///         the given scheduler, `start(on:)` must be applied to the producer.
+	///
+	/// - parameters:
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A property that forwards all events on the given scheduler.
+	public func observe(on scheduler: SchedulerProtocol) -> Property<Value> {
+		return lift { producer in
+			return SignalProducer { observer, disposable in
+				var hasReceivedFirst = false
+
+				disposable += producer.start { event in
+					if hasReceivedFirst {
+						// It is unnecessary to add the scheduler token to the producer
+						// disposable (which would need `SerialDisposable` to minimize
+						// the memory consumption), as the event emitter would block post-
+						// termination events anyway.
+						scheduler.schedule {
+							observer.action(event)
+						}
+					} else {
+						hasReceivedFirst = true
+						observer.action(event)
+					}
+				}
+			}
+		}
 	}
 
 	/// Combines the current value and the subsequent values of two `Property`s in
@@ -472,32 +515,6 @@ public final class Property<Value>: PropertyProtocol {
 		self.init(unsafeProducer: SignalProducer(values).prefix(value: initial))
 	}
 
-	/// Initialize a composed property by applying the unary `SignalProducer`
-	/// transform on `property`.
-	///
-	/// - parameters:
-	///   - property: The source property.
-	///   - transform: A unary `SignalProducer` transform to be applied on
-	///     `property`.
-	fileprivate convenience init<P: PropertyProtocol>(
-		_ property: P,
-		transform: @escaping (SignalProducer<P.Value, NoError>) -> SignalProducer<Value, NoError>
-	) {
-		self.init(unsafeProducer: transform(property.producer))
-	}
-
-	/// Initialize a composed property by applying the binary `SignalProducer`
-	/// transform on `firstProperty` and `secondProperty`.
-	///
-	/// - parameters:
-	///   - firstProperty: The first source property.
-	///   - secondProperty: The first source property.
-	///   - transform: A binary `SignalProducer` transform to be applied on
-	///             `firstProperty` and `secondProperty`.
-	fileprivate convenience init<P1: PropertyProtocol, P2: PropertyProtocol>(_ firstProperty: P1, _ secondProperty: P2, transform: @escaping (SignalProducer<P1.Value, NoError>) -> (SignalProducer<P2.Value, NoError>) -> SignalProducer<Value, NoError>) {
-		self.init(unsafeProducer: transform(firstProperty.producer)(secondProperty.producer))
-	}
-
 	/// Initialize a composed property from a producer that promises to send
 	/// at least one value synchronously in its start handler before sending any
 	/// subsequent event.
@@ -510,7 +527,7 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - parameters:
 	///   - unsafeProducer: The composed producer for creating the property.
-	private init(unsafeProducer: SignalProducer<Value, NoError>) {
+	fileprivate init(unsafeProducer: SignalProducer<Value, NoError>) {
 		// Share a replayed producer with `self.producer` and `self.signal` so
 		// they see a consistent view of the `self.value`.
 		// https://github.com/ReactiveCocoa/ReactiveCocoa/pull/3042
