@@ -424,10 +424,10 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 ## Release Roadmap
 **Current Stable Release:**<br />[![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveSwift.svg)](https://github.com/ReactiveCocoa/ReactiveSwift/releases)
 
-### In Development: ReactiveSwift 1.0
+### Code Complete: ReactiveSwift 1.0
 It targets Swift 3.0.x. The tentative schedule of a Gold Master release is January 2017.
 
-A Release Candidate would be released after an important bug fix and an API renaming PR are cleared, which should happen no later than Christmas 2016.
+[Release Candidiate 1](https://github.com/ReactiveCocoa/ReactiveSwift/releases/tag/1.0.0-rc.1) has been released.
 
 A point release is expected with performance optimizations.
 
