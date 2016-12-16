@@ -366,6 +366,23 @@ extension PropertyProtocol {
 	}
 }
 
+extension PropertyProtocol where Value == Bool {
+	/// Returns a property with the oposite value
+	var not: Property<Value> { return self.map { !$0 } }
+	
+	///Combines the property with the given property in a manner described by
+	///`and()` operator.
+	func and(_ property: Property<Value>) -> Property<Value> {
+		return self.combineLatest(with: property).map { $0 && $1 }
+	}
+	
+	///Combines the property with the given property in a manner described by
+	///`or()` operator.
+	func or(_ property: Property<Value>) -> Property<Value> {
+		return self.combineLatest(with: property).map { $0 || $1 }
+	}
+}
+
 /// A read-only property that can be observed for its changes over time. There
 /// are three categories of read-only properties:
 ///
