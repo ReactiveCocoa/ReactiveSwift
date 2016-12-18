@@ -87,8 +87,8 @@ public func <~
 	// Alter the semantics of `BindingTarget` to not require it to be retained.
 	// This is done here--and not in a separate function--so that all variants
 	// of `<~` can get this behavior.
-	let observer: Observer<Source.Value, NoError>
-	if let target = target as? BindingTarget<Source.Value> {
+	let observer: Observer<Target.Value, NoError>
+	if let target = target as? BindingTarget<Target.Value> {
 		observer = Observer(value: { [setter = target.setter] in setter($0) })
 	} else {
 		observer = Observer(value: { [weak target] in target?.consume($0) })
@@ -136,10 +136,21 @@ public func <~
 	(target: Target, source: Source) -> Disposable?
 	where Target.Value: OptionalProtocol, Source.Value == Target.Value.Wrapped, Source.Error == NoError
 {
-	let newTarget = BindingTarget<Source.Value>(lifetime: target.lifetime) { [weak target] value in
-		target?.consume(Target.Value(reconstructing: value))
+	// Alter the semantics of `BindingTarget` to not require it to be retained.
+	// This is done here--and not in a separate function--so that all variants
+	// of `<~` can get this behavior.
+	let observer: Observer<Source.Value, NoError>
+	if let target = target as? BindingTarget<Target.Value> {
+		observer = Observer(value: { [setter = target.setter] in setter(Target.Value(reconstructing: $0)) })
+	} else {
+		observer = Observer(value: { [weak target] in target?.consume(Target.Value(reconstructing: $0)) })
 	}
-	return newTarget <~ source
+
+	let disposable = source.observe(observer)
+	if let disposable = disposable {
+		target.lifetime.ended.observeCompleted { disposable.dispose() }
+	}
+	return disposable
 }
 
 /// A binding target that can be used with the `<~` operator.
