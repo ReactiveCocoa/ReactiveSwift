@@ -298,6 +298,128 @@ class PropertySpec: QuickSpec {
 
 				group.wait()
 			}
+
+			it("should not drop the value") {
+				let queue: DispatchQueue
+
+				if #available(macOS 10.10, *) {
+					queue = DispatchQueue.global(qos: .userInteractive)
+				} else {
+					queue = DispatchQueue.global(priority: .high)
+				}
+
+				let group = DispatchGroup()
+
+				let counter1 = Atomic(0)
+				let counter2 = Atomic(0)
+				let counter3 = Atomic(0)
+
+				DispatchQueue.concurrentPerform(iterations: 1000) { _ in
+					let source = MutableProperty(1)
+					var mapped = source.map { $0 }.map { $0 }
+
+					let s1 = DispatchSemaphore(value: 0)
+					let s2 = DispatchSemaphore(value: 0)
+
+					queue.async(group: group) {
+						s1.wait()
+						source.value = 2
+						source.value = 3
+						s2.signal()
+					}
+
+					queue.async(group: group) {
+						var caught1 = false
+						var caught2 = false
+						var caught3 = false
+
+						var d: Disposable?
+
+						mapped.producer.startWithSignal { signal, disposable in
+							d = disposable
+							signal.observeValues { v in
+								s1.signal()
+								if v == 1 { caught1 = true }
+								if v == 2 { caught2 = true }
+								if v == 3 { caught3 = true }
+							}
+						}
+
+						s2.wait()
+
+						counter1.modify { $0 += caught1 ? 1 : 0 }
+						counter2.modify { $0 += caught2 ? 1 : 0 }
+						counter3.modify { $0 += caught3 ? 1 : 0 }
+					}
+				}
+				
+				group.wait()
+
+				expect(counter1.value) == 1000
+				expect(counter2.value) == 1000
+				expect(counter3.value) == 1000
+			}
+
+			it("should not drop the value") {
+				let queue: DispatchQueue
+
+				if #available(macOS 10.10, *) {
+					queue = DispatchQueue.global(qos: .userInteractive)
+				} else {
+					queue = DispatchQueue.global(priority: .high)
+				}
+
+				let group = DispatchGroup()
+
+				let counter1 = Atomic(0)
+				let counter2 = Atomic(0)
+				let counter3 = Atomic(0)
+
+				DispatchQueue.concurrentPerform(iterations: 1000) { _ in
+					let source = MutableProperty(1)
+					var mapped = source.skipRepeats().skipRepeats()
+
+					let s1 = DispatchSemaphore(value: 0)
+					let s2 = DispatchSemaphore(value: 0)
+
+					queue.async(group: group) {
+						s1.wait()
+						source.value = 2
+						source.value = 3
+						s2.signal()
+					}
+
+					queue.async(group: group) {
+						var caught1 = false
+						var caught2 = false
+						var caught3 = false
+
+						var d: Disposable?
+
+						mapped.producer.startWithSignal { signal, disposable in
+							d = disposable
+							signal.observeValues { v in
+								s1.signal()
+								if v == 1 { caught1 = true }
+								if v == 2 { caught2 = true }
+								if v == 3 { caught3 = true }
+							}
+						}
+
+						s2.wait()
+
+						counter1.modify { $0 += caught1 ? 1 : 0 }
+						counter2.modify { $0 += caught2 ? 1 : 0 }
+						counter3.modify { $0 += caught3 ? 1 : 0 }
+					}
+				}
+
+				group.wait()
+
+				expect(counter1.value) == 1000
+				expect(counter2.value) == 1000
+				expect(counter3.value) == 1000
+			}
 		}
 
 		describe("Property") {
@@ -1044,6 +1166,130 @@ class PropertySpec: QuickSpec {
 
 				beforeEach {
 					property = MutableProperty(initialPropertyValue)
+				}
+
+				describe("observe(on:)") {
+					it("should be composable") {
+						let queue = DispatchQueue(label: "PropertySpecTest")
+						let scheduler = QueueScheduler(queue: queue)
+
+						// Suspending the queue would prevent emitted events from being
+						// delivered, so that the has-one-value contract can be properly
+						// validated without false positives caused by race conditions.
+						queue.suspend()
+
+						let observed = property.observe(on: scheduler)
+						expect(observed.value) == initialPropertyValue
+
+						let mapped = observed.map { $0.characters.count }
+						expect(mapped.value) == initialPropertyValue.characters.count
+						queue.resume()
+					}
+/*
+					it("should inherit the scheduler from its source properties") {
+						let queue = DispatchQueue(label: "PropertySpecTest")
+						let specific = DispatchSpecificKey<()>()
+						queue.setSpecific(key: specific, value: ())
+						let scheduler = QueueScheduler(queue: queue)
+
+						var counter = 0
+						let observed = property.observe(on: scheduler)
+						observed.producer.startWithValues { _ in
+							counter += DispatchQueue.getSpecific(key: specific) != nil ? 1 : 0
+						}
+
+						expect(counter).toEventually(equal(1))
+
+						property.value = subsequentPropertyValue
+						expect(counter).toEventually(equal(2))
+
+						// `mapped` should replay its initial value on the same scheduler
+						// as `observed`.
+						var counter2 = 0
+						let mapped = observed.map { $0.characters.count }
+						mapped.producer.startWithValues { _ in
+							counter2 += DispatchQueue.getSpecific(key: specific) != nil ? 1 : 0
+						}
+
+						expect(counter2).toEventually(equal(1))
+
+						property.value = subsequentPropertyValue
+						expect(counter).toEventually(equal(3))
+						expect(counter2).toEventually(equal(2))
+					}
+*/
+					it("should override the scheduler of its source properties") {
+						let queue1 = DispatchQueue(label: "PropertySpecTest")
+						let specific1 = DispatchSpecificKey<()>()
+						queue1.setSpecific(key: specific1, value: ())
+						let scheduler1 = QueueScheduler(queue: queue1)
+
+						let queue2 = DispatchQueue(label: "PropertySpecTest")
+						let specific2 = DispatchSpecificKey<()>()
+						queue2.setSpecific(key: specific2, value: ())
+						let scheduler2 = QueueScheduler(queue: queue2)
+
+						var counter = 0
+						let observed = property.observe(on: scheduler1)
+						observed.producer.startWithValues { _ in
+							counter += DispatchQueue.getSpecific(key: specific1) != nil ? 1 : 0
+						}
+
+						expect(counter).toEventually(equal(1))
+
+						property.value = subsequentPropertyValue
+						expect(counter).toEventually(equal(2))
+
+						// `observed2` should replay its initial value on `scheduler2`,
+						// instead of the one of `observed`.
+						var counter2 = 0
+						let observed2 = property.observe(on: scheduler2)
+						observed2.producer.startWithValues { _ in
+							counter2 += DispatchQueue.getSpecific(key: specific2) != nil ? 1 : 0
+						}
+
+						expect(counter2).toEventually(equal(1))
+
+						property.value = subsequentPropertyValue
+						expect(counter).toEventually(equal(3))
+						expect(counter2).toEventually(equal(2))
+					}
+
+					it("should emit subsequent events on the given scheduler") {
+						let queue = DispatchQueue(label: "PropertySpecTest")
+						let specific = DispatchSpecificKey<()>()
+						queue.setSpecific(key: specific, value: ())
+						let scheduler = QueueScheduler(queue: queue)
+
+						var values: [String] = []
+						var counter = 0
+
+						let semaphore = DispatchSemaphore(value: 0)
+
+						property
+							.observe(on: scheduler)
+							.producer
+							.startWithValues { value in
+								counter += DispatchQueue.getSpecific(key: specific) != nil ? 1 : 0
+								values.append(value)
+
+								semaphore.signal()
+						}
+
+						semaphore.wait()
+						expect(values) == [initialPropertyValue]
+						expect(counter) == 1
+
+						property.value = subsequentPropertyValue
+						semaphore.wait()
+						expect(values) == [initialPropertyValue, subsequentPropertyValue]
+						expect(counter) == 2
+
+						property.value = finalPropertyValue
+						semaphore.wait()
+						expect(values) == [initialPropertyValue, subsequentPropertyValue, finalPropertyValue]
+						expect(counter) == 3
+					}
 				}
 
 				describe("combinePrevious") {
