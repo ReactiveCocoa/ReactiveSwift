@@ -139,7 +139,7 @@ With each string, we want to execute a network request. ReactiveSwift offers an
 
 ```swift
 let searchResults = searchStrings
-    .flatMap(.latest) { (query: String?) -> SignalProducer<(Data, URLResponse), NSError> in
+    .flatMap(.latest) { (query: String?) -> SignalProducer<(Data, URLResponse), Error> in
         let request = self.makeSearchRequest(escapedQuery: query)
         return URLSession.shared.reactive.data(with: request)
     }
@@ -196,7 +196,7 @@ To remedy this, we need to decide what to do with failures that occur. The
 quickest solution would be to log them, then ignore them:
 
 ```swift
-    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), NSError> in
+    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), Error> in
         let request = self.makeSearchRequest(escapedQuery: query)
 
         return URLSession.shared.reactive
@@ -218,7 +218,7 @@ Our improved `searchResults` producer might look like this:
 
 ```swift
 let searchResults = searchStrings
-    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), NSError> in
+    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), Error> in
         let request = self.makeSearchRequest(escapedQuery: query)
 
         return URLSession.shared.reactive
@@ -323,8 +323,8 @@ easy](http://www.infoq.com/presentations/Simple-Made-Easy)**.
 
 When [Signals][Signal] and [SignalProducers][SignalProducer] are allowed to [fail][Events] in ReactiveSwift,
 the kind of error must be specified in the type system. For example,
-`Signal<Int, NSError>` is a signal of integer values that may fail with an error
-of type `NSError`.
+`Signal<Int, Error>` is a signal of integer values that may fail with an error
+of type `Error`.
 
 More importantly, RAC allows the special type `NoError` to be used instead,
 which _statically guarantees_ that an event stream is not allowed to send a
