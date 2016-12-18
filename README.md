@@ -67,8 +67,8 @@ It is like an automatic vending machine — after choosing an option with coins 
 // Purchase from the vending machine with a specific option.
 vendingMachine.purchase
     .apply(snackId)
-    .startWithResults { result
-        switch results {
+    .startWithResult { result
+        switch result {
         case let .success(snacks):
             print("Snack: \(snacks)")
         
