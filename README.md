@@ -367,7 +367,7 @@ If you use [Carthage][] to manage your dependencies, simply add
 ReactiveSwift to your `Cartfile`:
 
 ```
-github "ReactiveCocoa/ReactiveSwift" "1.0.0-rc.1"
+github "ReactiveCocoa/ReactiveSwift" "1.0.0-rc.2"
 ```
 
 If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework`, and `Result.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
@@ -378,7 +378,7 @@ If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
-pod 'ReactiveSwift', '1.0.0-rc.1'
+pod 'ReactiveSwift', '1.0.0-rc.2'
 ```
 
 #### Swift Package Manager
@@ -387,7 +387,7 @@ If you use Swift Package Manager, simply add ReactiveSwift as a dependency
 of your package in `Package.swift`:
 
 ```
-.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", "1.0.0-rc.1")
+.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", "1.0.0-rc.2")
 ```
 
 #### Git submodule
@@ -427,7 +427,7 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 ### Code Complete: ReactiveSwift 1.0
 It targets Swift 3.0.x. The tentative schedule of a Gold Master release is January 2017.
 
-[Release Candidiate 1](https://github.com/ReactiveCocoa/ReactiveSwift/releases/tag/1.0.0-rc.1) has been released.
+[Release Candidiate 2](https://github.com/ReactiveCocoa/ReactiveSwift/releases/tag/1.0.0-rc.2) has been released.
 
 A point release is expected with performance optimizations.
 
