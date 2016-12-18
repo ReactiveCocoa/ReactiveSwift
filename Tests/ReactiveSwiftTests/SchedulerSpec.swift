@@ -203,7 +203,7 @@ class SchedulerSpec: QuickSpec {
 					var count = 0
 					let timesToRun = 3
 
-					disposable.innerDisposable = scheduler.schedule(after: Date(), interval: .milliseconds(10), leeway: .seconds(0)) {
+					disposable.inner = scheduler.schedule(after: Date(), interval: .milliseconds(10), leeway: .seconds(0)) {
 						expect(Thread.isMainThread) == false
 
 						count += 1

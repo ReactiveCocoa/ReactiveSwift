@@ -1305,10 +1305,10 @@ extension SignalProtocol {
 		return Signal { observer in
 			let disposable = SerialDisposable()
 			
-			disposable.innerDisposable = trigger.observe { event in
+			disposable.inner = trigger.observe { event in
 				switch event {
 				case .value, .completed:
-					disposable.innerDisposable = self.observe(observer)
+					disposable.inner = self.observe(observer)
 					
 				case .failed, .interrupted:
 					break
@@ -1684,7 +1684,7 @@ extension SignalProtocol {
 
 			disposable += self.observe { event in
 				guard let value = event.value else {
-					schedulerDisposable.innerDisposable = scheduler.schedule {
+					schedulerDisposable.inner = scheduler.schedule {
 						observer.action(event)
 					}
 					return
@@ -1711,7 +1711,7 @@ extension SignalProtocol {
 					}
 				}
 
-				schedulerDisposable.innerDisposable = scheduler.schedule(after: scheduleDate) {
+				schedulerDisposable.inner = scheduler.schedule(after: scheduleDate) {
 					let pendingValue: Value? = state.modify { state in
 						defer {
 							if state.pendingValue != nil {
@@ -1785,7 +1785,7 @@ extension SignalProtocol {
 					}
 
 					if let value = valueToSend {
-						schedulerDisposable.innerDisposable = scheduler.schedule {
+						schedulerDisposable.inner = scheduler.schedule {
 							observer.send(value: value)
 						}
 					}
@@ -1812,7 +1812,7 @@ extension SignalProtocol {
 				}
 
 				if let event = eventToSend {
-					schedulerDisposable.innerDisposable = scheduler.schedule {
+					schedulerDisposable.inner = scheduler.schedule {
 						observer.action(event)
 					}
 				}

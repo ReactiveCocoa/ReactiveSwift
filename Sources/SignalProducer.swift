@@ -1631,7 +1631,7 @@ extension SignalProducerProtocol {
 
 			func iterate(_ current: Int) {
 				self.startWithSignal { signal, signalDisposable in
-					serialDisposable.innerDisposable = signalDisposable
+					serialDisposable.inner = signalDisposable
 
 					signal.observe { event in
 						if case .completed = event {
