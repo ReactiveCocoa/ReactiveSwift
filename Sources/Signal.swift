@@ -265,19 +265,20 @@ public final class Signal<Value, Error: Swift.Error> {
 		}
 	}
 
-	/// Create a Signal that will be controlled by sending events to the given
-	/// observer.
+	/// Create a `Signal` that will be controlled by sending events to an
+	/// input observer.
 	///
-	/// - note: The Signal will remain alive until a terminating event is sent
-	///         to the observer, or until it has no observer if it is not
-	///         retained.
+	/// - note: The `Signal` will remain alive until a terminating event is sent
+	///         to the input observer, or until it has no observers and there
+	///         are no strong references to it.
 	///
 	/// - parameters:
 	///   - disposable: An optional disposable to associate with the signal, and
 	///                 to be disposed of when the signal terminates.
 	///
-	/// - returns: A tuple made of signal and observer.
-	public static func pipe(disposable: Disposable? = nil) -> (Signal, Observer) {
+	/// - returns: A tuple of `output: Signal`, the output end of the pipe,
+	///            and `input: Observer`, the input end of the pipe.
+	public static func pipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
 		var observer: Observer!
 		let signal = self.init { innerObserver in
 			observer = innerObserver
