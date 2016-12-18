@@ -240,14 +240,14 @@ public final class CompositeDisposable: Disposable {
 }
 
 /// A disposable that, upon deinitialization, will automatically dispose of
-/// another disposable.
-public final class ScopedDisposable<InnerDisposable: Disposable>: Disposable {
+/// its inner disposable.
+public final class ScopedDisposable<Inner: Disposable>: Disposable {
 	/// The disposable which will be disposed when the ScopedDisposable
 	/// deinitializes.
-	public let innerDisposable: InnerDisposable
+	public let inner: Inner
 
 	public var isDisposed: Bool {
-		return innerDisposable.isDisposed
+		return inner.isDisposed
 	}
 
 	/// Initialize the receiver to dispose of the argument upon
@@ -255,8 +255,8 @@ public final class ScopedDisposable<InnerDisposable: Disposable>: Disposable {
 	///
 	/// - parameters:
 	///   - disposable: A disposable to dispose of when deinitializing.
-	public init(_ disposable: InnerDisposable) {
-		innerDisposable = disposable
+	public init(_ disposable: Inner) {
+		inner = disposable
 	}
 
 	deinit {
@@ -264,11 +264,11 @@ public final class ScopedDisposable<InnerDisposable: Disposable>: Disposable {
 	}
 
 	public func dispose() {
-		return innerDisposable.dispose()
+		return inner.dispose()
 	}
 }
 
-extension ScopedDisposable where InnerDisposable: AnyDisposable {
+extension ScopedDisposable where Inner: AnyDisposable {
 	/// Initialize the receiver to dispose of the argument upon
 	/// deinitialization.
 	///
@@ -276,30 +276,31 @@ extension ScopedDisposable where InnerDisposable: AnyDisposable {
 	///   - disposable: A disposable to dispose of when deinitializing, which
 	///                 will be wrapped in an `AnyDisposable`.
 	public convenience init(_ disposable: Disposable) {
-		self.init(InnerDisposable(disposable))
+		self.init(Inner(disposable))
 	}
 }
 
-/// A disposable that will optionally dispose of another disposable.
+/// A disposable that disposes of its wrapped disposable, and allows its
+/// wrapped disposable to be replaced.
 public final class SerialDisposable: Disposable {
-	private let _innerDisposable: Atomic<Disposable?>
+	private let _inner: Atomic<Disposable?>
 	private var state: UnsafeAtomicState<DisposableState>
 
 	public var isDisposed: Bool {
 		return state.is(.disposed)
 	}
 
-	/// The inner disposable to dispose of.
+	/// The current inner disposable to dispose of.
 	///
 	/// Whenever this property is set (even to the same value!), the previous
 	/// disposable is automatically disposed.
-	public var innerDisposable: Disposable? {
+	public var inner: Disposable? {
 		get {
-			return _innerDisposable.value
+			return _inner.value
 		}
 
 		set(d) {
-			_innerDisposable.swap(d)?.dispose()
+			_inner.swap(d)?.dispose()
 			if let d = d, isDisposed {
 				d.dispose()
 			}
@@ -312,13 +313,13 @@ public final class SerialDisposable: Disposable {
 	/// - parameters:
 	///   - disposable: Optional disposable.
 	public init(_ disposable: Disposable? = nil) {
-		self._innerDisposable = Atomic(disposable)
+		self._inner = Atomic(disposable)
 		self.state = UnsafeAtomicState(DisposableState.active)
 	}
 
 	public func dispose() {
 		if state.tryDispose() {
-			_innerDisposable.swap(nil)?.dispose()
+			_inner.swap(nil)?.dispose()
 		}
 	}
 
@@ -381,7 +382,7 @@ public func +=(lhs: CompositeDisposable, rhs: @escaping () -> ()) -> CompositeDi
 ///            remove the disposable later (if desired).
 @discardableResult
 public func +=(lhs: ScopedDisposable<CompositeDisposable>, rhs: Disposable?) -> CompositeDisposable.DisposableHandle {
-	return lhs.innerDisposable.add(rhs)
+	return lhs.inner.add(rhs)
 }
 
 /// Adds the right-hand-side disposable to the left-hand-side
@@ -399,5 +400,5 @@ public func +=(lhs: ScopedDisposable<CompositeDisposable>, rhs: Disposable?) -> 
 ///            remove the disposable later (if desired).
 @discardableResult
 public func +=(lhs: ScopedDisposable<CompositeDisposable>, rhs: @escaping () -> ()) -> CompositeDisposable.DisposableHandle {
-	return lhs.innerDisposable.add(rhs)
+	return lhs.inner.add(rhs)
 }

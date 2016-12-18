@@ -115,14 +115,14 @@ class DisposableSpec: QuickSpec {
 
 			it("should dispose of the inner disposable") {
 				let simpleDisposable = SimpleDisposable()
-				disposable.innerDisposable = simpleDisposable
+				disposable.inner = simpleDisposable
 
-				expect(disposable.innerDisposable).notTo(beNil())
+				expect(disposable.inner).notTo(beNil())
 				expect(simpleDisposable.isDisposed) == false
 				expect(disposable.isDisposed) == false
 
 				disposable.dispose()
-				expect(disposable.innerDisposable).to(beNil())
+				expect(disposable.inner).to(beNil())
 				expect(simpleDisposable.isDisposed) == true
 				expect(disposable.isDisposed) == true
 			}
@@ -131,16 +131,16 @@ class DisposableSpec: QuickSpec {
 				let oldDisposable = SimpleDisposable()
 				let newDisposable = SimpleDisposable()
 
-				disposable.innerDisposable = oldDisposable
+				disposable.inner = oldDisposable
 				expect(oldDisposable.isDisposed) == false
 				expect(newDisposable.isDisposed) == false
 
-				disposable.innerDisposable = newDisposable
+				disposable.inner = newDisposable
 				expect(oldDisposable.isDisposed) == true
 				expect(newDisposable.isDisposed) == false
 				expect(disposable.isDisposed) == false
 
-				disposable.innerDisposable = nil
+				disposable.inner = nil
 				expect(newDisposable.isDisposed) == true
 				expect(disposable.isDisposed) == false
 			}

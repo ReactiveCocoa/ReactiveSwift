@@ -417,7 +417,7 @@ public final class TestScheduler: DateSchedulerProtocol {
 	private func schedule(after date: Date, interval: DispatchTimeInterval, disposable: SerialDisposable, action: @escaping () -> Void) {
 		precondition(interval.timeInterval >= 0)
 
-		disposable.innerDisposable = schedule(after: date) { [unowned self] in
+		disposable.inner = schedule(after: date) { [unowned self] in
 			action()
 			self.schedule(after: date.addingTimeInterval(interval), interval: interval, disposable: disposable, action: action)
 		}

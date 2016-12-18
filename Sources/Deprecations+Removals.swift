@@ -52,6 +52,19 @@ extension Disposable {
 	public var disposed: Bool { fatalError() }
 }
 
+extension SerialDisposable {
+	@available(*, unavailable, renamed:"inner")
+	public var innerDisposable: Disposable? {
+		get { fatalError() }
+		set { fatalError() }
+ }
+}
+
+extension ScopedDisposable {
+	@available(*, unavailable, renamed:"inner")
+	public var innerDisposable: Disposable { fatalError() }
+}
+
 extension ActionProtocol {
 	@available(*, unavailable, renamed:"isEnabled")
 	public var enabled: Bool { fatalError() }
