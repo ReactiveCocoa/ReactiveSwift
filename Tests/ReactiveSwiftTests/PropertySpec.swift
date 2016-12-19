@@ -299,7 +299,7 @@ class PropertySpec: QuickSpec {
 				group.wait()
 			}
 
-			it("should not drop the value") {
+			it("should not drop any values") {
 				let queue: DispatchQueue
 
 				if #available(macOS 10.10, *) {
@@ -360,7 +360,7 @@ class PropertySpec: QuickSpec {
 				expect(counter3.value) == 1000
 			}
 
-			it("should not drop the value") {
+			it("should not drop any values") {
 				let queue: DispatchQueue
 
 				if #available(macOS 10.10, *) {
@@ -419,6 +419,67 @@ class PropertySpec: QuickSpec {
 				expect(counter1.value) == 1000
 				expect(counter2.value) == 1000
 				expect(counter3.value) == 1000
+			}
+
+			it("should not drop any values") {
+				let queue: DispatchQueue
+
+				if #available(macOS 10.10, *) {
+					queue = DispatchQueue.global(qos: .userInteractive)
+				} else {
+					queue = DispatchQueue.global(priority: .high)
+				}
+
+				let group = DispatchGroup()
+
+				let counter2 = Atomic(0)
+				let counter3 = Atomic(0)
+
+				DispatchQueue.concurrentPerform(iterations: 1000) { _ in
+					let source = MutableProperty(1)
+					var mapped = source.map { $0 }
+
+					let s1 = DispatchSemaphore(value: 0)
+					let s2 = DispatchSemaphore(value: 0)
+					let s3 = DispatchSemaphore(value: 0)
+
+					queue.async(group: group) {
+						s1.wait()
+						source.value = 2
+						s2.wait()
+						source.value = 3
+						s3.signal()
+					}
+
+					queue.async(group: group) {
+						var caught2 = false
+						var caught3 = false
+
+						var d: Disposable?
+
+						mapped.signal.observeValues { value in
+							s2.signal()
+							usleep(100000)
+
+							if value == 2 && mapped.value == 2 {
+								caught2 = true
+							} else if value == 3 && mapped.value == 3 {
+								caught3 = true
+							}
+						}
+
+						s1.signal()
+						s3.wait()
+
+						counter2.modify { $0 += caught2 ? 1 : 0 }
+						counter3.modify { $0 += caught3 ? 1 : 0 }
+					}
+				}
+
+				group.wait()
+
+				expect(counter2.value).toEventually(equal(1000))
+				expect(counter3.value).toEventually(equal(1000))
 			}
 		}
 
