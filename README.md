@@ -163,7 +163,7 @@ one. Just think of how much code that would take to do by hand!
 
 Since the source of search strings is a `Signal` which has a hot signal semantic, 
 the transformations we applied are automatically evaluated whenever new values are
-emitted from `searchString`.
+emitted from `searchStrings`.
 
 Therefore, we can simply observe the signal using `Signal.observe(_:)`:
 
