@@ -369,19 +369,19 @@ extension PropertyProtocol {
 extension PropertyProtocol where Value == Bool {
 	/// Returns a property with the oposite value
 	public var not: Property<Value> {
-		return self.map(!)
+		return self.lift { $0.not }
 	}
 	
 	///Combines the property with the given property in a manner described by
 	///`and()` operator.
 	public func and(_ property: Property<Value>) -> Property<Value> {
-		return self.combineLatest(with: property).map(&&)
+		return self.lift(SignalProducer.and)(property)
 	}
 	
 	///Combines the property with the given property in a manner described by
 	///`or()` operator.
 	public func or(_ property: Property<Value>) -> Property<Value> {
-		return self.combineLatest(with: property).map(||)
+		return self.lift(SignalProducer.or)(property)
 	}
 }
 

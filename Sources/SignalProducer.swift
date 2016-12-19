@@ -1800,6 +1800,25 @@ extension SignalProducerProtocol {
 	}
 }
 
+extension SignalProducerProtocol where Value == Bool {
+	/// Returns a producer with the oposite value.
+	public var not: SignalProducer<Value, Error> {
+		return self.lift { $0.not }
+	}
+	
+	///Combines the producer with the given producer in a manner described by
+	///`and()` operator.
+	public func and(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return self.lift(Signal.and)(producer)
+	}
+	
+	///Combines the producer with the given producer in a manner described by
+	///`or()` operator.
+	public func or(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return self.lift(Signal.or)(producer)
+	}
+}
+
 /// Represents a recoverable error of an observer not being ready for an
 /// attachment to a `ReplayState`, and the observer should replay the supplied
 /// values before attempting to observe again.

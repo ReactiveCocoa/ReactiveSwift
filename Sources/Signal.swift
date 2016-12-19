@@ -2230,3 +2230,22 @@ extension SignalProtocol where Error == NoError {
 			.timeout(after: interval, raising: error, on: scheduler)
 	}
 }
+
+extension SignalProtocol where Value == Bool {
+	/// Returns a signal with the oposite value
+	public var not: Signal<Value, Error> {
+		return self.map(!)
+	}
+	
+	///Combines the signal with the given signal in a manner described by
+	///`and()` operator.
+	public func and(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
+		return self.combineLatest(with: signal).map { $0 && $1 }
+	}
+	
+	///Combines the signal with the given signal in a manner described by
+	///`or()` operator.
+	public func or(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
+		return self.combineLatest(with: signal).map { $0 || $1 }
+	}
+}
