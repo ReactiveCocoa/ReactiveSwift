@@ -76,14 +76,16 @@ extension PropertyProtocol {
 	/// Lifts a unary stateful SignalProducer operator to operate upon
 	/// PropertyProtocol instead.
 	fileprivate func lift<U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> SignalProducer<U, NoError>) -> Property<U> {
-		return Property(unsafeValues: transform(self.values))
+		return Property(unsafeValues: transform(self.values),
+		                persona: self.persona)
 	}
 
 	/// Lifts a binary stateful SignalProducer operator to operate upon
 	/// PropertyProtocol instead.
 	fileprivate func lift<P: PropertyProtocol, U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> (SignalProducer<P.Value, NoError>) -> SignalProducer<U, NoError>) -> (P) -> Property<U> {
 		return { other in
-			return Property(unsafeValues: transform(self.values)(other.values))
+			return Property(unsafeValues: transform(self.values)(other.values),
+			                persona: self.persona)
 		}
 	}
 
@@ -98,7 +100,8 @@ extension PropertyProtocol {
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Property<U> {
 		return self.withValue { value in
 			return Property<U>(initial: transform(value),
-			                   then: self.signal.map(transform))
+			                   then: self.signal.map(transform),
+			                   persona: self.persona)
 		}
 	}
 
@@ -113,7 +116,7 @@ extension PropertyProtocol {
 		return self.withValue { value in
 			return Property(initial: value,
 			                then: self.signal.observe(on: scheduler),
-			                producerTransform: { $0.start(on: scheduler) })
+			                persona: .start(on: scheduler))
 		}
 	}
 
@@ -141,7 +144,8 @@ extension PropertyProtocol {
 		return self.withValue { value in
 			return other.withValue { otherValue in
 				return Property(initial: (value, otherValue),
-				                then: self.signal.zip(with: other.signal))
+				                then: self.signal.zip(with: other.signal),
+				                persona: self.persona)
 			}
 		}
 	}
@@ -443,6 +447,8 @@ public final class Property<Value>: PropertyProtocol {
 
 	private let _value: () -> Value
 	private let box: PropertyBoxBase<Value>
+	fileprivate let producerPersona: ProducerPersona
+	private let _producer: SignalProducer<Value, NoError>
 
 	/// The current value of the property.
 	public var value: Value {
@@ -452,7 +458,15 @@ public final class Property<Value>: PropertyProtocol {
 	/// A producer for Signals that will send the property's current
 	/// value, followed by all changes over time, then complete when the
 	/// property has deinitialized or has no further changes.
-	public let producer: SignalProducer<Value, NoError>
+	public var producer: SignalProducer<Value, NoError> {
+		switch producerPersona {
+		case let .start(scheduler):
+			return _producer.start(on: scheduler)
+
+		case .none:
+			return _producer
+		}
+	}
 
 	/// A signal that will send the property's changes over time, then
 	/// complete when the property has deinitialized or has no further changes.
@@ -465,9 +479,10 @@ public final class Property<Value>: PropertyProtocol {
 	public init(value: Value) {
 		disposable = nil
 		_value = { value }
-		producer = SignalProducer(value: value)
+		_producer = SignalProducer(value: value)
 		signal = .empty
 		box = PropertyBox<Property<Value>>(constant: value)
+		producerPersona = .none
 	}
 
 	/// Initializes an existential property which wraps the given property.
@@ -479,9 +494,10 @@ public final class Property<Value>: PropertyProtocol {
 	public init<P: PropertyProtocol>(capturing property: P) where P.Value == Value {
 		disposable = nil
 		_value = { property.value }
-		producer = property.producer
+		_producer = property.producer
 		signal = property.signal
 		box = PropertyBox(property)
+		producerPersona = property.persona
 	}
 
 	/// Initializes a composed property which reflects the given property.
@@ -512,12 +528,12 @@ public final class Property<Value>: PropertyProtocol {
 	///   - initialValue: Starting value for the property.
 	///   - values: A signal that will send values to the property.
 	public convenience init(initial: Value, then values: Signal<Value, NoError>) {
-		self.init(initial: initial, then: values, producerTransform: { $0 })
+		self.init(initial: initial, then: values, persona: .none)
 	}
 
 	fileprivate init(
 		unsafeValues: SignalProducer<Value, NoError>,
-		producerTransform: (SignalProducer<Value, NoError>) -> SignalProducer<Value, NoError> = { $0 }
+		persona: ProducerPersona = .none
 	) {
 		let cache = RecursiveAtomic<Value?>(nil)
 
@@ -536,23 +552,24 @@ public final class Property<Value>: PropertyProtocol {
 		}
 
 		_value = { cache.value! }
-		producer = producerTransform(replay)
+		_producer = replay
 		signal = propertySignal
 		box = PropertyBox<Property<Value>>(cache)
 		disposable = d
+		producerPersona = persona
 	}
 
 	fileprivate convenience init(
 		initial: Value,
 		then values: Signal<Value, NoError>,
-		producerTransform: (SignalProducer<Value, NoError>) -> SignalProducer<Value, NoError>
+		persona: ProducerPersona
 	) {
 		let producer = SignalProducer<Value, NoError> { observer, disposable in
 			observer.send(value: initial)
 			disposable += values.propertyObserve(observer)
 		}
 
-		self.init(unsafeValues: producer, producerTransform: producerTransform)
+		self.init(unsafeValues: producer, persona: persona)
 	}
 
 	public func withValue<R>(_ body: (Value) throws -> R) rethrows -> R {
@@ -564,14 +581,23 @@ public final class Property<Value>: PropertyProtocol {
 	}
 }
 
+private enum ProducerPersona {
+	case none
+	case start(on: SchedulerProtocol)
+}
+
 extension PropertyProtocol {
-	internal var values: SignalProducer<Value, NoError> {
+	fileprivate var values: SignalProducer<Value, NoError> {
 		return SignalProducer { observer, disposable in
 			self.withValue { value in
 				observer.send(value: value)
 				disposable += self.signal.propertyObserve(observer)
 			}
 		}
+	}
+
+	fileprivate var persona: ProducerPersona {
+		return (self as? Property<Value>)?.producerPersona ?? .none
 	}
 }
 

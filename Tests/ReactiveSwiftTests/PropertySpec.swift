@@ -1246,7 +1246,7 @@ class PropertySpec: QuickSpec {
 						expect(mapped.value) == initialPropertyValue.characters.count
 						queue.resume()
 					}
-/*
+
 					it("should inherit the scheduler from its source properties") {
 						let queue = DispatchQueue(label: "PropertySpecTest")
 						let specific = DispatchSpecificKey<()>()
@@ -1278,7 +1278,7 @@ class PropertySpec: QuickSpec {
 						expect(counter).toEventually(equal(3))
 						expect(counter2).toEventually(equal(2))
 					}
-*/
+
 					it("should override the scheduler of its source properties") {
 						let queue1 = DispatchQueue(label: "PropertySpecTest")
 						let specific1 = DispatchSpecificKey<()>()
