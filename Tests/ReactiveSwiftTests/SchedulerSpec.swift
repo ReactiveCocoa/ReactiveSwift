@@ -14,17 +14,6 @@ import Quick
 @testable
 import ReactiveSwift
 
-#if os(Linux)
-	import func CoreFoundation._CFIsMainThread
-
-	private extension Thread {
-		// `isMainThread` is not implemented yet in swift-corelibs-foundation.
-		static var isMainThread: Bool {
-			return _CFIsMainThread()
-		}
-	}
-#endif
-
 class SchedulerSpec: QuickSpec {
 	override func spec() {
 		describe("ImmediateScheduler") {

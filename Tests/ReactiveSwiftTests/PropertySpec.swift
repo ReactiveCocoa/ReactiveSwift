@@ -1046,6 +1046,130 @@ class PropertySpec: QuickSpec {
 					property = MutableProperty(initialPropertyValue)
 				}
 
+				describe("observeChanges(on:)") {
+					it("should be composable") {
+						let queue = DispatchQueue(label: "PropertySpecTest")
+						let scheduler = QueueScheduler(queue: queue)
+
+						// Suspending the queue would prevent emitted events from being
+						// delivered, so that the has-one-value contract can be properly
+						// validated without false positives caused by race conditions.
+						queue.suspend()
+
+						let observed = property.observe(on: scheduler)
+						expect(observed.value) == initialPropertyValue
+
+						let mapped = observed.map { $0.characters.count }
+						expect(mapped.value) == initialPropertyValue.characters.count
+						queue.resume()
+					}
+
+					it("should inherit the scheduler from its source properties") {
+						let queue = DispatchQueue(label: "PropertySpecTest")
+						let specific = DispatchSpecificKey<()>()
+						queue.setSpecific(key: specific, value: ())
+						let scheduler = QueueScheduler(queue: queue)
+
+						var counter = 0
+						let observed = property.observe(on: scheduler)
+						observed.producer.startWithValues { _ in
+							counter += DispatchQueue.getSpecific(key: specific) != nil ? 1 : 0
+						}
+
+						expect(counter).toEventually(equal(1))
+
+						property.value = subsequentPropertyValue
+						expect(counter).toEventually(equal(2))
+
+						// `mapped` should replay its initial value on the same scheduler
+						// as `observed`.
+						var counter2 = 0
+						let mapped = observed.map { $0.characters.count }
+						mapped.producer.startWithValues { _ in
+							counter2 += DispatchQueue.getSpecific(key: specific) != nil ? 1 : 0
+						}
+
+						expect(counter2).toEventually(equal(1))
+
+						property.value = subsequentPropertyValue
+						expect(counter).toEventually(equal(3))
+						expect(counter2).toEventually(equal(2))
+					}
+
+					it("should override the scheduler of its source properties") {
+						let queue1 = DispatchQueue(label: "PropertySpecTest")
+						let specific1 = DispatchSpecificKey<()>()
+						queue1.setSpecific(key: specific1, value: ())
+						let scheduler1 = QueueScheduler(queue: queue1)
+
+						let queue2 = DispatchQueue(label: "PropertySpecTest")
+						let specific2 = DispatchSpecificKey<()>()
+						queue2.setSpecific(key: specific2, value: ())
+						let scheduler2 = QueueScheduler(queue: queue2)
+
+						var counter = 0
+						let observed = property.observe(on: scheduler1)
+						observed.producer.startWithValues { _ in
+							counter += DispatchQueue.getSpecific(key: specific1) != nil ? 1 : 0
+						}
+
+						expect(counter).toEventually(equal(1))
+
+						property.value = subsequentPropertyValue
+						expect(counter).toEventually(equal(2))
+
+						// `observed2` should replay its initial value on `scheduler2`,
+						// instead of the one of `observed`.
+						var counter2 = 0
+						let observed2 = property.observe(on: scheduler2)
+						observed2.producer.startWithValues { _ in
+							counter2 += DispatchQueue.getSpecific(key: specific2) != nil ? 1 : 0
+						}
+
+						expect(counter2).toEventually(equal(1))
+
+						property.value = subsequentPropertyValue
+						expect(counter).toEventually(equal(3))
+						expect(counter2).toEventually(equal(2))
+					}
+
+					it("should emit subsequent events on the given scheduler") {
+						let queue = DispatchQueue(label: "PropertySpecTest")
+						let specific = DispatchSpecificKey<()>()
+						queue.setSpecific(key: specific, value: ())
+						let scheduler = QueueScheduler(queue: queue)
+
+						var values: [String] = []
+						var counter = 0
+
+						let semaphore = DispatchSemaphore(value: 0)
+
+						property
+							.observe(on: scheduler)
+							.producer
+							.startWithValues { value in
+									counter += DispatchQueue.getSpecific(key: specific) != nil ? 1 : 0
+									values.append(value)
+
+									semaphore.signal()
+							}
+
+						semaphore.wait()
+						expect(values) == [initialPropertyValue]
+						expect(counter) == 1
+
+						property.value = subsequentPropertyValue
+						semaphore.wait()
+						expect(values) == [initialPropertyValue, subsequentPropertyValue]
+						expect(counter) == 2
+
+						property.value = finalPropertyValue
+						semaphore.wait()
+						expect(values) == [initialPropertyValue, subsequentPropertyValue, finalPropertyValue]
+						expect(counter) == 3
+					}
+				}
+
 				describe("combinePrevious") {
 					it("should pack the current value and the previous value a tuple") {
 						let transformedProperty = property.combinePrevious(initialPropertyValue)
