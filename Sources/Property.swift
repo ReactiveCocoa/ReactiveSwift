@@ -16,11 +16,17 @@ public protocol PropertyProtocol: class, BindingSourceProtocol {
 	/// It produces a signal that sends the property's current value,
 	/// followed by all changes over time. It completes when the property
 	/// has deinitialized, or has no further change.
+	///
+	/// - note: If `self` is a composed property, the producer would be
+	///         bound to the lifetime of its sources.
 	var producer: SignalProducer<Value, NoError> { get }
 
 	/// A signal that will send the property's changes over time. It
 	/// completes when the property has deinitialized, or has no further
 	/// change.
+	///
+	/// - note: If `self` is a composed property, the signal would be
+	///         bound to the lifetime of its sources.
 	var signal: Signal<Value, NoError> { get }
 }
 
@@ -44,13 +50,12 @@ extension MutablePropertyProtocol {
 	}
 }
 
-/// Protocol composition operators
-///
-/// The producer and the signal of transformed properties would complete
-/// only when its source properties have deinitialized.
-///
-/// A composed property would retain its ultimate source, but not
-/// any intermediate property during the composition.
+// Property operators.
+//
+// A composed property is a transformed view of its sources, and does not
+// own its lifetime. Its producer and signal are bound to the lifetime of
+// its sources.
+
 extension PropertyProtocol {
 	/// Lifts a unary SignalProducer operator to operate upon PropertyProtocol instead.
 	fileprivate func lift<U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> SignalProducer<U, NoError>) -> Property<U> {
@@ -386,10 +391,10 @@ extension PropertyProtocol {
 /// one or more properties, a producer, or a signal. It can be created using
 /// property composition operators, `Property(_:)` or `Property(initial:then:)`.
 ///
-/// It respects and have no effect on the lifetime of its root sources. In other
-/// words, the producer and signal of a composed property could complete before
-/// or outlive the composed property, depending on its sources and the
-/// composition.
+/// It does not own its lifetime, and its producer and signal are bound to the
+/// lifetime of its sources. It also does not have an influence on its sources,
+/// so retaining a composed property would not prevent its sources from
+/// deinitializing.
 ///
 /// Note that composed properties do not retain any of its sources.
 public final class Property<Value>: PropertyProtocol {
@@ -407,12 +412,18 @@ public final class Property<Value>: PropertyProtocol {
 	/// A producer for Signals that will send the property's current
 	/// value, followed by all changes over time, then complete when the
 	/// property has deinitialized or has no further changes.
+	///
+	/// - note: If `self` is a composed property, the producer would be
+	///         bound to the lifetime of its sources.
 	public var producer: SignalProducer<Value, NoError> {
 		return _producer()
 	}
 
 	/// A signal that will send the property's changes over time, then
 	/// complete when the property has deinitialized or has no further changes.
+	///
+	/// - note: If `self` is a composed property, the signal would be
+	///         bound to the lifetime of its sources.
 	public var signal: Signal<Value, NoError> {
 		return _signal()
 	}
