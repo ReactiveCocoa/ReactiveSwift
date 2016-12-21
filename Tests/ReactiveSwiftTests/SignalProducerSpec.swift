@@ -2399,6 +2399,83 @@ class SignalProducerSpec: QuickSpec {
 				expect(results) == [1, 2]
 			}
 		}
+		
+		describe("not attribute") {
+			it("should return the negate of a value in a Boolean producer") {
+				let producer = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				
+				producer.not.startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
+		}
+		
+		describe("and attribute") {
+			it("should emmit true when both producers emmits the same value") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				
+				producer1.and(producer2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+			}
+			
+			it("should emmit false when both producers emmits opposite values") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				
+				producer1.and(producer2).startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
+		}
+		
+		describe("or attribute") {			
+			it("should emmit true when at least one of the producers emmits true") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				
+				producer1.or(producer2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+			}
+			
+			it("should emmit false when both producers emmits false") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				
+				producer1.or(producer2).startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
+		}
 	}
 }
 

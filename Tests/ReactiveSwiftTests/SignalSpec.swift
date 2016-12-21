@@ -2608,5 +2608,72 @@ class SignalSpec: QuickSpec {
 				}
 			}
 		}
+		
+		describe("not attribute") {			
+			it("should return the negate of a value in a Boolean signal") {
+				let (signal, observer) = Signal<Bool, NoError>.pipe()
+				signal.not.observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer.send(value: true)
+				observer.sendCompleted()
+			}
+		}
+		
+		describe("and attribute") {
+			it("should emmit true when both signals emmits the same value") {
+				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				signal1.and(signal2).observeValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer2.send(value: true)
+				
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+			}
+			
+			it("should emmit false when both signals emmits opposite values") {
+				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				signal1.and(signal2).observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer1.send(value: false)
+				observer2.send(value: true)
+				
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+			}
+		}
+		
+		describe("or attribute") {
+			it("should emmit true when at least one of the signals emmits true") {
+				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				signal1.or(signal2).observeValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer2.send(value: false)
+				
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+			}
+			
+			it("should emmit false when both signals emmits false") {
+				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				signal1.or(signal2).observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer1.send(value: false)
+				observer2.send(value: false)
+				
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+			}
+		}
 	}
 }
