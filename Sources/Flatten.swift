@@ -646,7 +646,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 						$0.replacingInnerSignal = true
 					}
 
-					latestInnerDisposable.innerDisposable = innerDisposable
+					latestInnerDisposable.inner = innerDisposable
 
 					state.modify {
 						$0.replacingInnerSignal = false
@@ -929,7 +929,7 @@ extension SignalProtocol {
 				observer.send(value: value)
 			case let .failed(error):
 				handler(error).startWithSignal { signal, disposable in
-					serialDisposable.innerDisposable = disposable
+					serialDisposable.inner = disposable
 					signal.observe(observer)
 				}
 			case .completed:
@@ -950,7 +950,7 @@ extension SignalProducerProtocol {
 			disposable += serialDisposable
 
 			self.startWithSignal { signal, signalDisposable in
-				serialDisposable.innerDisposable = signalDisposable
+				serialDisposable.inner = signalDisposable
 
 				_ = signal.observeFlatMapError(handler, observer, serialDisposable)
 			}

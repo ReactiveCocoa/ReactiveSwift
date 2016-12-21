@@ -67,8 +67,8 @@ It is like an automatic vending machine — after choosing an option with coins 
 // Purchase from the vending machine with a specific option.
 vendingMachine.purchase
     .apply(snackId)
-    .startWithResults { result
-        switch results {
+    .startWithResult { result
+        switch result {
         case let .success(snacks):
             print("Snack: \(snacks)")
         
@@ -139,7 +139,7 @@ With each string, we want to execute a network request. ReactiveSwift offers an
 
 ```swift
 let searchResults = searchStrings
-    .flatMap(.latest) { (query: String?) -> SignalProducer<(Data, URLResponse), NSError> in
+    .flatMap(.latest) { (query: String?) -> SignalProducer<(Data, URLResponse), AnyError> in
         let request = self.makeSearchRequest(escapedQuery: query)
         return URLSession.shared.reactive.data(with: request)
     }
@@ -163,7 +163,7 @@ one. Just think of how much code that would take to do by hand!
 
 Since the source of search strings is a `Signal` which has a hot signal semantic, 
 the transformations we applied are automatically evaluated whenever new values are
-emitted from `searchString`.
+emitted from `searchStrings`.
 
 Therefore, we can simply observe the signal using `Signal.observe(_:)`:
 
@@ -196,7 +196,7 @@ To remedy this, we need to decide what to do with failures that occur. The
 quickest solution would be to log them, then ignore them:
 
 ```swift
-    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), NSError> in
+    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), AnyError> in
         let request = self.makeSearchRequest(escapedQuery: query)
 
         return URLSession.shared.reactive
@@ -218,7 +218,7 @@ Our improved `searchResults` producer might look like this:
 
 ```swift
 let searchResults = searchStrings
-    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), NSError> in
+    .flatMap(.latest) { (query: String) -> SignalProducer<(Data, URLResponse), AnyError> in
         let request = self.makeSearchRequest(escapedQuery: query)
 
         return URLSession.shared.reactive
@@ -323,8 +323,8 @@ easy](http://www.infoq.com/presentations/Simple-Made-Easy)**.
 
 When [Signals][Signal] and [SignalProducers][SignalProducer] are allowed to [fail][Events] in ReactiveSwift,
 the kind of error must be specified in the type system. For example,
-`Signal<Int, NSError>` is a signal of integer values that may fail with an error
-of type `NSError`.
+`Signal<Int, AnyError>` is a signal of integer values that may fail with an error
+of type `AnyError`.
 
 More importantly, RAC allows the special type `NoError` to be used instead,
 which _statically guarantees_ that an event stream is not allowed to send a
@@ -367,7 +367,7 @@ If you use [Carthage][] to manage your dependencies, simply add
 ReactiveSwift to your `Cartfile`:
 
 ```
-github "ReactiveCocoa/ReactiveSwift" "1.0.0-rc.1"
+github "ReactiveCocoa/ReactiveSwift" "1.0.0-rc.2"
 ```
 
 If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework`, and `Result.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
@@ -378,7 +378,7 @@ If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
-pod 'ReactiveSwift', '1.0.0-rc.1'
+pod 'ReactiveSwift', '1.0.0-rc.2'
 ```
 
 #### Swift Package Manager
@@ -387,7 +387,7 @@ If you use Swift Package Manager, simply add ReactiveSwift as a dependency
 of your package in `Package.swift`:
 
 ```
-.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", "1.0.0-rc.1")
+.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", "1.0.0-rc.2")
 ```
 
 #### Git submodule
@@ -427,7 +427,7 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 ### Code Complete: ReactiveSwift 1.0
 It targets Swift 3.0.x. The tentative schedule of a Gold Master release is January 2017.
 
-[Release Candidiate 1](https://github.com/ReactiveCocoa/ReactiveSwift/releases/tag/1.0.0-rc.1) has been released.
+[Release Candidiate 2](https://github.com/ReactiveCocoa/ReactiveSwift/releases/tag/1.0.0-rc.2) has been released.
 
 A point release is expected with performance optimizations.
 

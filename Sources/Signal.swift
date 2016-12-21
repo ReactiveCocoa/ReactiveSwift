@@ -265,19 +265,20 @@ public final class Signal<Value, Error: Swift.Error> {
 		}
 	}
 
-	/// Create a Signal that will be controlled by sending events to the given
-	/// observer.
+	/// Create a `Signal` that will be controlled by sending events to an
+	/// input observer.
 	///
-	/// - note: The Signal will remain alive until a terminating event is sent
-	///         to the observer, or until it has no observer if it is not
-	///         retained.
+	/// - note: The `Signal` will remain alive until a terminating event is sent
+	///         to the input observer, or until it has no observers and there
+	///         are no strong references to it.
 	///
 	/// - parameters:
 	///   - disposable: An optional disposable to associate with the signal, and
 	///                 to be disposed of when the signal terminates.
 	///
-	/// - returns: A tuple made of signal and observer.
-	public static func pipe(disposable: Disposable? = nil) -> (Signal, Observer) {
+	/// - returns: A tuple of `output: Signal`, the output end of the pipe,
+	///            and `input: Observer`, the input end of the pipe.
+	public static func pipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
 		var observer: Observer!
 		let signal = self.init { innerObserver in
 			observer = innerObserver
@@ -1304,10 +1305,10 @@ extension SignalProtocol {
 		return Signal { observer in
 			let disposable = SerialDisposable()
 			
-			disposable.innerDisposable = trigger.observe { event in
+			disposable.inner = trigger.observe { event in
 				switch event {
 				case .value, .completed:
-					disposable.innerDisposable = self.observe(observer)
+					disposable.inner = self.observe(observer)
 					
 				case .failed, .interrupted:
 					break
@@ -1651,51 +1652,6 @@ extension SignalProtocol {
 		}
 	}
 
-	/// Apply `operation` to values from `self` with `success`ful results
-	/// forwarded on the returned signal and `failure`s sent as failed events.
-	///
-	/// - parameters:
-	///   - operation: A closure that accepts a value and returns a `Result`.
-	///
-	/// - returns: A signal that receives `success`ful `Result` as `value` event
-	///            and `failure` as failed event.
-	public func attempt(_ operation: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
-		return attemptMap { value in
-			return operation(value).map {
-				return value
-			}
-		}
-	}
-
-	/// Apply `operation` to values from `self` with `success`ful results mapped
-	/// on the returned signal and `failure`s sent as failed events.
-	///
-	/// - parameters:
-	///   - operation: A closure that accepts a value and returns a result of
-	///                a mapped value as `success`.
-	///
-	/// - returns: A signal that sends mapped values from `self` if returned
-	///            `Result` is `success`ful, `failed` events otherwise.
-	public func attemptMap<U>(_ operation: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
-		return Signal { observer in
-			self.observe { event in
-				switch event {
-				case let .value(value):
-					operation(value).analysis(
-						ifSuccess: observer.send(value:),
-						ifFailure: observer.send(error:)
-					)
-				case let .failed(error):
-					observer.send(error: error)
-				case .completed:
-					observer.sendCompleted()
-				case .interrupted:
-					observer.sendInterrupted()
-				}
-			}
-		}
-	}
-
 	/// Throttle values sent by the receiver, so that at least `interval`
 	/// seconds pass between each, then forwards them on the given scheduler.
 	///
@@ -1728,7 +1684,7 @@ extension SignalProtocol {
 
 			disposable += self.observe { event in
 				guard let value = event.value else {
-					schedulerDisposable.innerDisposable = scheduler.schedule {
+					schedulerDisposable.inner = scheduler.schedule {
 						observer.action(event)
 					}
 					return
@@ -1755,7 +1711,7 @@ extension SignalProtocol {
 					}
 				}
 
-				schedulerDisposable.innerDisposable = scheduler.schedule(after: scheduleDate) {
+				schedulerDisposable.inner = scheduler.schedule(after: scheduleDate) {
 					let pendingValue: Value? = state.modify { state in
 						defer {
 							if state.pendingValue != nil {
@@ -1829,7 +1785,7 @@ extension SignalProtocol {
 					}
 
 					if let value = valueToSend {
-						schedulerDisposable.innerDisposable = scheduler.schedule {
+						schedulerDisposable.inner = scheduler.schedule {
 							observer.send(value: value)
 						}
 					}
@@ -1856,7 +1812,7 @@ extension SignalProtocol {
 				}
 
 				if let event = eventToSend {
-					schedulerDisposable.innerDisposable = scheduler.schedule {
+					schedulerDisposable.inner = scheduler.schedule {
 						observer.action(event)
 					}
 				}
@@ -2247,5 +2203,121 @@ extension SignalProtocol where Value == Bool {
 	///`or()` operator.
 	public func or(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
 		return self.combineLatest(with: signal).map { $0 || $1 }
+	}
+}
+
+extension SignalProtocol {
+	/// Apply `operation` to values from `self` with `success`ful results
+	/// forwarded on the returned signal and `failure`s sent as failed events.
+	///
+	/// - parameters:
+	///   - operation: A closure that accepts a value and returns a `Result`.
+	///
+	/// - returns: A signal that receives `success`ful `Result` as `value` event
+	///            and `failure` as failed event.
+	public func attempt(_ operation: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
+		return attemptMap { value in
+			return operation(value).map {
+				return value
+			}
+		}
+	}
+
+	/// Apply `operation` to values from `self` with `success`ful results mapped
+	/// on the returned signal and `failure`s sent as failed events.
+	///
+	/// - parameters:
+	///   - operation: A closure that accepts a value and returns a result of
+	///                a mapped value as `success`.
+	///
+	/// - returns: A signal that sends mapped values from `self` if returned
+	///            `Result` is `success`ful, `failed` events otherwise.
+	public func attemptMap<U>(_ operation: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
+		return Signal { observer in
+			self.observe { event in
+				switch event {
+				case let .value(value):
+					operation(value).analysis(
+						ifSuccess: observer.send(value:),
+						ifFailure: observer.send(error:)
+					)
+				case let .failed(error):
+					observer.send(error: error)
+				case .completed:
+					observer.sendCompleted()
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
+		}
+	}
+}
+
+extension SignalProtocol where Error == NoError {
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results forwarded on the returned signal and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value.
+	///
+	/// - returns: A signal that forwards successes as `value` events and thrown
+	///            errors as `failed` events.
+	public func attempt(_ operation: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
+		return self
+			.promoteErrors(AnyError.self)
+			.attempt(operation)
+	}
+
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results mapped on the returned signal and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value and attempts to
+	///                transform it.
+	///
+	/// - returns: A signal that sends successfully mapped values from `self`, or
+	///            thrown errors as `failed` events.
+	public func attemptMap<U>(_ operation: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+		return self
+			.promoteErrors(AnyError.self)
+			.attemptMap(operation)
+	}
+}
+
+extension SignalProtocol where Error == AnyError {
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results forwarded on the returned signal and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value.
+	///
+	/// - returns: A signal that forwards successes as `value` events and thrown
+	///            errors as `failed` events.
+	public func attempt(_ operation: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
+		return attemptMap { value in
+			try operation(value)
+			return value
+		}
+	}
+
+	/// Apply a failable `operation` to values from `self` with successful
+	/// results mapped on the returned signal and thrown errors sent as
+	/// failed events.
+	///
+	/// - parameters:
+	///   - operation: A failable closure that accepts a value and attempts to
+	///                transform it.
+	///
+	/// - returns: A signal that sends successfully mapped values from `self`, or
+	///            thrown errors as `failed` events.
+	public func attemptMap<U>(_ operation: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+		return attemptMap { value in
+			ReactiveSwift.materialize {
+				try operation(value)
+			}
+		}
 	}
 }

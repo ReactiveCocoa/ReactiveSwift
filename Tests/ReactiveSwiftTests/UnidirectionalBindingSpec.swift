@@ -11,49 +11,91 @@ class UnidirectionalBindingSpec: QuickSpec {
 			var token: Lifetime.Token!
 			var lifetime: Lifetime!
 			var target: BindingTarget<Int>!
-			var value: Int!
+			var optionalTarget: BindingTarget<Int?>!
+			var value: Int?
 
 			beforeEach {
 				token = Lifetime.Token()
 				lifetime = Lifetime(token)
 				target = BindingTarget(lifetime: lifetime, setter: { value = $0 })
+				optionalTarget = BindingTarget(lifetime: lifetime, setter: { value = $0 })
 				value = nil
 			}
 
-			it("should pass through the lifetime") {
-				expect(target.lifetime).to(beIdenticalTo(lifetime))
+			describe("non-optional target") {
+				it("should pass through the lifetime") {
+					expect(target.lifetime).to(beIdenticalTo(lifetime))
+				}
+
+				it("should stay bound after deallocation") {
+					weak var weakTarget = target
+
+					let property = MutableProperty(1)
+					target <~ property
+					expect(value) == 1
+
+					target = nil
+
+					property.value = 2
+					expect(value) == 2
+					expect(weakTarget).to(beNil())
+				}
+
+				it("should trigger the supplied setter") {
+					expect(value).to(beNil())
+
+					target.consume(1)
+					expect(value) == 1
+				}
+
+				it("should accept bindings from properties") {
+					expect(value).to(beNil())
+
+					let property = MutableProperty(1)
+					target <~ property
+					expect(value) == 1
+
+					property.value = 2
+					expect(value) == 2
+				}
 			}
-			
-			it("should stay bound after deallocation") {
-				weak var weakTarget = target
-				
-				let property = MutableProperty(1)
-				target <~ property
-				expect(value) == 1
-				
-				target = nil
-				
-				property.value = 2
-				expect(value) == 2
-				expect(weakTarget).to(beNil())
-			}
 
-			it("should trigger the supplied setter") {
-				expect(value).to(beNil())
+			describe("optional target") {
+				it("should pass through the lifetime") {
+					expect(optionalTarget.lifetime).to(beIdenticalTo(lifetime))
+				}
 
-				target.consume(1)
-				expect(value) == 1
-			}
+				it("should stay bound after deallocation") {
+					weak var weakTarget = optionalTarget
 
-			it("should accept bindings from properties") {
-				expect(value).to(beNil())
+					let property = MutableProperty(1)
+					optionalTarget <~ property
+					expect(value) == 1
 
-				let property = MutableProperty(1)
-				target <~ property
-				expect(value) == 1
+					optionalTarget = nil
 
-				property.value = 2
-				expect(value) == 2
+					property.value = 2
+					expect(value) == 2
+					expect(weakTarget).to(beNil())
+				}
+
+				it("should trigger the supplied setter") {
+					expect(value).to(beNil())
+
+					optionalTarget.consume(1)
+					expect(value) == 1
+				}
+
+				it("should accept bindings from properties") {
+					expect(value).to(beNil())
+
+					let property = MutableProperty(1)
+					optionalTarget <~ property
+					expect(value) == 1
+
+					property.value = 2
+					expect(value) == 2
+				}
 			}
 
 			it("should not deadlock on the same queue") {

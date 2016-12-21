@@ -19,6 +19,10 @@
 		4A0E11041D2A95200065D310 /* LifetimeSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E11031D2A95200065D310 /* LifetimeSpec.swift */; };
 		4A0E11051D2A95200065D310 /* LifetimeSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E11031D2A95200065D310 /* LifetimeSpec.swift */; };
 		4A0E11061D2A95200065D310 /* LifetimeSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E11031D2A95200065D310 /* LifetimeSpec.swift */; };
+		4AC73ECB1DF273570004EC4F /* ResultExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */; };
+		4AC73ECC1DF273570004EC4F /* ResultExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */; };
+		4AC73ECD1DF273570004EC4F /* ResultExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */; };
+		4AC73ECE1DF273570004EC4F /* ResultExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */; };
 		579504331BB8A34200A5E482 /* BagSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C312EF19EF2A7700984962 /* BagSpec.swift */; };
 		579504341BB8A34300A5E482 /* BagSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C312EF19EF2A7700984962 /* BagSpec.swift */; };
 		57A4D1B11BA13D7A00F7D4B1 /* Optional.swift in Sources */ = {isa = PBXBuildFile; fileRef = D871D69E1B3B29A40070F16C /* Optional.swift */; };
@@ -225,6 +229,7 @@
 		4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReactiveExtensionsSpec.swift; sourceTree = "<group>"; };
 		4A0E10FE1D2A92720065D310 /* Lifetime.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Lifetime.swift; sourceTree = "<group>"; };
 		4A0E11031D2A95200065D310 /* LifetimeSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifetimeSpec.swift; sourceTree = "<group>"; };
+		4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ResultExtensions.swift; sourceTree = "<group>"; };
 		57A4D2411BA13D7A00F7D4B1 /* ReactiveSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ReactiveSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		57A4D2441BA13F9700F7D4B1 /* tvOS-Application.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Application.xcconfig"; sourceTree = "<group>"; };
 		57A4D2451BA13F9700F7D4B1 /* tvOS-Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Base.xcconfig"; sourceTree = "<group>"; };
@@ -405,6 +410,7 @@
 		D03B4A3A19F4C26D009E02AC /* Internal Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */,
 				D00004081A46864E000E7D41 /* TupleExtensions.swift */,
 			);
 			name = "Internal Utilities";
@@ -869,6 +875,7 @@
 				57A4D1B41BA13D7A00F7D4B1 /* Disposable.swift in Sources */,
 				57A4D1B61BA13D7A00F7D4B1 /* Event.swift in Sources */,
 				57A4D1B81BA13D7A00F7D4B1 /* Scheduler.swift in Sources */,
+				4AC73ECE1DF273570004EC4F /* ResultExtensions.swift in Sources */,
 				57A4D1B91BA13D7A00F7D4B1 /* Action.swift in Sources */,
 				57A4D1BA1BA13D7A00F7D4B1 /* Property.swift in Sources */,
 				9A090C171DA0309E00EE97CA /* Reactive.swift in Sources */,
@@ -920,6 +927,7 @@
 				A9B315BC1B3940810001CB9C /* Disposable.swift in Sources */,
 				A9B315BE1B3940810001CB9C /* Event.swift in Sources */,
 				A9B315C01B3940810001CB9C /* Scheduler.swift in Sources */,
+				4AC73ECD1DF273570004EC4F /* ResultExtensions.swift in Sources */,
 				A9B315C11B3940810001CB9C /* Action.swift in Sources */,
 				A9B315C21B3940810001CB9C /* Property.swift in Sources */,
 				9A090C161DA0309E00EE97CA /* Reactive.swift in Sources */,
@@ -946,6 +954,7 @@
 				D871D69F1B3B29A40070F16C /* Optional.swift in Sources */,
 				D08C54B61A69A3DB00AD8286 /* Event.swift in Sources */,
 				D0C312D319EF2A5800984962 /* Disposable.swift in Sources */,
+				4AC73ECB1DF273570004EC4F /* ResultExtensions.swift in Sources */,
 				EBCC7DBC1BBF010C00A2AE92 /* Observer.swift in Sources */,
 				D03B4A3D19F4C39A009E02AC /* FoundationExtensions.swift in Sources */,
 				9A090C141DA0309E00EE97CA /* Reactive.swift in Sources */,
@@ -997,6 +1006,7 @@
 				D8E84A671B3B32FB00C3E831 /* Optional.swift in Sources */,
 				D0C312D419EF2A5800984962 /* Disposable.swift in Sources */,
 				D08C54B91A69A9D100AD8286 /* SignalProducer.swift in Sources */,
+				4AC73ECC1DF273570004EC4F /* ResultExtensions.swift in Sources */,
 				9ABCB1861D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				EBCC7DBD1BBF01E100A2AE92 /* Observer.swift in Sources */,
 				9A090C151DA0309E00EE97CA /* Reactive.swift in Sources */,
