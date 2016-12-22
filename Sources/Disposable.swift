@@ -125,6 +125,10 @@ public final class CompositeDisposable: Disposable {
 			self.bagToken = nil
 		}
 
+		deinit {
+			state.deinitialize()
+		}
+
 		fileprivate init(bagToken: RemovalToken, disposable: CompositeDisposable) {
 			self.state = UnsafeAtomicState(.active)
 			self.bagToken = bagToken
