@@ -32,8 +32,8 @@ public protocol PropertyProtocol: class, BindingSourceProtocol {
 
 extension PropertyProtocol {
 	@discardableResult
-	public func observe(_ observer: Observer<Value, NoError>) -> Disposable? {
-		return producer.observe(observer)
+	public func observe(_ observer: Observer<Value, NoError>, during lifetime: Lifetime) -> Disposable? {
+		return producer.observe(observer, during: lifetime)
 	}
 }
 

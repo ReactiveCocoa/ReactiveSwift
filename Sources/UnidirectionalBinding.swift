@@ -15,22 +15,29 @@ infix operator <~ : BindingPrecedence
 public protocol BindingSourceProtocol {
 	associatedtype Value
 	associatedtype Error: Swift.Error
-	
+
 	/// Observe the binding source by sending any events to the given observer.
 	@discardableResult
-	func observe(_ observer: Observer<Value, Error>) -> Disposable?
+	func observe(_ observer: Observer<Value, Error>, during lifetime: Lifetime) -> Disposable?
 }
 
-extension Signal: BindingSourceProtocol { }
+extension Signal: BindingSourceProtocol {
+	@discardableResult
+	public func observe(_ observer: Observer, during lifetime: Lifetime) -> Disposable? {
+		return self.take(during: lifetime).observe(observer)
+	}
+}
 
 extension SignalProducer: BindingSourceProtocol {
 	@discardableResult
-	public func observe(_ observer: Observer<Value, Error>) -> Disposable? {
+	public func observe(_ observer: ProducedSignal.Observer, during lifetime: Lifetime) -> Disposable? {
 		var disposable: Disposable!
 
-		startWithSignal { signal, signalDisposable in
-			disposable = signalDisposable
-			signal.observe(observer)
+		self
+			.take(during: lifetime)
+			.startWithSignal { signal, signalDisposable in
+				disposable = signalDisposable
+				signal.observe(observer)
 		}
 
 		return disposable
@@ -93,12 +100,8 @@ public func <~
 	} else {
 		observer = Observer(value: { [weak target] in target?.consume($0) })
 	}
-	
-	let disposable = source.observe(observer)
-	if let disposable = disposable {
-		target.lifetime.ended.observeCompleted { disposable.dispose() }
-	}
-	return disposable
+
+	return source.observe(observer, during: target.lifetime)
 }
 
 /// Binds a source to a target, updating the target's value to the latest
@@ -146,11 +149,7 @@ public func <~
 		observer = Observer(value: { [weak target] in target?.consume(Target.Value(reconstructing: $0)) })
 	}
 
-	let disposable = source.observe(observer)
-	if let disposable = disposable {
-		target.lifetime.ended.observeCompleted { disposable.dispose() }
-	}
-	return disposable
+	return source.observe(observer, during: target.lifetime)
 }
 
 /// A binding target that can be used with the `<~` operator.
