@@ -16,21 +16,22 @@ public protocol BindingSourceProtocol {
 	associatedtype Value
 	associatedtype Error: Swift.Error
 
-	/// Observe the binding source by sending any events to the given observer.
+	/// Connect an observer with `self`. As `Self` can have cold or hot semantic,
+	/// an immediate side effect might be triggered.
 	@discardableResult
-	func observe(_ observer: Observer<Value, Error>, during lifetime: Lifetime) -> Disposable?
+	func connect(with observer: Observer<Value, Error>, during lifetime: Lifetime) -> Disposable?
 }
 
 extension Signal: BindingSourceProtocol {
 	@discardableResult
-	public func observe(_ observer: Observer, during lifetime: Lifetime) -> Disposable? {
+	public func connect(with observer: Observer, during lifetime: Lifetime) -> Disposable? {
 		return self.take(during: lifetime).observe(observer)
 	}
 }
 
 extension SignalProducer: BindingSourceProtocol {
 	@discardableResult
-	public func observe(_ observer: ProducedSignal.Observer, during lifetime: Lifetime) -> Disposable? {
+	public func connect(with observer: ProducedSignal.Observer, during lifetime: Lifetime) -> Disposable? {
 		var disposable: Disposable!
 
 		self
@@ -101,7 +102,7 @@ public func <~
 		observer = Observer(value: { [weak target] in target?.consume($0) })
 	}
 
-	return source.observe(observer, during: target.lifetime)
+	return source.connect(with: observer, during: target.lifetime)
 }
 
 /// Binds a source to a target, updating the target's value to the latest
@@ -149,7 +150,7 @@ public func <~
 		observer = Observer(value: { [weak target] in target?.consume(Target.Value(reconstructing: $0)) })
 	}
 
-	return source.observe(observer, during: target.lifetime)
+	return source.connect(with: observer, during: target.lifetime)
 }
 
 /// A binding target that can be used with the `<~` operator.
