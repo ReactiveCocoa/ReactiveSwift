@@ -259,8 +259,8 @@ public protocol ActionProtocol: BindingTargetProtocol {
 }
 
 extension ActionProtocol {
-	public func consume(_ value: Input) {
-		apply(value).start()
+	public var consume: (Input) -> Void {
+		return { [weak self] in self?.apply($0).start() }
 	}
 }
 
