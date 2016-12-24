@@ -50,6 +50,12 @@ extension MutablePropertyProtocol {
 	}
 }
 
+/// Represents a mutable property that can be composed.
+public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
+	func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result
+	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
+}
+
 // Property operators.
 //
 // A composed property is a transformed view of its sources, and does not
@@ -549,7 +555,7 @@ public final class Property<Value>: PropertyProtocol {
 /// A mutable property of type `Value` that allows observation of its changes.
 ///
 /// Instances of this class are thread-safe.
-public final class MutableProperty<Value>: MutablePropertyProtocol {
+public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	private let token: Lifetime.Token
 	private let observer: Signal<Value, NoError>.Observer
 	private let atomic: RecursiveAtomic<Value>
