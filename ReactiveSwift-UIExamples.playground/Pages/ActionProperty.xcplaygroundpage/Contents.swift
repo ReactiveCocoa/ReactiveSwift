@@ -44,14 +44,14 @@ final class ViewModel {
 		// The validation state of the entire form.
 		let isValid = validationResults
 			.combineLatest(with: termsAccepted)
-			.map { $0.0?.value != nil && $0.1?.value != nil && $1 }
+			.map { $0.0.value != nil && $0.1.value != nil && $1 }
 
 		let state = isValid.combineLatest(with: user.username)
 
 		// Aggregate latest failures into stream of strings.
 		reasons = validationResults.map {
 			return [$0, $1]
-				.flatMap { $0?.error?.reason }
+				.flatMap { $0.error?.reason }
 				.joined(separator: "\n")
 		}
 

@@ -30,7 +30,7 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 	public let lifetime: Lifetime
 
 	/// Validations that have been made by the property.
-	public let validations: Property<Result<(), ActionError>?>
+	public let validations: Property<Result<(), ActionError>>
 
 	/// The action associated with the property.
 	private let action: (Value) -> Void
@@ -59,7 +59,9 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 		transform: @escaping (M.Value) -> Value,
 		_ body: @escaping (M.Value, Value) -> Result<M.Value, ActionError>
 	) {
-		let _validations = MutableProperty<Result<(), ActionError>?>(nil)
+		let current = inner.value
+		let initialValidation = body(current, transform(current)).map { _ in }
+		let _validations = MutableProperty<Result<(), ActionError>>(initialValidation)
 
 		self.lifetime = inner.lifetime
 		self.validations = Property(capturing: _validations)
@@ -97,14 +99,16 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 		errorTransform: @escaping (E) -> ActionError,
 		_ body: @escaping (U, Value) -> Result<U, ActionError>
 	) {
-		let _validations = MutableProperty<Result<(), ActionError>?>(nil)
+		let current = inner.value
+		let initialValidation = body(current, transform(current)).map { _ in }
+		let _validations = MutableProperty<Result<(), ActionError>>(initialValidation)
 
 		self.lifetime = inner.lifetime
 		self.validations = Property(capturing: _validations)
 		self.cache = inner.cache.map(transform)
 		self.rootBox = inner.rootBox
 
-		let d = _validations <~ inner.validations.producer.map { $0?.mapError(errorTransform) }
+		let d = _validations <~ inner.validations.producer.map { $0.mapError(errorTransform) }
 		_validations.lifetime.ended.observeCompleted { d?.dispose() }
 
 		action = { input in
