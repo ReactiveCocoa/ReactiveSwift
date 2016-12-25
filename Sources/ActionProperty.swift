@@ -28,7 +28,7 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 	public let lifetime: Lifetime
 
 	/// Validations that have been made by the property.
-	public let validations: Signal<Result<(), ActionError>, NoError>
+	public let validations: Property<Result<(), ActionError>?>
 
 	/// The action associated with the property.
 	private let action: (Value) -> Void
@@ -57,10 +57,10 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 		transform: @escaping (M.Value) -> Value,
 		_ body: @escaping (M.Value, Value) -> Result<M.Value, ActionError>
 	) {
-		let (_validations, validationObserver) = Signal<Result<(), ActionError>, NoError>.pipe()
+		let _validations = MutableProperty<Result<(), ActionError>?>(nil)
 
 		self.lifetime = inner.lifetime
-		self.validations = _validations
+		self.validations = Property(capturing: _validations)
 		self.cache = inner.map(transform)
 		self.rootBox = ActionPropertyBox(inner)
 
@@ -69,10 +69,10 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 				switch body(innerValue, input) {
 				case let .success(innerResult):
 					inner.value = innerResult
-					validationObserver.send(value: .success())
+					_validations.value = .success()
 
 				case let .failure(error):
-					validationObserver.send(value: .failure(error))
+					_validations.value = .failure(error)
 				}
 			}
 		}
@@ -97,16 +97,16 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 		errorTransform: @escaping (E) -> ActionError,
 		_ body: @escaping (U, Value) -> Result<U, ActionError>
 	) {
-		let (_validations, validationObserver) = Signal<Result<(), ActionError>, NoError>.pipe()
+		let _validations = MutableProperty<Result<(), ActionError>?>(nil)
 
 		self.lifetime = inner.lifetime
-		self.validations = _validations
+		self.validations = Property(capturing: _validations)
 		self.cache = inner.cache.map(transform)
 		self.rootBox = inner.rootBox
 
-		inner.validations
-			.map { $0.mapError(errorTransform) }
-			.observe(validationObserver)
+		inner.validations.producer
+			.map { $0?.mapError(errorTransform) }
+			.startWithValues { _validations.value = $0 }
 
 		action = { input in
 			inner.rootBox.lock {
@@ -115,7 +115,7 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 					inner.action(innerResult)
 
 				case let .failure(error):
-					validationObserver.send(value: .failure(error))
+					_validations.value = .failure(error)
 				}
 			}
 		}

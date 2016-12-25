@@ -33,24 +33,21 @@ final class ViewModel {
 				return input == email.value ? .success(()) : .failure(FormError("The e-mail addresses do not match."))
 			}
 
-		let validationSignal = Signal.combineLatest(
-			email.validations.map { $0.value != nil },
-			emailConfirmation.validations.map { $0.value != nil },
-			termsAccepted.signal)
-			.on(value: { print("Validation Status: \($0)") })
-			.map { $0 && $1 && $2 }
+		reasons = email.validations
+			.combineLatest(with: emailConfirmation.validations)
+			.map { [$0?.error, $1?.error].flatMap { $0?.reason }.joined(separator: "\n") }
 
-		let allFieldsValid = Property(initial: false,
-		                              then: validationSignal)
+		let validationState = Property
+			.combineLatest(email.validations,
+			               emailConfirmation.validations,
+			               termsAccepted)
+			.map { $0?.value != nil && $1?.value != nil && $2 }
 
-		reasons = Property(initial: nil, then: email.validations.map { $0.error })
-			.combineLatest(with: Property(initial: nil, then: emailConfirmation.validations.map { $0.error }))
-			.map { [$0, $1].flatMap { $0?.reason }.joined(separator: "\n") }
+		validationState.producer.startWithValues { isValid in
+			print("Passed validations: \(isValid)")
+		}
 
-		print("Validation Status: false")
-
-
-		submit = Action(state: allFieldsValid, enabledIf: { $0 }) { _ in
+		submit = Action(enabledIf: validationState) { _ in
 			return SignalProducer { observer, disposable in
 				print("ViewModel.submit execution producer has started.")
 				observer.sendCompleted()
