@@ -9,7 +9,9 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 			return cache.value
 		}
 		set {
-			action(newValue)
+			rootBox.lock {
+				action(newValue)
+			}
 		}
 	}
 
@@ -65,15 +67,13 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 		self.rootBox = ActionPropertyBox(inner)
 
 		action = { input in
-			inner.withValue { innerValue in
-				switch body(innerValue, input) {
-				case let .success(innerResult):
-					inner.value = innerResult
-					_validations.value = .success()
+			switch body(inner.value, input) {
+			case let .success(innerResult):
+				inner.value = innerResult
+				_validations.value = .success()
 
-				case let .failure(error):
-					_validations.value = .failure(error)
-				}
+			case let .failure(error):
+				_validations.value = .failure(error)
 			}
 		}
 	}
@@ -109,14 +109,12 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 			.startWithValues { _validations.value = $0 }
 
 		action = { input in
-			inner.rootBox.lock {
-				switch body(inner.cache.value, input) {
-				case let .success(innerResult):
-					inner.action(innerResult)
+			switch body(inner.cache.value, input) {
+			case let .success(innerResult):
+				inner.action(innerResult)
 
-				case let .failure(error):
-					_validations.value = .failure(error)
-				}
+			case let .failure(error):
+				_validations.value = .failure(error)
 			}
 		}
 	}
