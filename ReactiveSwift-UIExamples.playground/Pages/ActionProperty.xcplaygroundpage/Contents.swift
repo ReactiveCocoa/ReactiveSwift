@@ -8,81 +8,101 @@ final class User {
 }
 
 final class ViewModel {
+	struct FormError: Error {
+		let reason: String
+
+		static let invalidEmail = FormError(reason: "Invalid email address.")
+		static let mismatchEmail = FormError(reason: "The e-mail addresses do not match.")
+	}
+
 	let email: ActionProperty<String, FormError>
 	let emailConfirmation: ActionProperty<String, FormError>
-	let termsAccepted = MutableProperty<Bool>(false)
-	let submit: Action<(), (), NoError>
+	let termsAccepted: MutableProperty<Bool>
 	let reasons: Property<String>
 
+	let submit: Action<(), (), NoError>
+
 	init(_ user: User) {
-		email = user.email
-			.validate { input in
-				print("ViewModel.email predicate received input: \(input)")
+		termsAccepted = MutableProperty(false)
 
-				if input.characters.contains("@") {
-					return .success(())
-				} else {
-					return .failure(FormError("Invalid email address."))
-				}
-			}
-
-		emailConfirmation = MutableProperty("")
-			.validate { [email] input in
-				print("ViewModel.emailConfirmation predicate received input: \(input)")
-
-				return input == email.value ? .success(()) : .failure(FormError("The e-mail addresses do not match."))
-			}
-
-		reasons = email.validations
-			.combineLatest(with: emailConfirmation.validations)
-			.map { [$0?.error, $1?.error].flatMap { $0?.reason }.joined(separator: "\n") }
-
-		let validationState = Property
-			.combineLatest(email.validations,
-			               emailConfirmation.validations,
-			               termsAccepted)
-			.map { $0?.value != nil && $1?.value != nil && $2 }
-
-		validationState.producer.startWithValues { isValid in
-			print("Passed validations: \(isValid)")
+		// Validation for `email`.
+		email = user.email.validate { input in
+			return input.characters.contains("@") ? .success(()) : .failure(.invalidEmail)
 		}
 
-		submit = Action(enabledIf: validationState) { _ in
+		// Validation for `emailConfirmation`.
+		emailConfirmation = MutableProperty("").validate { [email] input in
+			return input == email.value ? .success(()) : .failure(.mismatchEmail)
+		}
+
+		// The aggregate of latest validation results of all text fields.
+		let validationResults = Property.combineLatest(email.validations,
+		                                    emailConfirmation.validations)
+
+		// The validation state of the entire form.
+		let isValid = validationResults
+			.combineLatest(with: termsAccepted)
+			.map { $0.0?.value != nil && $0.1?.value != nil && $1 }
+
+		// Aggregate latest failures into stream of strings.
+		reasons = validationResults.map {
+			return [$0, $1]
+				.flatMap { $0?.error?.reason }
+				.joined(separator: "\n")
+		}
+
+		// The action to be invoked when the submit button is pressed.
+		// It enables only if all the controls have passed their validations.
+		submit = Action(enabledIf: isValid) { _ in
 			return SignalProducer { observer, disposable in
-				print("ViewModel.submit execution producer has started.")
 				observer.sendCompleted()
 			}
 		}
 	}
 }
 
-let viewModel = ViewModel(User())
-let formView = setup()
-
-formView.emailField.text = viewModel.email.value
-formView.emailConfirmationField.text = viewModel.emailConfirmation.value
-formView.termsSwitch.isOn = false
-
-viewModel.email <~ formView.emailValues.skipNil()
-viewModel.emailConfirmation <~ formView.emailConfirmationValues.skipNil()
-viewModel.termsAccepted <~ formView.termsAccepted
-
-formView.invalidationReasons <~ viewModel.reasons
-
-formView.submit = viewModel.submit
-
-func setup() -> FormView {
+final class ViewController {
 	let view = FormView()
+	private let viewModel: ViewModel
 
-	PlaygroundPage.current.needsIndefiniteExecution = true
-	PlaygroundPage.current.liveView = view
+	init(_ viewModel: ViewModel) {
+		self.viewModel = viewModel
+	}
 
-	return view
-}
+	func viewDidLoad() {
+		// Initialize the interactive controls.
+		view.emailField.text = viewModel.email.value
+		view.emailConfirmationField.text = viewModel.emailConfirmation.value
+		view.termsSwitch.isOn = false
 
-struct FormError: Error {
-	let reason: String
-	init(_ reason: String) {
-		self.reason = reason
+		// Setup bindings with the interactive controls.
+		viewModel.email <~ view.emailValues.skipNil()
+		viewModel.emailConfirmation <~ view.emailConfirmationValues.skipNil()
+		viewModel.termsAccepted <~ view.termsAccepted
+
+		// Setup bindings with the invalidation reason label.
+		view.invalidationReasons <~ viewModel.reasons
+
+		// Setup the Action binding with the submit button.
+		view.submit = viewModel.submit
+
+		// Setup console messages.
+		viewModel.submit.completed.observeValues {
+			print("ViewModel.submit: execution producer has started.")
+		}
+
+		viewModel.email.validations.signal.observeValues {
+			print("ViewModel.email: Validation result - \($0 != nil ? "\($0!)" : "No validation has ever been performed.")")
+		}
+
+		viewModel.emailConfirmation.validations.signal.observeValues {
+			print("ViewModel.emailConfirmation: Validation result - \($0 != nil ? "\($0!)" : "No validation has ever been performed.")")
+		}
 	}
 }
+
+PlaygroundPage.current.needsIndefiniteExecution = true
+
+let viewController = ViewController(ViewModel(User()))
+PlaygroundPage.current.liveView = viewController.view
+viewController.viewDidLoad()
