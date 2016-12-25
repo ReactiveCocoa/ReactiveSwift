@@ -1,138 +1,91 @@
 import ReactiveSwift
 import Result
+import UIKit
+import PlaygroundSupport
 
-let root = MutableProperty(0)
+final class User {
+	let email = MutableProperty("")
+}
 
-// First level.
-let A: ActionProperty<Int, ValidationError<Int>> = scope("A") {
-	let property = root.validate { input -> Result<(), ValidationError<Int>> in
-		print("A's validator is invoked.")
+final class ViewModel {
+	let email: ActionProperty<String, FormError>
+	let emailConfirmation: ActionProperty<String, FormError>
+	let termsAccepted = MutableProperty<Bool>(false)
+	let submit: Action<(), (), NoError>
+	let reasons: Property<String>
 
-		if (0 ... 5).contains(input) {
-			return .success()
-		} else {
-			return .failure(.invalid(input))
+	init(_ user: User) {
+		email = user.email
+			.validate { input in
+				print("ViewModel.email predicate received input: \(input)")
+
+				if input.characters.contains("@") {
+					return .success(())
+				} else {
+					return .failure(FormError("Invalid email address."))
+				}
+			}
+
+		emailConfirmation = MutableProperty("")
+			.validate { [email] input in
+				print("ViewModel.emailConfirmation predicate received input: \(input)")
+
+				return input == email.value ? .success(()) : .failure(FormError("The e-mail addresses do not match."))
+			}
+
+		let validationSignal = Signal.combineLatest(
+			email.validations.map { $0.value != nil },
+			emailConfirmation.validations.map { $0.value != nil },
+			termsAccepted.signal)
+			.on(value: { print("Validation Status: \($0)") })
+			.map { $0 && $1 && $2 }
+
+		let allFieldsValid = Property(initial: false,
+		                              then: validationSignal)
+
+		reasons = Property(initial: nil, then: email.validations.map { $0.error })
+			.combineLatest(with: Property(initial: nil, then: emailConfirmation.validations.map { $0.error }))
+			.map { [$0, $1].flatMap { $0?.reason }.joined(separator: "\n") }
+
+		print("Validation Status: false")
+
+
+		submit = Action(state: allFieldsValid, enabledIf: { $0 }) { _ in
+			return SignalProducer { observer, disposable in
+				print("ViewModel.submit execution producer has started.")
+				observer.sendCompleted()
+			}
 		}
 	}
-
-	property.validations.observeValues { validation in
-		print("A result: \(validation); value=\(property.value); rootValue=\(root.value)")
-	}
-
-	set(property, to: -5)
-	set(property, to: 5)
-
-	return property
 }
 
-// Second level.
-let B: ActionProperty<Int, ValidationError<Int>> = scope("B") {
-	let property = A.validate { input -> Result<(), ValidationError<Int>> in
-		print("B's validator is invoked.")
-		if (0 ... 10).contains(input) || (100 ... 110).contains(input) {
-			return .success()
-		} else {
-			return .failure(.invalid(input))
-		}
-	}
+let viewModel = ViewModel(User())
+let formView = setup()
 
-	property.validations.observeValues { validation in
-		print("B result: \(validation); value=\(property.value); rootValue=\(root.value)")
-	}
+formView.emailField.text = viewModel.email.value
+formView.emailConfirmationField.text = viewModel.emailConfirmation.value
+formView.termsSwitch.isOn = false
 
-	set(property, to: -5)
-	set(property, to: 5)
-	set(property, to: 10)
-	set(property, to: 100)
+viewModel.email <~ formView.emailValues.skipNil()
+viewModel.emailConfirmation <~ formView.emailConfirmationValues.skipNil()
+viewModel.termsAccepted <~ formView.termsAccepted
 
-	return property
+formView.invalidationReasons <~ viewModel.reasons
+
+formView.submit = viewModel.submit
+
+func setup() -> FormView {
+	let view = FormView()
+
+	PlaygroundPage.current.needsIndefiniteExecution = true
+	PlaygroundPage.current.liveView = view
+
+	return view
 }
 
-// Third level.
-let C: ActionProperty<Int, ValidationError<Int>> = scope("C") {
-	let property = B.validate { input -> Result<(), ValidationError<Int>> in
-		print("C's validator is invoked.")
-		if (0 ... 15).contains(input) || (200 ... 210).contains(input) {
-			return .success()
-		} else {
-			return .failure(.invalid(input))
-		}
+struct FormError: Error {
+	let reason: String
+	init(_ reason: String) {
+		self.reason = reason
 	}
-
-	property.validations.observeValues { validation in
-		print("C result: \(validation); value=\(property.value); rootValue=\(root.value)")
-	}
-
-	set(property, to: -5)
-	set(property, to: 5)
-	set(property, to: 15)
-	set(property, to: 100)
-	set(property, to: 200)
-
-	return property
-}
-
-// Fourth level.
-let D: ActionProperty<Int, Error2<ValidationError<String>, ValidationError<Int>>> = scope("D") {
-	let property = C.validate { input -> Result<(), ValidationError<String>> in
-		print("D's validator is invoked.")
-		if (0 ... 20).contains(input) || (300 ... 310).contains(input) {
-			return .success()
-		} else {
-			return .failure(.invalid(String(input)))
-		}
-	}
-
-	property.validations.observeValues { validation in
-		print("D result: \(validation); value=\(property.value); rootValue=\(root.value)")
-	}
-
-	set(property, to: -5)
-	set(property, to: 5)
-	set(property, to: 20)
-	set(property, to: 100)
-	set(property, to: 200)
-	set(property, to: 300)
-
-	return property
-}
-
-// Fifth level.
-let E: ActionProperty<String, Error2<ValidationError<String>, ValidationError<Int>>> = scope("E") {
-	let property = D.map(forward: { String("\($0)") },
-	                           backward: { Int($0)! })
-
-	property.validations.observeValues { validation in
-		print("E result: \(validation); value=\(property.value); rootValue=\(root.value)")
-	}
-
-	set(property, to: "-5")
-	set(property, to: "5")
-	set(property, to: "20")
-	set(property, to: "100")
-	set(property, to: "200")
-	set(property, to: "300")
-
-	return property
-}
-
-// Utilities
-enum ValidationError<Value>: Error {
-	case invalid(Value)
-}
-
-var scopeName = "undefined"
-
-func scope<R>(_ name: String, _ body: () -> R) -> R {
-	scopeName = name
-
-	print("## [Scope: \(scopeName)] ========================================================\n")
-
-	return body()
-}
-
-func set<P: MutablePropertyProtocol>(_ p: P, to value: P.Value) {
-	print("Setting \(scopeName) to \(value)")
-	p.value = value
-	print("")
 }
