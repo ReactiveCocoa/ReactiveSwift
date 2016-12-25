@@ -82,6 +82,7 @@ public class FormView: UIView {
 		emailField.borderStyle = .roundedRect
 		emailField.frame.origin = CGPoint(x: 20, y: 40)
 		emailField.frame.size = CGSize(width: 260, height: 30)
+		emailField.autocapitalizationType = .none
 
 		// Email Confirmation Field.
 		let emailConfirmationLabel = UILabel(frame: CGRect(x: 20, y: 80, width: 260, height: 20))
@@ -92,6 +93,7 @@ public class FormView: UIView {
 		emailConfirmationField.borderStyle = .roundedRect
 		emailConfirmationField.frame.origin = CGPoint(x: 20, y: 100)
 		emailConfirmationField.frame.size = CGSize(width: 260, height: 30)
+		emailConfirmationField.autocapitalizationType = .none
 
 		// Accept Terms Switch
 		let termsSwitchLabel = UILabel(frame: CGRect(x: 80, y: 155, width: 200, height: 20))
