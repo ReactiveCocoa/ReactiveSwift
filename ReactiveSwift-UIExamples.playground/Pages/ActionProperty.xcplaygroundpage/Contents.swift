@@ -32,9 +32,10 @@ final class ViewModel {
 			                               failWith: .invalidEmail) })
 
 		// Validation for `emailConfirmation`.
-		emailConfirmation = MutableProperty("").validate { [email] input in
-			return input == email.value ? .success(()) : .failure(.mismatchEmail)
-		}
+		emailConfirmation = MutableProperty("")
+			.validate(with: email) { input, currentEmail in
+				return input == currentEmail ? .success(()) : .failure(.mismatchEmail)
+			}
 
 		// The aggregate of latest validation results of all text fields.
 		let validationResults = Property.combineLatest(email.validations,

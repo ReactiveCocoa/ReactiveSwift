@@ -104,9 +104,8 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 		self.cache = inner.cache.map(transform)
 		self.rootBox = inner.rootBox
 
-		inner.validations.producer
-			.map { $0?.mapError(errorTransform) }
-			.startWithValues { _validations.value = $0 }
+		let d = _validations <~ inner.validations.producer.map { $0?.mapError(errorTransform) }
+		_validations.lifetime.ended.observeCompleted { d?.dispose() }
 
 		action = { input in
 			switch body(inner.cache.value, input) {
@@ -200,6 +199,12 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 			return try action(&value)
 		}
 	}
+
+	internal func revalidate() {
+		rootBox.lock {
+			action(cache.value)
+		}
+	}
 }
 
 // FIXME: Remove the type parameter that works around type checker weirdness.
@@ -268,7 +273,7 @@ extension ComposableMutablePropertyProtocol {
 	/// - returns: A validating `ActionProperty`.
 	public func validate<Error: Swift.Error>(
 		_ predicate: @escaping (Value) -> Result<(), Error>
-	) -> ActionProperty<Value, Error> {
+		) -> ActionProperty<Value, Error> {
 		return ActionProperty(self) { current, proposedInput in
 			switch predicate(proposedInput) {
 			case .success:
@@ -278,6 +283,63 @@ extension ComposableMutablePropertyProtocol {
 				return .failure(error)
 			}
 		}
+	}
+
+	// - The default `validate(with:)` with parameter `Error`.
+
+	/// Create a mutable view to `self` that validates any proposed value in
+	/// consideration of `other`.
+	/// 
+	/// If `self` has failed the predicate and `other` changes subsequently, the
+	/// predicate would be reevaluated automatically.
+	///
+	/// - parameters:
+	///   - predicate: The closure that validates any proposed value to the
+	///                property.
+	///
+	/// - returns: A validating `ActionProperty`.
+	public func validate<P: PropertyProtocol, Error: Swift.Error>(
+		with other: P,
+		_ predicate: @escaping (Value, P.Value) -> Result<(), Error>
+	) -> ActionProperty<Value, Error> {
+		return ActionProperty<Value, Error>
+			.validate({ ActionProperty(self, $0) }, with: other, predicate)
+	}
+}
+
+extension ActionProperty {
+	// Shared implementation of `validate(with:)`.
+	fileprivate static func validate<Other: PropertyProtocol, Error>(
+		_ initializer: (@escaping (Value, Value) -> Result<Value, Error>) -> ActionProperty<Value, Error>,
+		with other: Other,
+		_ predicate: @escaping (Value, Other.Value) -> Result<(), Error>
+		) -> ActionProperty<Value, Error> {
+		let other = Property(other)
+		let proposed = Atomic<Value?>(nil)
+
+		let property = initializer { _, proposedInput -> Result<Value, Error> in
+			switch predicate(proposedInput, other.value) {
+			case .success:
+				proposed.value = nil
+				return .success(proposedInput)
+
+			case let .failure(error):
+				proposed.value = proposedInput
+				return .failure(error)
+			}
+		}
+
+		let d = other.signal.observeValues { [weak property] _ in
+			if let value = proposed.swap(nil) {
+				property?.value = value
+			} else {
+				property?.revalidate()
+			}
+		}
+
+		property.lifetime.ended.observeCompleted { d?.dispose() }
+
+		return property
 	}
 }
 
@@ -322,32 +384,6 @@ extension ActionProperty {
 		}
 	}
 
-	// - The failable `map` that supports a different outer error type.
-
-	/// Create a mutable mapped view to `self` with a failable setter.
-	///
-	/// - parameters:
-	///   - forward: The value transform to convert `Self.Value` to `U`.
-	///   - attemptBackward: The failable value transform to convert `U` to
-	///                      `Self.Value`.
-	///
-	/// - returns: A mapping `ActionProperty`.
-	public func map<U, E: Swift.Error>(
-		forward: @escaping (Value) -> U,
-		attemptBackward: @escaping (U) -> Result<Value, E>
-	) -> ActionProperty<U, Error2<E, ActionError>> {
-		typealias ActionProperty = ReactiveSwift.ActionProperty<U, Error2<E, ActionError>>
-		return ActionProperty(self, transform: forward) { _, proposedInput in
-			switch attemptBackward(proposedInput) {
-			case let .success(value):
-				return .success(value)
-
-			case let .failure(error):
-				return .failure(.outer(error))
-			}
-		}
-	}
-
 	// - The overriding `validate` that invokes the `ActionProperty`
 	//   specialization of `ActionProperty.init`.
 
@@ -372,32 +408,25 @@ extension ActionProperty {
 		}
 	}
 
-	// - The `validate` that supports a different outer error type.
+	// - The overriding `validate(with:)` that invokes the `ActionProperty`
+	//   specialization of `ActionProperty.init`.
 
-	/// Create a mutable view to `self` that validates any proposed value.
+	/// Create a mutable view to `self` that validates any proposed value in
+	/// consideration of `other`.
+	///
+	/// If `self` has failed the predicate and `other` changes subsequently, the
+	/// predicate would be reevaluated automatically.
 	///
 	/// - parameters:
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
 	/// - returns: A validating `ActionProperty`.
-	public func validate<Error: Swift.Error>(
-		_ predicate: @escaping (Value) -> Result<(), Error>
-	) -> ActionProperty<Value, Error2<Error, ActionError>> {
-		typealias ActionProperty = ReactiveSwift.ActionProperty<Value, Error2<Error, ActionError>>
-		return ActionProperty(self, errorTransform: { .inner($0) }) { current, proposedInput in
-			switch predicate(proposedInput) {
-			case .success:
-				return .success(proposedInput)
-
-			case let .failure(error):
-				return .failure(.outer(error))
-			}
-		}
+	public func validate<P: PropertyProtocol>(
+		with other: P,
+		_ predicate: @escaping (Value, P.Value) -> Result<(), ActionError>
+	) -> ActionProperty<Value, ActionError> {
+		return ActionProperty<Value, ActionError>
+			.validate({ ActionProperty(self, $0) }, with: other, predicate)
 	}
-}
-
-public enum Error2<OuterError: Error, InnerError: Error>: Error {
-	case outer(OuterError)
-	case inner(InnerError)
 }
