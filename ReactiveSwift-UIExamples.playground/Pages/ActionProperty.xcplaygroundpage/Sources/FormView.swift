@@ -38,7 +38,7 @@ public class FormView: UIView {
 
 	private let disposable = SerialDisposable()
 
-	public var submit: Action<(), (), NoError>? {
+	public var submit: Action<(), String, NoError>? {
 		didSet {
 			if let action = submit {
 				let target = Target { _ in action.apply().start() }
