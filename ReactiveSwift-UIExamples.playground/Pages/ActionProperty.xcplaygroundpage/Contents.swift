@@ -18,7 +18,7 @@ final class ViewModel {
 	let email: ActionProperty<String, FormError>
 	let emailConfirmation: ActionProperty<String, FormError>
 	let termsAccepted: MutableProperty<Bool>
-	let reasons: Property<String>
+	let reasons: Signal<String, NoError>
 
 	let submit: Action<(), String, NoError>
 
@@ -49,11 +49,13 @@ final class ViewModel {
 		let state = isValid.combineLatest(with: user.username)
 
 		// Aggregate latest failures into stream of strings.
-		reasons = validationResults.map {
-			return [$0, $1]
-				.flatMap { $0.error?.reason }
-				.joined(separator: "\n")
-		}
+		reasons = validationResults.signal
+			.skip(first: 1)
+			.map {
+				return [$0, $1]
+					.flatMap { $0.error?.reason }
+					.joined(separator: "\n")
+			}
 
 		// The action to be invoked when the submit button is pressed.
 		// It enables only if all the controls have passed their validations.
