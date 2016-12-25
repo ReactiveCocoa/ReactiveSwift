@@ -108,11 +108,11 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 			.map { $0.mapError(errorTransform) }
 			.observe(validationObserver)
 
-		action = { [rootBox = inner.rootBox, innerCache = inner.cache, innerAction = inner.action] input in
-			rootBox.lock {
-				switch body(innerCache.value, input) {
+		action = { input in
+			inner.rootBox.lock {
+				switch body(inner.cache.value, input) {
 				case let .success(innerResult):
-					innerAction(innerResult)
+					inner.action(innerResult)
 
 				case let .failure(error):
 					validationObserver.send(value: .failure(error))
