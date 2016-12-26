@@ -4,6 +4,7 @@ custom_categories:
     - BasicOperators
     - FrameworkOverview
     - DebuggingTechniques
+    - DesignGuidelines
   - name: Signal
     children:
     - Event
@@ -72,18 +73,10 @@ custom_categories:
     - LoggingEvent
     - Optional
     - OptionalProtocol
-  - name: Documentations
-    children:
-    - DesignGuidelines
-    - DocumentingCode
-    - ReleaseProcess
-exclude:
-  - Documentation/ReleaseProcess.md
-  - Documentation/README.md
 theme: fullwidth 
 skip_undocumented: true
 readme: README.md
-documentation: Documentation/*
+documentation: Documentation/*.md
 hide_documentation_coverage: true
 xcodebuild_arguments:
   - -workspace
