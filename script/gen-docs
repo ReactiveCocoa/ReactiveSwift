@@ -33,6 +33,7 @@ git checkout -b ras-${TRAVIS_TAG}
 # Copy the generated docs.
 mkdir -p ./reactiveswift/docs/${TRAVIS_TAG}
 cp -r ../docs/. ./reactiveswift/docs/${TRAVIS_TAG}
+rm -rf ./reactiveswift/docs/${TRAVIS_TAG}/docsets/
 
 # Copy image assets used by README.md.
 mkdir -p ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/
