@@ -15,8 +15,8 @@ final class ViewModel {
 		static let mismatchEmail = FormError(reason: "The e-mail addresses do not match.")
 	}
 
-	let email: ActionProperty<String, FormError>
-	let emailConfirmation: ActionProperty<String, FormError>
+	let email: TransactionalProperty<String, FormError>
+	let emailConfirmation: TransactionalProperty<String, FormError>
 	let termsAccepted: MutableProperty<Bool>
 	let reasons: Signal<String, NoError>
 

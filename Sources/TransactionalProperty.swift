@@ -2,7 +2,7 @@ import Result
 
 /// A mutable, observable property that has an optionally failable action
 /// associated with the setter.
-public final class ActionProperty<Value, ActionError: Error>: ComposableMutablePropertyProtocol {
+public final class TransactionalProperty<Value, TransactionError: Error>: ComposableMutablePropertyProtocol {
 	/// The current value of the property.
 	public var value: Value {
 		get {
@@ -30,21 +30,21 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 	public let lifetime: Lifetime
 
 	/// Validations that have been made by the property.
-	public let validations: Property<Result<(), ActionError>>
+	public let validations: Property<Result<(), TransactionError>>
 
 	/// The action associated with the property.
 	private let action: (Value) -> Void
 
 	/// The existential box that wraps the synchronization mechanic of the root
 	/// property of the composed chain.
-	private let rootBox: ActionPropertyBoxBase<()>
+	private let rootBox: TransactionalPropertyBoxBase<()>
 
 	/// The cache which holds the latest value in terms of `Value`.
 	private let cache: Property<Value>
 
-	/// Create an `ActionProperty` that presents `inner` as a property of `Value`,
-	/// and invoke `body` with the current value of `inner` and the proposed value
-	/// whenever the setter is invoked.
+	/// Create an `TransactionalProperty` that presents `inner` as a property of
+	/// `Value`, and invoke `body` with the current value of `inner` and the
+	/// proposed value whenever the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -57,16 +57,16 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 	public init<M: ComposableMutablePropertyProtocol>(
 		_ inner: M,
 		transform: @escaping (M.Value) -> Value,
-		_ body: @escaping (M.Value, Value) -> Result<M.Value, ActionError>
+		_ body: @escaping (M.Value, Value) -> Result<M.Value, TransactionError>
 	) {
 		let current = inner.value
 		let initialValidation = body(current, transform(current)).map { _ in }
-		let _validations = MutableProperty<Result<(), ActionError>>(initialValidation)
+		let _validations = MutableProperty<Result<(), TransactionError>>(initialValidation)
 
 		self.lifetime = inner.lifetime
 		self.validations = Property(capturing: _validations)
 		self.cache = inner.map(transform)
-		self.rootBox = ActionPropertyBox(inner)
+		self.rootBox = TransactionalPropertyBox(inner)
 
 		action = { input in
 			switch body(inner.value, input) {
@@ -80,9 +80,10 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 		}
 	}
 
-	/// Create an `ActionProperty` that presents `inner` as an `ActionProperty` of
-	/// `U` value and `E` error, and invoke `body` with the current value of
-	/// `inner` and the proposed value whenever the setter is invoked.
+	/// Create an `TransactionalProperty` that presents `inner` as an
+	/// `TransactionalProperty` of `U` value and `E` error, and invoke `body` with
+	/// the current value of `inner` and the proposed value whenever the setter is
+	/// invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -94,14 +95,14 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 	///   - errorTransform: The error transform for the presentation.
 	///   - body: The closure to invoke for any proposed value to `self`.
 	public init<U, E: Error>(
-		_ inner: ActionProperty<U, E>,
+		_ inner: TransactionalProperty<U, E>,
 		transform: @escaping (U) -> Value,
-		errorTransform: @escaping (E) -> ActionError,
-		_ body: @escaping (U, Value) -> Result<U, ActionError>
+		errorTransform: @escaping (E) -> TransactionError,
+		_ body: @escaping (U, Value) -> Result<U, TransactionError>
 	) {
 		let current = inner.value
 		let initialValidation = body(current, transform(current)).map { _ in }
-		let _validations = MutableProperty<Result<(), ActionError>>(initialValidation)
+		let _validations = MutableProperty<Result<(), TransactionError>>(initialValidation)
 
 		self.lifetime = inner.lifetime
 		self.validations = Property(capturing: _validations)
@@ -122,7 +123,7 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 		}
 	}
 
-	/// Create an `ActionProperty` that invokes `body` with the current value of
+	/// Create an `TransactionalProperty` that invokes `body` with the current value of
 	/// `inner` and the proposed value whenever the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
@@ -134,14 +135,15 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 	///   - body: The closure to invoke for any proposed value to `self`.
 	public convenience init<M: ComposableMutablePropertyProtocol>(
 		_ inner: M,
-		_ body: @escaping (M.Value, M.Value) -> Result<M.Value, ActionError>
+		_ body: @escaping (M.Value, M.Value) -> Result<M.Value, TransactionError>
 	) where M.Value == Value {
 		self.init(inner, transform: { $0 }, body)
 	}
 
-	/// Create an `ActionProperty` that presents `inner` as an `ActionProperty` of
-	/// `U` values and the same error type, and invoke `body` with the current
-	/// value of `inner` and the proposed value whenever the setter is invoked.
+	/// Create an `TransactionalProperty` that presents `inner` as an
+	/// `TransactionalProperty` of `U` values and the same error type, and invoke
+	/// `body` with the current value of `inner` and the proposed value whenever
+	/// the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -152,16 +154,17 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 	///   - transform: The value transform for the presentation.
 	///   - body: The closure to invoke for any proposed value to `self`.
 	public convenience init<U>(
-		_ inner: ActionProperty<U, ActionError>,
+		_ inner: TransactionalProperty<U, TransactionError>,
 		transform: @escaping (U) -> Value,
-		_ body: @escaping (U, Value) -> Result<U, ActionError>
+		_ body: @escaping (U, Value) -> Result<U, TransactionError>
 	) {
 		self.init(inner, transform: transform, errorTransform: { $0 }, body)
 	}
 
-	/// Create an `ActionProperty` that presents `inner` as an `ActionProperty` of
-	/// the same value type and `E` errors, and invoke `body` with the current
-	/// value of `inner` and the proposed value whenever the setter is invoked.
+	/// Create an `TransactionalProperty` that presents `inner` as an
+	/// `TransactionalProperty` of the same value type and `E` errors, and invoke
+	/// `body` with the current value of `inner` and the proposed value whenever
+	/// the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -172,9 +175,9 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 	///   - errorTransform: The error transform for the presentation.
 	///   - body: The closure to invoke for any proposed value to `self`.
 	public convenience init<E: Swift.Error>(
-		_ inner: ActionProperty<Value, E>,
-		errorTransform: @escaping (E) -> ActionError,
-		_ body: @escaping (Value, Value) -> Result<Value, ActionError>
+		_ inner: TransactionalProperty<Value, E>,
+		errorTransform: @escaping (E) -> TransactionError,
+		_ body: @escaping (Value, Value) -> Result<Value, TransactionError>
 	) {
 		self.init(inner, transform: { $0 }, errorTransform: errorTransform, body)
 	}
@@ -212,7 +215,7 @@ public final class ActionProperty<Value, ActionError: Error>: ComposableMutableP
 }
 
 // FIXME: Remove the type parameter that works around type checker weirdness.
-private class ActionPropertyBox<Property: ComposableMutablePropertyProtocol>: ActionPropertyBoxBase<()> {
+private class TransactionalPropertyBox<Property: ComposableMutablePropertyProtocol>: TransactionalPropertyBoxBase<()> {
 	private let base: Property
 
 	init(_ base: Property) { self.base = base }
@@ -222,7 +225,7 @@ private class ActionPropertyBox<Property: ComposableMutablePropertyProtocol>: Ac
 	}
 }
 
-private class ActionPropertyBoxBase<Value> {
+private class TransactionalPropertyBoxBase<Value> {
 	func lock<R>(_ action: (()) throws -> R) rethrows -> R {
 		fatalError()
 	}
@@ -237,12 +240,12 @@ extension ComposableMutablePropertyProtocol {
 	///   - forward: The value transform to convert `Self.Value` to `U`.
 	///   - backward: The value transform to convert `U` to `Self.Value`.
 	///
-	/// - returns: A mapping `ActionProperty`.
+	/// - returns: A mapping `TransactionalProperty`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
 		backward: @escaping (U) -> Value
-	) -> ActionProperty<U, NoError> {
-		return ActionProperty<U, NoError>(self, transform: forward) { _, proposedInput in
+	) -> TransactionalProperty<U, NoError> {
+		return TransactionalProperty<U, NoError>(self, transform: forward) { _, proposedInput in
 			return .success(backward(proposedInput))
 		}
 	}
@@ -256,12 +259,12 @@ extension ComposableMutablePropertyProtocol {
 	///   - attemptBackward: The failable value transform to convert `U` to
 	///                      `Self.Value`.
 	///
-	/// - returns: A mapping `ActionProperty`.
+	/// - returns: A mapping `TransactionalProperty`.
 	public func map<U, Error: Swift.Error>(
 		forward: @escaping (Value) -> U,
 		attemptBackward: @escaping (U) -> Result<Value, Error>
-	) -> ActionProperty<U, Error> {
-		return ActionProperty<U, Error>(self, transform: forward) { _, proposedInput in
+	) -> TransactionalProperty<U, Error> {
+		return TransactionalProperty<U, Error>(self, transform: forward) { _, proposedInput in
 			return attemptBackward(proposedInput)
 		}
 	}
@@ -274,11 +277,11 @@ extension ComposableMutablePropertyProtocol {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `ActionProperty`.
+	/// - returns: A validating `TransactionalProperty`.
 	public func validate<Error: Swift.Error>(
 		_ predicate: @escaping (Value) -> Result<(), Error>
-		) -> ActionProperty<Value, Error> {
-		return ActionProperty(self) { current, proposedInput in
+		) -> TransactionalProperty<Value, Error> {
+		return TransactionalProperty(self) { current, proposedInput in
 			switch predicate(proposedInput) {
 			case .success:
 				return .success(proposedInput)
@@ -301,23 +304,23 @@ extension ComposableMutablePropertyProtocol {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `ActionProperty`.
+	/// - returns: A validating `TransactionalProperty`.
 	public func validate<P: PropertyProtocol, Error: Swift.Error>(
 		with other: P,
 		_ predicate: @escaping (Value, P.Value) -> Result<(), Error>
-	) -> ActionProperty<Value, Error> {
-		return ActionProperty<Value, Error>
-			.validate({ ActionProperty(self, $0) }, with: other, predicate)
+	) -> TransactionalProperty<Value, Error> {
+		return TransactionalProperty<Value, Error>
+			.validate({ TransactionalProperty(self, $0) }, with: other, predicate)
 	}
 }
 
-extension ActionProperty {
+extension TransactionalProperty {
 	// Shared implementation of `validate(with:)`.
 	fileprivate static func validate<Other: PropertyProtocol, Error>(
-		_ initializer: (@escaping (Value, Value) -> Result<Value, Error>) -> ActionProperty<Value, Error>,
+		_ initializer: (@escaping (Value, Value) -> Result<Value, Error>) -> TransactionalProperty<Value, Error>,
 		with other: Other,
 		_ predicate: @escaping (Value, Other.Value) -> Result<(), Error>
-		) -> ActionProperty<Value, Error> {
+		) -> TransactionalProperty<Value, Error> {
 		let other = Property(other)
 		let proposed = Atomic<Value?>(nil)
 
@@ -347,9 +350,9 @@ extension ActionProperty {
 	}
 }
 
-extension ActionProperty {
-	// - The overriding `map` that invokes the `ActionProperty` specialization of
-	//   `ActionProperty.init`.
+extension TransactionalProperty {
+	// - The overriding `map` that invokes the `TransactionalProperty`
+	//   specialization of `TransactionalProperty.init`.
 
 	/// Create a mutable mapped view to `self`.
 	///
@@ -357,18 +360,18 @@ extension ActionProperty {
 	///   - forward: The value transform to convert `Self.Value` to `U`.
 	///   - backward: The value transform to convert `U` to `Self.Value`.
 	///
-	/// - returns: A mapping `ActionProperty`.
+	/// - returns: A mapping `TransactionalProperty`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
 		backward: @escaping (U) -> Value
-	) -> ActionProperty<U, ActionError> {
-		return ActionProperty<U, ActionError>(self, transform: forward) { _, proposedInput in
+	) -> TransactionalProperty<U, TransactionError> {
+		return TransactionalProperty<U, TransactionError>(self, transform: forward) { _, proposedInput in
 			return .success(backward(proposedInput))
 		}
 	}
 
-	// - The overriding failable `map` that invokes the `ActionProperty`
-	//   specialization of `ActionProperty.init`.
+	// - The overriding failable `map` that invokes the `TransactionalProperty`
+	//   specialization of `TransactionalProperty.init`.
 
 	/// Create a mutable mapped view to `self` with a failable setter.
 	///
@@ -377,19 +380,19 @@ extension ActionProperty {
 	///   - attemptBackward: The failable value transform to convert `U` to
 	///                      `Self.Value`.
 	///
-	/// - returns: A mapping `ActionProperty`.
+	/// - returns: A mapping `TransactionalProperty`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
-		attemptBackward: @escaping (U) -> Result<Value, ActionError>
-	) -> ActionProperty<U, ActionError> {
-		typealias ActionProperty = ReactiveSwift.ActionProperty<U, ActionError>
-		return ActionProperty(self, transform: forward) { _, proposedInput in
+		attemptBackward: @escaping (U) -> Result<Value, TransactionError>
+	) -> TransactionalProperty<U, TransactionError> {
+		typealias TransactionalProperty = ReactiveSwift.TransactionalProperty<U, TransactionError>
+		return TransactionalProperty(self, transform: forward) { _, proposedInput in
 			return attemptBackward(proposedInput)
 		}
 	}
 
-	// - The overriding `validate` that invokes the `ActionProperty`
-	//   specialization of `ActionProperty.init`.
+	// - The overriding `validate` that invokes the `TransactionalProperty`
+	//   specialization of `TransactionalProperty.init`.
 
 	/// Create a mutable view to `self` that validates any proposed value.
 	///
@@ -397,11 +400,11 @@ extension ActionProperty {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `ActionProperty`.
+	/// - returns: A validating `TransactionalProperty`.
 	public func validate(
-		_ predicate: @escaping (Value) -> Result<(), ActionError>
-	) -> ActionProperty<Value, ActionError> {
-		return ActionProperty(self) { current, proposedInput in
+		_ predicate: @escaping (Value) -> Result<(), TransactionError>
+	) -> TransactionalProperty<Value, TransactionError> {
+		return TransactionalProperty(self) { current, proposedInput in
 			switch predicate(proposedInput) {
 			case .success:
 				return .success(proposedInput)
@@ -412,8 +415,8 @@ extension ActionProperty {
 		}
 	}
 
-	// - The overriding `validate(with:)` that invokes the `ActionProperty`
-	//   specialization of `ActionProperty.init`.
+	// - The overriding `validate(with:)` that invokes the `TransactionalProperty`
+	//   specialization of `TransactionalProperty.init`.
 
 	/// Create a mutable view to `self` that validates any proposed value in
 	/// consideration of `other`.
@@ -425,12 +428,12 @@ extension ActionProperty {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `ActionProperty`.
+	/// - returns: A validating `TransactionalProperty`.
 	public func validate<P: PropertyProtocol>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), ActionError>
-	) -> ActionProperty<Value, ActionError> {
-		return ActionProperty<Value, ActionError>
-			.validate({ ActionProperty(self, $0) }, with: other, predicate)
+		_ predicate: @escaping (Value, P.Value) -> Result<(), TransactionError>
+	) -> TransactionalProperty<Value, TransactionError> {
+		return TransactionalProperty<Value, TransactionError>
+			.validate({ TransactionalProperty(self, $0) }, with: other, predicate)
 	}
 }
