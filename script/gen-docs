@@ -33,6 +33,13 @@ git checkout -b ras-${TRAVIS_TAG}
 # Copy the generated docs.
 mkdir -p ./reactiveswift/docs/${TRAVIS_TAG}
 cp -r ../docs/. ./reactiveswift/docs/${TRAVIS_TAG}
+
+# Copy image assets used by README.md.
+mkdir -p ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/
+cp ../Logo/PNG/logo-Swift.png ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/logo-Swift.png
+cp ../Logo/PNG/JoinSlack.png ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/JoinSlack.png
+cp ../Logo/PNG/Docs.png ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/Docs.png
+
 git add ./reactiveswift/docs/${TRAVIS_TAG}
 
 # Ensure Jekyll is not running in `docs`.
