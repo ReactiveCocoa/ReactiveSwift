@@ -374,8 +374,8 @@ extension PropertyProtocol {
 extension PropertyProtocol where Value == Bool {
 	/// Returns a property with the oposite value
 	/// - returns: Property with the new value stored
-	public var not: Property<Value> {
-		return self.lift { $0.not }
+	public var negated: Property<Value> {
+		return self.lift { $0.negated }
 	}
 	
 	///Combines the property with the given property in a manner described by

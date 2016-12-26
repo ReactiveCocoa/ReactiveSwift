@@ -2191,7 +2191,7 @@ extension SignalProtocol where Value == Bool {
 	/// Returns a signal with the oposite value
 	/// - returns: Signal that for each event will emit a new event instead
 	///            with the new value
-	public var not: Signal<Value, Error> {
+	public var negated: Signal<Value, Error> {
 		return self.map(!)
 	}
 	

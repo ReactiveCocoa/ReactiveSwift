@@ -1882,8 +1882,8 @@ extension SignalProducerProtocol where Value == Bool {
 	/// Returns a producer with the oposite value.
 	/// - returns: Producer that when started, for each event will emit a new event instead
 	///            with the new value
-	public var not: SignalProducer<Value, Error> {
-		return self.lift { $0.not }
+	public var negated: SignalProducer<Value, Error> {
+		return self.lift { $0.negated }
 	}
 	
 	///Combines the producer with the given producer in a manner described by
