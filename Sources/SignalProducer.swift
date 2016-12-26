@@ -1897,6 +1897,16 @@ extension SignalProducerProtocol where Value == Bool {
 	}
 	
 	///Combines the producer with the given producer in a manner described by
+	///`and()` operator.
+	/// - parameters:
+	///   - signal: Signal that will be combined with self
+	/// - returns: Producer that when started, for each event will emit a new event instead
+	///            with the new value
+	public func and(_ signal: Signal<Value, Error>) -> SignalProducer<Value, Error> {
+		return self.lift(Signal.and)(signal)
+	}
+	
+	///Combines the producer with the given producer in a manner described by
 	///`or()` operator.
 	/// - parameters:
 	///   - producer: Producer that will be combined with self
@@ -1904,6 +1914,16 @@ extension SignalProducerProtocol where Value == Bool {
 	///            with the new value
 	public func or(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return self.lift(Signal.or)(producer)
+	}
+	
+	///Combines the producer with the given producer in a manner described by
+	///`or()` operator.
+	/// - parameters:
+	///   - signal: Signal that will be combined with self
+	/// - returns: Producer that when started, for each event will emit a new event instead
+	///            with the new value
+	public func or(_ signal: Signal<Value, Error>) -> SignalProducer<Value, Error> {
+		return self.lift(Signal.or)(signal)
 	}
 }
 
