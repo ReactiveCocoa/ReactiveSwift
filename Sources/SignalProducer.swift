@@ -1880,18 +1880,28 @@ extension SignalProducerProtocol {
 
 extension SignalProducerProtocol where Value == Bool {
 	/// Returns a producer with the oposite value.
+	/// - returns: Producer that when started, for each event will emit a new event instead
+	///            with the new value
 	public var not: SignalProducer<Value, Error> {
 		return self.lift { $0.not }
 	}
 	
 	///Combines the producer with the given producer in a manner described by
 	///`and()` operator.
+	/// - parameters:
+	///   - producer: Producer that will be combined with self
+	/// - returns: Producer that when started, for each event will emit a new event instead
+	///            with the new value
 	public func and(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return self.lift(Signal.and)(producer)
 	}
 	
 	///Combines the producer with the given producer in a manner described by
 	///`or()` operator.
+	/// - parameters:
+	///   - producer: Producer that will be combined with self
+	/// - returns: Producer that when started, for each event will emit a new event instead
+	///            with the new value
 	public func or(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return self.lift(Signal.or)(producer)
 	}
