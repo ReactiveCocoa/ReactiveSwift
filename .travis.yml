@@ -86,6 +86,12 @@ matrix:
         - swift build
         - swift test
       env: JOB=SWIFTPM_LINUX
+    - os: osx
+      language: generic
+      script:
+        - script/gen-docs
+      env:
+        - JOB=JAZZY_DOCS_GEN
 notifications:
   email: false
   slack:

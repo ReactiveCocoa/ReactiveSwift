@@ -168,6 +168,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	}
 }
 
+/// A protocol used to constraint `SignalProducer` operators.
 public protocol SignalProducerProtocol {
 	/// The type of values being sent on the producer
 	associatedtype Value
