@@ -43,8 +43,8 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	private let cache: Property<Value>
 
 	/// Create an `TransactionalProperty` that presents `inner` as a property of
-	/// `Value`, and invoke `body` with the current value of `inner` and the
-	/// proposed value whenever the setter is invoked.
+	/// `Value`, and invoke `body` with the proposed value whenever the setter is
+	/// invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -57,10 +57,10 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	public init<M: ComposableMutablePropertyProtocol>(
 		_ inner: M,
 		transform: @escaping (M.Value) -> Value,
-		_ body: @escaping (M.Value, Value) -> Result<M.Value, TransactionError>
+		_ body: @escaping (Value) -> Result<M.Value, TransactionError>
 	) {
 		let current = inner.value
-		let initialValidation = body(current, transform(current)).map { _ in }
+		let initialValidation = body(transform(current)).map { _ in }
 		let _validations = MutableProperty<Result<(), TransactionError>>(initialValidation)
 
 		self.lifetime = inner.lifetime
@@ -69,7 +69,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		self.rootBox = TransactionalPropertyBox(inner)
 
 		action = { input in
-			switch body(inner.value, input) {
+			switch body(input) {
 			case let .success(innerResult):
 				inner.value = innerResult
 				_validations.value = .success()
@@ -82,8 +82,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 
 	/// Create an `TransactionalProperty` that presents `inner` as an
 	/// `TransactionalProperty` of `U` value and `E` error, and invoke `body` with
-	/// the current value of `inner` and the proposed value whenever the setter is
-	/// invoked.
+	/// the proposed value whenever the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -98,10 +97,10 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		_ inner: TransactionalProperty<U, E>,
 		transform: @escaping (U) -> Value,
 		errorTransform: @escaping (E) -> TransactionError,
-		_ body: @escaping (U, Value) -> Result<U, TransactionError>
+		_ body: @escaping (Value) -> Result<U, TransactionError>
 	) {
 		let current = inner.value
-		let initialValidation = body(current, transform(current)).map { _ in }
+		let initialValidation = body(transform(current)).map { _ in }
 		let _validations = MutableProperty<Result<(), TransactionError>>(initialValidation)
 
 		self.lifetime = inner.lifetime
@@ -113,7 +112,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		_validations.lifetime.ended.observeCompleted { d?.dispose() }
 
 		action = { input in
-			switch body(inner.cache.value, input) {
+			switch body(input) {
 			case let .success(innerResult):
 				inner.action(innerResult)
 
@@ -123,8 +122,8 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		}
 	}
 
-	/// Create an `TransactionalProperty` that invokes `body` with the current value of
-	/// `inner` and the proposed value whenever the setter is invoked.
+	/// Create an `TransactionalProperty` that invokes `body` with the current
+	/// value of `inner` and the proposed value whenever the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -135,15 +134,14 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	///   - body: The closure to invoke for any proposed value to `self`.
 	public convenience init<M: ComposableMutablePropertyProtocol>(
 		_ inner: M,
-		_ body: @escaping (M.Value, M.Value) -> Result<M.Value, TransactionError>
+		_ body: @escaping (M.Value) -> Result<M.Value, TransactionError>
 	) where M.Value == Value {
 		self.init(inner, transform: { $0 }, body)
 	}
 
 	/// Create an `TransactionalProperty` that presents `inner` as an
 	/// `TransactionalProperty` of `U` values and the same error type, and invoke
-	/// `body` with the current value of `inner` and the proposed value whenever
-	/// the setter is invoked.
+	/// `body` with the proposed value whenever the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -156,15 +154,14 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	public convenience init<U>(
 		_ inner: TransactionalProperty<U, TransactionError>,
 		transform: @escaping (U) -> Value,
-		_ body: @escaping (U, Value) -> Result<U, TransactionError>
+		_ body: @escaping (Value) -> Result<U, TransactionError>
 	) {
 		self.init(inner, transform: transform, errorTransform: { $0 }, body)
 	}
 
 	/// Create an `TransactionalProperty` that presents `inner` as an
 	/// `TransactionalProperty` of the same value type and `E` errors, and invoke
-	/// `body` with the current value of `inner` and the proposed value whenever
-	/// the setter is invoked.
+	/// `body` with the proposed value whenever the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -177,7 +174,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	public convenience init<E: Swift.Error>(
 		_ inner: TransactionalProperty<Value, E>,
 		errorTransform: @escaping (E) -> TransactionError,
-		_ body: @escaping (Value, Value) -> Result<Value, TransactionError>
+		_ body: @escaping (Value) -> Result<Value, TransactionError>
 	) {
 		self.init(inner, transform: { $0 }, errorTransform: errorTransform, body)
 	}
@@ -245,7 +242,7 @@ extension ComposableMutablePropertyProtocol {
 		forward: @escaping (Value) -> U,
 		backward: @escaping (U) -> Value
 	) -> TransactionalProperty<U, NoError> {
-		return TransactionalProperty<U, NoError>(self, transform: forward) { _, proposedInput in
+		return TransactionalProperty<U, NoError>(self, transform: forward) { proposedInput in
 			return .success(backward(proposedInput))
 		}
 	}
@@ -264,7 +261,7 @@ extension ComposableMutablePropertyProtocol {
 		forward: @escaping (Value) -> U,
 		attemptBackward: @escaping (U) -> Result<Value, Error>
 	) -> TransactionalProperty<U, Error> {
-		return TransactionalProperty<U, Error>(self, transform: forward) { _, proposedInput in
+		return TransactionalProperty<U, Error>(self, transform: forward) { proposedInput in
 			return attemptBackward(proposedInput)
 		}
 	}
@@ -281,7 +278,7 @@ extension ComposableMutablePropertyProtocol {
 	public func validate<Error: Swift.Error>(
 		_ predicate: @escaping (Value) -> Result<(), Error>
 		) -> TransactionalProperty<Value, Error> {
-		return TransactionalProperty(self) { current, proposedInput in
+		return TransactionalProperty(self) { proposedInput in
 			switch predicate(proposedInput) {
 			case .success:
 				return .success(proposedInput)
@@ -317,14 +314,14 @@ extension ComposableMutablePropertyProtocol {
 extension TransactionalProperty {
 	// Shared implementation of `validate(with:)`.
 	fileprivate static func validate<Other: PropertyProtocol, Error>(
-		_ initializer: (@escaping (Value, Value) -> Result<Value, Error>) -> TransactionalProperty<Value, Error>,
+		_ initializer: (@escaping (Value) -> Result<Value, Error>) -> TransactionalProperty<Value, Error>,
 		with other: Other,
 		_ predicate: @escaping (Value, Other.Value) -> Result<(), Error>
-		) -> TransactionalProperty<Value, Error> {
+	) -> TransactionalProperty<Value, Error> {
 		let other = Property(other)
 		let proposed = Atomic<Value?>(nil)
 
-		let property = initializer { _, proposedInput -> Result<Value, Error> in
+		let property = initializer { proposedInput -> Result<Value, Error> in
 			switch predicate(proposedInput, other.value) {
 			case .success:
 				proposed.value = nil
@@ -365,7 +362,7 @@ extension TransactionalProperty {
 		forward: @escaping (Value) -> U,
 		backward: @escaping (U) -> Value
 	) -> TransactionalProperty<U, TransactionError> {
-		return TransactionalProperty<U, TransactionError>(self, transform: forward) { _, proposedInput in
+		return TransactionalProperty<U, TransactionError>(self, transform: forward) { proposedInput in
 			return .success(backward(proposedInput))
 		}
 	}
@@ -386,7 +383,7 @@ extension TransactionalProperty {
 		attemptBackward: @escaping (U) -> Result<Value, TransactionError>
 	) -> TransactionalProperty<U, TransactionError> {
 		typealias TransactionalProperty = ReactiveSwift.TransactionalProperty<U, TransactionError>
-		return TransactionalProperty(self, transform: forward) { _, proposedInput in
+		return TransactionalProperty(self, transform: forward) { proposedInput in
 			return attemptBackward(proposedInput)
 		}
 	}
@@ -404,7 +401,7 @@ extension TransactionalProperty {
 	public func validate(
 		_ predicate: @escaping (Value) -> Result<(), TransactionError>
 	) -> TransactionalProperty<Value, TransactionError> {
-		return TransactionalProperty(self) { current, proposedInput in
+		return TransactionalProperty(self) { proposedInput in
 			switch predicate(proposedInput) {
 			case .success:
 				return .success(proposedInput)
