@@ -349,9 +349,9 @@ lettersObserver.send(value: "a")    // prints "a"
 lettersObserver.send(value: "b")    // prints "b"
 numbersObserver.send(value: "2")    // nothing printed
 lettersObserver.send(value: "c")    // prints "c"
-lettersObserver.sendCompleted()     // prints "1, 2"
+lettersObserver.sendCompleted()     // nothing printed
 numbersObserver.send(value: "3")    // prints "3"
-numbersObserver.sendCompleted()
+numbersObserver.sendCompleted()     // nothing printed
 ```
 
 [Interactive visualisation of the `flatten(.concat)` operator.](http://neilpa.me/rac-marbles/#concat)
