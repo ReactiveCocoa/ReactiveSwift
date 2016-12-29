@@ -372,26 +372,31 @@ extension PropertyProtocol {
 }
 
 extension PropertyProtocol where Value == Bool {
-	/// Returns a property with the oposite value
-	/// - returns: Property with the new value stored
+	/// Create a property that computes a logical NOT in the latest values of `self`.
+	///
+	/// - returns: A property that contains the logial NOT results.
 	public var negated: Property<Value> {
 		return self.lift { $0.negated }
 	}
 	
-	///Combines the property with the given property in a manner described by
-	///`and()` operator.
+	/// Create a property that computes a logical AND between the latest values of `self`
+	/// and `property`.
+	///
 	/// - parameters:
-	///   - property: Property that will be combined with self
-	/// - returns: Property with the new value stored
+	///   - property: Property to be combined with `self`.
+	///
+	/// - returns: A property that contains the logial AND results.
 	public func and(_ property: Property<Value>) -> Property<Value> {
 		return self.lift(SignalProducer.and)(property)
 	}
 	
-	///Combines the property with the given property in a manner described by
-	///`or()` operator.
+	/// Create a property that computes a logical OR between the latest values of `self`
+	/// and `property`.
+	///
 	/// - parameters:
-	///   - property: Property that will be combined with self
-	/// - returns: Property with the new value stored
+	///   - property: Property to be combined with `self`.
+	///
+	/// - returns: A property that contains the logial OR results.
 	public func or(_ property: Property<Value>) -> Property<Value> {
 		return self.lift(SignalProducer.or)(property)
 	}

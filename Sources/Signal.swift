@@ -2188,29 +2188,31 @@ extension SignalProtocol where Error == NoError {
 }
 
 extension SignalProtocol where Value == Bool {
-	/// Returns a signal with the oposite value
-	/// - returns: Signal that for each event will emit a new event instead
-	///            with the new value
+	/// Create a signal that computes a logical NOT in the latest values of `self`.
+	///
+	/// - returns: A signal that emits the logical NOT results.
 	public var negated: Signal<Value, Error> {
 		return self.map(!)
 	}
 	
-	///Combines the signal with the given signal in a manner described by
-	///`and()` operator.
+	/// Create a signal that computes a logical AND between the latest values of `self`
+	/// and `signal`.
+	///
 	/// - parameters:
-	///   - signal: Signal that will be combined with self
-	/// - returns: Signal that for each event will emit a new event instead
-	///            with the new value
+	///   - signal: Signal to be combined with `self`.
+	///
+	/// - returns: A signal that emits the logical AND results.
 	public func and(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
 		return self.combineLatest(with: signal).map { $0 && $1 }
 	}
 	
-	///Combines the signal with the given signal in a manner described by
-	///`or()` operator.
+	/// Create a signal that computes a logical OR between the latest values of `self`
+	/// and `signal`.
+	///
 	/// - parameters:
-	///   - signal: Signal that will be combined with self
-	/// - returns: Signal that for each event will emit a new event instead
-	///            with the new value
+	///   - signal: Signal to be combined with `self`.
+	///
+	/// - returns: A signal that emits the logical OR results.
 	public func or(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
 		return self.combineLatest(with: signal).map { $0 || $1 }
 	}
