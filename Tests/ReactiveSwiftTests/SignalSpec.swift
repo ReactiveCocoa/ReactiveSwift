@@ -2708,10 +2708,10 @@ class SignalSpec: QuickSpec {
 			}
 		}
 		
-		describe("not attribute") {			
+		describe("negated attribute") {
 			it("should return the negate of a value in a Boolean signal") {
 				let (signal, observer) = Signal<Bool, NoError>.pipe()
-				signal.not.observeValues { value in
+				signal.negated.observeValues { value in
 					expect(value).to(beFalse())
 				}
 				observer.send(value: true)

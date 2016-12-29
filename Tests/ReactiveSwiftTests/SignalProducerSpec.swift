@@ -2434,14 +2434,14 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 		
-		describe("not attribute") {
+		describe("negated attribute") {
 			it("should return the negate of a value in a Boolean producer") {
 				let producer = SignalProducer<Bool, NoError> { observer, _ in
 					observer.send(value: true)
 					observer.sendCompleted()
 				}
 				
-				producer.not.startWithValues { value in
+				producer.negated.startWithValues { value in
 					expect(value).to(beFalse())
 				}
 			}
@@ -2477,6 +2477,20 @@ class SignalProducerSpec: QuickSpec {
 					expect(value).to(beFalse())
 				}
 			}
+			
+			it("should work the same way when using signal instead of a producer") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				producer1.and(signal2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+				observer2.send(value: true)
+				
+				observer2.sendCompleted()
+			}
 		}
 		
 		describe("or attribute") {			
@@ -2508,6 +2522,20 @@ class SignalProducerSpec: QuickSpec {
 				producer1.or(producer2).startWithValues { value in
 					expect(value).to(beFalse())
 				}
+			}
+			
+			it("should work the same way when using signal instead of a producer") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				producer1.or(signal2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+				observer2.send(value: true)
+				
+				observer2.sendCompleted()
 			}
 		}
 	}
