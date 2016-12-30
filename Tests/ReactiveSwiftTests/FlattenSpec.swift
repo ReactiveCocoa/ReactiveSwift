@@ -255,7 +255,7 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 			
-			it("works with SequenceType as a value") {
+			it("works with Sequence as a value") {
 				let (signal, innerObserver) = Signal<[Int], NoError>.pipe()
 				let sequence = [1, 2, 3]
 				var observedValues = [Int]()
@@ -268,6 +268,11 @@ class FlattenSpec: QuickSpec {
 				
 				innerObserver.send(value: sequence)
 				expect(observedValues) == sequence
+			}
+
+			it("works with Sequence as a value and any arbitrary error") {
+				_ = Signal<[Int], TestError>.empty
+					.flatten(.latest)
 			}
 
 			it("works with Property and any arbitrary error") {
@@ -440,7 +445,7 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 			
-			it("works with SequenceType as a value") {
+			it("works with Sequence as a value") {
 				let sequence = [1, 2, 3]
 				var observedValues = [Int]()
 				
@@ -452,6 +457,11 @@ class FlattenSpec: QuickSpec {
 					}
 				
 				expect(observedValues) == sequence
+			}
+
+			it("works with Sequence as a value and any arbitrary error") {
+				_ = SignalProducer<[Int], TestError>.empty
+					.flatten(.latest)
 			}
 
 			it("works with Property and any arbitrary error") {

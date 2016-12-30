@@ -245,11 +245,11 @@ extension SignalProtocol where Value: SignalProtocol, Value.Error == NoError {
 	}
 }
 
-extension SignalProtocol where Value: Sequence, Error == NoError {
+extension SignalProtocol where Value: Sequence {
 	/// Flattens the `sequence` value sent by `signal` according to
 	/// the semantics of the given strategy.
 	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> {
-		return self.flatMap(strategy) { .init($0) }
+		return self.flatMap(strategy, transform: SignalProducer.init)
 	}
 }
 
@@ -312,11 +312,11 @@ extension SignalProducerProtocol where Value: SignalProtocol, Value.Error == NoE
 	}
 }
 
-extension SignalProducerProtocol where Value: Sequence, Error == NoError {
+extension SignalProducerProtocol where Value: Sequence {
 	/// Flattens the `sequence` value sent by `producer` according to
 	/// the semantics of the given strategy.
 	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Iterator.Element, Error> {
-		return self.flatMap(strategy) { .init($0) }
+		return self.flatMap(strategy, transform: SignalProducer.init)
 	}
 }
 
