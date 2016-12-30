@@ -30,7 +30,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	public let lifetime: Lifetime
 
 	/// Validations that have been made by the property.
-	public let validations: Property<Result<(), TransactionError>>
+	public let validations: Property<Result<(), TransactionError>?>
 
 	/// The action associated with the property.
 	private let action: (Value) -> Void
@@ -59,9 +59,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		transform: @escaping (M.Value) -> Value,
 		_ body: @escaping (Value) -> Result<M.Value, TransactionError>
 	) {
-		let current = inner.value
-		let initialValidation = body(transform(current)).map { _ in }
-		let _validations = MutableProperty<Result<(), TransactionError>>(initialValidation)
+		let _validations = MutableProperty<Result<(), TransactionError>?>(nil)
 
 		self.lifetime = inner.lifetime
 		self.validations = Property(capturing: _validations)
@@ -103,7 +101,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		_ body: @escaping (Value) -> Result<T.Value, TransactionError>
 	) {
 		self.init(inner, transform: transform, validator: body, validationSetup: { validations in
-			let d = validations <~ inner.property.validations.producer.map { $0.mapError(errorTransform) }
+			let d = validations <~ inner.property.validations.producer.map { $0?.mapError(errorTransform) }
 			validations.lifetime.ended.observeCompleted { d?.dispose() }
 		})
 	}
@@ -132,11 +130,9 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		_ inner: T,
 		transform: @escaping (T.Value) -> Value,
 		validator: @escaping (Value) -> Result<T.Value, TransactionError>,
-		validationSetup: ((MutableProperty<Result<(), TransactionError>>) -> Void)?
+		validationSetup: ((MutableProperty<Result<(), TransactionError>?>) -> Void)?
 	) {
-		let current = inner.value
-		let initialValidation = validator(transform(current)).map { _ in }
-		let _validations = MutableProperty<Result<(), TransactionError>>(initialValidation)
+		let _validations = MutableProperty<Result<(), TransactionError>?>(nil)
 
 		self.lifetime = inner.lifetime
 		self.validations = Property(capturing: _validations)
@@ -321,6 +317,7 @@ extension _TransactionalPropertyProtocol {
 		_ validator: @escaping (Value, Other.Value) -> Result<(), E>
 	) -> TransactionalProperty<Value, E> {
 		let proposed = Atomic<Value?>(nil)
+		let other = Property(other)
 
 		let property = initializer { proposedInput -> Result<Value, E> in
 			switch validator(proposedInput, other.value) {
