@@ -1958,7 +1958,7 @@ extension SignalProducerProtocol {
 							let producer = SignalProducer(signal).replayLazily(upTo: Int.max)
 							
 							// Start the buffering immediately.
-							producer.start()
+							producer.start().dispose()
 							observer.send(value: (key, producer))
 							
 							$0[key] = innerObserver
