@@ -1933,9 +1933,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				let producer = SignalProducer<Int, NoError>(signal)
 				var evens: [Int] = []
 				var odds: [Int] = []
-				let disposable = CompositeDisposable()
-				
-				disposable += producer
+				let disposable = producer
 					.groupBy { $0 % 2 == 0 }
 					.startWithValues { key, group in
 						if key {
@@ -1963,44 +1961,24 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(evens) == [2]
 				expect(odds) == [1, 3]
 			}
+			
 			it("should terminate correctly on disposal") {
 				let (signal, observer) = Signal<Int, NoError>.pipe()
 				let producer = SignalProducer<Int, NoError>(signal)
-				let disposable = CompositeDisposable()
+				var completed = false
 				var interrupted = false
 				var evensInterrupted = false
 				var oddsInterrupted = false
-				var completed = false
-				var evensCompleted = false
-				var oddsCompleted = false
 				
-				disposable += producer
+				let disposable = producer
 					.groupBy { $0 % 2 == 0 }
 					.start { event in
 						switch event {
 						case let .value(key, group):
 							if key {
-								group.start { event in
-									switch event {
-									case .completed:
-										evensCompleted = true
-									case .interrupted:
-										evensInterrupted = true
-									case .value, .failed:
-										break
-									}
-								}
+								group.startWithInterrupted { evensInterrupted = true }
 							} else {
-								group.start { event in
-									switch event {
-									case .completed:
-										oddsCompleted = true
-									case .interrupted:
-										oddsInterrupted = true
-									case .value, .failed:
-										break
-									}
-								}
+								group.startWithInterrupted { oddsInterrupted = true }
 							}
 						case .completed:
 							completed = true
@@ -2009,19 +1987,132 @@ class SignalProducerLiftingSpec: QuickSpec {
 						case .failed:
 							break
 						}
-					}
+				}
 				
 				observer.send(value: 1)
 				observer.send(value: 2)
 				
 				disposable.dispose()
+				
+				expect(completed) == false
 				expect(interrupted) == true
 				expect(evensInterrupted) == true
 				expect(oddsInterrupted) == true
-				expect(completed) == false
-				expect(evensCompleted) == false
-				expect(oddsCompleted) == false
 			}
+		}
+		
+		it("should terminate correctly when receiving an interrupted event") {
+			let (signal, observer) = Signal<Int, NoError>.pipe()
+			let producer = SignalProducer<Int, NoError>(signal)
+			var completed = false
+			var interrupted = false
+			var evensInterrupted = false
+			var oddsInterrupted = false
+			
+			producer
+				.groupBy { $0 % 2 == 0 }
+				.start { event in
+					switch event {
+					case let .value(key, group):
+						if key {
+							group.startWithInterrupted { evensInterrupted = true }
+						} else {
+							group.startWithInterrupted { oddsInterrupted = true }
+						}
+					case .completed:
+						completed = true
+					case .interrupted:
+						interrupted = true
+					case .failed:
+						break
+					}
+			}
+			
+			observer.send(value: 1)
+			observer.send(value: 2)
+			observer.sendInterrupted()
+			
+			expect(completed) == false
+			expect(interrupted) == true
+			expect(evensInterrupted) == true
+			expect(oddsInterrupted) == true
+		}
+		
+		it("should terminate correctly receiving a completed event") {
+			let (signal, observer) = Signal<Int, NoError>.pipe()
+			let producer = SignalProducer<Int, NoError>(signal)
+			var completed = false
+			var interrupted = false
+			var evenCompleted = false
+			var oddCompleted = false
+			
+			producer
+				.groupBy { $0 % 2 == 0 }
+				.start { event in
+					switch event {
+					case let .value(key, group):
+						if key {
+							group.startWithCompleted { evenCompleted = true }
+						} else {
+							group.startWithCompleted { oddCompleted = true }
+						}
+					case .completed:
+						completed = true
+					case .interrupted:
+						interrupted = true
+					case .failed:
+						break
+					}
+			}
+			
+			observer.send(value: 1)
+			observer.send(value: 2)
+			observer.sendCompleted()
+			
+			expect(completed) == true
+			expect(interrupted) == false
+			expect(evenCompleted) == true
+			expect(oddCompleted) == true
+		}
+		
+		it("should terminate correctly receiving an error event") {
+			let (signal, observer) = Signal<Int, TestError>.pipe()
+			let producer = SignalProducer<Int, TestError>(signal)
+			var interrupted = false
+			var completed = false
+			var error: TestError? = nil
+			var evensError: TestError? = nil
+			var oddsError: TestError? = nil
+			
+			producer
+				.groupBy { $0 % 2 == 0 }
+				.start { event in
+					switch event {
+					case let .value(key, group):
+						if key {
+							group.startWithFailed { evensError = $0 }
+						} else {
+							group.startWithFailed { oddsError = $0 }
+						}
+					case .completed:
+						completed = true
+					case .interrupted:
+						interrupted = true
+					case let .failed(e):
+						error = e
+					}
+			}
+			
+			observer.send(value: 1)
+			observer.send(value: 2)
+			
+			observer.send(error: .error1)
+			
+			expect(interrupted) == false
+			expect(completed) == false
+			expect(error) == .error1
+			expect(evensError) == .error1
+			expect(oddsError) == .error1
 		}
 	}
 }
