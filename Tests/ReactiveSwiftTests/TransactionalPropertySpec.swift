@@ -104,7 +104,7 @@ class TransactionalPropertySpec: QuickSpec {
 		describe("map(forward:attemptBackward:)") {
 			var root: MutableProperty<Int>!
 			var mapped: TransactionalProperty<String, TestError>!
-			var validationResult: FlattenedResult!
+			var validationResult: FlattenedResult?
 
 			beforeEach {
 				root = MutableProperty(0)
@@ -112,10 +112,10 @@ class TransactionalPropertySpec: QuickSpec {
 					let integer = Int(input)
 					return Result(integer, failWith: TestError.default)
 				})
-				mapped.validations.producer.startWithValues { validationResult = FlattenedResult($0) }
+				mapped.validations.observeValues { validationResult = FlattenedResult($0) }
 
 				expect(mapped.value) == "0"
-				expect(validationResult) == .uninitialized
+				expect(validationResult).to(beNil())
 			}
 
 			afterEach {
@@ -127,13 +127,15 @@ class TransactionalPropertySpec: QuickSpec {
 
 				mapped = nil
 				expect(weakRoot).to(beNil())
+
+				validationResult = nil
 			}
 
 			it("should map the changes originated from the inner property") {
 				root.value = 1
 
 				expect(mapped.value) == "1"
-				expect(validationResult) == .uninitialized
+				expect(validationResult).to(beNil())
 			}
 
 			it("should map the valid changes originated from the outer property") {
@@ -277,17 +279,17 @@ class TransactionalPropertySpec: QuickSpec {
 		describe("validate(_:)") {
 			var root: MutableProperty<Int>!
 			var validated: TransactionalProperty<Int, TestError>!
-			var validationResult: FlattenedResult!
+			var validationResult: FlattenedResult?
 
 			beforeEach {
 				root = MutableProperty(0)
 				validated = root.validate { input -> Result<(), TestError> in
 					return Result(input >= 0 ? () : nil, failWith: TestError.default)
 				}
-				validated.validations.producer.startWithValues { validationResult = FlattenedResult($0) }
+				validated.validations.observeValues { validationResult = FlattenedResult($0) }
 
 				expect(validated.value) == root.value
-				expect(validationResult) == .uninitialized
+				expect(validationResult).to(beNil())
 			}
 
 			afterEach {
@@ -299,31 +301,23 @@ class TransactionalPropertySpec: QuickSpec {
 
 				validated = nil
 				expect(weakRoot).to(beNil())
+
+				validationResult = nil
 			}
 
 			it("should let valid values get through") {
-				var isValid = false
-				validated.validations.signal.observeValues { isValid = $0?.error == nil }
-				expect(isValid) == false
-
 				validated.value = 10
 				expect(root.value) == 10
 				expect(validated.value) == 10
 
-				expect(isValid) == true
 				expect(validationResult) == .success
 			}
 
 			it("should block invalid values") {
-				var error: TestError? = nil
-				validated.validations.signal.observeValues { error = $0?.error }
-				expect(error).to(beNil())
-
 				validated.value = -10
 				expect(root.value) == 0
 				expect(validated.value) == 0
 
-				expect(error) == .default
 				expect(validationResult) == .errorDefault
 			}
 
@@ -424,7 +418,7 @@ class TransactionalPropertySpec: QuickSpec {
 			var other: MutableProperty<String>!
 			var root: MutableProperty<Int>!
 			var validated: TransactionalProperty<Int, TestError>!
-			var validationResult: FlattenedResult!
+			var validationResult: FlattenedResult?
 
 			beforeEach {
 				other = MutableProperty("")
@@ -432,10 +426,10 @@ class TransactionalPropertySpec: QuickSpec {
 				validated = root.validate(with: other) { input, otherInput -> Result<(), TestError> in
 					return Result(input >= 0 && otherInput == "🎃" ? () : nil, failWith: TestError.default)
 				}
-				validated.validations.producer.startWithValues { validationResult = FlattenedResult($0) }
+				validated.validations.observeValues { validationResult = FlattenedResult($0) }
 
 				expect(validated.value) == root.value
-				expect(validationResult) == .uninitialized
+				expect(validationResult).to(beNil())
 			}
 
 			afterEach {
@@ -451,20 +445,17 @@ class TransactionalPropertySpec: QuickSpec {
 
 				validated = nil
 				expect(weakRoot).to(beNil())
+
+				validationResult = nil
 			}
 
 			it("should let valid values get through") {
-				var isValid = false
-				validated.validations.signal.observeValues { isValid = FlattenedResult($0) == .success }
-				expect(isValid) == false
-
 				other.value = "🎃"
 
 				validated.value = 10
 				expect(root.value) == 10
 				expect(validated.value) == 10
 
-				expect(isValid) == true
 				expect(validationResult) == .success
 			}
 
@@ -477,22 +468,16 @@ class TransactionalPropertySpec: QuickSpec {
 			}
 
 			it("should automatically revalidate the latest failed value if the dependency changes") {
-				var isValid = false
-				validated.validations.signal.observeValues { isValid = FlattenedResult($0) == .success }
-				expect(isValid) == false
-
 				validated.value = 10
 				expect(root.value) == 0
 				expect(validated.value) == 0
 
-				expect(isValid) == false
 				expect(validationResult) == .errorDefault
 
 				other.value = "🎃"
 
 				expect(root.value) == 10
 				expect(validated.value) == 10
-				expect(isValid) == true
 				expect(validationResult) == .success
 			}
 
@@ -612,17 +597,13 @@ private enum FlattenedResult: Int {
 	case error1
 	case error2
 	case success
-	case uninitialized
 
-	init(_ result: Result<(), TestError>?) {
+	init(_ result: Result<(), TestError>) {
 		switch result {
-		case .none:
-			self = .uninitialized
-
-		case .success?:
+		case .success:
 			self = .success
 
-		case let .failure(error)?:
+		case let .failure(error):
 			switch error {
 			case .default:
 				self = .errorDefault

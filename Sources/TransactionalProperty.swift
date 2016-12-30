@@ -30,7 +30,8 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	public let lifetime: Lifetime
 
 	/// Validations that have been made by the property.
-	public let validations: Property<Result<(), TransactionError>?>
+	public let validations: Signal<Result<(), TransactionError>, NoError>
+	private let validationEmitter: Signal<Result<(), TransactionError>, NoError>.Observer
 
 	/// The action associated with the property.
 	private let action: (Value) -> Void
@@ -59,21 +60,20 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		transform: @escaping (M.Value) -> Value,
 		_ body: @escaping (Value) -> Result<M.Value, TransactionError>
 	) {
-		let _validations = MutableProperty<Result<(), TransactionError>?>(nil)
+		(validations, validationEmitter) = Signal<Result<(), TransactionError>, NoError>.pipe()
 
 		self.lifetime = inner.lifetime
-		self.validations = Property(capturing: _validations)
 		self.cache = inner.map(transform)
 		self.rootBox = TransactionalPropertyBox(inner)
 
-		action = { input in
+		action = { [validationEmitter] input in
 			switch body(input) {
 			case let .success(innerResult):
 				inner.value = innerResult
-				_validations.value = .success()
+				validationEmitter.send(value: .success())
 
 			case let .failure(error):
-				_validations.value = .failure(error)
+				validationEmitter.send(value: .failure(error))
 			}
 		}
 	}
@@ -100,9 +100,12 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		errorTransform: @escaping (T.TransactionError) -> TransactionError,
 		_ body: @escaping (Value) -> Result<T.Value, TransactionError>
 	) {
-		self.init(inner, transform: transform, validator: body, validationSetup: { validations in
-			let d = validations <~ inner.property.validations.producer.map { $0?.mapError(errorTransform) }
-			validations.lifetime.ended.observeCompleted { d?.dispose() }
+		self.init(inner, transform: transform, validator: body, validationSetup: { validationEmitter, lifetime in
+			let d = inner.property.validations
+				.map { $0.mapError(errorTransform) }
+				.observe(validationEmitter)
+
+			lifetime.ended.observeCompleted { d?.dispose() }
 		})
 	}
 
@@ -130,26 +133,29 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		_ inner: T,
 		transform: @escaping (T.Value) -> Value,
 		validator: @escaping (Value) -> Result<T.Value, TransactionError>,
-		validationSetup: ((MutableProperty<Result<(), TransactionError>?>) -> Void)?
+		validationSetup: ((Observer<Result<(), TransactionError>, NoError>, Lifetime) -> Void)?
 	) {
-		let _validations = MutableProperty<Result<(), TransactionError>?>(nil)
+		(validations, validationEmitter) = Signal<Result<(), TransactionError>, NoError>.pipe()
 
 		self.lifetime = inner.lifetime
-		self.validations = Property(capturing: _validations)
 		self.cache = inner.property.cache.map(transform)
 		self.rootBox = inner.property.rootBox
 
-		validationSetup?(_validations)
+		validationSetup?(validationEmitter, lifetime)
 
-		action = { input in
+		action = { [validationEmitter] input in
 			switch validator(input) {
 			case let .success(innerResult):
 				inner.property.action(innerResult)
 
 			case let .failure(error):
-				_validations.value = .failure(error)
+				validationEmitter.send(value: .failure(error))
 			}
 		}
+	}
+
+	deinit {
+		validationEmitter.sendCompleted()
 	}
 
 	/// Atomically performs an arbitrary action using the current value of the
