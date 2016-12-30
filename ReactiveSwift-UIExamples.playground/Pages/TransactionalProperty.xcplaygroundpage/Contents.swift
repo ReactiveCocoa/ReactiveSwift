@@ -83,15 +83,20 @@ final class ViewController {
 		view.termsSwitch.isOn = false
 
 		// Setup bindings with the interactive controls.
-		viewModel.email <~ view.emailValues.skipNil()
-		viewModel.emailConfirmation <~ view.emailConfirmationValues.skipNil()
-		viewModel.termsAccepted <~ view.termsAccepted
+		viewModel.email <~ view.emailField.reactive
+			.continuousTextValues.skipNil()
+
+		viewModel.emailConfirmation <~ view.emailConfirmationField.reactive
+			.continuousTextValues.skipNil()
+
+		viewModel.termsAccepted <~ view.termsSwitch.reactive
+			.isOnValues
 
 		// Setup bindings with the invalidation reason label.
-		view.invalidationReasons <~ viewModel.reasons
+		view.reasonLabel.reactive.text <~ viewModel.reasons
 
 		// Setup the Action binding with the submit button.
-		view.submit = viewModel.submit
+		view.submitButton.reactive.pressed = CocoaAction(viewModel.submit)
 
 		// Setup console messages.
 		viewModel.submit.values.observeValues {

@@ -6,53 +6,7 @@ public class FormView: UIView {
 	let _lifetime = Lifetime.Token()
 	lazy var lifetime: Lifetime = Lifetime(self._lifetime)
 
-	public var emailValues: Signal<String?, NoError> {
-		return Signal { observer in
-			let target = Target { observer.send(value: ($0 as! UITextField).text) }
-			emailField.addTarget(target, action: #selector(target.execute), for: .editingChanged)
-			return ActionDisposable { _ = target }
-		}
-	}
-
-	public var emailConfirmationValues: Signal<String?, NoError> {
-		return Signal { observer in
-			let target = Target { observer.send(value: ($0 as! UITextField).text) }
-			emailConfirmationField.addTarget(target, action: #selector(target.execute), for: .editingChanged)
-			return ActionDisposable { _ = target }
-		}
-	}
-
-	public var termsAccepted: Signal<Bool, NoError> {
-		return Signal { observer in
-			let target = Target { observer.send(value: ($0 as! UISwitch).isOn) }
-			termsSwitch.addTarget(target, action: #selector(target.execute), for: .valueChanged)
-			return ActionDisposable { _ = target }
-		}
-	}
-
-	public var invalidationReasons: BindingTarget<String> {
-		return BindingTarget(lifetime: lifetime) { [weak reasonLabel] value in
-			reasonLabel?.text = value
-		}
-	}
-
 	private let disposable = SerialDisposable()
-
-	public var submit: Action<(), String, NoError>? {
-		didSet {
-			if let action = submit {
-				let target = Target { _ in action.apply().start() }
-				submitButton.addTarget(target, action: #selector(target.execute), for: .touchUpInside)
-				let disposable = CompositeDisposable()
-				disposable += action.lifetime.ended.observeCompleted { _ = target }
-				disposable += action.isEnabled.producer
-					.startWithValues { [weak submitButton] in submitButton?.isEnabled = $0 }
-				self.disposable.inner = disposable
-			} else {
-				disposable.inner = nil
-			}
-		}
-	}
 
 	public let emailField = UITextField()
 	public let emailConfirmationField = UITextField()
