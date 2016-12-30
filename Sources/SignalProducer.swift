@@ -1830,9 +1830,10 @@ extension SignalProducerProtocol {
 		let lifetime = Lifetime(lifetimeToken)
 
 		let state = Atomic(ReplayState<Value, Error>(upTo: capacity))
+		let start = Atomic(true)
 
-		let start: Atomic<(() -> Void)?> = Atomic {
-			// Start the underlying producer.
+		// Start the underlying producer.
+		func startHandler() {
 			self
 				.take(during: lifetime)
 				.start { event in
@@ -1865,7 +1866,9 @@ extension SignalProducerProtocol {
 					}
 
 					// Start the underlying producer if it has never been started.
-					start.swap(nil)?()
+					if start.swap(false) {
+						startHandler()
+					}
 
 					// Terminate the observation loop.
 					return
