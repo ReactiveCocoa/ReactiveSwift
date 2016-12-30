@@ -1941,7 +1941,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 						} else {
 							group.startWithValues { odds.append($0)}
 						}
-				}
+					}
 				
 				observer.send(value: 1)
 				expect(evens) == []
@@ -1987,7 +1987,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 						case .failed:
 							break
 						}
-				}
+					}
 				
 				observer.send(value: 1)
 				observer.send(value: 2)
@@ -2026,7 +2026,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 					case .failed:
 						break
 					}
-			}
+				}
 			
 			observer.send(value: 1)
 			observer.send(value: 2)
@@ -2063,7 +2063,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 					case .failed:
 						break
 					}
-			}
+				}
 			
 			observer.send(value: 1)
 			observer.send(value: 2)
@@ -2101,7 +2101,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 					case let .failed(e):
 						error = e
 					}
-			}
+				}
 			
 			observer.send(value: 1)
 			observer.send(value: 2)
