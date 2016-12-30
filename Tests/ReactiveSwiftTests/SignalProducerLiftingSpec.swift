@@ -1934,7 +1934,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				var evens: [Int] = []
 				var odds: [Int] = []
 				let disposable = producer
-					.groupBy { $0 % 2 == 0 }
+					.group { $0 % 2 == 0 }
 					.startWithValues { key, group in
 						if key {
 							group.startWithValues { evens.append($0)}
@@ -1971,7 +1971,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				var oddsInterrupted = false
 				
 				let disposable = producer
-					.groupBy { $0 % 2 == 0 }
+					.group { $0 % 2 == 0 }
 					.start { event in
 						switch event {
 						case let .value(key, group):
@@ -2010,7 +2010,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			var oddsInterrupted = false
 			
 			producer
-				.groupBy { $0 % 2 == 0 }
+				.group { $0 % 2 == 0 }
 				.start { event in
 					switch event {
 					case let .value(key, group):
@@ -2047,7 +2047,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			var oddCompleted = false
 			
 			producer
-				.groupBy { $0 % 2 == 0 }
+				.group { $0 % 2 == 0 }
 				.start { event in
 					switch event {
 					case let .value(key, group):
@@ -2085,7 +2085,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			var oddsError: TestError? = nil
 			
 			producer
-				.groupBy { $0 % 2 == 0 }
+				.group { $0 % 2 == 0 }
 				.start { event in
 					switch event {
 					case let .value(key, group):
