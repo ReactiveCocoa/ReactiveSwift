@@ -261,7 +261,7 @@ class FlattenSpec: QuickSpec {
 				var observedValues = [Int]()
 				
 				signal
-					.flatten(.concat)
+					.flatten()
 					.observeValues { value in
 						observedValues.append(value)
 					}
@@ -272,7 +272,7 @@ class FlattenSpec: QuickSpec {
 
 			it("works with Sequence as a value and any arbitrary error") {
 				_ = Signal<[Int], TestError>.empty
-					.flatten(.latest)
+					.flatten()
 			}
 
 			it("works with Property and any arbitrary error") {
@@ -451,7 +451,7 @@ class FlattenSpec: QuickSpec {
 				
 				let producer = SignalProducer<[Int], NoError>(value: sequence)
 				producer
-					.flatten(.latest)
+					.flatten()
 					.startWithValues { value in
 						observedValues.append(value)
 					}
@@ -461,7 +461,7 @@ class FlattenSpec: QuickSpec {
 
 			it("works with Sequence as a value and any arbitrary error") {
 				_ = SignalProducer<[Int], TestError>.empty
-					.flatten(.latest)
+					.flatten()
 			}
 
 			it("works with Property and any arbitrary error") {

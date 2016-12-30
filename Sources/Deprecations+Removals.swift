@@ -232,6 +232,11 @@ extension SignalProtocol where Error == NoError {
 	public func observeNext(_ next: (Value) -> Void) -> Disposable? { fatalError() }
 }
 
+extension SignalProtocol where Value: Sequence {
+	@available(*, unavailable, renamed: "flatten()")
+	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> { fatalError() }
+}
+
 extension SignalProducerProtocol {
 	@available(*, unavailable, renamed:"take(first:)")
 	public func take(_ count: Int) -> SignalProducer<Value, Error> { fatalError() }
@@ -305,6 +310,11 @@ extension SignalProducerProtocol where Value: OptionalProtocol {
 extension SignalProducerProtocol where Error == NoError {
 	@available(*, unavailable, renamed: "startWithValues")
 	public func startWithNext(_ value: @escaping (Value) -> Void) -> Disposable { fatalError() }
+}
+
+extension SignalProducerProtocol where Value: Sequence {
+	@available(*, unavailable, renamed: "flatten()")
+	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> { fatalError() }
 }
 
 extension SignalProducer {
