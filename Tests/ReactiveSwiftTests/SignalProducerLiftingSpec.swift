@@ -1926,5 +1926,47 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(latestValues?.1) == 2
 			}
 		}
+		
+		describe("groupBy") {
+			let (signal, observer) = Signal<Int, NoError>.pipe()
+			let producer = SignalProducer<Int, NoError>(signal)
+			var evens: [Int] = []
+			var odds: [Int] = []
+			let disposable = CompositeDisposable()
+			var interrupted = false
+			var completed = false
+			
+			disposable += producer
+				.groupBy { $0 % 2 == 0 }
+				.start(Observer(value: { key, group in
+					if key {
+						group.startWithValues { evens.append($0) }
+					} else {
+						group.startWithValues { odds.append($0) }
+					}
+				},completed: {
+					completed = true
+				}, interrupted: {
+					interrupted = true
+				}))
+			
+			observer.send(value: 1)
+			expect(evens) == []
+			expect(odds) == [1]
+			
+			observer.send(value: 2)
+			expect(evens) == [2]
+			expect(odds) == [1]
+			
+			observer.send(value: 3)
+			expect(evens) == [2]
+			expect(odds) == [1, 3]
+			
+			disposable.dispose()
+			
+			observer.send(value: 1)
+			expect(interrupted) == true
+			expect(completed) == false
+		}
 	}
 }
