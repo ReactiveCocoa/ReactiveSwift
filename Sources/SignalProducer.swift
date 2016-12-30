@@ -1950,10 +1950,10 @@ extension SignalProducerProtocol {
 				switch event {
 				case let .value(value):
 					let key = grouping(value)
-					var group: Signal<Value, Error>.Observer?
-					groups.modify {
-						group = $0[key]
-						if group == nil {
+					let group: Signal<Value, Error>.Observer = groups.modify { groups in
+						if let group = groups[key] {
+							return group
+						} else {
 							let (signal, innerObserver) = Signal<Value, Error>.pipe()
 							let producer = SignalProducer(signal).replayLazily(upTo: Int.max)
 							
@@ -1961,11 +1961,12 @@ extension SignalProducerProtocol {
 							producer.start().dispose()
 							observer.send(value: (key, producer))
 							
-							$0[key] = innerObserver
-							group = innerObserver
+							groups[key] = innerObserver
+							return innerObserver
 						}
 					}
-					group!.send(value: value)					
+					group.send(value: value)
+					
 				case let .failed(error):
 					observer.send(error: error)
 					groups.value.values.forEach { $0.send(error: error) }
