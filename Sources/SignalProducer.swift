@@ -1946,7 +1946,7 @@ extension SignalProducerProtocol {
 		return SignalProducer<(Key, SignalProducer<Value, Error>), Error> { observer, disposable in
 			let groups = Atomic<[Key: Signal<Value, Error>.Observer]>([:])
 			
-			self.start { event in
+			disposable += self.start { event in
 				switch event {
 				case let .value(value):
 					let key = grouping(value)
