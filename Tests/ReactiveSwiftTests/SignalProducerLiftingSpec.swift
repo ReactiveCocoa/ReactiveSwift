@@ -2075,7 +2075,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			expect(oddCompleted) == true
 		}
 		
-		it("should terminate correctly receiving an error event") {
+		it("should terminate correctly receiving a failed event") {
 			let (signal, observer) = Signal<Int, TestError>.pipe()
 			let producer = SignalProducer<Int, TestError>(signal)
 			var interrupted = false
