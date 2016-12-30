@@ -1928,45 +1928,100 @@ class SignalProducerLiftingSpec: QuickSpec {
 		}
 		
 		describe("groupBy") {
-			let (signal, observer) = Signal<Int, NoError>.pipe()
-			let producer = SignalProducer<Int, NoError>(signal)
-			var evens: [Int] = []
-			var odds: [Int] = []
-			let disposable = CompositeDisposable()
-			var interrupted = false
-			var completed = false
-			
-			disposable += producer
-				.groupBy { $0 % 2 == 0 }
-				.start(Observer(value: { key, group in
-					if key {
-						group.startWithValues { evens.append($0) }
-					} else {
-						group.startWithValues { odds.append($0) }
+			it("should group events by their key") {
+				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let producer = SignalProducer<Int, NoError>(signal)
+				var evens: [Int] = []
+				var odds: [Int] = []
+				let disposable = CompositeDisposable()
+				
+				disposable += producer
+					.groupBy { $0 % 2 == 0 }
+					.startWithValues { key, group in
+						if key {
+							group.startWithValues { evens.append($0)}
+						} else {
+							group.startWithValues { odds.append($0)}
+						}
+				}
+				
+				observer.send(value: 1)
+				expect(evens) == []
+				expect(odds) == [1]
+				
+				observer.send(value: 2)
+				expect(evens) == [2]
+				expect(odds) == [1]
+				
+				observer.send(value: 3)
+				expect(evens) == [2]
+				expect(odds) == [1, 3]
+				
+				disposable.dispose()
+				
+				observer.send(value: 4)
+				expect(evens) == [2]
+				expect(odds) == [1, 3]
+			}
+			it("should terminate correctly on disposal") {
+				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let producer = SignalProducer<Int, NoError>(signal)
+				let disposable = CompositeDisposable()
+				var interrupted = false
+				var evensInterrupted = false
+				var oddsInterrupted = false
+				var completed = false
+				var evensCompleted = false
+				var oddsCompleted = false
+				
+				disposable += producer
+					.groupBy { $0 % 2 == 0 }
+					.start { event in
+						switch event {
+						case let .value(key, group):
+							if key {
+								group.start { event in
+									switch event {
+									case .completed:
+										evensCompleted = true
+									case .interrupted:
+										evensInterrupted = true
+									case .value, .failed:
+										break
+									}
+								}
+							} else {
+								group.start { event in
+									switch event {
+									case .completed:
+										oddsCompleted = true
+									case .interrupted:
+										oddsInterrupted = true
+									case .value, .failed:
+										break
+									}
+								}
+							}
+						case .completed:
+							completed = true
+						case .interrupted:
+							interrupted = true
+						case .failed:
+							break
+						}
 					}
-				},completed: {
-					completed = true
-				}, interrupted: {
-					interrupted = true
-				}))
-			
-			observer.send(value: 1)
-			expect(evens) == []
-			expect(odds) == [1]
-			
-			observer.send(value: 2)
-			expect(evens) == [2]
-			expect(odds) == [1]
-			
-			observer.send(value: 3)
-			expect(evens) == [2]
-			expect(odds) == [1, 3]
-			
-			disposable.dispose()
-			
-			observer.send(value: 1)
-			expect(interrupted) == true
-			expect(completed) == false
+				
+				observer.send(value: 1)
+				observer.send(value: 2)
+				
+				disposable.dispose()
+				expect(interrupted) == true
+				expect(evensInterrupted) == true
+				expect(oddsInterrupted) == true
+				expect(completed) == false
+				expect(evensCompleted) == false
+				expect(oddsCompleted) == false
+			}
 		}
 	}
 }
