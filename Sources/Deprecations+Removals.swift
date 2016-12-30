@@ -233,8 +233,10 @@ extension SignalProtocol where Error == NoError {
 }
 
 extension SignalProtocol where Value: Sequence {
-	@available(*, unavailable, renamed: "flatten()")
-	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> { fatalError() }
+	@available(*, deprecated, message: "Use flatten() instead")
+	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> {
+		return self.flatMap(strategy, transform: SignalProducer.init)
+	}
 }
 
 extension SignalProducerProtocol {
@@ -313,8 +315,10 @@ extension SignalProducerProtocol where Error == NoError {
 }
 
 extension SignalProducerProtocol where Value: Sequence {
-	@available(*, unavailable, renamed: "flatten()")
-	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> { fatalError() }
+	@available(*, deprecated, message: "Use flatten() instead")
+	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Iterator.Element, Error> {
+		return self.flatMap(strategy, transform: SignalProducer.init)
+	}
 }
 
 extension SignalProducer {
