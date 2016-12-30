@@ -1942,47 +1942,41 @@ extension SignalProducerProtocol {
 	/// - returns: A producer of producers amits one producer for each group and forwards
 	///            each value from the original producer to the inner producer corresponding 
 	///            to the group to which the value belongs to (as determined by the key)
-	public func group<Key: Hashable>(by grouping: @escaping (Value) -> Key) -> SignalProducer<(Key, SignalProducer<Value, Error>), Error> {
 	public func groupBy<Key: Hashable>(_ grouping: @escaping (Value) -> Key) -> SignalProducer<(Key, SignalProducer<Value, Error>), Error> {
 		return SignalProducer<(Key, SignalProducer<Value, Error>), Error> { observer, disposable in
-			var groups: [Key: Signal<Value, Error>.Observer] = [:]
-			
-			let lock = NSRecursiveLock()
-			lock.name = "me.neilpa.rex.groupBy"
+			let groups = Atomic<[Key: Signal<Value, Error>.Observer]>([:])
 			
 			self.start { event in
 				switch event {
 				case let .value(value):
 					let key = grouping(value)
-					
-					lock.lock()
-					var group = groups[key]
-					if group == nil {
-						let (signal, innerObserver) = Signal<Value, Error>.pipe()
-						let producer = SignalProducer(signal).replayLazily(upTo: Int.max)
-						
-						// Start the buffering immediately.
-						producer.start()
-						observer.send(value: (key, producer))
-						
-						groups[key] = innerObserver
-						group = innerObserver
+					var group: Signal<Value, Error>.Observer?
+					groups.modify {
+						group = $0[key]
+						if group == nil {
+							let (signal, innerObserver) = Signal<Value, Error>.pipe()
+							let producer = SignalProducer(signal).replayLazily(upTo: Int.max)
+							
+							// Start the buffering immediately.
+							producer.start()
+							observer.send(value: (key, producer))
+							
+							$0[key] = innerObserver
+							group = innerObserver
+						}
 					}
-					lock.unlock()
-					
-					group!.send(value: value)
-					
+					group!.send(value: value)					
 				case let .failed(error):
 					observer.send(error: error)
-					groups.values.forEach { $0.send(error: error) }
+					groups.value.values.forEach { $0.send(error: error) }
 					
 				case .completed:
 					observer.sendCompleted()
-					groups.values.forEach { $0.sendCompleted() }
+					groups.value.values.forEach { $0.sendCompleted() }
 					
 				case .interrupted:
 					observer.sendInterrupted()
-					groups.values.forEach { $0.sendInterrupted() }
+					groups.value.values.forEach { $0.sendInterrupted() }
 				}
 			}
 		}
