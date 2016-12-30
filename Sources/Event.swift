@@ -121,6 +121,28 @@ public enum Event<Value, Error: Swift.Error> {
 	}
 }
 
+public enum TerminatingEvent<Error: Swift.Error> {
+	case completed
+	case failed(Error)
+	case interrupted
+
+	init?<Value>(_ event: Event<Value, Error>) {
+		switch event {
+		case .value:
+			return nil
+
+		case .completed:
+			self = .completed
+
+		case .interrupted:
+			self = .interrupted
+
+		case let .failed(error):
+			self = .failed(error)
+		}
+	}
+}
+
 public func == <Value: Equatable, Error: Equatable> (lhs: Event<Value, Error>, rhs: Event<Value, Error>) -> Bool {
 	switch (lhs, rhs) {
 	case let (.value(left), .value(right)):

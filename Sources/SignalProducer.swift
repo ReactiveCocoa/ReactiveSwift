@@ -1812,14 +1812,17 @@ extension SignalProducerProtocol {
 	/// This operator is only recommended when you absolutely need to introduce
 	/// a layer of caching in front of another `SignalProducer`.
 	///
-	/// - precondtion: `capacity` must be non-negative integer.
+	/// - precondition: `capacity` must be non-negative integer.
 	///
 	/// - parameters:
-	///   - capcity: Number of values to hold.
+	///   - capacity: Number of values to hold.
+	///   - policy: A `ReplayCachePolicy` that responds to termination events,
+	///             optionally allowing the terminated, replayed producer to be
+	///             restarted.
 	///
 	/// - returns: A caching producer that will hold up to last `capacity`
 	///            values.
-	public func replayLazily(upTo capacity: Int) -> SignalProducer<Value, Error> {
+	public func replayLazily(upTo capacity: Int, policy: ReplayCachePolicy<Error> = .alwaysReplay) -> SignalProducer<Value, Error> {
 		precondition(capacity >= 0, "Invalid capacity: \(capacity)")
 
 		// This will go "out of scope" when the returned `SignalProducer` goes
@@ -1835,13 +1838,38 @@ extension SignalProducerProtocol {
 		// Start the underlying producer.
 		func startHandler() {
 			self
+				.materialize()
 				.take(during: lifetime)
-				.start { event in
-					let observers: Bag<Signal<Value, Error>.Observer>? = state.modify { state in
-						defer { state.enqueue(event) }
-						return state.observers
-					}
-					observers?.forEach { $0.action(event) }
+				.startWithSignal { events, _ in
+					let events = SignalProducer(events)
+
+					let invalidated = events
+						.map(TerminatingEvent.init)
+						.skipNil()
+						.flatMap(.merge, transform: policy.action)
+						.take(first: 1)
+
+					events
+						.map(ReplayEvent.event)
+						.concat(
+							invalidated.map { _ in .invalidate }
+						)
+						.startWithValues { event in
+							switch event {
+							case let .event(event):
+								let observers: Bag<Signal<Value, Error>.Observer>? = state.modify { state in
+									defer { state.enqueue(event) }
+									return state.observers
+								}
+								observers?.forEach { $0.action(event) }
+
+							case .invalidate:
+								state.modify { state in
+									state.invalidate()
+									start.value = true
+								}
+							}
+						}
 				}
 		}
 
@@ -1876,6 +1904,46 @@ extension SignalProducerProtocol {
 				case let .failure(error):
 					error.values.forEach(observer.send(value:))
 				}
+			}
+		}
+	}
+}
+
+private enum ReplayEvent<Value, Error: Swift.Error> {
+	case event(Event<Value, Error>)
+	case invalidate
+}
+
+public enum ReplayCacheAction {
+	case invalidate
+}
+
+/// A function that allows responding to any event by invalidating the cache asynchronously
+public struct ReplayCachePolicy<Error: Swift.Error> {
+	public let action: (_ event: TerminatingEvent<Error>) -> SignalProducer<ReplayCacheAction, NoError>
+}
+
+extension ReplayCachePolicy {
+	public static var alwaysReplay: ReplayCachePolicy {
+		return .init { _ in
+			.empty
+		}
+	}
+
+	public static func timeout(_ interval: Double, on scheduler: DateSchedulerProtocol) -> ReplayCachePolicy {
+		return .init { event in
+			return SignalProducer(value: .invalidate)
+				.delay(interval, on: scheduler)
+		}
+	}
+
+	public static var replayCompleted: ReplayCachePolicy {
+		return .init { event in
+			switch event {
+			case .completed:
+				return .empty
+			case .failed, .interrupted:
+				return SignalProducer(value: .invalidate)
 			}
 		}
 	}
@@ -1999,6 +2067,11 @@ private struct ReplayState<Value, Error: Swift.Error> {
 			terminationEvent = event
 			observers = nil
 		}
+	}
+
+	mutating func invalidate() {
+		terminationEvent = nil
+		observers = nil
 	}
 
 	/// Remove the observer represented by the supplied token.
