@@ -16,7 +16,7 @@ import MachO
 internal protocol AtomicStateProtocol {
 	associatedtype State: RawRepresentable
 
-	/// Try to transit from the expected current state to the specified next
+	/// Try to transition from the expected current state to the specified next
 	/// state.
 	///
 	/// - parameters:
@@ -24,7 +24,7 @@ internal protocol AtomicStateProtocol {
 	///
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
-	func tryTransiting(from expected: State, to next: State) -> Bool
+	func tryTransition(from expected: State, to next: State) -> Bool
 }
 
 /// A simple, generic lock-free finite state machine.
@@ -65,7 +65,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 		                                       value)
 	}
 
-	/// Try to transit from the expected current state to the specified next
+	/// Try to transition from the expected current state to the specified next
 	/// state.
 	///
 	/// - parameters:
@@ -74,7 +74,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
 	@inline(__always)
-	internal func tryTransiting(from expected: State, to next: State) -> Bool {
+	internal func tryTransition(from expected: State, to next: State) -> Bool {
 		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
 		                                       next.rawValue,
 		                                       value)
@@ -105,7 +105,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 		return value.modify { $0 == expected.rawValue }
 	}
 
-	/// Try to transit from the expected current state to the specified next
+	/// Try to transition from the expected current state to the specified next
 	/// state.
 	///
 	/// - parameters:
@@ -113,7 +113,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 	///
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
-	internal func tryTransiting(from expected: State, to next: State) -> Bool {
+	internal func tryTransition(from expected: State, to next: State) -> Bool {
 		return value.modify { value in
 			if value == expected.rawValue {
 				value = next.rawValue
