@@ -15,7 +15,7 @@ resource for getting up to speed on the main types and concepts provided by Reac
  1. [`completion` indicates success](#completion-indicates-success)
  1. [`interruption`s cancel outstanding work and usually propagate immediately](#interruptions-cancel-outstanding-work-and-usually-propagate-immediately)
  1. [Events are serial](#events-are-serial)
- 1. [Events cannot be sent recursively](#events-cannot-be-sent-recursively)
+ 1. [Events are never delivered recursively, and values cannot be sent recursively](#events-are-never-delivered-recursively-and-values-cannot-be-sent-recursively)
  1. [Events are sent synchronously by default](#events-are-sent-synchronously-by-default)
 
 **[The `Signal` contract](#the-signal-contract)**
@@ -32,6 +32,14 @@ resource for getting up to speed on the main types and concepts provided by Reac
  1. [Each produced signal may send different events at different times](#each-produced-signal-may-send-different-events-at-different-times)
  1. [Signal operators can be lifted to apply to signal producers](#signal-operators-can-be-lifted-to-apply-to-signal-producers)
  1. [Disposing of a produced signal will interrupt it](#disposing-of-a-produced-signal-will-interrupt-it)
+
+
+**[The Property contract](#the-property-contract)**
+
+ 1. [A property must have its latest value sent synchronously accessible](#a-property-must-have-its-latest-value-sent-synchronously-accessible)
+ 1. [Events must be synchronously emitted after the mutation is visible](#events-must-be-synchronously-emitted-after-the-mutation-is-visible)
+ 1. [Reentrancy must be supported for reads](#reentrancy-must-be-supported-for-reads)
+ 1. [A composed property does not have a side effect on its sources, and does not own its lifetime](#a-composed-property-does-not-have-a-side-effect-on-its-sources-and-does-not-own-its-lifetime)
 
 **[Best practices](#best-practices)**
 
@@ -143,17 +151,19 @@ simultaneously.
 
 This simplifies [operator][Operators] implementations and [observers][].
 
-#### Events cannot be sent recursively
+#### Events are never delivered recursively, and values cannot be sent recursively.
 
-Just like ReactiveSwift guarantees that [events will not be received
-concurrently](#events-are-serial), it also guarantees that they won’t be
-received recursively. As a consequence, [operators][] and [observers][] _do not_ need to
+Just like [the guarantee of events not being delivered
+concurrently](#events-are-serial), it is also guaranteed that events would not be
+delivered recursively. As a consequence, [operators][] and [observers][] _do not_ need to
 be reentrant.
 
-If an event is sent upon a signal from a thread that is _already processing_
-a previous event from that signal, deadlock will result. This is because
+If a `value` event is sent upon a signal from a thread that is _already processing_
+a previous event from that signal, it would result in a deadlock. This is because
 recursive signals are usually programmer error, and the determinacy of
 a deadlock is preferable to nondeterministic race conditions.
+
+Note that a terminal event is permitted to be sent recursively.
 
 When a recursive signal is explicitly desired, the recursive event should be
 time-shifted, with an operator like [`delay`][delay], to ensure that it isn’t sent from
@@ -303,6 +313,36 @@ everything added to the [`CompositeDisposable`][CompositeDisposable] in
 
 Note that disposing of one produced `Signal` will not affect other signals created
 by the same `SignalProducer`.
+
+## The Property contract.
+
+A property is essentially a `Signal` which guarantees it has an initial value, and its latest value is always available for being read out.
+
+All read-only property types should conform to `PropertyProtocol`, while the mutable counterparts should conform to `MutablePropertyProtocol`. ReactiveSwift includes two primitives that implement the contract: `Property` and `MutableProperty`.
+
+#### A property must have its latest value sent synchronously accessible.
+
+A property must have its latest value cached or stored at any point of time. It must be synchronously accessible through `PropertyProtocol.value`.
+
+The `SignalProducer` of a property must replay the latest value before forwarding subsequent changes, and it may ensure that no race condition exists between the replaying and the setup of the forwarding.
+
+#### Events must be synchronously emitted after the mutation is visible.
+
+A mutable property must emit its values and the `completed` event synchronously.
+
+The observers of a property should always observe the same value from the signal and the producer as  `PropertyProtocol.value`. This implies that all observations are a `didSet` observer.
+
+#### Reentrancy must be supported for reads.
+
+All properties must guarantee that observers reading `PropertyProtocol.value` would not deadlock.
+
+In other words, if a mutable property type implements its own, or inherits a synchronization mechanism from its container, the synchronization generally should be reentrant due to the requirements of synchrony.
+
+#### A composed property does not have a side effect on its sources, and does not own its lifetime.
+
+A composed property presents a transformed view of its sources. It should not have a side effect on them, as [observing a signal does not have side effects](#observing-a-signal-does-not-have-side-effects) either. This implies a composed property should never retain its sources, or otherwise the `completed` event emitted upon deinitialization would be influenced.
+
+Moreover, it does not own its lifetime, and its deinitialization should not affect its signal and its producer. The signal and the producer should respect the lifetime of the ultimate sources in a property composition graph.
 
 ## Best practices
 
