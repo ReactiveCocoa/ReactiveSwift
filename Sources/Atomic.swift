@@ -250,7 +250,6 @@ public final class Atomic<Value>: AtomicProtocol {
 	}
 }
 
-
 /// An atomic variable which uses a recursive lock.
 internal final class RecursiveAtomic<Value>: AtomicProtocol {
 	private let lock: NSRecursiveLock
@@ -329,6 +328,22 @@ internal final class RecursiveAtomic<Value>: AtomicProtocol {
 			throw error
 		}
 	}
+
+	/// Atomically replace the contents of the variable.
+	///
+	/// - parameters:
+	///   - newValue: A new value for the variable.
+	///
+	/// - returns: The old value.
+	@discardableResult
+	@inline(__always)
+	func swap(_ newValue: Value) -> Value {
+		return modify { value in
+			let oldValue = value
+			value = newValue
+			return oldValue
+		}
+	}
 }
 
 /// A protocol used to constraint convenience `Atomic` methods and properties.
@@ -365,7 +380,7 @@ extension AtomicProtocol {
 	@discardableResult
 	@inline(__always)
 	func swap(_ newValue: Value) -> Value {
-		return modify { value in
+		return modify { (value: inout Value) in
 			let oldValue = value
 			value = newValue
 			return oldValue
