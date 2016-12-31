@@ -15,7 +15,7 @@ resource for getting up to speed on the main types and concepts provided by Reac
  1. [`completion` indicates success](#completion-indicates-success)
  1. [`interruption`s cancel outstanding work and usually propagate immediately](#interruptions-cancel-outstanding-work-and-usually-propagate-immediately)
  1. [Events are serial](#events-are-serial)
- 1. [Events cannot be sent recursively](#events-cannot-be-sent-recursively)
+ 1. [Events are never delivered recursively, and values cannot be sent recursively](#events-are-never-delivered-recursively-and-values-cannot-be-sent-recursively)
  1. [Events are sent synchronously by default](#events-are-sent-synchronously-by-default)
 
 **[The `Signal` contract](#the-signal-contract)**
@@ -151,17 +151,19 @@ simultaneously.
 
 This simplifies [operator][Operators] implementations and [observers][].
 
-#### Events cannot be sent recursively
+#### Events are never delivered recursively, and values cannot be sent recursively.
 
-Just like ReactiveSwift guarantees that [events will not be received
-concurrently](#events-are-serial), it also guarantees that they won’t be
-received recursively. As a consequence, [operators][] and [observers][] _do not_ need to
+Just like [the guarantee of events not being delivered
+concurrently](#events-are-serial), it is also guaranteed that events would not be
+delivered recursively. As a consequence, [operators][] and [observers][] _do not_ need to
 be reentrant.
 
-If an event is sent upon a signal from a thread that is _already processing_
-a previous event from that signal, deadlock will result. This is because
+If a `value` event is sent upon a signal from a thread that is _already processing_
+a previous event from that signal, it would result in a deadlock. This is because
 recursive signals are usually programmer error, and the determinacy of
 a deadlock is preferable to nondeterministic race conditions.
+
+Note that a terminal event is permitted to be sent recursively.
 
 When a recursive signal is explicitly desired, the recursive event should be
 time-shifted, with an operator like [`delay`][delay], to ensure that it isn’t sent from
