@@ -97,7 +97,20 @@ public final class UIScheduler: SchedulerProtocol {
 	#if os(Linux)
 	private var queueLength: Atomic<Int32> = Atomic(0)
 	#else
-	private var queueLength: Int32 = 0
+	// `inout` references do not guarantee atomicity. Use `UnsafeMutablePointer`
+	// instead.
+	//
+	// https://lists.swift.org/pipermail/swift-users/Week-of-Mon-20161205/004147.html
+	private let queueLength: UnsafeMutablePointer<Int32> = {
+		let memory = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
+		memory.initialize(to: 0)
+		return memory
+	}()
+
+	deinit {
+		queueLength.deinitialize()
+		queueLength.deallocate(capacity: 1)
+	}
 	#endif
 
 	/// Initializes `UIScheduler`
@@ -129,7 +142,7 @@ public final class UIScheduler: SchedulerProtocol {
 			#if os(Linux)
 				self.queueLength.modify { $0 -= 1 }
 			#else
-				OSAtomicDecrement32(&self.queueLength)
+				OSAtomicDecrement32(self.queueLength)
 			#endif
 		}
 
@@ -139,7 +152,7 @@ public final class UIScheduler: SchedulerProtocol {
 				return value
 			}
 		#else
-			let queued = OSAtomicIncrement32(&queueLength)
+			let queued = OSAtomicIncrement32(queueLength)
 		#endif
 
 		// If we're already running on the main queue, and there isn't work
