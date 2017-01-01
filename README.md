@@ -73,7 +73,7 @@ vendingMachine.purchase
         switch result {
         case let .success(snacks):
             print("Snack: \(snacks)")
-        
+
         case let .failure(error):
             // Out of stock? Insufficient fund?
             print("Transaction aborted: \(error)")
@@ -84,16 +84,16 @@ vendingMachine.purchase
 class VendingMachine {
     let purchase: Action<(), [Snack], VendingMachineError>
     let coins: MutableProperty<Int>
-    
+
     // The vending machine is connected with a sales recorder.
     init(_ salesRecorder: SalesRecorder) {
         coins = MutableProperty(0)
-        purchase = Action(state: coins, enabledIf: { $0 > 0 }) { coins, snackId in 
+        purchase = Action(state: coins, enabledIf: { $0 > 0 }) { coins, snackId in
             return SignalProducer { observer, _ in
                 // The sales magic happens here.
             }
         }
-        
+
         // The sales recorders are notified for any successful sales.
         purchase.values.observeValues(salesRecorder.record)
     }
@@ -163,7 +163,7 @@ one. Just think of how much code that would take to do by hand!
 
 #### Receiving the results
 
-Since the source of search strings is a `Signal` which has a hot signal semantic, 
+Since the source of search strings is a `Signal` which has a hot signal semantic,
 the transformations we applied are automatically evaluated whenever new values are
 emitted from `searchStrings`.
 
@@ -174,10 +174,10 @@ searchResults.observe { event in
     switch event {
     case let .value(results):
         print("Search results: \(results)")
-        
+
     case let .failed(error):
         print("Search error: \(error)")
-        
+
     case .completed, .interrupted:
         break
     }
@@ -285,7 +285,7 @@ While ReactiveCocoa was inspired and heavily influenced by [ReactiveX][] (Rx), R
 an opinionated implementation of [functional reactive programming][], and _intentionally_ not a
 direct port like [RxSwift][].
 
-ReactiveSwift differs from ReactiveX in places that: 
+ReactiveSwift differs from ReactiveX in places that:
 
  * Results in a simpler API
  * Addresses common sources of confusion
@@ -369,7 +369,7 @@ If you use [Carthage][] to manage your dependencies, simply add
 ReactiveSwift to your `Cartfile`:
 
 ```
-github "ReactiveCocoa/ReactiveSwift" "1.0.0-rc.3"
+github "ReactiveCocoa/ReactiveSwift" ~> 1.0
 ```
 
 If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework`, and `Result.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
@@ -380,7 +380,7 @@ If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
-pod 'ReactiveSwift', '1.0.0-rc.3'
+pod 'ReactiveSwift', '1.0.0'
 ```
 
 #### Swift Package Manager
@@ -389,7 +389,7 @@ If you use Swift Package Manager, simply add ReactiveSwift as a dependency
 of your package in `Package.swift`:
 
 ```
-.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", "1.0.0-rc.3")
+.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", majorVersion: 1)
 ```
 
 #### Git submodule
@@ -419,19 +419,12 @@ We also provide a great Playground, so you can get used to ReactiveCocoa's opera
  1. Build `ReactiveSwift-macOS` scheme
  1. Finally open the `ReactiveSwift.playground`
  1. Choose `View > Show Debug Area`
- 
+
 ## Have a question?
 If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. Feel free to file an issue if you do not manage to find any solution from the archives.
 
 ## Release Roadmap
 **Current Stable Release:**<br />[![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveSwift.svg)](https://github.com/ReactiveCocoa/ReactiveSwift/releases)
-
-### Code Complete: ReactiveSwift 1.0
-It targets Swift 3.0.x. The tentative schedule of a Gold Master release is January 2017.
-
-[Release Candidiate 3](https://github.com/ReactiveCocoa/ReactiveSwift/releases/tag/1.0.0-rc.3) has been released.
-
-A point release is expected with performance optimizations.
 
 ### Plan of Record
 #### ReactiveSwift 2.0
