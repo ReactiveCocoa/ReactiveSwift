@@ -380,7 +380,7 @@ If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
-pod 'ReactiveSwift', '1.0.0'
+pod 'ReactiveSwift', '~> 1.0.0'
 ```
 
 #### Swift Package Manager
