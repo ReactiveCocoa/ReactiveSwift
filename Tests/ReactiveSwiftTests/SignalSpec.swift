@@ -2720,7 +2720,7 @@ class SignalSpec: QuickSpec {
 		}
 		
 		describe("and attribute") {
-			it("should emmit true when both signals emmits the same value") {
+			it("should emit true when both signals emits the same value") {
 				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
 				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
 				signal1.and(signal2).observeValues { value in
@@ -2733,7 +2733,7 @@ class SignalSpec: QuickSpec {
 				observer2.sendCompleted()
 			}
 			
-			it("should emmit false when both signals emmits opposite values") {
+			it("should emit false when both signals emits opposite values") {
 				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
 				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
 				signal1.and(signal2).observeValues { value in
@@ -2748,7 +2748,7 @@ class SignalSpec: QuickSpec {
 		}
 		
 		describe("or attribute") {
-			it("should emmit true when at least one of the signals emmits true") {
+			it("should emit true when at least one of the signals emits true") {
 				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
 				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
 				signal1.or(signal2).observeValues { value in
@@ -2761,7 +2761,7 @@ class SignalSpec: QuickSpec {
 				observer2.sendCompleted()
 			}
 			
-			it("should emmit false when both signals emmits false") {
+			it("should emit false when both signals emits false") {
 				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
 				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
 				signal1.or(signal2).observeValues { value in

@@ -2448,7 +2448,7 @@ class SignalProducerSpec: QuickSpec {
 		}
 		
 		describe("and attribute") {
-			it("should emmit true when both producers emmits the same value") {
+			it("should emit true when both producers emits the same value") {
 				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
 					observer.send(value: true)
 					observer.sendCompleted()
@@ -2463,7 +2463,7 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 			
-			it("should emmit false when both producers emmits opposite values") {
+			it("should emit false when both producers emits opposite values") {
 				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
 					observer.send(value: true)
 					observer.sendCompleted()
@@ -2494,7 +2494,7 @@ class SignalProducerSpec: QuickSpec {
 		}
 		
 		describe("or attribute") {			
-			it("should emmit true when at least one of the producers emmits true") {
+			it("should emit true when at least one of the producers emits true") {
 				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
 					observer.send(value: true)
 					observer.sendCompleted()
@@ -2509,7 +2509,7 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 			
-			it("should emmit false when both producers emmits false") {
+			it("should emit false when both producers emits false") {
 				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
 					observer.send(value: false)
 					observer.sendCompleted()
