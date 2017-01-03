@@ -7,6 +7,8 @@ git:
 branches:
   only:
     - master
+    # Credit: @Omnikron13, https://github.com/mojombo/semver/issues/32
+    - /^(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
 before_script:
   - git submodule update --init --recursive
 script:
@@ -65,7 +67,6 @@ matrix:
       env:
         - JOB=CARTHAGE-watchOS
     - script:
-      - gem install cocoapods -v 1.1.1
       - pod repo update --silent
       - pod lib lint ReactiveSwift.podspec
       env:
@@ -87,6 +88,12 @@ matrix:
         - swift build
         - swift test
       env: JOB=SWIFTPM_LINUX
+    - os: osx
+      language: generic
+      script:
+        - script/gen-docs
+      env:
+        - JOB=JAZZY_DOCS_GEN
 notifications:
   email: false
   slack:

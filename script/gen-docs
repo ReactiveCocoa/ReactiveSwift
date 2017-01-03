@@ -1,0 +1,62 @@
+#!/bin/bash
+
+if [[ -z "$TRAVIS_TAG" ]]; then
+    echo "Not a tag build. Abort."
+    exit 0
+fi
+
+echo "Documentation builder. The tag is \`${TRAVIS_TAG}\`."
+
+gem install jazzy
+jazzy
+
+if [[ $? -ne 0 ]]; then
+    echo "Jazzy has failed. Aborting the push."
+    exit 1
+fi
+
+brew install hub
+export GITHUB_TOKEN=${RAC_CIBOT_TOKEN}
+
+# Clone the master branch of the website.
+git clone -b master --depth 1 https://${RAC_CIBOT_TOKEN}@github.com/ReactiveCocoa/ReactiveCocoa.github.io.git RACSite
+cd ./RACSite
+
+# Fork the repo without fetching it.
+hub fork --no-remote
+git remote add cibot https://${RAC_CIBOT_TOKEN}@github.com/${RAC_CIBOT_USERNAME}/ReactiveCocoa.github.io.git 
+git checkout master
+
+# Create a new branch for the release.
+git checkout -b ras-${TRAVIS_TAG}
+
+# Copy the generated docs.
+mkdir -p ./reactiveswift/docs/${TRAVIS_TAG}
+cp -r ../docs/. ./reactiveswift/docs/${TRAVIS_TAG}
+rm -rf ./reactiveswift/docs/${TRAVIS_TAG}/docsets/
+
+# Copy image assets used by README.md.
+mkdir -p ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/
+cp ../Logo/PNG/logo-Swift.png ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/logo-Swift.png
+cp ../Logo/PNG/JoinSlack.png ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/JoinSlack.png
+cp ../Logo/PNG/Docs.png ./reactiveswift/docs/${TRAVIS_TAG}/Logo/PNG/Docs.png
+
+git add ./reactiveswift/docs/${TRAVIS_TAG}
+
+# Ensure Jekyll is not running in `docs`.
+touch ./reactiveswift/docs/.nojekyll
+git add ./reactiveswift/docs/.nojekyll
+
+# Update the `latest` symlink.
+ln -sf ./{$TRAVIS_TAG}/ ./reactiveswift/docs/latest
+git add ./reactiveswift/docs/latest  
+
+# Commit and push to the fork.
+git commit -m "Documentation: ReactiveSwift ${TRAVIS_TAG}"
+git push -u cibot ras-${TRAVIS_TAG}
+
+# Open a pull request in the main repo.
+hub pull-request -m "Documentation: ReactiveSwift ${TRAVIS_TAG}" -h "${RAC_CIBOT_USERNAME}:ras-${TRAVIS_TAG}"
+
+cd ..
+rm -rf ./RACSite

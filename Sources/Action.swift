@@ -206,6 +206,7 @@ private struct ActionState {
 	}
 }
 
+/// A protocol used to constraint `Action` initializers.
 public protocol ActionProtocol: BindingTargetProtocol {
 	/// The type of argument to apply the action to.
 	associatedtype Input

@@ -349,18 +349,24 @@ lettersObserver.send(value: "a")    // prints "a"
 lettersObserver.send(value: "b")    // prints "b"
 numbersObserver.send(value: "2")    // nothing printed
 lettersObserver.send(value: "c")    // prints "c"
-lettersObserver.sendCompleted()     // prints "1, 2"
+lettersObserver.sendCompleted()     // nothing printed
 numbersObserver.send(value: "3")    // prints "3"
-numbersObserver.sendCompleted()
+numbersObserver.sendCompleted()     // nothing printed
 ```
 
 [Interactive visualisation of the `flatten(.concat)` operator.](http://neilpa.me/rac-marbles/#concat)
 
 ### Switching to the latest
 
-The `.latest` strategy forwards only values from the latest input event stream.
+The `.latest` strategy forwards only values or a failure from the latest input event stream.
 
 ```Swift
+let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
+let (numbersSignal, numbersObserver) = Signal<String, NoError>.pipe()
+let (signal, observer) = Signal<Signal<String, NoError>, NoError>.pipe()
+
+signal.flatten(.latest).observeValues { print($0) }
+
 observer.send(value: lettersSignal) // nothing printed
 numbersObserver.send(value: "1")    // nothing printed
 lettersObserver.send(value: "a")    // prints "a"

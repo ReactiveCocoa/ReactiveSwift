@@ -21,3 +21,6 @@ Packages
 
 # Carthage
 Carthage/Build
+
+# Jazzy
+docs

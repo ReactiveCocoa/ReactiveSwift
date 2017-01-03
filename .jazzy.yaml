@@ -1,0 +1,88 @@
+custom_categories:
+  - name: Getting Started 
+    children:
+    - BasicOperators
+    - FrameworkOverview
+    - DebuggingTechniques
+    - DesignGuidelines
+  - name: Signal
+    children:
+    - Event
+    - EventProtocol
+    - Observer
+    - ObserverProtocol
+    - Signal
+    - SignalProtocol
+    - FlattenStrategy
+  - name: SignalProducer
+    children:
+    - SignalProducer
+    - SignalProducerProtocol
+    - timer(interval:on:)
+    - timer(interval:on:leeway:)
+  - name: Property
+    children:
+    - Property
+    - PropertyProtocol
+    - MutableProperty
+    - MutablePropertyProtocol
+  - name: Action
+    children:
+    - Action
+    - ActionError
+    - ActionProtocol
+  - name: Bindings
+    children:
+    - BindingSourceProtocol
+    - BindingTarget
+    - BindingTargetProtocol
+    - <~(_:_:)
+  - name: Schedulers
+    children:
+    - DateSchedulerProtocol
+    - ImmediateScheduler
+    - QueueScheduler
+    - SchedulerProtocol
+    - TestScheduler
+    - UIScheduler
+  - name: Reactive Extensions
+    children:
+    - Reactive
+    - ReactiveExtensionsProvider
+  - name: Lifetime
+    children:
+    - Lifetime
+  - name: Disposable
+    children:
+    - AnyDisposable
+    - ActionDisposable    
+    - Disposable
+    - CompositeDisposable
+    - ScopedDisposable 
+    - SerialDisposable
+    - SimpleDisposable
+    - +=(_:_:)
+  - name: Utilities 
+    children:
+    - Atomic
+    - AtomicProtocol
+    - Bag
+    - BagIterator
+    - RemovalToken
+    - EventLogger
+    - LoggingEvent
+    - Optional
+    - OptionalProtocol
+theme: fullwidth 
+skip_undocumented: true
+readme: README.md
+documentation: Documentation/*.md
+hide_documentation_coverage: true
+xcodebuild_arguments:
+  - -workspace
+  - ReactiveSwift.xcworkspace
+  - -scheme
+  - ReactiveSwift-macOS
+author: ReactiveCocoa
+author_url: https://reactivecocoa.io/
+github_url: https://github.com/ReactiveCocoa/ReactiveSwift/

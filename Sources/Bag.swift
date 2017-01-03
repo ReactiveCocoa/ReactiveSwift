@@ -83,6 +83,7 @@ extension BagElement: CustomStringConvertible {
 	}
 }
 
+/// An iterator of `Bag`.
 public struct BagIterator<Element>: IteratorProtocol {
 	private let base: ContiguousArray<BagElement<Element>>
 	private var nextIndex: Int

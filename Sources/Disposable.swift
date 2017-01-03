@@ -29,13 +29,13 @@ private enum DisposableState: Int32 {
 }
 
 extension AtomicStateProtocol where State == DisposableState {
-	/// Try to transit from `active` to `disposed`.
+	/// Try to transition from `active` to `disposed`.
 	///
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
 	@inline(__always)
 	fileprivate func tryDispose() -> Bool {
-		return tryTransiting(from: .active, to: .disposed)
+		return tryTransition(from: .active, to: .disposed)
 	}
 }
 
@@ -123,6 +123,10 @@ public final class CompositeDisposable: Disposable {
 		fileprivate init() {
 			self.state = UnsafeAtomicState(.disposed)
 			self.bagToken = nil
+		}
+
+		deinit {
+			state.deinitialize()
 		}
 
 		fileprivate init(bagToken: RemovalToken, disposable: CompositeDisposable) {

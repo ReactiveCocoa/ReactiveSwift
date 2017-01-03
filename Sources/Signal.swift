@@ -396,6 +396,7 @@ private final class TerminatingState<Value, Error: Swift.Error> {
 	}
 }
 
+/// A protocol used to constraint `Signal` operators.
 public protocol SignalProtocol {
 	/// The type of values being sent on the signal.
 	associatedtype Value
