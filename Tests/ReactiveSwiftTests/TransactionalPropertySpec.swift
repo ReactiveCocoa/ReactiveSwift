@@ -112,7 +112,7 @@ class TransactionalPropertySpec: QuickSpec {
 					let integer = Int(input)
 					return Result(integer, failWith: TestError.default)
 				})
-				mapped.validations.observeValues { validationResult = FlattenedResult($0) }
+				mapped.validations.signal.observeValues { validationResult = FlattenedResult($0) }
 
 				expect(mapped.value) == "0"
 				expect(validationResult).to(beNil())
@@ -286,7 +286,7 @@ class TransactionalPropertySpec: QuickSpec {
 				validated = root.validate { input -> Result<(), TestError> in
 					return Result(input >= 0 ? () : nil, failWith: TestError.default)
 				}
-				validated.validations.observeValues { validationResult = FlattenedResult($0) }
+				validated.validations.signal.observeValues { validationResult = FlattenedResult($0) }
 
 				expect(validated.value) == root.value
 				expect(validationResult).to(beNil())
@@ -426,7 +426,7 @@ class TransactionalPropertySpec: QuickSpec {
 				validated = root.validate(with: other) { input, otherInput -> Result<(), TestError> in
 					return Result(input >= 0 && otherInput == "🎃" ? () : nil, failWith: TestError.default)
 				}
-				validated.validations.observeValues { validationResult = FlattenedResult($0) }
+				validated.validations.signal.observeValues { validationResult = FlattenedResult($0) }
 
 				expect(validated.value) == root.value
 				expect(validationResult).to(beNil())

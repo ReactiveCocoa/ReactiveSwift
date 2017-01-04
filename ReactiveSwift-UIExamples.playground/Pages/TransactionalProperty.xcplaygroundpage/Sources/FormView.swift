@@ -15,7 +15,7 @@ public class FormView: UIView {
 	public let reasonLabel = UILabel()
 
 	convenience init() {
-		self.init(frame: CGRect(x: 0, y: 0, width: 300, height: 300))
+		self.init(frame: CGRect(x: 0, y: 0, width: 300, height: 350))
 
 		backgroundColor = .white
 
@@ -68,7 +68,7 @@ public class FormView: UIView {
 
 		// Reason Label
 		reasonLabel.frame.origin = CGPoint(x: 20, y: 250)
-		reasonLabel.frame.size = CGSize(width: 260, height: 30)
+		reasonLabel.frame.size = CGSize(width: 260, height: 80)
 		reasonLabel.numberOfLines = 0
 		reasonLabel.font = labelFont
 	}

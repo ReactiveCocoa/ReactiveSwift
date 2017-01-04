@@ -4,6 +4,10 @@ import Result
 /// associated with the setter.
 public final class TransactionalProperty<Value, TransactionError: Error>: ComposableMutablePropertyProtocol {
 	/// The current value of the property.
+	///
+	/// It does not guarantee that the value is valid with regard to `self`, since
+	/// changes might be initiated from the inner properties. Check `validations`
+	/// for the latest validation state.
 	public var value: Value {
 		get {
 			return cache.value
@@ -30,8 +34,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	public let lifetime: Lifetime
 
 	/// Validations that have been made by the property.
-	public let validations: Signal<Result<(), TransactionError>, NoError>
-	private let validationEmitter: Signal<Result<(), TransactionError>, NoError>.Observer
+	public let validations: Property<Result<(), TransactionError>>
 
 	/// The action associated with the property.
 	private let action: (Value) -> Void
@@ -60,20 +63,28 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		transform: @escaping (M.Value) -> Value,
 		_ body: @escaping (Value) -> Result<M.Value, TransactionError>
 	) {
-		(validations, validationEmitter) = Signal<Result<(), TransactionError>, NoError>.pipe()
+		var mutesValueBackpropagation = false
 
+		let _validations = MutableProperty<Result<(), TransactionError>>(.success())
+		_validations <~ inner.producer
+			.filter { _ in !mutesValueBackpropagation }
+			.map { body(transform($0)).map { _ in } }
+
+		self.validations = Property(capturing: _validations)
 		self.lifetime = inner.lifetime
 		self.cache = inner.map(transform)
 		self.rootBox = TransactionalPropertyBox(inner)
 
-		action = { [validationEmitter] input in
+		action = { input in
 			switch body(input) {
 			case let .success(innerResult):
+				mutesValueBackpropagation = true
 				inner.value = innerResult
-				validationEmitter.send(value: .success())
+				_validations.value = .success()
+				mutesValueBackpropagation = false
 
 			case let .failure(error):
-				validationEmitter.send(value: .failure(error))
+				_validations.value = .failure(error)
 			}
 		}
 	}
@@ -100,12 +111,9 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		errorTransform: @escaping (T.TransactionError) -> TransactionError,
 		_ body: @escaping (Value) -> Result<T.Value, TransactionError>
 	) {
-		self.init(inner, transform: transform, validator: body, validationSetup: { validationEmitter, lifetime in
-			let d = inner.property.validations
+		self.init(inner, transform: transform, validator: body, validationSetup: { validations in
+			validations <~ inner.property.validations
 				.map { $0.mapError(errorTransform) }
-				.observe(validationEmitter)
-
-			lifetime.ended.observeCompleted { d?.dispose() }
 		})
 	}
 
@@ -133,29 +141,33 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		_ inner: T,
 		transform: @escaping (T.Value) -> Value,
 		validator: @escaping (Value) -> Result<T.Value, TransactionError>,
-		validationSetup: ((Observer<Result<(), TransactionError>, NoError>, Lifetime) -> Void)?
+		validationSetup: ((MutableProperty<Result<(), TransactionError>>) -> Void)?
 	) {
-		(validations, validationEmitter) = Signal<Result<(), TransactionError>, NoError>.pipe()
+		var mutesValueBackpropagation = false
 
+		let _validations = MutableProperty<Result<(), TransactionError>>(.success())
+		_validations <~ inner.producer
+			.filter { _ in !mutesValueBackpropagation }
+			.map { validator(transform($0)).map { _ in } }
+
+		self.validations = Property(capturing: _validations)
 		self.lifetime = inner.lifetime
 		self.cache = inner.property.cache.map(transform)
 		self.rootBox = inner.property.rootBox
 
-		validationSetup?(validationEmitter, lifetime)
+		validationSetup?(_validations)
 
-		action = { [validationEmitter] input in
+		action = { input in
 			switch validator(input) {
 			case let .success(innerResult):
+				mutesValueBackpropagation = true
 				inner.property.action(innerResult)
+				mutesValueBackpropagation = false
 
 			case let .failure(error):
-				validationEmitter.send(value: .failure(error))
+				_validations.value = .failure(error)
 			}
 		}
-	}
-
-	deinit {
-		validationEmitter.sendCompleted()
 	}
 
 	/// Atomically performs an arbitrary action using the current value of the
@@ -303,6 +315,7 @@ extension ComposableMutablePropertyProtocol {
 	/// predicate would be reevaluated automatically.
 	///
 	/// - parameters:
+	///   - other: The property the validation logic depends on.
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
@@ -424,6 +437,7 @@ extension _TransactionalPropertyProtocol {
 	/// predicate would be reevaluated automatically.
 	///
 	/// - parameters:
+	///   - other: The property the validation logic depends on.
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
@@ -493,6 +507,7 @@ extension _TransactionalPropertyProtocol where TransactionError == NoError {
 	/// predicate would be reevaluated automatically.
 	///
 	/// - parameters:
+	///   - other: The property the validation logic depends on.
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
