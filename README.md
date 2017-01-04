@@ -63,7 +63,7 @@ currentTime.observeValues { timeBar.timeLabel.text = "\($0)" }
 #### `Action`: a serialized worker with a preset action.
 When being invoked with an input, `Action` apply the input and the latest state to the preset action, and pushes the output to any interested parties.
 
-It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snacks. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
+It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snack. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
 
 ```swift
 // Purchase from the vending machine with a specific option.
@@ -71,8 +71,8 @@ vendingMachine.purchase
     .apply(snackId)
     .startWithResult { result
         switch result {
-        case let .success(snacks):
-            print("Snack: \(snacks)")
+        case let .success(snack):
+            print("Snack: \(snack)")
 
         case let .failure(error):
             // Out of stock? Insufficient fund?
@@ -82,7 +82,7 @@ vendingMachine.purchase
 
 // The vending machine.
 class VendingMachine {
-    let purchase: Action<(), [Snack], VendingMachineError>
+    let purchase: Action<Int, Snack, VendingMachineError>
     let coins: MutableProperty<Int>
 
     // The vending machine is connected with a sales recorder.
@@ -91,6 +91,7 @@ class VendingMachine {
         purchase = Action(state: coins, enabledIf: { $0 > 0 }) { coins, snackId in
             return SignalProducer { observer, _ in
                 // The sales magic happens here.
+                // Fetch a snack based on its id
             }
         }
 
