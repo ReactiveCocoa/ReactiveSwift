@@ -394,7 +394,7 @@ extension SignalProducerProtocol {
 	/// That is, the receiver will be started before the argument producer. When
 	/// both producers are synchronous this order can be important depending on
 	/// the operator to generate correct results.
-	private func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	fileprivate func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
 			return SignalProducer { observer, outerDisposable in
 				otherProducer.startWithSignal { otherSignal, otherDisposable in
@@ -1876,6 +1876,59 @@ extension SignalProducerProtocol {
 				}
 			}
 		}
+	}
+}
+
+extension SignalProducerProtocol where Value == Bool {
+	/// Create a producer that computes a logical NOT in the latest values of `self`.
+	///
+	/// - returns: A producer that emits the logical NOT results.
+	public var negated: SignalProducer<Value, Error> {
+		return self.lift { $0.negated }
+	}
+	
+	/// Create a producer that computes a logical AND between the latest values of `self`
+	/// and `producer`.
+	///
+	/// - parameters:
+	///   - producer: Producer to be combined with `self`.
+	///
+	/// - returns: A producer that emits the logical AND results.
+	public func and(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return self.liftLeft(Signal.and)(producer)
+	}
+	
+	/// Create a producer that computes a logical AND between the latest values of `self`
+	/// and `signal`.
+	///
+	/// - parameters:
+	///   - signal: Signal to be combined with `self`.
+	///
+	/// - returns: A producer that emits the logical AND results.
+	public func and(_ signal: Signal<Value, Error>) -> SignalProducer<Value, Error> {
+		return self.lift(Signal.and)(signal)
+	}
+	
+	/// Create a producer that computes a logical OR between the latest values of `self`
+	/// and `producer`.
+	///
+	/// - parameters:
+	///   - producer: Producer to be combined with `self`.
+	///
+	/// - returns: A producer that emits the logical OR results.
+	public func or(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return self.liftLeft(Signal.or)(producer)
+	}
+	
+	/// Create a producer that computes a logical OR between the latest values of `self`
+	/// and `signal`.
+	///
+	/// - parameters:
+	///   - signal: Signal to be combined with `self`.
+	///
+	/// - returns: A producer that emits the logical OR results.
+	public func or(_ signal: Signal<Value, Error>) -> SignalProducer<Value, Error> {
+		return self.lift(Signal.or)(signal)
 	}
 }
 

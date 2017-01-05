@@ -2433,6 +2433,111 @@ class SignalProducerSpec: QuickSpec {
 				expect(results) == [1, 2]
 			}
 		}
+		
+		describe("negated attribute") {
+			it("should return the negate of a value in a Boolean producer") {
+				let producer = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				
+				producer.negated.startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
+		}
+		
+		describe("and attribute") {
+			it("should emit true when both producers emits the same value") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				
+				producer1.and(producer2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+			}
+			
+			it("should emit false when both producers emits opposite values") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				
+				producer1.and(producer2).startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
+			
+			it("should work the same way when using signal instead of a producer") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				producer1.and(signal2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+				observer2.send(value: true)
+				
+				observer2.sendCompleted()
+			}
+		}
+		
+		describe("or attribute") {			
+			it("should emit true when at least one of the producers emits true") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				
+				producer1.or(producer2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+			}
+			
+			it("should emit false when both producers emits false") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				
+				producer1.or(producer2).startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
+			
+			it("should work the same way when using signal instead of a producer") {
+				let producer1 = SignalProducer<Bool, NoError> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				producer1.or(signal2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+				observer2.send(value: true)
+				
+				observer2.sendCompleted()
+			}
+		}
 	}
 }
 
