@@ -286,7 +286,7 @@ While ReactiveCocoa was inspired and heavily influenced by [ReactiveX][] (Rx), R
 an opinionated implementation of [functional reactive programming][], and _intentionally_ not a
 direct port like [RxSwift][].
 
-ReactiveSwift differs from ReactiveX when doing so:
+ReactiveSwift differs from ReactiveX where doing so:
 
  * Results in a simpler API
  * Addresses common sources of confusion
