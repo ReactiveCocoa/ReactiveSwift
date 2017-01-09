@@ -280,13 +280,13 @@ let searchString = textField.reactive.continuousTextValues
 
 For more information and advance usage, check the [Debugging Techniques](Documentation/DebuggingTechniques.md) document.
 
-## How does ReactiveSwift relate to Rx?
-
-While ReactiveCocoa was inspired and heavily influenced by [ReactiveX][] (Rx), ReactiveSwift is
-an opinionated implementation of [functional reactive programming][], and _intentionally_ not a
+## How does ReactiveSwift relate to RxSwift?
+RxSwift is a Swift implementation of the [ReactiveX][] (Rx) APIs. While ReactiveCocoa
+was inspired and heavily influenced by Rx, ReactiveSwift is an opinionated
+implementation of [functional reactive programming][], and _intentionally_ not a
 direct port like [RxSwift][].
 
-ReactiveSwift differs from ReactiveX where doing so:
+ReactiveSwift differs from RxSwift/ReactiveX where doing so:
 
  * Results in a simpler API
  * Addresses common sources of confusion
