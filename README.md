@@ -286,7 +286,7 @@ was inspired and heavily influenced by Rx, ReactiveSwift is an opinionated
 implementation of [functional reactive programming][], and _intentionally_ not a
 direct port like [RxSwift][].
 
-ReactiveSwift differs from RxSwift/ReactiveX in places that:
+ReactiveSwift differs from RxSwift/ReactiveX where doing so:
 
  * Results in a simpler API
  * Addresses common sources of confusion
