@@ -32,6 +32,12 @@ private func defaultEventLog(identifier: String, event: String, fileName: String
 }
 
 /// A type that represents an event logging function.
+/// Signature is:
+///		- identifier 
+///		- event
+///		- fileName
+///		- functionName
+///		- lineNumber
 public typealias EventLogger = (
 	_ identifier: String,
 	_ event: String,
