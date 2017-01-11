@@ -449,16 +449,226 @@ class TransactionalPropertySpec: QuickSpec {
 		}
 
 		describe("validate(with:_:)") {
-			var other: MutableProperty<String>!
+			describe("a MutablePropertyProtocol dependency") {
+				var other: MutableProperty<String>!
+				var root: MutableProperty<Int>!
+				var validated: TransactionalProperty<Int, TestError>!
+				var validationResult: FlattenedResult<Int>?
+
+				beforeEach {
+					other = MutableProperty("")
+					root = MutableProperty(0)
+					validated = root.validate(with: other) { input, otherInput -> Result<(), TestError> in
+						return Result(input >= 0 && otherInput == "🎃" ? () : nil, failWith: TestError.default)
+					}
+					validated.validations.signal.observeValues { validationResult = FlattenedResult($0) }
+
+					expect(validated.value) == root.value
+					expect(FlattenedResult(validated.validations.value)) == FlattenedResult.errorDefault(0)
+					expect(validationResult).to(beNil())
+				}
+
+				afterEach {
+					weak var weakRoot = root
+					weak var weakOther = other
+					expect(weakRoot).toNot(beNil())
+					expect(weakOther).toNot(beNil())
+
+					root = nil
+					other = nil
+					expect(weakRoot).toNot(beNil())
+					expect(weakOther).to(beNil())
+
+					validated = nil
+					expect(weakRoot).to(beNil())
+
+					validationResult = nil
+				}
+
+				it("should let valid values get through") {
+					other.value = "🎃"
+
+					validated.value = 10
+					expect(root.value) == 10
+					expect(validated.value) == 10
+
+					expect(validationResult) == .success(10)
+				}
+
+				it("should block invalid values") {
+					validated.value = -10
+					expect(root.value) == 0
+					expect(validated.value) == 0
+
+					expect(validationResult) == .errorDefault(-10)
+				}
+
+				it("should validates values originated from the root") {
+					root.value = -10
+					expect(validated.value) == -10
+					expect(validationResult) == .errorDefault(-10)
+				}
+
+				it("should automatically revalidate the latest failed value if the dependency changes") {
+					validated.value = 10
+					expect(root.value) == 0
+					expect(validated.value) == 0
+
+					expect(validationResult) == .errorDefault(10)
+
+					other.value = "🎃"
+
+					expect(root.value) == 10
+					expect(validated.value) == 10
+					expect(validationResult) == .success(10)
+				}
+
+				describe("nesting") {
+					var nestedOther: MutableProperty<String>!
+					var nestedValidated: TransactionalProperty<Int, TestError>!
+
+					var rootValues: [Int] = []
+					var validatedValues: [Int] = []
+					var validations: [FlattenedResult<Int>] = []
+					var nestedValidatedValues: [Int] = []
+					var nestedValidations: [FlattenedResult<Int>] = []
+
+					beforeEach {
+						nestedOther = MutableProperty("")
+
+						// `validated` blocks negative values. Here we gonna block values in
+						// [-99, 99]. So the effective valid range would be [100, inf).
+						nestedValidated = validated.validate(with: nestedOther) { input, otherInput -> Result<(), TestError> in
+							return abs(input) >= 100 && otherInput == "🙈" ? .success(()) : .failure(TestError.error1)
+						}
+
+						root.signal.observeValues { rootValues.append($0) }
+						validated.signal.observeValues { validatedValues.append($0) }
+						nestedValidated.signal.observeValues { nestedValidatedValues.append($0) }
+
+						validated.validations.signal.observeValues { result in
+							validations.append(FlattenedResult(result))
+						}
+
+						nestedValidated.validations.signal.observeValues { result in
+							nestedValidations.append(FlattenedResult(result))
+						}
+
+						expect(nestedValidated.value) == 0
+					}
+
+					afterEach {
+						nestedValidated = nil
+
+						rootValues = []
+						validatedValues = []
+						validations = []
+						nestedValidatedValues = []
+						nestedValidations = []
+					}
+
+					it("should propagate changes originated from the root") {
+						root.value = 1
+
+						expect(validated.value) == 1
+						expect(nestedValidated.value) == 1
+
+						expect(validatedValues) == [1]
+						expect(nestedValidatedValues) == [1]
+
+						expect(validations) == [.errorDefault(1)]
+						expect(nestedValidations) == [.errorDefault(1)]
+					}
+
+					it("should let valid values get through") {
+						other.value = "🎃"
+
+						expect(rootValues) == [0]
+						expect(validatedValues) == [0]
+						expect(nestedValidatedValues) == [0]
+						expect(validations) == [.success(0)]
+						expect(nestedValidations) == [.error1(0)]
+
+						validated.value = 70
+
+						expect(rootValues) == [0, 70]
+						expect(validatedValues) == [0, 70]
+						expect(nestedValidatedValues) == [0, 70]
+						expect(validations) == [.success(0), .success(70)]
+						expect(nestedValidations) == [.error1(0), .error1(70)]
+
+						nestedOther.value = "🙈"
+
+						expect(rootValues) == [0, 70]
+						expect(validatedValues) == [0, 70]
+						expect(nestedValidatedValues) == [0, 70]
+						expect(validations) == [.success(0), .success(70)]
+						expect(nestedValidations) == [.error1(0), .error1(70), .error1(70)]
+
+						nestedValidated.value = 200
+
+						expect(rootValues) == [0, 70, 200]
+						expect(validatedValues) == [0, 70, 200]
+						expect(nestedValidatedValues) == [0, 70, 200]
+						expect(validations) == [.success(0), .success(70), .success(200)]
+						expect(nestedValidations) == [.error1(0), .error1(70), .error1(70), .success(200)]
+					}
+
+					it("should block the validation error from proceeding") {
+						nestedValidated.value = -50
+
+						expect(rootValues) == []
+						expect(validatedValues) == []
+						expect(nestedValidatedValues) == []
+						expect(validations) == []
+						expect(nestedValidations) == [.error1(-50)]
+					}
+
+					it("should propagate the validation error back to the outer property in the middle of the chain") {
+						validated.value = -100
+
+						expect(rootValues) == []
+						expect(validatedValues) == []
+						expect(nestedValidatedValues) == []
+						expect(validations) == [.errorDefault(-100)]
+						expect(nestedValidations) == [.errorDefault(-100)]
+					}
+
+					it("should propagate the validation error back to the outer property in the middle of the chain") {
+						nestedOther.value = "🙈"
+
+						expect(rootValues) == []
+						expect(validatedValues) == []
+						expect(nestedValidatedValues) == []
+						expect(validations) == []
+						expect(nestedValidations) == [.error1(0)]
+						
+						nestedValidated.value = -100
+						
+						expect(rootValues) == []
+						expect(validatedValues) == []
+						expect(nestedValidatedValues) == []
+						expect(validations) == [.errorDefault(-100)]
+						expect(nestedValidations) == [.error1(0), .errorDefault(-100)]
+					}
+				}
+			}
+		}
+
+		describe("a TransactionalProperty dependency") {
+			var other: TransactionalProperty<String, TestError>!
 			var root: MutableProperty<Int>!
 			var validated: TransactionalProperty<Int, TestError>!
 			var validationResult: FlattenedResult<Int>?
 
 			beforeEach {
-				other = MutableProperty("")
+				other = MutableProperty("").validate { input -> Result<(), TestError> in
+					return input.hasSuffix("🎃") && input != "🎃" ? .success() : .failure(TestError.error2)
+				}
+
 				root = MutableProperty(0)
 				validated = root.validate(with: other) { input, otherInput -> Result<(), TestError> in
-					return Result(input >= 0 && otherInput == "🎃" ? () : nil, failWith: TestError.default)
+					return Result(input >= 0 && otherInput.hasSuffix("🎃") ? () : nil, failWith: TestError.default)
 				}
 				validated.validations.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -522,134 +732,28 @@ class TransactionalPropertySpec: QuickSpec {
 				expect(validationResult) == .success(10)
 			}
 
-			describe("nesting") {
-				var nestedOther: MutableProperty<String>!
-				var nestedValidated: TransactionalProperty<Int, TestError>!
+			it("should automatically revalidate the latest failed value whenever the dependency has been proposed a new input") {
+				validated.value = 10
+				expect(root.value) == 0
+				expect(validated.value) == 0
 
-				var rootValues: [Int] = []
-				var validatedValues: [Int] = []
-				var validations: [FlattenedResult<Int>] = []
-				var nestedValidatedValues: [Int] = []
-				var nestedValidations: [FlattenedResult<Int>] = []
+				expect(validationResult) == .errorDefault(10)
 
-				beforeEach {
-					nestedOther = MutableProperty("")
+				other.value = "🎃"
+				expect(other.value) == ""
+				expect(FlattenedResult(other.validations.value)) == FlattenedResult.error2("🎃")
 
-					// `validated` blocks negative values. Here we gonna block values in
-					// [-99, 99]. So the effective valid range would be [100, inf).
-					nestedValidated = validated.validate(with: nestedOther) { input, otherInput -> Result<(), TestError> in
-						return abs(input) >= 100 && otherInput == "🙈" ? .success(()) : .failure(TestError.error1)
-					}
+				expect(root.value) == 10
+				expect(validated.value) == 10
+				expect(validationResult) == .success(10)
 
-					root.signal.observeValues { rootValues.append($0) }
-					validated.signal.observeValues { validatedValues.append($0) }
-					nestedValidated.signal.observeValues { nestedValidatedValues.append($0) }
+				other.value = "👻🎃"
+				expect(other.value) == "👻🎃"
+				expect(FlattenedResult(other.validations.value)) == FlattenedResult.success("👻🎃")
 
-					validated.validations.signal.observeValues { result in
-						validations.append(FlattenedResult(result))
-					}
-
-					nestedValidated.validations.signal.observeValues { result in
-						nestedValidations.append(FlattenedResult(result))
-					}
-
-					expect(nestedValidated.value) == 0
-				}
-
-				afterEach {
-					nestedValidated = nil
-
-					rootValues = []
-					validatedValues = []
-					validations = []
-					nestedValidatedValues = []
-					nestedValidations = []
-				}
-
-				it("should propagate changes originated from the root") {
-					root.value = 1
-
-					expect(validated.value) == 1
-					expect(nestedValidated.value) == 1
-
-					expect(validatedValues) == [1]
-					expect(nestedValidatedValues) == [1]
-
-					expect(validations) == [.errorDefault(1)]
-					expect(nestedValidations) == [.errorDefault(1)]
-				}
-
-				it("should let valid values get through") {
-					other.value = "🎃"
-
-					expect(rootValues) == [0]
-					expect(validatedValues) == [0]
-					expect(nestedValidatedValues) == [0]
-					expect(validations) == [.success(0)]
-					expect(nestedValidations) == [.error1(0)]
-
-					validated.value = 70
-
-					expect(rootValues) == [0, 70]
-					expect(validatedValues) == [0, 70]
-					expect(nestedValidatedValues) == [0, 70]
-					expect(validations) == [.success(0), .success(70)]
-					expect(nestedValidations) == [.error1(0), .error1(70)]
-
-					nestedOther.value = "🙈"
-
-					expect(rootValues) == [0, 70]
-					expect(validatedValues) == [0, 70]
-					expect(nestedValidatedValues) == [0, 70]
-					expect(validations) == [.success(0), .success(70)]
-					expect(nestedValidations) == [.error1(0), .error1(70), .error1(70)]
-
-					nestedValidated.value = 200
-
-					expect(rootValues) == [0, 70, 200]
-					expect(validatedValues) == [0, 70, 200]
-					expect(nestedValidatedValues) == [0, 70, 200]
-					expect(validations) == [.success(0), .success(70), .success(200)]
-					expect(nestedValidations) == [.error1(0), .error1(70), .error1(70), .success(200)]
-				}
-
-				it("should block the validation error from proceeding") {
-					nestedValidated.value = -50
-
-					expect(rootValues) == []
-					expect(validatedValues) == []
-					expect(nestedValidatedValues) == []
-					expect(validations) == []
-					expect(nestedValidations) == [.error1(-50)]
-				}
-
-				it("should propagate the validation error back to the outer property in the middle of the chain") {
-					validated.value = -100
-
-					expect(rootValues) == []
-					expect(validatedValues) == []
-					expect(nestedValidatedValues) == []
-					expect(validations) == [.errorDefault(-100)]
-					expect(nestedValidations) == [.errorDefault(-100)]
-				}
-
-				it("should propagate the validation error back to the outer property in the middle of the chain") {
-					nestedOther.value = "🙈"
-
-					expect(rootValues) == []
-					expect(validatedValues) == []
-					expect(nestedValidatedValues) == []
-					expect(validations) == []
-					expect(nestedValidations) == [.error1(0)]
-
-					nestedValidated.value = -100
-
-					expect(rootValues) == []
-					expect(validatedValues) == []
-					expect(nestedValidatedValues) == []
-					expect(validations) == [.errorDefault(-100)]
-					expect(nestedValidations) == [.error1(0), .errorDefault(-100)]
-				}
+				expect(root.value) == 10
+				expect(validated.value) == 10
+				expect(validationResult) == .success(10)
 			}
 		}
 	}

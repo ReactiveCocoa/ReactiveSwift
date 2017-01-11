@@ -393,6 +393,28 @@ extension ComposableMutablePropertyProtocol {
 		return TransactionalProperty<Value, Error>
 			.validate({ TransactionalProperty(self, transform: { $0 }, $0) }, with: other, predicate)
 	}
+
+	// - The default `validate(with:)` with parameter `Error`.
+
+	/// Create a mutable view to `self` that validates any proposed value in
+	/// consideration of `other`.
+	///
+	/// If `self` has failed the predicate and `other` changes subsequently, the
+	/// predicate would be reevaluated automatically.
+	///
+	/// - parameters:
+	///   - other: The property the validation logic depends on.
+	///   - predicate: The closure that validates any proposed value to the
+	///                property.
+	///
+	/// - returns: A validating `TransactionalProperty`.
+	public func validate<P: _TransactionalPropertyProtocol, Error: Swift.Error>(
+		with other: P,
+		_ predicate: @escaping (Value, P.Value) -> Result<(), Error>
+	) -> TransactionalProperty<Value, Error> {
+		return TransactionalProperty<Value, Error>
+			.validate({ TransactionalProperty(self, transform: { $0 }, $0) }, with: other, predicate)
+	}
 }
 
 extension _TransactionalPropertyProtocol {
@@ -401,25 +423,51 @@ extension _TransactionalPropertyProtocol {
 		with other: Other,
 		_ validator: @escaping (Value, Other.Value) -> Result<(), E>
 	) -> TransactionalProperty<Value, E> {
-		let proposed = Atomic<Value?>(nil)
 		let other = Property(other)
 
 		let property = initializer { proposedInput -> Result<Value, E> in
-			switch validator(proposedInput, other.value) {
-			case .success:
-				proposed.value = nil
-				return .success(proposedInput)
-
-			case let .failure(error):
-				proposed.value = proposedInput
-				return .failure(error)
-			}
+			return validator(proposedInput, other.value).map { _ in proposedInput }
 		}
 
 		let d = other.signal.observeValues { [weak property] _ in
-			if let property = property, case .failure = property.validations.value {
-				if let value = proposed.swap(nil) {
-					property.value = value
+			if let property = property {
+				if case let .failure(failedValue, _) = property.validations.value {
+					property.value = failedValue
+				} else {
+					property.property.revalidate()
+				}
+			}
+		}
+
+		property.lifetime.ended.observeCompleted { d?.dispose() }
+
+		return property
+	}
+
+	fileprivate static func validate<Other: _TransactionalPropertyProtocol, E: Swift.Error>(
+		_ initializer: (@escaping (Value) -> Result<Value, E>) -> TransactionalProperty<Value, E>,
+		with other: Other,
+		_ validator: @escaping (Value, Other.Value) -> Result<(), E>
+	) -> TransactionalProperty<Value, E> {
+		let otherValidations = other.property.validations
+
+		let property = initializer { proposedInput -> Result<Value, E> in
+			let otherValue: Other.Value
+
+			switch otherValidations.value {
+			case let .success(value):
+				otherValue = value
+			case let .failure(value, _):
+				otherValue = value
+			}
+
+			return validator(proposedInput, otherValue).map { _ in proposedInput }
+		}
+
+		let d = otherValidations.signal.observeValues { [weak property] _ in
+			if let property = property {
+				if case let .failure(failedValue, _) = property.validations.value {
+					property.value = failedValue
 				} else {
 					property.property.revalidate()
 				}
@@ -519,6 +567,31 @@ extension _TransactionalPropertyProtocol {
 			          with: other,
 			          predicate)
 	}
+
+	// - The overriding `validate(with:)` that invokes the `TransactionalProperty`
+	//   specialization of `TransactionalProperty.init`.
+
+	/// Create a mutable view to `self` that validates any proposed value in
+	/// consideration of `other`.
+	///
+	/// If `self` has failed the predicate and `other` changes subsequently, the
+	/// predicate would be reevaluated automatically.
+	///
+	/// - parameters:
+	///   - other: The property the validation logic depends on.
+	///   - predicate: The closure that validates any proposed value to the
+	///                property.
+	///
+	/// - returns: A validating `TransactionalProperty`.
+	public func validate<P: _TransactionalPropertyProtocol>(
+		with other: P,
+		_ predicate: @escaping (Value, P.Value) -> Result<(), TransactionError>
+	) -> TransactionalProperty<Value, TransactionError> {
+		return TransactionalProperty<Value, TransactionError>
+			.validate({ TransactionalProperty(self, transform: { $0 }, errorTransform: { $0 }, $0) },
+			          with: other,
+			          predicate)
+	}
 }
 
 extension _TransactionalPropertyProtocol where TransactionError == NoError {
@@ -581,6 +654,31 @@ extension _TransactionalPropertyProtocol where TransactionError == NoError {
 	///
 	/// - returns: A validating `TransactionalProperty`.
 	public func validate<P: PropertyProtocol, NewError: Swift.Error>(
+		with other: P,
+		_ predicate: @escaping (Value, P.Value) -> Result<(), NewError>
+	) -> TransactionalProperty<Value, NewError> {
+		return TransactionalProperty<Value, NewError>
+			.validate({ TransactionalProperty(self, transform: { $0 }, $0) },
+			          with: other,
+			          predicate)
+	}
+
+	// - The overriding `validate(with:)` that invokes the `TransactionalProperty`
+	//   specialization of `TransactionalProperty.init`.
+
+	/// Create a mutable view to `self` that validates any proposed value in
+	/// consideration of `other`.
+	///
+	/// If `self` has failed the predicate and `other` changes subsequently, the
+	/// predicate would be reevaluated automatically.
+	///
+	/// - parameters:
+	///   - other: The property the validation logic depends on.
+	///   - predicate: The closure that validates any proposed value to the
+	///                property.
+	///
+	/// - returns: A validating `TransactionalProperty`.
+	public func validate<P: _TransactionalPropertyProtocol, NewError: Swift.Error>(
 		with other: P,
 		_ predicate: @escaping (Value, P.Value) -> Result<(), NewError>
 	) -> TransactionalProperty<Value, NewError> {
