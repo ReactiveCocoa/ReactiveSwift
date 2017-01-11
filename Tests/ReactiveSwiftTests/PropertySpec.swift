@@ -298,6 +298,159 @@ class PropertySpec: QuickSpec {
 
 				group.wait()
 			}
+
+			it("should not deadlock when recursively set in an observer of its signal") {
+				for level in 0 ... 20 {
+					let property = MutableProperty(0)
+					var values = [Int]()
+
+					property.signal.observeValues { value in
+						values.append(value)
+
+						if value < level {
+							property.value = value + 1
+						}
+					}
+
+					property.value = 0
+					expect(property.value) == level
+					expect(values) == Array(0 ... level)
+				}
+			}
+
+			it("should not deadlock when recursively set in an observer of its producer") {
+				for level in 0 ... 20 {
+					let property = MutableProperty(0)
+					var values = [Int]()
+
+					property.producer.startWithValues { value in
+						values.append(value)
+
+						if value < level {
+							property.value = value + 1
+						}
+					}
+
+					expect(property.value) == level
+					expect(values) == Array(0 ... level)
+				}
+			}
+
+			it("should not deadlock when recursively set in an observer of its signal that is nested inside `withValue`") {
+				for level in 0 ... 20 {
+					let property = MutableProperty(0)
+					var values = [Int]()
+
+					property.signal.observeValues { value in
+						values.append(value)
+
+						if value < level {
+							property.value = value + 1
+						}
+					}
+
+					property.withValue { _ in
+						property.value = 0
+					}
+
+					expect(property.value) == level
+					expect(values) == Array(0 ... level)
+				}
+			}
+
+			it("should not deadlock when recursively set in an observer of its producer that is nested inside `withValue`") {
+				for level in 0 ... 20 {
+					let property = MutableProperty(0)
+					var values = [Int]()
+
+					property.withValue { _ in
+						property.producer.startWithValues { value in
+							values.append(value)
+
+							if value < level {
+								property.value = value + 1
+							}
+						}
+					}
+
+					expect(property.value) == level
+					expect(values) == Array(0 ... level)
+				}
+			}
+
+			it("should not deadlock when recursively set in a `withValue` action in an observer of its producer that is nested inside `withValue`") {
+				for level in 0 ... 20 {
+					let property = MutableProperty(0)
+					var values = [Int]()
+
+					property.withValue { _ in
+						property.producer.startWithValues { value in
+							values.append(value)
+
+							if value < level {
+								property.withValue { value in
+									property.value = value + 1
+								}
+							}
+						}
+					}
+
+					expect(property.value) == level
+					expect(values) == Array(0 ... level)
+				}
+			}
+
+			#if arch(x86_64) && !SWIFT_PACKAGE
+			it("should raise an assertion if mutations are nested") {
+				let property = MutableProperty(0)
+
+				expect {
+					_ = property.modify { _ in
+						_ = property.modify { _ in }
+					}
+				}.to(throwAssertion())
+
+				expect {
+					_ = property.modify { _ in
+						property.value = 1
+					}
+				}.to(throwAssertion())
+
+
+				expect {
+					_ = property.modify { _ in
+						property.swap(1)
+					}
+				}.to(throwAssertion())
+
+
+				expect {
+					_ = property.withValue { _ in
+						_ = property.modify { _ in
+							_ = property.modify { _ in }
+						}
+					}
+				}.to(throwAssertion())
+
+				expect {
+					_ = property.withValue { _ in
+
+						_ = property.modify { _ in
+							property.value = 1
+						}
+					}
+				}.to(throwAssertion())
+
+
+				expect {
+					_ = property.withValue { _ in
+						_ = property.modify { _ in
+							property.swap(1)
+						}
+					}
+				}.to(throwAssertion())
+			}
+			#endif
 		}
 
 		describe("Property") {

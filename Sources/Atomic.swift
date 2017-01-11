@@ -193,60 +193,6 @@ public final class Atomic<Value>: AtomicProtocol {
 	}
 }
 
-
-/// An atomic variable which uses a recursive lock.
-internal final class RecursiveAtomic<Value>: AtomicProtocol {
-	private let lock: NSRecursiveLock
-	private var _value: Value
-	private let didSetObserver: ((Value) -> Void)?
-
-	/// Initialize the variable with the given initial value.
-	/// 
-	/// - parameters:
-	///   - value: Initial value for `self`.
-	///   - name: An optional name used to create the recursive lock.
-	///   - action: An optional closure which would be invoked every time the
-	///             value of `self` is mutated.
-	internal init(_ value: Value, name: StaticString? = nil, didSet action: ((Value) -> Void)? = nil) {
-		_value = value
-		lock = NSRecursiveLock()
-		lock.name = name.map(String.init(describing:))
-		didSetObserver = action
-	}
-
-	/// Atomically modifies the variable.
-	///
-	/// - parameters:
-	///   - action: A closure that takes the current value.
-	///
-	/// - returns: The result of the action.
-	@discardableResult
-	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
-		lock.lock()
-		defer {
-			didSetObserver?(_value)
-			lock.unlock()
-		}
-
-		return try action(&_value)
-	}
-	
-	/// Atomically perform an arbitrary action using the current value of the
-	/// variable.
-	///
-	/// - parameters:
-	///   - action: A closure that takes the current value.
-	///
-	/// - returns: The result of the action.
-	@discardableResult
-	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
-		lock.lock()
-		defer { lock.unlock() }
-
-		return try action(_value)
-	}
-}
-
 /// A protocol used to constraint convenience `Atomic` methods and properties.
 public protocol AtomicProtocol: class {
 	associatedtype Value
@@ -283,5 +229,65 @@ extension AtomicProtocol {
 			value = newValue
 			return oldValue
 		}
+	}
+}
+
+/// A counting recursive lock.
+///
+/// - note: It is not a reader-writer lock.
+internal final class CountingRecursiveLock {
+	private let _lock: NSRecursiveLock
+	private var entranceCount: UInt
+	private var readLockCount: UInt
+	private var reentrancyDisabled = false
+
+	/// The recursive write operation depth. Zero means no write operation has
+	/// acquired the lock yet.
+	var recursiveWriteDepth: UInt {
+		return entranceCount - readLockCount
+	}
+
+	init(name: String? = nil) {
+		_lock = NSRecursiveLock()
+		_lock.name = name
+		entranceCount = 0
+		readLockCount = 0
+	}
+
+	/// Acquire the recursive lock for a read operation.
+	func readLock() {
+		_lock.lock()
+		entranceCount += 1
+		readLockCount += 1
+		precondition(!reentrancyDisabled, "Reentrancy is detected in a reentrancy disabled action.")
+	}
+
+	/// Release the recursive lock for a read operation.
+	func readUnlock() {
+		readLockCount -= 1
+		entranceCount -= 1
+		_lock.unlock()
+	}
+
+	/// Acquire the recursive lock for a write operation.
+	func writeLock() {
+		_lock.lock()
+		entranceCount += 1
+		precondition(!reentrancyDisabled, "Reentrancy is detected in a reentrancy disabled action.")
+	}
+
+	/// Release the recursive lock for a write operation.
+	func writeUnlock() {
+		entranceCount -= 1
+		_lock.unlock()
+	}
+
+	/// Perform an arbitrary action with reentrancy forbidden.
+	func unsafeDisableReentrancy<Result>(_ action: () throws -> Result) rethrows -> Result {
+		reentrancyDisabled = true
+		let result = try action()
+		reentrancyDisabled = false
+
+		return result
 	}
 }
