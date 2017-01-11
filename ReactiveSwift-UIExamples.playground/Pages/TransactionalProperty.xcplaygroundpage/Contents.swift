@@ -47,7 +47,7 @@ final class ViewModel {
 		let validatedUsername = Property.combineLatest(email.validations,
 		                                               emailConfirmation.validations,
 		                                               termsAccepted)
-			.map { $0.value != nil && $1.value != nil && $2 }
+			.map { !$0.isFailed && !$1.isFailed && $2 }
 			.combineLatest(with: username)
 			.map { isValid, username in isValid ? username : nil }
 

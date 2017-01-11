@@ -3,7 +3,7 @@ import Result
 /// A mutable, observable property that has an optionally failable action
 /// associated with the setter.
 ///
-/// ## Propagation
+/// ## Consistency when nested
 ///
 /// `TransactionalProperty` would back-propagate the validation failure if a
 /// proposed value from an outer property fails with its inner property.
@@ -43,7 +43,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	public let lifetime: Lifetime
 
 	/// Validations that have been made by the property.
-	public let validations: Property<Result<Value, TransactionError>>
+	public let validations: Property<ValidationResult<Value, TransactionError>>
 
 	/// The action associated with the property.
 	private let action: (Value) -> Void
@@ -74,16 +74,12 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	) {
 		var mutesValueBackpropagation = false
 
-		let _validations: MutableProperty<Result<Value, TransactionError>> = inner.withValue { innerValue in
-			let value = transform(innerValue)
-			let property = MutableProperty(body(value).map { _ in value })
+		let _validations: MutableProperty<ValidationResult<Value, TransactionError>> = inner.withValue { innerValue in
+			let property = MutableProperty(ValidationResult(innerValue, transform: transform, validator: body))
 
 			property <~ inner.signal
 				.filter { _ in !mutesValueBackpropagation }
-				.map { innerValue in
-					let value = transform(innerValue)
-					return body(value).map { _ in value }
-				}
+				.map { ValidationResult($0, transform: transform, validator: body) }
 
 			return property
 		}
@@ -102,7 +98,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 				mutesValueBackpropagation = false
 
 			case let .failure(error):
-				_validations.value = .failure(error)
+				_validations.value = .failure(input, error)
 			}
 		}
 	}
@@ -131,14 +127,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	) {
 		self.init(inner, transform: transform, validator: body, validationSetup: { validations in
 			validations <~ inner.property.validations.signal
-				.map {
-					return $0
-						.mapError(errorTransform)
-						.flatMap { innerValue in
-							let value = transform(innerValue)
-							return body(value).map { _ in value }
-						}
-			  }
+				.map { $0.map(transform, errorTransform, validator: body) }
 		})
 	}
 
@@ -166,14 +155,11 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		_ inner: T,
 		transform: @escaping (T.Value) -> Value,
 		validator: @escaping (Value) -> Result<T.Value, TransactionError>,
-		validationSetup: ((MutableProperty<Result<Value, TransactionError>>) -> Void)?
+		validationSetup: ((MutableProperty<ValidationResult<Value, TransactionError>>) -> Void)?
 	) {
-		let _validations: MutableProperty<Result<Value, TransactionError>> = inner.withValue { innerValue in
-			let value = transform(innerValue)
-			let property = MutableProperty(validator(value).map { _ in value })
-
+		let _validations: MutableProperty<ValidationResult<Value, TransactionError>> = inner.withValue { innerValue in
+			let property = MutableProperty(ValidationResult(innerValue, transform: transform, validator: validator))
 			validationSetup?(property)
-
 			return property
 		}
 
@@ -189,7 +175,7 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 				inner.property.action(innerResult)
 
 			case let .failure(error):
-				_validations.value = .failure(error)
+				_validations.value = .failure(input, error)
 			}
 		}
 	}
@@ -249,6 +235,62 @@ public protocol _TransactionalPropertyProtocol: ComposableMutablePropertyProtoco
 extension TransactionalProperty: _TransactionalPropertyProtocol {
 	public var property: TransactionalProperty<Value, TransactionError> {
 		return self
+	}
+}
+
+public enum ValidationResult<Value, Error: Swift.Error> {
+	case success(Value)
+	case failure(Value, Error)
+
+	public var isFailed: Bool {
+		if case .failure = self {
+			return true
+		} else {
+			return false
+		}
+	}
+
+	public var error: Error? {
+		if case let .failure(_, error) = self {
+			return error
+		} else {
+			return nil
+		}
+	}
+
+	public var result: Result<Value, Error> {
+		switch self {
+		case let .success(value):
+			return .success(value)
+		case let .failure(_, error):
+			return .failure(error)
+		}
+	}
+
+	fileprivate init<InnerValue>(_ innerValue: InnerValue, transform: (InnerValue) -> Value, validator: (Value) -> Result<InnerValue, Error>) {
+		let value = transform(innerValue)
+
+		switch validator(value) {
+		case .success:
+			self = .success(value)
+		case let .failure(error):
+			self = .failure(value, error)
+		}
+	}
+
+	public func map<U, E: Swift.Error>(_ transform: (Value) -> U, _ errorTransform: (Error) -> E, validator: (U) -> Result<Value, E>) -> ValidationResult<U, E> {
+		switch self {
+		case let .success(value):
+			switch validator(transform(value)) {
+			case let .success(innerValue):
+				return .success(transform(innerValue))
+			case let .failure(error):
+				return .failure(transform(value), error)
+			}
+
+		case let .failure(value, error):
+			return .failure(transform(value), errorTransform(error))
+		}
 	}
 }
 

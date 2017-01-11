@@ -152,7 +152,7 @@ class TransactionalPropertySpec: QuickSpec {
 
 				expect(mapped.value) == "0"
 				expect(root.value) == 0
-				expect(validationResult) == .errorDefault
+				expect(validationResult) == .errorDefault("😦")
 			}
 
 			it("should propagate the changes") {
@@ -182,7 +182,7 @@ class TransactionalPropertySpec: QuickSpec {
 
 				expect(rootValues) == [0, 1, 2]
 				expect(mappedValues) == ["0", "1", "2"]
-				expect(mappedValidations) == [.success("1"), .success("2"), .errorDefault]
+				expect(mappedValidations) == [.success("1"), .success("2"), .errorDefault("😦")]
 			}
 
 			describe("nesting") {
@@ -261,8 +261,8 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(rootValues) == [0]
 					expect(mappedValues) == ["0"]
 					expect(nestedMappedValues) == ["@0"]
-					expect(mappedValidations) == [.errorDefault]
-					expect(nestedMappedValidations) == [.errorDefault]
+					expect(mappedValidations) == [.errorDefault("🚦")]
+					expect(nestedMappedValidations) == [.errorDefault("@🚦")]
 				}
 
 				it("should block the validation error from proceeding") {
@@ -272,7 +272,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(mappedValues) == ["0"]
 					expect(nestedMappedValues) == ["@0"]
 					expect(mappedValidations) == []
-					expect(nestedMappedValidations) == [.error1]
+					expect(nestedMappedValidations) == [.error1("🚦")]
 				}
 			}
 		}
@@ -320,13 +320,13 @@ class TransactionalPropertySpec: QuickSpec {
 				expect(root.value) == 0
 				expect(validated.value) == 0
 
-				expect(validationResult) == .errorDefault
+				expect(validationResult) == .errorDefault(-10)
 			}
 
 			it("should validates values originated from the root") {
 				root.value = -10
 				expect(validated.value) == -10
-				expect(validationResult) == .errorDefault
+				expect(validationResult) == .errorDefault(-10)
 			}
 
 			describe("nesting") {
@@ -383,7 +383,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(nestedValidatedValues) == [1]
 
 					expect(validations) == [.success(1)]
-					expect(nestedValidations) == [.error1]
+					expect(nestedValidations) == [.error1(1)]
 
 					root.value = -1
 
@@ -393,8 +393,8 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == [1, -1]
 					expect(nestedValidatedValues) == [1, -1]
 
-					expect(validations) == [.success(1), .errorDefault]
-					expect(nestedValidations) == [.error1, .errorDefault]
+					expect(validations) == [.success(1), .errorDefault(-1)]
+					expect(nestedValidations) == [.error1(1), .errorDefault(-1)]
 
 					root.value = 101
 
@@ -404,8 +404,8 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == [1, -1, 101]
 					expect(nestedValidatedValues) == [1, -1, 101]
 
-					expect(validations) == [.success(1), .errorDefault, .success(101)]
-					expect(nestedValidations) == [.error1, .errorDefault, .success(101)]
+					expect(validations) == [.success(1), .errorDefault(-1), .success(101)]
+					expect(nestedValidations) == [.error1(1), .errorDefault(-1), .success(101)]
 				}
 
 				it("should let valid values get through") {
@@ -433,7 +433,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == []
 					expect(nestedValidatedValues) == []
 					expect(validations) == []
-					expect(nestedValidations) == [.error1]
+					expect(nestedValidations) == [.error1(-50)]
 				}
 
 				it("should propagate the validation error back to the outer property in the middle of the chain") {
@@ -442,8 +442,8 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(rootValues) == []
 					expect(validatedValues) == []
 					expect(nestedValidatedValues) == []
-					expect(validations) == [.errorDefault]
-					expect(nestedValidations) == [.errorDefault]
+					expect(validations) == [.errorDefault(-100)]
+					expect(nestedValidations) == [.errorDefault(-100)]
 				}
 			}
 		}
@@ -463,7 +463,7 @@ class TransactionalPropertySpec: QuickSpec {
 				validated.validations.signal.observeValues { validationResult = FlattenedResult($0) }
 
 				expect(validated.value) == root.value
-				expect(FlattenedResult(validated.validations.value)) == FlattenedResult.errorDefault
+				expect(FlattenedResult(validated.validations.value)) == FlattenedResult.errorDefault(0)
 				expect(validationResult).to(beNil())
 			}
 
@@ -499,13 +499,13 @@ class TransactionalPropertySpec: QuickSpec {
 				expect(root.value) == 0
 				expect(validated.value) == 0
 
-				expect(validationResult) == .errorDefault
+				expect(validationResult) == .errorDefault(-10)
 			}
 
 			it("should validates values originated from the root") {
 				root.value = -10
 				expect(validated.value) == -10
-				expect(validationResult) == .errorDefault
+				expect(validationResult) == .errorDefault(-10)
 			}
 
 			it("should automatically revalidate the latest failed value if the dependency changes") {
@@ -513,7 +513,7 @@ class TransactionalPropertySpec: QuickSpec {
 				expect(root.value) == 0
 				expect(validated.value) == 0
 
-				expect(validationResult) == .errorDefault
+				expect(validationResult) == .errorDefault(10)
 
 				other.value = "🎃"
 
@@ -575,8 +575,8 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == [1]
 					expect(nestedValidatedValues) == [1]
 
-					expect(validations) == [.errorDefault]
-					expect(nestedValidations) == [.errorDefault]
+					expect(validations) == [.errorDefault(1)]
+					expect(nestedValidations) == [.errorDefault(1)]
 				}
 
 				it("should let valid values get through") {
@@ -586,7 +586,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == [0]
 					expect(nestedValidatedValues) == [0]
 					expect(validations) == [.success(0)]
-					expect(nestedValidations) == [.error1]
+					expect(nestedValidations) == [.error1(0)]
 
 					validated.value = 70
 
@@ -594,7 +594,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == [0, 70]
 					expect(nestedValidatedValues) == [0, 70]
 					expect(validations) == [.success(0), .success(70)]
-					expect(nestedValidations) == [.error1, .error1]
+					expect(nestedValidations) == [.error1(0), .error1(70)]
 
 					nestedOther.value = "🙈"
 
@@ -602,7 +602,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == [0, 70]
 					expect(nestedValidatedValues) == [0, 70]
 					expect(validations) == [.success(0), .success(70)]
-					expect(nestedValidations) == [.error1, .error1, .error1]
+					expect(nestedValidations) == [.error1(0), .error1(70), .error1(70)]
 
 					nestedValidated.value = 200
 
@@ -610,7 +610,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == [0, 70, 200]
 					expect(nestedValidatedValues) == [0, 70, 200]
 					expect(validations) == [.success(0), .success(70), .success(200)]
-					expect(nestedValidations) == [.error1, .error1, .error1, .success(200)]
+					expect(nestedValidations) == [.error1(0), .error1(70), .error1(70), .success(200)]
 				}
 
 				it("should block the validation error from proceeding") {
@@ -620,7 +620,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validatedValues) == []
 					expect(nestedValidatedValues) == []
 					expect(validations) == []
-					expect(nestedValidations) == [.error1]
+					expect(nestedValidations) == [.error1(-50)]
 				}
 
 				it("should propagate the validation error back to the outer property in the middle of the chain") {
@@ -629,19 +629,26 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(rootValues) == []
 					expect(validatedValues) == []
 					expect(nestedValidatedValues) == []
-					expect(validations) == [.errorDefault]
-					expect(nestedValidations) == [.errorDefault]
+					expect(validations) == [.errorDefault(-100)]
+					expect(nestedValidations) == [.errorDefault(-100)]
 				}
 
 				it("should propagate the validation error back to the outer property in the middle of the chain") {
 					nestedOther.value = "🙈"
+
+					expect(rootValues) == []
+					expect(validatedValues) == []
+					expect(nestedValidatedValues) == []
+					expect(validations) == []
+					expect(nestedValidations) == [.error1(0)]
+
 					nestedValidated.value = -100
 
 					expect(rootValues) == []
 					expect(validatedValues) == []
 					expect(nestedValidatedValues) == []
-					expect(validations) == [.errorDefault]
-					expect(nestedValidations) == [.error1, .errorDefault]
+					expect(validations) == [.errorDefault(-100)]
+					expect(nestedValidations) == [.error1(0), .errorDefault(-100)]
 				}
 			}
 		}
@@ -649,36 +656,36 @@ class TransactionalPropertySpec: QuickSpec {
 }
 
 private enum FlattenedResult<Value: Equatable>: Equatable {
-	case errorDefault
-	case error1
-	case error2
+	case errorDefault(Value)
+	case error1(Value)
+	case error2(Value)
 	case success(Value)
 
-	init(_ result: Result<Value, TestError>) {
+	init(_ result: ValidationResult<Value, TestError>) {
 		switch result {
 		case let .success(value):
 			self = .success(value)
 
-		case let .failure(error):
+		case let .failure(value, error):
 			switch error {
 			case .default:
-				self = .errorDefault
+				self = .errorDefault(value)
 			case .error1:
-				self = .error1
+				self = .error1(value)
 			case .error2:
-				self = .error2
+				self = .error2(value)
 			}
 		}
 	}
 
 	static func ==(left: FlattenedResult<Value>, right: FlattenedResult<Value>) -> Bool {
 		switch (left, right) {
-		case (.errorDefault, .errorDefault):
-			return true
-		case (.error1, .error1):
-			return true
-		case (.error2, .error2):
-			return true
+		case (let .errorDefault(lhsValue), let .errorDefault(rhsValue)):
+			return lhsValue == rhsValue
+		case (let .error1(lhsValue), let .error1(rhsValue)):
+			return lhsValue == rhsValue
+		case (let .error2(lhsValue), let .error2(rhsValue)):
+			return lhsValue == rhsValue
 		case (let .success(lhsValue), let .success(rhsValue)):
 			return lhsValue == rhsValue
 		default:
