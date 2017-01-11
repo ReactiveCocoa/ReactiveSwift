@@ -19,7 +19,7 @@ brew install hub
 export GITHUB_TOKEN=${RAC_CIBOT_TOKEN}
 
 # Clone the master branch of the website.
-git clone -b master --depth 1 https://${RAC_CIBOT_TOKEN}@github.com/ReactiveCocoa/ReactiveCocoa.github.io.git RACSite
+git clone -b master --single-branch https://${RAC_CIBOT_TOKEN}@github.com/ReactiveCocoa/ReactiveCocoa.github.io.git RACSite
 cd ./RACSite
 
 # Fork the repo without fetching it.
