@@ -5,13 +5,13 @@ import Result
 
 class PropertyEditorSpec: QuickSpec {
 	override func spec() {
-		describe("map(forward:backward:)") {
+		describe("map(forward:reverse:)") {
 			var root: MutableProperty<Int>!
 			var mapped: PropertyEditor<String, NoError>!
 
 			beforeEach {
 				root = MutableProperty(0)
-				mapped = root.map(forward: { "\($0)" }, backward: { Int($0)! })
+				mapped = root.map(forward: { "\($0)" }, reverse: { Int($0)! })
 
 				expect(mapped.commitedValue) == "0"
 			}
@@ -63,7 +63,7 @@ class PropertyEditorSpec: QuickSpec {
 				var nestedMappedValues: [Int] = []
 
 				beforeEach {
-					nestedMapped = mapped.map(forward: { Int($0)! }, backward: { "\($0)" })
+					nestedMapped = mapped.map(forward: { Int($0)! }, reverse: { "\($0)" })
 
 					root.producer.startWithValues { rootValues.append($0) }
 					mapped.commitedProducer.startWithValues { mappedValues.append($0) }
@@ -101,14 +101,14 @@ class PropertyEditorSpec: QuickSpec {
 			}
 		}
 
-		describe("map(forward:attemptBackward:)") {
+		describe("map(forward:tryReverse:)") {
 			var root: MutableProperty<Int>!
 			var mapped: PropertyEditor<String, TestError>!
 			var validationResult: FlattenedResult<String>?
 
 			beforeEach {
 				root = MutableProperty(0)
-				mapped = root.map(forward: { "\($0)" }, attemptBackward: { input -> Result<Int, TestError> in
+				mapped = root.map(forward: { "\($0)" }, tryReverse: { input -> Result<Int, TestError> in
 					let integer = Int(input)
 					return Result(integer, failWith: TestError.default)
 				})
@@ -196,7 +196,7 @@ class PropertyEditorSpec: QuickSpec {
 
 				beforeEach {
 					// Int <-> String <-> String
-					nestedMapped = mapped.map(forward: { "@\($0)" }, attemptBackward: { input -> Result<String, TestError> in
+					nestedMapped = mapped.map(forward: { "@\($0)" }, tryReverse: { input -> Result<String, TestError> in
 						if let range = input.range(of: "@") {
 							return .success(input.substring(with: range.upperBound ..< input.endIndex))
 						} else {
@@ -284,8 +284,8 @@ class PropertyEditorSpec: QuickSpec {
 
 			beforeEach {
 				root = MutableProperty(0)
-				validated = root.validate { input -> Result<(), TestError> in
-					return Result(input >= 0 ? () : nil, failWith: TestError.default)
+				validated = root.validate { input -> TestError? in
+					return input >= 0 ? nil : .default
 				}
 				validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -341,8 +341,8 @@ class PropertyEditorSpec: QuickSpec {
 				beforeEach {
 					// `validated` blocks negative values. Here we gonna block values in
 					// [-99, 99]. So the effective valid range would be [100, inf).
-					nestedValidated = validated.validate { input -> Result<(), TestError> in
-						return abs(input) >= 100 ? .success(()) : .failure(TestError.error1)
+					nestedValidated = validated.validate { input -> TestError? in
+						return abs(input) >= 100 ? nil : .error1
 					}
 
 					root.signal.observeValues { rootValues.append($0) }
@@ -458,8 +458,8 @@ class PropertyEditorSpec: QuickSpec {
 				beforeEach {
 					other = MutableProperty("")
 					root = MutableProperty(0)
-					validated = root.validate(with: other) { input, otherInput -> Result<(), TestError> in
-						return Result(input >= 0 && otherInput == "🎃" ? () : nil, failWith: TestError.default)
+					validated = root.validate(with: other) { input, otherInput -> TestError? in
+						return input >= 0 && otherInput == "🎃" ? nil : .default
 					}
 					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -538,8 +538,8 @@ class PropertyEditorSpec: QuickSpec {
 
 						// `validated` blocks negative values. Here we gonna block values in
 						// [-99, 99]. So the effective valid range would be [100, inf).
-						nestedValidated = validated.validate(with: nestedOther) { input, otherInput -> Result<(), TestError> in
-							return abs(input) >= 100 && otherInput == "🙈" ? .success(()) : .failure(TestError.error1)
+						nestedValidated = validated.validate(with: nestedOther) { input, otherInput -> TestError? in
+							return abs(input) >= 100 && otherInput == "🙈" ? nil : .error1
 						}
 
 						root.signal.observeValues { rootValues.append($0) }
@@ -662,13 +662,13 @@ class PropertyEditorSpec: QuickSpec {
 			var validationResult: FlattenedResult<Int>?
 
 			beforeEach {
-				other = MutableProperty("").validate { input -> Result<(), TestError> in
-					return input.hasSuffix("🎃") && input != "🎃" ? .success() : .failure(TestError.error2)
+				other = MutableProperty("").validate { input -> TestError? in
+					return input.hasSuffix("🎃") && input != "🎃" ? nil : .error2
 				}
 
 				root = MutableProperty(0)
-				validated = root.validate(with: other) { input, otherInput -> Result<(), TestError> in
-					return Result(input >= 0 && otherInput.hasSuffix("🎃") ? () : nil, failWith: TestError.default)
+				validated = root.validate(with: other) { input, otherInput -> TestError? in
+					return input >= 0 && otherInput.hasSuffix("🎃") ? nil : .default
 				}
 				validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 

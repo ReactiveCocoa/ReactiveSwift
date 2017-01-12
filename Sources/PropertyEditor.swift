@@ -231,7 +231,7 @@ extension PropertyEditor: BindingSourceProtocol {
 	}
 }
 
-public protocol _PropertyEditorProtocol {
+public protocol _PropertyEditorProtocol: class {
 	associatedtype Value
 	associatedtype ValidationError: Swift.Error
 
@@ -337,15 +337,15 @@ extension ComposableMutablePropertyProtocol {
 	///
 	/// - parameters:
 	///   - forward: The value transform to convert `Self.Value` to `U`.
-	///   - backward: The value transform to convert `U` to `Self.Value`.
+	///   - reverse: The value transform to convert `U` to `Self.Value`.
 	///
 	/// - returns: A mapping `PropertyEditor`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
-		backward: @escaping (U) -> Value
+		reverse: @escaping (U) -> Value
 	) -> PropertyEditor<U, NoError> {
 		return PropertyEditor(self, transform: forward) { proposedInput in
-			return .success(backward(proposedInput))
+			return .success(reverse(proposedInput))
 		}
 	}
 
@@ -355,16 +355,16 @@ extension ComposableMutablePropertyProtocol {
 	///
 	/// - parameters:
 	///   - forward: The value transform to convert `Self.Value` to `U`.
-	///   - attemptBackward: The failable value transform to convert `U` to
-	///                      `Self.Value`.
+	///   - tryReverse: The failable value transform to convert `U` to
+	///                 `Self.Value`.
 	///
 	/// - returns: A mapping `PropertyEditor`.
 	public func map<U, Error: Swift.Error>(
 		forward: @escaping (Value) -> U,
-		attemptBackward: @escaping (U) -> Result<Value, Error>
+		tryReverse: @escaping (U) -> Result<Value, Error>
 	) -> PropertyEditor<U, Error> {
 		return PropertyEditor<U, Error>(self, transform: forward) { proposedInput in
-			return attemptBackward(proposedInput)
+			return tryReverse(proposedInput)
 		}
 	}
 
@@ -378,16 +378,11 @@ extension ComposableMutablePropertyProtocol {
 	///
 	/// - returns: A validating `PropertyEditor`.
 	public func validate<Error: Swift.Error>(
-		_ predicate: @escaping (Value) -> Result<(), Error>
+		_ predicate: @escaping (Value) -> Error?
 	) -> PropertyEditor<Value, Error> {
 		return PropertyEditor(self, transform: { $0 }) { proposedInput in
-			switch predicate(proposedInput) {
-			case .success:
-				return .success(proposedInput)
-
-			case let .failure(error):
-				return .failure(error)
-			}
+			return predicate(proposedInput)
+				.map { .failure($0) } ?? .success(proposedInput)
 		}
 	}
 
@@ -407,7 +402,7 @@ extension ComposableMutablePropertyProtocol {
 	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: PropertyProtocol, Error: Swift.Error>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), Error>
+		_ predicate: @escaping (Value, P.Value) -> Error?
 	) -> PropertyEditor<Value, Error> {
 		return PropertyEditor<Value, Error>
 			.validate({ PropertyEditor(self, transform: { $0 }, $0) }, with: other, predicate)
@@ -429,7 +424,7 @@ extension ComposableMutablePropertyProtocol {
 	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: _PropertyEditorProtocol, Error: Swift.Error>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), Error>
+		_ predicate: @escaping (Value, P.Value) -> Error?
 	) -> PropertyEditor<Value, Error> {
 		return PropertyEditor<Value, Error>
 			.validate({ PropertyEditor(self, transform: { $0 }, $0) }, with: other, predicate)
@@ -440,12 +435,13 @@ extension _PropertyEditorProtocol {
 	fileprivate static func validate<Other: PropertyProtocol, E: Swift.Error>(
 		_ initializer: (@escaping (Value) -> Result<Value, E>) -> PropertyEditor<Value, E>,
 		with other: Other,
-		_ validator: @escaping (Value, Other.Value) -> Result<(), E>
+		_ validator: @escaping (Value, Other.Value) -> E?
 	) -> PropertyEditor<Value, E> {
 		let other = Property(other)
 
 		let property = initializer { proposedInput -> Result<Value, E> in
-			return validator(proposedInput, other.value).map { _ in proposedInput }
+			return validator(proposedInput, other.value)
+				.map { .failure($0) } ?? .success(proposedInput)
 		}
 
 		let d = other.signal.observeValues { [weak property] _ in
@@ -466,7 +462,7 @@ extension _PropertyEditorProtocol {
 	fileprivate static func validate<Other: _PropertyEditorProtocol, E: Swift.Error>(
 		_ initializer: (@escaping (Value) -> Result<Value, E>) -> PropertyEditor<Value, E>,
 		with other: Other,
-		_ validator: @escaping (Value, Other.Value) -> Result<(), E>
+		_ validator: @escaping (Value, Other.Value) -> E?
 	) -> PropertyEditor<Value, E> {
 		let otherValidations = other.property.result
 
@@ -480,7 +476,8 @@ extension _PropertyEditorProtocol {
 				otherValue = value
 			}
 
-			return validator(proposedInput, otherValue).map { _ in proposedInput }
+			return validator(proposedInput, otherValue)
+				.map { .failure($0) } ?? .success(proposedInput)
 		}
 
 		let d = otherValidations.signal.observeValues { [weak property] _ in
@@ -507,15 +504,15 @@ extension _PropertyEditorProtocol {
 	///
 	/// - parameters:
 	///   - forward: The value transform to convert `Self.Value` to `U`.
-	///   - backward: The value transform to convert `U` to `Self.Value`.
+	///   - reverse: The value transform to convert `U` to `Self.Value`.
 	///
 	/// - returns: A mapping `PropertyEditor`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
-		backward: @escaping (U) -> Value
+		reverse: @escaping (U) -> Value
 	) -> PropertyEditor<U, ValidationError> {
 		return PropertyEditor(self, transform: forward, errorTransform: { $0 }) { proposedInput in
-			return .success(backward(proposedInput))
+			return .success(reverse(proposedInput))
 		}
 	}
 
@@ -525,16 +522,16 @@ extension _PropertyEditorProtocol {
 	///
 	/// - parameters:
 	///   - forward: The value transform to convert `Self.Value` to `U`.
-	///   - attemptBackward: The failable value transform to convert `U` to
-	///                      `Self.Value`.
+	///   - tryReverse: The failable value transform to convert `U` to
+	///                 `Self.Value`.
 	///
 	/// - returns: A mapping `PropertyEditor`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
-		attemptBackward: @escaping (U) -> Result<Value, ValidationError>
+		tryReverse: @escaping (U) -> Result<Value, ValidationError>
 	) -> PropertyEditor<U, ValidationError> {
 		return PropertyEditor(self, transform: forward, errorTransform: { $0 }) { proposedInput in
-			return attemptBackward(proposedInput)
+			return tryReverse(proposedInput)
 		}
 	}
 
@@ -549,16 +546,11 @@ extension _PropertyEditorProtocol {
 	///
 	/// - returns: A validating `PropertyEditor`.
 	public func validate(
-		_ predicate: @escaping (Value) -> Result<(), ValidationError>
+		_ predicate: @escaping (Value) -> ValidationError?
 	) -> PropertyEditor<Value, ValidationError> {
 		return PropertyEditor(self, transform: { $0 }, errorTransform: { $0 }) { proposedInput in
-			switch predicate(proposedInput) {
-			case .success:
-				return .success(proposedInput)
-
-			case let .failure(error):
-				return .failure(error)
-			}
+			return predicate(proposedInput)
+				.map { .failure($0) } ?? .success(proposedInput)
 		}
 	}
 
@@ -579,7 +571,7 @@ extension _PropertyEditorProtocol {
 	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: PropertyProtocol>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), ValidationError>
+		_ predicate: @escaping (Value, P.Value) -> ValidationError?
 	) -> PropertyEditor<Value, ValidationError> {
 		return PropertyEditor<Value, ValidationError>
 			.validate({ PropertyEditor(self, transform: { $0 }, errorTransform: { $0 }, $0) },
@@ -604,7 +596,7 @@ extension _PropertyEditorProtocol {
 	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: _PropertyEditorProtocol>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), ValidationError>
+		_ predicate: @escaping (Value, P.Value) -> ValidationError?
 	) -> PropertyEditor<Value, ValidationError> {
 		return PropertyEditor<Value, ValidationError>
 			.validate({ PropertyEditor(self, transform: { $0 }, errorTransform: { $0 }, $0) },
@@ -620,16 +612,16 @@ extension _PropertyEditorProtocol where ValidationError == NoError {
 	///
 	/// - parameters:
 	///   - forward: The value transform to convert `Self.Value` to `U`.
-	///   - attemptBackward: The failable value transform to convert `U` to
-	///                      `Self.Value`.
+	///   - tryReverse: The failable value transform to convert `U` to
+	///                 `Self.Value`.
 	///
 	/// - returns: A mapping `PropertyEditor`.
 	public func map<U, NewError: Swift.Error>(
 		forward: @escaping (Value) -> U,
-		attemptBackward: @escaping (U) -> Result<Value, NewError>
+		tryReverse: @escaping (U) -> Result<Value, NewError>
 	) -> PropertyEditor<U, NewError> {
 		return PropertyEditor(self, transform: forward) { proposedInput in
-			return attemptBackward(proposedInput)
+			return tryReverse(proposedInput)
 		}
 	}
 
@@ -644,16 +636,11 @@ extension _PropertyEditorProtocol where ValidationError == NoError {
 	///
 	/// - returns: A validating `PropertyEditor`.
 	public func validate<NewError: Swift.Error>(
-		_ predicate: @escaping (Value) -> Result<(), NewError>
+		_ predicate: @escaping (Value) -> NewError?
 	) -> PropertyEditor<Value, NewError> {
 		return PropertyEditor(self, transform: { $0 }) { proposedInput in
-			switch predicate(proposedInput) {
-			case .success:
-				return .success(proposedInput)
-
-			case let .failure(error):
-				return .failure(error)
-			}
+			return predicate(proposedInput)
+				.map { .failure($0) } ?? .success(proposedInput)
 		}
 	}
 
@@ -674,7 +661,7 @@ extension _PropertyEditorProtocol where ValidationError == NoError {
 	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: PropertyProtocol, NewError: Swift.Error>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), NewError>
+		_ predicate: @escaping (Value, P.Value) -> NewError?
 	) -> PropertyEditor<Value, NewError> {
 		return PropertyEditor<Value, NewError>
 			.validate({ PropertyEditor(self, transform: { $0 }, $0) },
@@ -699,7 +686,7 @@ extension _PropertyEditorProtocol where ValidationError == NoError {
 	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: _PropertyEditorProtocol, NewError: Swift.Error>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), NewError>
+		_ predicate: @escaping (Value, P.Value) -> NewError?
 	) -> PropertyEditor<Value, NewError> {
 		return PropertyEditor<Value, NewError>
 			.validate({ PropertyEditor(self, transform: { $0 }, $0) },

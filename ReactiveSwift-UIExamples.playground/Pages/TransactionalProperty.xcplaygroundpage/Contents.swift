@@ -26,13 +26,13 @@ final class ViewModel {
 
 		// Setup property validation for `email`.
 		email = username.map(forward: { !$0.isEmpty ? "\($0)@reactivecocoa.io" : "" },
-		                     attemptBackward: { Result($0.stripSuffix("@reactivecocoa.io"),
-		                                               failWith: .invalidEmail) })
+		                     tryReverse: { Result($0.stripSuffix("@reactivecocoa.io"),
+		                                          failWith: .invalidEmail) })
 
 		// Setup property validation for `emailConfirmation`.
 		emailConfirmation = MutableProperty("")
 			.validate(with: email) { input, currentEmail in
-				return input == currentEmail ? .success(()) : .failure(.mismatchEmail)
+				return input == currentEmail ? nil : .mismatchEmail
 			}
 
 		// Aggregate latest failure contexts as a stream of strings.
