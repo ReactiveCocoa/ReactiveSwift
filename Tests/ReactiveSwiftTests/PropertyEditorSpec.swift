@@ -3,17 +3,17 @@ import Nimble
 import ReactiveSwift
 import Result
 
-class TransactionalPropertySpec: QuickSpec {
+class PropertyEditorSpec: QuickSpec {
 	override func spec() {
 		describe("map(forward:backward:)") {
 			var root: MutableProperty<Int>!
-			var mapped: TransactionalProperty<String, NoError>!
+			var mapped: PropertyEditor<String, NoError>!
 
 			beforeEach {
 				root = MutableProperty(0)
 				mapped = root.map(forward: { "\($0)" }, backward: { Int($0)! })
 
-				expect(mapped.value) == "0"
+				expect(mapped.commitedValue) == "0"
 			}
 
 			afterEach {
@@ -29,11 +29,11 @@ class TransactionalPropertySpec: QuickSpec {
 
 			it("should map changes originated from the inner property") {
 				root.value = 1
-				expect(mapped.value) == "1"
+				expect(mapped.commitedValue) == "1"
 			}
 
 			it("should map changes originated from the outer property") {
-				mapped.value = "2"
+				mapped.try("2")
 				expect(root.value) == 2
 			}
 
@@ -42,21 +42,21 @@ class TransactionalPropertySpec: QuickSpec {
 				var mappedValues: [String] = []
 
 				root.producer.startWithValues { rootValues.append($0) }
-				mapped.producer.startWithValues { mappedValues.append($0) }
+				mapped.commitedProducer.startWithValues { mappedValues.append($0) }
 
 				root.value = 1
 
 				expect(rootValues) == [0, 1]
 				expect(mappedValues) == ["0", "1"]
 
-				mapped.value = "2"
+				mapped.try("2")
 
 				expect(rootValues) == [0, 1, 2]
 				expect(mappedValues) == ["0", "1", "2"]
 			}
 
 			describe("nesting") {
-				var nestedMapped: TransactionalProperty<Int, NoError>!
+				var nestedMapped: PropertyEditor<Int, NoError>!
 
 				var rootValues: [Int] = []
 				var mappedValues: [String] = []
@@ -66,8 +66,8 @@ class TransactionalPropertySpec: QuickSpec {
 					nestedMapped = mapped.map(forward: { Int($0)! }, backward: { "\($0)" })
 
 					root.producer.startWithValues { rootValues.append($0) }
-					mapped.producer.startWithValues { mappedValues.append($0) }
-					nestedMapped.producer.startWithValues { nestedMappedValues.append($0) }
+					mapped.commitedProducer.startWithValues { mappedValues.append($0) }
+					nestedMapped.commitedProducer.startWithValues { nestedMappedValues.append($0) }
 				}
 
 				afterEach {
@@ -86,13 +86,13 @@ class TransactionalPropertySpec: QuickSpec {
 				}
 
 				it("should propagate writes to the root") {
-					mapped.value = "2"
+					mapped.try("2")
 
 					expect(rootValues) == [0, 2]
 					expect(mappedValues) == ["0", "2"]
 					expect(nestedMappedValues) == [0, 2]
 
-					nestedMapped.value = 3
+					nestedMapped.try(3)
 
 					expect(rootValues) == [0, 2, 3]
 					expect(mappedValues) == ["0", "2", "3"]
@@ -103,7 +103,7 @@ class TransactionalPropertySpec: QuickSpec {
 
 		describe("map(forward:attemptBackward:)") {
 			var root: MutableProperty<Int>!
-			var mapped: TransactionalProperty<String, TestError>!
+			var mapped: PropertyEditor<String, TestError>!
 			var validationResult: FlattenedResult<String>?
 
 			beforeEach {
@@ -112,10 +112,10 @@ class TransactionalPropertySpec: QuickSpec {
 					let integer = Int(input)
 					return Result(integer, failWith: TestError.default)
 				})
-				mapped.validations.signal.observeValues { validationResult = FlattenedResult($0) }
+				mapped.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
-				expect(mapped.value) == "0"
-				expect(FlattenedResult(mapped.validations.value)) == FlattenedResult.success("0")
+				expect(mapped.commitedValue) == "0"
+				expect(FlattenedResult(mapped.result.value)) == FlattenedResult.success("0")
 				expect(validationResult).to(beNil())
 			}
 
@@ -135,22 +135,22 @@ class TransactionalPropertySpec: QuickSpec {
 			it("should map the changes originated from the inner property") {
 				root.value = 1
 
-				expect(mapped.value) == "1"
+				expect(mapped.commitedValue) == "1"
 				expect(validationResult) == .success("1")
 			}
 
 			it("should map the valid changes originated from the outer property") {
-				mapped.value = "2"
+				mapped.try("2")
 
-				expect(mapped.value) == "2"
+				expect(mapped.commitedValue) == "2"
 				expect(root.value) == 2
 				expect(validationResult) == .success("2")
 			}
 
 			it("should block invalid changes originated from the outer property") {
-				mapped.value = "😦"
+				mapped.try("😦")
 
-				expect(mapped.value) == "0"
+				expect(mapped.commitedValue) == "0"
 				expect(root.value) == 0
 				expect(validationResult) == .errorDefault("😦")
 			}
@@ -161,8 +161,8 @@ class TransactionalPropertySpec: QuickSpec {
 				var mappedValidations: [FlattenedResult<String>] = []
 
 				root.producer.startWithValues { rootValues.append($0) }
-				mapped.producer.startWithValues { mappedValues.append($0) }
-				mapped.validations.signal.observeValues { result in
+				mapped.commitedProducer.startWithValues { mappedValues.append($0) }
+				mapped.result.signal.observeValues { result in
 					mappedValidations.append(FlattenedResult(result))
 				}
 
@@ -172,13 +172,13 @@ class TransactionalPropertySpec: QuickSpec {
 				expect(mappedValues) == ["0", "1"]
 				expect(mappedValidations) == [.success("1")]
 
-				mapped.value = "2"
+				mapped.try("2")
 
 				expect(rootValues) == [0, 1, 2]
 				expect(mappedValues) == ["0", "1", "2"]
 				expect(mappedValidations) == [.success("1"), .success("2")]
 
-				mapped.value = "😦"
+				mapped.try("😦")
 
 				expect(rootValues) == [0, 1, 2]
 				expect(mappedValues) == ["0", "1", "2"]
@@ -186,7 +186,7 @@ class TransactionalPropertySpec: QuickSpec {
 			}
 
 			describe("nesting") {
-				var nestedMapped: TransactionalProperty<String, TestError>!
+				var nestedMapped: PropertyEditor<String, TestError>!
 
 				var rootValues: [Int] = []
 				var mappedValues: [String] = []
@@ -205,14 +205,14 @@ class TransactionalPropertySpec: QuickSpec {
 					})
 
 					root.producer.startWithValues { rootValues.append($0) }
-					mapped.producer.startWithValues { mappedValues.append($0) }
-					nestedMapped.producer.startWithValues { nestedMappedValues.append($0) }
+					mapped.commitedProducer.startWithValues { mappedValues.append($0) }
+					nestedMapped.commitedProducer.startWithValues { nestedMappedValues.append($0) }
 
-					mapped.validations.signal.observeValues { result in
+					mapped.result.signal.observeValues { result in
 						mappedValidations.append(FlattenedResult(result))
 					}
 
-					nestedMapped.validations.signal.observeValues { result in
+					nestedMapped.result.signal.observeValues { result in
 						nestedMappedValidations.append(FlattenedResult(result))
 					}
 				}
@@ -237,8 +237,8 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(nestedMappedValidations) == [.success("@1")]
 				}
 
-				it("should let valid values get through") {
-					mapped.value = "2"
+				it("should let valid.commitedValues get through") {
+					mapped.try("2")
 
 					expect(rootValues) == [0, 2]
 					expect(mappedValues) == ["0", "2"]
@@ -246,7 +246,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(mappedValidations) == [.success("2")]
 					expect(nestedMappedValidations) == [.success("@2")]
 
-					nestedMapped.value = "@3"
+					nestedMapped.try("@3")
 
 					expect(rootValues) == [0, 2, 3]
 					expect(mappedValues) == ["0", "2", "3"]
@@ -256,7 +256,7 @@ class TransactionalPropertySpec: QuickSpec {
 				}
 
 				it("should propagate the validation error back to the outer property in the middle of the chain") {
-					nestedMapped.value = "@🚦"
+					nestedMapped.try("@🚦")
 
 					expect(rootValues) == [0]
 					expect(mappedValues) == ["0"]
@@ -266,7 +266,7 @@ class TransactionalPropertySpec: QuickSpec {
 				}
 
 				it("should block the validation error from proceeding") {
-					nestedMapped.value = "🚦"
+					nestedMapped.try("🚦")
 
 					expect(rootValues) == [0]
 					expect(mappedValues) == ["0"]
@@ -279,7 +279,7 @@ class TransactionalPropertySpec: QuickSpec {
 
 		describe("validate(_:)") {
 			var root: MutableProperty<Int>!
-			var validated: TransactionalProperty<Int, TestError>!
+			var validated: PropertyEditor<Int, TestError>!
 			var validationResult: FlattenedResult<Int>?
 
 			beforeEach {
@@ -287,10 +287,10 @@ class TransactionalPropertySpec: QuickSpec {
 				validated = root.validate { input -> Result<(), TestError> in
 					return Result(input >= 0 ? () : nil, failWith: TestError.default)
 				}
-				validated.validations.signal.observeValues { validationResult = FlattenedResult($0) }
+				validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
-				expect(validated.value) == root.value
-				expect(FlattenedResult(validated.validations.value)) == FlattenedResult.success(0)
+				expect(validated.commitedValue) == root.value
+				expect(FlattenedResult(validated.result.value)) == FlattenedResult.success(0)
 				expect(validationResult).to(beNil())
 			}
 
@@ -307,30 +307,30 @@ class TransactionalPropertySpec: QuickSpec {
 				validationResult = nil
 			}
 
-			it("should let valid values get through") {
-				validated.value = 10
+			it("should let valid.commitedValues get through") {
+				validated.try(10)
 				expect(root.value) == 10
-				expect(validated.value) == 10
+				expect(validated.commitedValue) == 10
 
 				expect(validationResult) == .success(10)
 			}
 
-			it("should block invalid values") {
-				validated.value = -10
+			it("should block invalid.commitedValues") {
+				validated.try(-10)
 				expect(root.value) == 0
-				expect(validated.value) == 0
+				expect(validated.commitedValue) == 0
 
 				expect(validationResult) == .errorDefault(-10)
 			}
 
 			it("should validates values originated from the root") {
 				root.value = -10
-				expect(validated.value) == -10
+				expect(validated.commitedValue) == -10
 				expect(validationResult) == .errorDefault(-10)
 			}
 
 			describe("nesting") {
-				var nestedValidated: TransactionalProperty<Int, TestError>!
+				var nestedValidated: PropertyEditor<Int, TestError>!
 
 				var rootValues: [Int] = []
 				var validatedValues: [Int] = []
@@ -346,19 +346,19 @@ class TransactionalPropertySpec: QuickSpec {
 					}
 
 					root.signal.observeValues { rootValues.append($0) }
-					validated.signal.observeValues { validatedValues.append($0) }
-					nestedValidated.signal.observeValues { nestedValidatedValues.append($0) }
+					validated.commitedSignal.observeValues { validatedValues.append($0) }
+					nestedValidated.commitedSignal.observeValues { nestedValidatedValues.append($0) }
 
-					validated.validations.signal.observeValues { result in
+					validated.result.signal.observeValues { result in
 						validations.append(FlattenedResult(result))
 					}
 
-					nestedValidated.validations.signal.observeValues { result in
+					nestedValidated.result.signal.observeValues { result in
 						nestedValidations.append(FlattenedResult(result))
 					}
 
-					expect(validated.value) == 0
-					expect(nestedValidated.value) == 0
+					expect(validated.commitedValue) == 0
+					expect(nestedValidated.commitedValue) == 0
 					expect(validatedValues) == []
 					expect(nestedValidatedValues) == []
 				}
@@ -376,8 +376,8 @@ class TransactionalPropertySpec: QuickSpec {
 				it("should propagate changes originated from the root") {
 					root.value = 1
 
-					expect(validated.value) == 1
-					expect(nestedValidated.value) == 1
+					expect(validated.commitedValue) == 1
+					expect(nestedValidated.commitedValue) == 1
 
 					expect(validatedValues) == [1]
 					expect(nestedValidatedValues) == [1]
@@ -387,8 +387,8 @@ class TransactionalPropertySpec: QuickSpec {
 
 					root.value = -1
 
-					expect(validated.value) == -1
-					expect(nestedValidated.value) == -1
+					expect(validated.commitedValue) == -1
+					expect(nestedValidated.commitedValue) == -1
 
 					expect(validatedValues) == [1, -1]
 					expect(nestedValidatedValues) == [1, -1]
@@ -398,8 +398,8 @@ class TransactionalPropertySpec: QuickSpec {
 
 					root.value = 101
 
-					expect(validated.value) == 101
-					expect(nestedValidated.value) == 101
+					expect(validated.commitedValue) == 101
+					expect(nestedValidated.commitedValue) == 101
 
 					expect(validatedValues) == [1, -1, 101]
 					expect(nestedValidatedValues) == [1, -1, 101]
@@ -408,8 +408,8 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(nestedValidations) == [.error1(1), .errorDefault(-1), .success(101)]
 				}
 
-				it("should let valid values get through") {
-					validated.value = 100
+				it("should let valid.commitedValues get through") {
+					validated.try(100)
 
 					expect(rootValues) == [100]
 					expect(validatedValues) == [100]
@@ -417,7 +417,7 @@ class TransactionalPropertySpec: QuickSpec {
 					expect(validations) == [.success(100)]
 					expect(nestedValidations) == [.success(100)]
 
-					nestedValidated.value = 200
+					nestedValidated.try(200)
 
 					expect(rootValues) == [100, 200]
 					expect(validatedValues) == [100, 200]
@@ -427,7 +427,7 @@ class TransactionalPropertySpec: QuickSpec {
 				}
 
 				it("should block the validation error from proceeding") {
-					nestedValidated.value = -50
+					nestedValidated.try(-50)
 
 					expect(rootValues) == []
 					expect(validatedValues) == []
@@ -437,7 +437,7 @@ class TransactionalPropertySpec: QuickSpec {
 				}
 
 				it("should propagate the validation error back to the outer property in the middle of the chain") {
-					validated.value = -100
+					validated.try(-100)
 
 					expect(rootValues) == []
 					expect(validatedValues) == []
@@ -452,7 +452,7 @@ class TransactionalPropertySpec: QuickSpec {
 			describe("a MutablePropertyProtocol dependency") {
 				var other: MutableProperty<String>!
 				var root: MutableProperty<Int>!
-				var validated: TransactionalProperty<Int, TestError>!
+				var validated: PropertyEditor<Int, TestError>!
 				var validationResult: FlattenedResult<Int>?
 
 				beforeEach {
@@ -461,10 +461,10 @@ class TransactionalPropertySpec: QuickSpec {
 					validated = root.validate(with: other) { input, otherInput -> Result<(), TestError> in
 						return Result(input >= 0 && otherInput == "🎃" ? () : nil, failWith: TestError.default)
 					}
-					validated.validations.signal.observeValues { validationResult = FlattenedResult($0) }
+					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
-					expect(validated.value) == root.value
-					expect(FlattenedResult(validated.validations.value)) == FlattenedResult.errorDefault(0)
+					expect(validated.commitedValue) == root.value
+					expect(FlattenedResult(validated.result.value)) == FlattenedResult.errorDefault(0)
 					expect(validationResult).to(beNil())
 				}
 
@@ -485,47 +485,47 @@ class TransactionalPropertySpec: QuickSpec {
 					validationResult = nil
 				}
 
-				it("should let valid values get through") {
+				it("should let valid.commitedValues get through") {
 					other.value = "🎃"
 
-					validated.value = 10
+					validated.try(10)
 					expect(root.value) == 10
-					expect(validated.value) == 10
+					expect(validated.commitedValue) == 10
 
 					expect(validationResult) == .success(10)
 				}
 
-				it("should block invalid values") {
-					validated.value = -10
+				it("should block invalid.commitedValues") {
+					validated.try(-10)
 					expect(root.value) == 0
-					expect(validated.value) == 0
+					expect(validated.commitedValue) == 0
 
 					expect(validationResult) == .errorDefault(-10)
 				}
 
 				it("should validates values originated from the root") {
 					root.value = -10
-					expect(validated.value) == -10
+					expect(validated.commitedValue) == -10
 					expect(validationResult) == .errorDefault(-10)
 				}
 
-				it("should automatically revalidate the latest failed value if the dependency changes") {
-					validated.value = 10
+				it("should automatically revalidate the latest failed.commitedValue if the dependency changes") {
+					validated.try(10)
 					expect(root.value) == 0
-					expect(validated.value) == 0
+					expect(validated.commitedValue) == 0
 
 					expect(validationResult) == .errorDefault(10)
 
 					other.value = "🎃"
 
 					expect(root.value) == 10
-					expect(validated.value) == 10
+					expect(validated.commitedValue) == 10
 					expect(validationResult) == .success(10)
 				}
 
 				describe("nesting") {
 					var nestedOther: MutableProperty<String>!
-					var nestedValidated: TransactionalProperty<Int, TestError>!
+					var nestedValidated: PropertyEditor<Int, TestError>!
 
 					var rootValues: [Int] = []
 					var validatedValues: [Int] = []
@@ -543,18 +543,18 @@ class TransactionalPropertySpec: QuickSpec {
 						}
 
 						root.signal.observeValues { rootValues.append($0) }
-						validated.signal.observeValues { validatedValues.append($0) }
-						nestedValidated.signal.observeValues { nestedValidatedValues.append($0) }
+						validated.commitedSignal.observeValues { validatedValues.append($0) }
+						nestedValidated.commitedSignal.observeValues { nestedValidatedValues.append($0) }
 
-						validated.validations.signal.observeValues { result in
+						validated.result.signal.observeValues { result in
 							validations.append(FlattenedResult(result))
 						}
 
-						nestedValidated.validations.signal.observeValues { result in
+						nestedValidated.result.signal.observeValues { result in
 							nestedValidations.append(FlattenedResult(result))
 						}
 
-						expect(nestedValidated.value) == 0
+						expect(nestedValidated.commitedValue) == 0
 					}
 
 					afterEach {
@@ -570,8 +570,8 @@ class TransactionalPropertySpec: QuickSpec {
 					it("should propagate changes originated from the root") {
 						root.value = 1
 
-						expect(validated.value) == 1
-						expect(nestedValidated.value) == 1
+						expect(validated.commitedValue) == 1
+						expect(nestedValidated.commitedValue) == 1
 
 						expect(validatedValues) == [1]
 						expect(nestedValidatedValues) == [1]
@@ -580,7 +580,7 @@ class TransactionalPropertySpec: QuickSpec {
 						expect(nestedValidations) == [.errorDefault(1)]
 					}
 
-					it("should let valid values get through") {
+					it("should let valid.commitedValues get through") {
 						other.value = "🎃"
 
 						expect(rootValues) == [0]
@@ -589,7 +589,7 @@ class TransactionalPropertySpec: QuickSpec {
 						expect(validations) == [.success(0)]
 						expect(nestedValidations) == [.error1(0)]
 
-						validated.value = 70
+						validated.try(70)
 
 						expect(rootValues) == [0, 70]
 						expect(validatedValues) == [0, 70]
@@ -605,7 +605,7 @@ class TransactionalPropertySpec: QuickSpec {
 						expect(validations) == [.success(0), .success(70)]
 						expect(nestedValidations) == [.error1(0), .error1(70), .error1(70)]
 
-						nestedValidated.value = 200
+						nestedValidated.try(200)
 
 						expect(rootValues) == [0, 70, 200]
 						expect(validatedValues) == [0, 70, 200]
@@ -615,7 +615,7 @@ class TransactionalPropertySpec: QuickSpec {
 					}
 
 					it("should block the validation error from proceeding") {
-						nestedValidated.value = -50
+						nestedValidated.try(-50)
 
 						expect(rootValues) == []
 						expect(validatedValues) == []
@@ -625,7 +625,7 @@ class TransactionalPropertySpec: QuickSpec {
 					}
 
 					it("should propagate the validation error back to the outer property in the middle of the chain") {
-						validated.value = -100
+						validated.try(-100)
 
 						expect(rootValues) == []
 						expect(validatedValues) == []
@@ -643,7 +643,7 @@ class TransactionalPropertySpec: QuickSpec {
 						expect(validations) == []
 						expect(nestedValidations) == [.error1(0)]
 						
-						nestedValidated.value = -100
+						nestedValidated.try(-100)
 						
 						expect(rootValues) == []
 						expect(validatedValues) == []
@@ -655,10 +655,10 @@ class TransactionalPropertySpec: QuickSpec {
 			}
 		}
 
-		describe("a TransactionalProperty dependency") {
-			var other: TransactionalProperty<String, TestError>!
+		describe("a PropertyEditor dependency") {
+			var other: PropertyEditor<String, TestError>!
 			var root: MutableProperty<Int>!
-			var validated: TransactionalProperty<Int, TestError>!
+			var validated: PropertyEditor<Int, TestError>!
 			var validationResult: FlattenedResult<Int>?
 
 			beforeEach {
@@ -670,10 +670,10 @@ class TransactionalPropertySpec: QuickSpec {
 				validated = root.validate(with: other) { input, otherInput -> Result<(), TestError> in
 					return Result(input >= 0 && otherInput.hasSuffix("🎃") ? () : nil, failWith: TestError.default)
 				}
-				validated.validations.signal.observeValues { validationResult = FlattenedResult($0) }
+				validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
-				expect(validated.value) == root.value
-				expect(FlattenedResult(validated.validations.value)) == FlattenedResult.errorDefault(0)
+				expect(validated.commitedValue) == root.value
+				expect(FlattenedResult(validated.result.value)) == FlattenedResult.errorDefault(0)
 				expect(validationResult).to(beNil())
 			}
 
@@ -694,65 +694,65 @@ class TransactionalPropertySpec: QuickSpec {
 				validationResult = nil
 			}
 
-			it("should let valid values get through") {
-				other.value = "🎃"
+			it("should let valid.commitedValues get through") {
+				other.try("🎃")
 
-				validated.value = 10
+				validated.try(10)
 				expect(root.value) == 10
-				expect(validated.value) == 10
+				expect(validated.commitedValue) == 10
 
 				expect(validationResult) == .success(10)
 			}
 
-			it("should block invalid values") {
-				validated.value = -10
+			it("should block invalid.commitedValues") {
+				validated.try(-10)
 				expect(root.value) == 0
-				expect(validated.value) == 0
+				expect(validated.commitedValue) == 0
 
 				expect(validationResult) == .errorDefault(-10)
 			}
 
 			it("should validates values originated from the root") {
 				root.value = -10
-				expect(validated.value) == -10
+				expect(validated.commitedValue) == -10
 				expect(validationResult) == .errorDefault(-10)
 			}
 
-			it("should automatically revalidate the latest failed value if the dependency changes") {
-				validated.value = 10
+			it("should automatically revalidate the latest failed.commitedValue if the dependency changes") {
+				validated.try(10)
 				expect(root.value) == 0
-				expect(validated.value) == 0
+				expect(validated.commitedValue) == 0
 
 				expect(validationResult) == .errorDefault(10)
 
-				other.value = "🎃"
+				other.try("🎃")
 
 				expect(root.value) == 10
-				expect(validated.value) == 10
+				expect(validated.commitedValue) == 10
 				expect(validationResult) == .success(10)
 			}
 
-			it("should automatically revalidate the latest failed value whenever the dependency has been proposed a new input") {
-				validated.value = 10
+			it("should automatically revalidate the latest failed.commitedValue whenever the dependency has been proposed a new input") {
+				validated.try(10)
 				expect(root.value) == 0
-				expect(validated.value) == 0
+				expect(validated.commitedValue) == 0
 
 				expect(validationResult) == .errorDefault(10)
 
-				other.value = "🎃"
-				expect(other.value) == ""
-				expect(FlattenedResult(other.validations.value)) == FlattenedResult.error2("🎃")
+				other.try("🎃")
+				expect(other.commitedValue) == ""
+				expect(FlattenedResult(other.result.value)) == FlattenedResult.error2("🎃")
 
 				expect(root.value) == 10
-				expect(validated.value) == 10
+				expect(validated.commitedValue) == 10
 				expect(validationResult) == .success(10)
 
-				other.value = "👻🎃"
-				expect(other.value) == "👻🎃"
-				expect(FlattenedResult(other.validations.value)) == FlattenedResult.success("👻🎃")
+				other.try("👻🎃")
+				expect(other.commitedValue) == "👻🎃"
+				expect(FlattenedResult(other.result.value)) == FlattenedResult.success("👻🎃")
 
 				expect(root.value) == 10
-				expect(validated.value) == 10
+				expect(validated.commitedValue) == 10
 				expect(validationResult) == .success(10)
 			}
 		}

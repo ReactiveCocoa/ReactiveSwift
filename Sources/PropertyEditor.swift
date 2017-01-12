@@ -5,57 +5,50 @@ import Result
 ///
 /// ## Consistency when nested
 ///
-/// `TransactionalProperty` would back-propagate the validation failure if a
+/// `PropertyEditor` would back-propagate the validation failure if a
 /// proposed value from an outer property fails with its inner property.
 ///
 /// It would also evaluate values originated from the inner property. In other
 /// words, it is possible for `value` to be invalid, causing `validations`
 /// to be a `failure`. Rely on `validations` for asserting a pass in validation.
-public final class TransactionalProperty<Value, TransactionError: Error>: ComposableMutablePropertyProtocol {
+public final class PropertyEditor<Value, ValidationError: Error> {
 	/// The current value of the property.
 	///
 	/// It does not guarantee that the value is valid with regard to `self`, since
 	/// changes might be initiated from the inner properties. Check `validations`
 	/// for the latest validation state.
-	public var value: Value {
-		get {
-			return cache.value
-		}
-		set {
-			rootBox.lock {
-				action(newValue)
-			}
-		}
+	public var commitedValue: Value {
+		return cache.value
 	}
 
-	/// A SignalProducer that emits the current value of the property, followed by
-	/// all subsequent changes.
-	public var producer: SignalProducer<Value, NoError> {
+	/// A SignalProducer that emits the current committed value of the property,
+	/// followed by all subsequent changes.
+	public var commitedProducer: SignalProducer<Value, NoError> {
 		return cache.producer
 	}
 
 	/// A Signal that emits all subsequent changes of the property.
-	public var signal: Signal<Value, NoError> {
+	public var commitedSignal: Signal<Value, NoError> {
 		return cache.signal
 	}
 
 	/// The lifetime of the property.
 	public let lifetime: Lifetime
 
-	/// Validations that have been made by the property.
-	public let validations: Property<ValidationResult<Value, TransactionError>>
+	/// The latest validation that have been made by the property.
+	public let result: Property<ValidationResult<Value, ValidationError>>
 
 	/// The action associated with the property.
 	private let action: (Value) -> Void
 
 	/// The existential box that wraps the synchronization mechanic of the root
 	/// property of the composed chain.
-	private let rootBox: TransactionalPropertyBoxBase<()>
+	private let rootBox: PropertyEditorBoxBase<()>
 
 	/// The cache which holds the latest value in terms of `Value`.
 	private let cache: Property<Value>
 
-	/// Create an `TransactionalProperty` that presents `inner` as a property of
+	/// Create an `PropertyEditor` that presents `inner` as a property of
 	/// `Value`, and invoke `body` with the proposed value whenever the setter is
 	/// invoked.
 	///
@@ -70,11 +63,11 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	public init<M: ComposableMutablePropertyProtocol>(
 		_ inner: M,
 		transform: @escaping (M.Value) -> Value,
-		_ body: @escaping (Value) -> Result<M.Value, TransactionError>
+		_ body: @escaping (Value) -> Result<M.Value, ValidationError>
 	) {
 		var mutesValueBackpropagation = false
 
-		let _validations: MutableProperty<ValidationResult<Value, TransactionError>> = inner.withValue { innerValue in
+		let _validations: MutableProperty<ValidationResult<Value, ValidationError>> = inner.withValue { innerValue in
 			let property = MutableProperty(ValidationResult(innerValue, transform: transform, validator: body))
 
 			property <~ inner.signal
@@ -84,10 +77,10 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 			return property
 		}
 
-		self.validations = Property(capturing: _validations)
+		self.result = Property(capturing: _validations)
 		self.lifetime = inner.lifetime
 		self.cache = inner.map(transform)
-		self.rootBox = TransactionalPropertyBox(inner)
+		self.rootBox = PropertyEditorBox(inner)
 
 		action = { input in
 			switch body(input) {
@@ -103,8 +96,8 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 		}
 	}
 
-	/// Create an `TransactionalProperty` that presents `inner` as an
-	/// `TransactionalProperty` of `U` value, and invoke `body` with the proposed
+	/// Create an `PropertyEditor` that presents `inner` as an
+	/// `PropertyEditor` of `U` value, and invoke `body` with the proposed
 	/// value whenever the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
@@ -112,27 +105,27 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	/// `validations` signal.
 	///
 	/// The validation results of `inner` would be propagated to the created
-	/// `TransactionalProperty`.
+	/// `PropertyEditor`.
 	///
 	/// - parameters:
 	///   - inner: The inner property to wrap.
 	///   - transform: The value transform for the presentation.
 	///   - errorTransform: The error transform for the presentation.
 	///   - body: The closure to invoke for any proposed value to `self`.
-	public convenience init<T: _TransactionalPropertyProtocol>(
+	public convenience init<T: _PropertyEditorProtocol>(
 		_ inner: T,
 		transform: @escaping (T.Value) -> Value,
-		errorTransform: @escaping (T.TransactionError) -> TransactionError,
-		_ body: @escaping (Value) -> Result<T.Value, TransactionError>
+		errorTransform: @escaping (T.ValidationError) -> ValidationError,
+		_ body: @escaping (Value) -> Result<T.Value, ValidationError>
 	) {
 		self.init(inner, transform: transform, validator: body, validationSetup: { validations in
-			validations <~ inner.property.validations.signal
+			validations <~ inner.property.result.signal
 				.map { $0.map(transform, errorTransform, validator: body) }
 		})
 	}
 
-	/// Create an `TransactionalProperty` that presents `inner` as an
-	/// `TransactionalProperty` of `U` value, and invoke `body` with the proposed
+	/// Create an `PropertyEditor` that presents `inner` as an
+	/// `PropertyEditor` of `U` value, and invoke `body` with the proposed
 	/// value whenever the setter is invoked.
 	///
 	/// If `success` is returned by `body`, the associated value would be
@@ -143,28 +136,28 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	///   - inner: The inner property to wrap.
 	///   - transform: The value transform for the presentation.
 	///   - body: The closure to invoke for any proposed value to `self`.
-	public convenience init<T: _TransactionalPropertyProtocol>(
+	public convenience init<T: _PropertyEditorProtocol>(
 		_ inner: T,
 		transform: @escaping (T.Value) -> Value,
-		_ body: @escaping (Value) -> Result<T.Value, TransactionError>
-	) where T.TransactionError == NoError {
+		_ body: @escaping (Value) -> Result<T.Value, ValidationError>
+	) where T.ValidationError == NoError {
 		self.init(inner, transform: transform, validator: body, validationSetup: nil)
 	}
 
-	private init<T: _TransactionalPropertyProtocol>(
+	private init<T: _PropertyEditorProtocol>(
 		_ inner: T,
 		transform: @escaping (T.Value) -> Value,
-		validator: @escaping (Value) -> Result<T.Value, TransactionError>,
-		validationSetup: ((MutableProperty<ValidationResult<Value, TransactionError>>) -> Void)?
+		validator: @escaping (Value) -> Result<T.Value, ValidationError>,
+		validationSetup: ((MutableProperty<ValidationResult<Value, ValidationError>>) -> Void)?
 	) {
-		let _validations: MutableProperty<ValidationResult<Value, TransactionError>> = inner.withValue { innerValue in
-			let property = MutableProperty(ValidationResult(innerValue, transform: transform, validator: validator))
+		let _validations: MutableProperty<ValidationResult<Value, ValidationError>> = inner.property.rootBox.lock {
+			let property = MutableProperty(ValidationResult(inner.property.commitedValue, transform: transform, validator: validator))
 			validationSetup?(property)
 			return property
 		}
 
-		self.validations = Property(capturing: _validations)
-		self.lifetime = inner.lifetime
+		self.result = Property(capturing: _validations)
+		self.lifetime = inner.property.lifetime
 		self.cache = inner.property.cache.map(transform)
 		self.rootBox = inner.property.rootBox
 
@@ -177,6 +170,13 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 			case let .failure(error):
 				_validations.value = .failure(input, error)
 			}
+		}
+	}
+
+	@discardableResult
+	public func `try`(_ newValue: Value) {
+		rootBox.lock {
+			action(newValue)
 		}
 	}
 
@@ -200,6 +200,11 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	///
 	/// - returns: The result of the action.
 	public func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
+		var value: Value {
+			get { return commitedValue }
+			set { self.try(newValue) }
+		}
+
 		return try rootBox.lock {
 			return try action(&value)
 		}
@@ -212,28 +217,42 @@ public final class TransactionalProperty<Value, TransactionError: Error>: Compos
 	}
 }
 
-public protocol _TransactionalPropertyProtocol: ComposableMutablePropertyProtocol {
-	associatedtype Value
-	associatedtype TransactionError: Swift.Error
-
-	var property: TransactionalProperty<Value, TransactionError> { get }
-
-	init<T: _TransactionalPropertyProtocol>(
-		_ inner: T,
-		transform: @escaping (T.Value) -> Value,
-		errorTransform: @escaping (T.TransactionError) -> TransactionError,
-		_ body: @escaping (Value) -> Result<T.Value, TransactionError>
-	)
-
-	init<T: _TransactionalPropertyProtocol>(
-		_ inner: T,
-		transform: @escaping (T.Value) -> Value,
-		_ body: @escaping (Value) -> Result<T.Value, TransactionError>
-	) where T.TransactionError == NoError
+extension PropertyEditor: BindingTargetProtocol {
+	public func consume(_ value: Value) {
+		self.try(value)
+	}
 }
 
-extension TransactionalProperty: _TransactionalPropertyProtocol {
-	public var property: TransactionalProperty<Value, TransactionError> {
+extension PropertyEditor: BindingSourceProtocol {
+	public func observe(_ observer: Observer<Value, NoError>, during lifetime: Lifetime) -> Disposable? {
+		return commitedProducer
+			.take(during: lifetime)
+			.start(observer)
+	}
+}
+
+public protocol _PropertyEditorProtocol {
+	associatedtype Value
+	associatedtype ValidationError: Swift.Error
+
+	var property: PropertyEditor<Value, ValidationError> { get }
+
+	init<T: _PropertyEditorProtocol>(
+		_ inner: T,
+		transform: @escaping (T.Value) -> Value,
+		errorTransform: @escaping (T.ValidationError) -> ValidationError,
+		_ body: @escaping (Value) -> Result<T.Value, ValidationError>
+	)
+
+	init<T: _PropertyEditorProtocol>(
+		_ inner: T,
+		transform: @escaping (T.Value) -> Value,
+		_ body: @escaping (Value) -> Result<T.Value, ValidationError>
+	) where T.ValidationError == NoError
+}
+
+extension PropertyEditor: _PropertyEditorProtocol {
+	public var property: PropertyEditor<Value, ValidationError> {
 		return self
 	}
 }
@@ -242,7 +261,7 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 	case success(Value)
 	case failure(Value, Error)
 
-	public var isFailed: Bool {
+	public var isFailure: Bool {
 		if case .failure = self {
 			return true
 		} else {
@@ -295,7 +314,7 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 }
 
 // FIXME: Remove the type parameter that works around type checker weirdness.
-private class TransactionalPropertyBox<Property: ComposableMutablePropertyProtocol>: TransactionalPropertyBoxBase<()> {
+private class PropertyEditorBox<Property: ComposableMutablePropertyProtocol>: PropertyEditorBoxBase<()> {
 	private let base: Property
 
 	init(_ base: Property) { self.base = base }
@@ -305,7 +324,7 @@ private class TransactionalPropertyBox<Property: ComposableMutablePropertyProtoc
 	}
 }
 
-private class TransactionalPropertyBoxBase<Value> {
+private class PropertyEditorBoxBase<Value> {
 	func lock<R>(_ action: (()) throws -> R) rethrows -> R {
 		fatalError()
 	}
@@ -320,12 +339,12 @@ extension ComposableMutablePropertyProtocol {
 	///   - forward: The value transform to convert `Self.Value` to `U`.
 	///   - backward: The value transform to convert `U` to `Self.Value`.
 	///
-	/// - returns: A mapping `TransactionalProperty`.
+	/// - returns: A mapping `PropertyEditor`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
 		backward: @escaping (U) -> Value
-	) -> TransactionalProperty<U, NoError> {
-		return TransactionalProperty(self, transform: forward) { proposedInput in
+	) -> PropertyEditor<U, NoError> {
+		return PropertyEditor(self, transform: forward) { proposedInput in
 			return .success(backward(proposedInput))
 		}
 	}
@@ -339,12 +358,12 @@ extension ComposableMutablePropertyProtocol {
 	///   - attemptBackward: The failable value transform to convert `U` to
 	///                      `Self.Value`.
 	///
-	/// - returns: A mapping `TransactionalProperty`.
+	/// - returns: A mapping `PropertyEditor`.
 	public func map<U, Error: Swift.Error>(
 		forward: @escaping (Value) -> U,
 		attemptBackward: @escaping (U) -> Result<Value, Error>
-	) -> TransactionalProperty<U, Error> {
-		return TransactionalProperty<U, Error>(self, transform: forward) { proposedInput in
+	) -> PropertyEditor<U, Error> {
+		return PropertyEditor<U, Error>(self, transform: forward) { proposedInput in
 			return attemptBackward(proposedInput)
 		}
 	}
@@ -357,11 +376,11 @@ extension ComposableMutablePropertyProtocol {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
+	/// - returns: A validating `PropertyEditor`.
 	public func validate<Error: Swift.Error>(
 		_ predicate: @escaping (Value) -> Result<(), Error>
-	) -> TransactionalProperty<Value, Error> {
-		return TransactionalProperty(self, transform: { $0 }) { proposedInput in
+	) -> PropertyEditor<Value, Error> {
+		return PropertyEditor(self, transform: { $0 }) { proposedInput in
 			switch predicate(proposedInput) {
 			case .success:
 				return .success(proposedInput)
@@ -385,13 +404,13 @@ extension ComposableMutablePropertyProtocol {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
+	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: PropertyProtocol, Error: Swift.Error>(
 		with other: P,
 		_ predicate: @escaping (Value, P.Value) -> Result<(), Error>
-	) -> TransactionalProperty<Value, Error> {
-		return TransactionalProperty<Value, Error>
-			.validate({ TransactionalProperty(self, transform: { $0 }, $0) }, with: other, predicate)
+	) -> PropertyEditor<Value, Error> {
+		return PropertyEditor<Value, Error>
+			.validate({ PropertyEditor(self, transform: { $0 }, $0) }, with: other, predicate)
 	}
 
 	// - The default `validate(with:)` with parameter `Error`.
@@ -407,22 +426,22 @@ extension ComposableMutablePropertyProtocol {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
-	public func validate<P: _TransactionalPropertyProtocol, Error: Swift.Error>(
+	/// - returns: A validating `PropertyEditor`.
+	public func validate<P: _PropertyEditorProtocol, Error: Swift.Error>(
 		with other: P,
 		_ predicate: @escaping (Value, P.Value) -> Result<(), Error>
-	) -> TransactionalProperty<Value, Error> {
-		return TransactionalProperty<Value, Error>
-			.validate({ TransactionalProperty(self, transform: { $0 }, $0) }, with: other, predicate)
+	) -> PropertyEditor<Value, Error> {
+		return PropertyEditor<Value, Error>
+			.validate({ PropertyEditor(self, transform: { $0 }, $0) }, with: other, predicate)
 	}
 }
 
-extension _TransactionalPropertyProtocol {
+extension _PropertyEditorProtocol {
 	fileprivate static func validate<Other: PropertyProtocol, E: Swift.Error>(
-		_ initializer: (@escaping (Value) -> Result<Value, E>) -> TransactionalProperty<Value, E>,
+		_ initializer: (@escaping (Value) -> Result<Value, E>) -> PropertyEditor<Value, E>,
 		with other: Other,
 		_ validator: @escaping (Value, Other.Value) -> Result<(), E>
-	) -> TransactionalProperty<Value, E> {
+	) -> PropertyEditor<Value, E> {
 		let other = Property(other)
 
 		let property = initializer { proposedInput -> Result<Value, E> in
@@ -431,8 +450,8 @@ extension _TransactionalPropertyProtocol {
 
 		let d = other.signal.observeValues { [weak property] _ in
 			if let property = property {
-				if case let .failure(failedValue, _) = property.validations.value {
-					property.value = failedValue
+				if case let .failure(failedValue, _) = property.result.value {
+					property.property.try(failedValue)
 				} else {
 					property.property.revalidate()
 				}
@@ -444,12 +463,12 @@ extension _TransactionalPropertyProtocol {
 		return property
 	}
 
-	fileprivate static func validate<Other: _TransactionalPropertyProtocol, E: Swift.Error>(
-		_ initializer: (@escaping (Value) -> Result<Value, E>) -> TransactionalProperty<Value, E>,
+	fileprivate static func validate<Other: _PropertyEditorProtocol, E: Swift.Error>(
+		_ initializer: (@escaping (Value) -> Result<Value, E>) -> PropertyEditor<Value, E>,
 		with other: Other,
 		_ validator: @escaping (Value, Other.Value) -> Result<(), E>
-	) -> TransactionalProperty<Value, E> {
-		let otherValidations = other.property.validations
+	) -> PropertyEditor<Value, E> {
+		let otherValidations = other.property.result
 
 		let property = initializer { proposedInput -> Result<Value, E> in
 			let otherValue: Other.Value
@@ -466,8 +485,8 @@ extension _TransactionalPropertyProtocol {
 
 		let d = otherValidations.signal.observeValues { [weak property] _ in
 			if let property = property {
-				if case let .failure(failedValue, _) = property.validations.value {
-					property.value = failedValue
+				if case let .failure(failedValue, _) = property.result.value {
+					property.property.try(failedValue)
 				} else {
 					property.property.revalidate()
 				}
@@ -480,9 +499,9 @@ extension _TransactionalPropertyProtocol {
 	}
 }
 
-extension _TransactionalPropertyProtocol {
-	// - The overriding `map` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+extension _PropertyEditorProtocol {
+	// - The overriding `map` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 
 	/// Create a mutable mapped view to `self`.
 	///
@@ -490,18 +509,18 @@ extension _TransactionalPropertyProtocol {
 	///   - forward: The value transform to convert `Self.Value` to `U`.
 	///   - backward: The value transform to convert `U` to `Self.Value`.
 	///
-	/// - returns: A mapping `TransactionalProperty`.
+	/// - returns: A mapping `PropertyEditor`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
 		backward: @escaping (U) -> Value
-	) -> TransactionalProperty<U, TransactionError> {
-		return TransactionalProperty(self, transform: forward) { proposedInput in
+	) -> PropertyEditor<U, ValidationError> {
+		return PropertyEditor(self, transform: forward, errorTransform: { $0 }) { proposedInput in
 			return .success(backward(proposedInput))
 		}
 	}
 
-	// - The overriding failable `map` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+	// - The overriding failable `map` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 	/// Create a mutable mapped view to `self` with a failable setter.
 	///
 	/// - parameters:
@@ -509,18 +528,18 @@ extension _TransactionalPropertyProtocol {
 	///   - attemptBackward: The failable value transform to convert `U` to
 	///                      `Self.Value`.
 	///
-	/// - returns: A mapping `TransactionalProperty`.
+	/// - returns: A mapping `PropertyEditor`.
 	public func map<U>(
 		forward: @escaping (Value) -> U,
-		attemptBackward: @escaping (U) -> Result<Value, TransactionError>
-	) -> TransactionalProperty<U, TransactionError> {
-		return TransactionalProperty(self, transform: forward, errorTransform: { $0 }) { proposedInput in
+		attemptBackward: @escaping (U) -> Result<Value, ValidationError>
+	) -> PropertyEditor<U, ValidationError> {
+		return PropertyEditor(self, transform: forward, errorTransform: { $0 }) { proposedInput in
 			return attemptBackward(proposedInput)
 		}
 	}
 
-	// - The overriding `validate` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+	// - The overriding `validate` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 
 	/// Create a mutable view to `self` that validates any proposed value.
 	///
@@ -528,11 +547,11 @@ extension _TransactionalPropertyProtocol {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
+	/// - returns: A validating `PropertyEditor`.
 	public func validate(
-		_ predicate: @escaping (Value) -> Result<(), TransactionError>
-	) -> TransactionalProperty<Value, TransactionError> {
-		return TransactionalProperty(self, transform: { $0 }, errorTransform: { $0 }) { proposedInput in
+		_ predicate: @escaping (Value) -> Result<(), ValidationError>
+	) -> PropertyEditor<Value, ValidationError> {
+		return PropertyEditor(self, transform: { $0 }, errorTransform: { $0 }) { proposedInput in
 			switch predicate(proposedInput) {
 			case .success:
 				return .success(proposedInput)
@@ -543,8 +562,8 @@ extension _TransactionalPropertyProtocol {
 		}
 	}
 
-	// - The overriding `validate(with:)` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+	// - The overriding `validate(with:)` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 
 	/// Create a mutable view to `self` that validates any proposed value in
 	/// consideration of `other`.
@@ -557,19 +576,19 @@ extension _TransactionalPropertyProtocol {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
+	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: PropertyProtocol>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), TransactionError>
-	) -> TransactionalProperty<Value, TransactionError> {
-		return TransactionalProperty<Value, TransactionError>
-			.validate({ TransactionalProperty(self, transform: { $0 }, errorTransform: { $0 }, $0) },
+		_ predicate: @escaping (Value, P.Value) -> Result<(), ValidationError>
+	) -> PropertyEditor<Value, ValidationError> {
+		return PropertyEditor<Value, ValidationError>
+			.validate({ PropertyEditor(self, transform: { $0 }, errorTransform: { $0 }, $0) },
 			          with: other,
 			          predicate)
 	}
 
-	// - The overriding `validate(with:)` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+	// - The overriding `validate(with:)` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 
 	/// Create a mutable view to `self` that validates any proposed value in
 	/// consideration of `other`.
@@ -582,21 +601,21 @@ extension _TransactionalPropertyProtocol {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
-	public func validate<P: _TransactionalPropertyProtocol>(
+	/// - returns: A validating `PropertyEditor`.
+	public func validate<P: _PropertyEditorProtocol>(
 		with other: P,
-		_ predicate: @escaping (Value, P.Value) -> Result<(), TransactionError>
-	) -> TransactionalProperty<Value, TransactionError> {
-		return TransactionalProperty<Value, TransactionError>
-			.validate({ TransactionalProperty(self, transform: { $0 }, errorTransform: { $0 }, $0) },
+		_ predicate: @escaping (Value, P.Value) -> Result<(), ValidationError>
+	) -> PropertyEditor<Value, ValidationError> {
+		return PropertyEditor<Value, ValidationError>
+			.validate({ PropertyEditor(self, transform: { $0 }, errorTransform: { $0 }, $0) },
 			          with: other,
 			          predicate)
 	}
 }
 
-extension _TransactionalPropertyProtocol where TransactionError == NoError {
-	// - The overriding failable `map` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+extension _PropertyEditorProtocol where ValidationError == NoError {
+	// - The overriding failable `map` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 	/// Create a mutable mapped view to `self` with a failable setter.
 	///
 	/// - parameters:
@@ -604,18 +623,18 @@ extension _TransactionalPropertyProtocol where TransactionError == NoError {
 	///   - attemptBackward: The failable value transform to convert `U` to
 	///                      `Self.Value`.
 	///
-	/// - returns: A mapping `TransactionalProperty`.
+	/// - returns: A mapping `PropertyEditor`.
 	public func map<U, NewError: Swift.Error>(
 		forward: @escaping (Value) -> U,
 		attemptBackward: @escaping (U) -> Result<Value, NewError>
-	) -> TransactionalProperty<U, NewError> {
-		return TransactionalProperty(self, transform: forward) { proposedInput in
+	) -> PropertyEditor<U, NewError> {
+		return PropertyEditor(self, transform: forward) { proposedInput in
 			return attemptBackward(proposedInput)
 		}
 	}
 
-	// - The overriding `validate` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+	// - The overriding `validate` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 
 	/// Create a mutable view to `self` that validates any proposed value.
 	///
@@ -623,11 +642,11 @@ extension _TransactionalPropertyProtocol where TransactionError == NoError {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
+	/// - returns: A validating `PropertyEditor`.
 	public func validate<NewError: Swift.Error>(
 		_ predicate: @escaping (Value) -> Result<(), NewError>
-	) -> TransactionalProperty<Value, NewError> {
-		return TransactionalProperty(self, transform: { $0 }) { proposedInput in
+	) -> PropertyEditor<Value, NewError> {
+		return PropertyEditor(self, transform: { $0 }) { proposedInput in
 			switch predicate(proposedInput) {
 			case .success:
 				return .success(proposedInput)
@@ -638,8 +657,8 @@ extension _TransactionalPropertyProtocol where TransactionError == NoError {
 		}
 	}
 
-	// - The overriding `validate(with:)` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+	// - The overriding `validate(with:)` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 
 	/// Create a mutable view to `self` that validates any proposed value in
 	/// consideration of `other`.
@@ -652,19 +671,19 @@ extension _TransactionalPropertyProtocol where TransactionError == NoError {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
+	/// - returns: A validating `PropertyEditor`.
 	public func validate<P: PropertyProtocol, NewError: Swift.Error>(
 		with other: P,
 		_ predicate: @escaping (Value, P.Value) -> Result<(), NewError>
-	) -> TransactionalProperty<Value, NewError> {
-		return TransactionalProperty<Value, NewError>
-			.validate({ TransactionalProperty(self, transform: { $0 }, $0) },
+	) -> PropertyEditor<Value, NewError> {
+		return PropertyEditor<Value, NewError>
+			.validate({ PropertyEditor(self, transform: { $0 }, $0) },
 			          with: other,
 			          predicate)
 	}
 
-	// - The overriding `validate(with:)` that invokes the `TransactionalProperty`
-	//   specialization of `TransactionalProperty.init`.
+	// - The overriding `validate(with:)` that invokes the `PropertyEditor`
+	//   specialization of `PropertyEditor.init`.
 
 	/// Create a mutable view to `self` that validates any proposed value in
 	/// consideration of `other`.
@@ -677,13 +696,13 @@ extension _TransactionalPropertyProtocol where TransactionError == NoError {
 	///   - predicate: The closure that validates any proposed value to the
 	///                property.
 	///
-	/// - returns: A validating `TransactionalProperty`.
-	public func validate<P: _TransactionalPropertyProtocol, NewError: Swift.Error>(
+	/// - returns: A validating `PropertyEditor`.
+	public func validate<P: _PropertyEditorProtocol, NewError: Swift.Error>(
 		with other: P,
 		_ predicate: @escaping (Value, P.Value) -> Result<(), NewError>
-	) -> TransactionalProperty<Value, NewError> {
-		return TransactionalProperty<Value, NewError>
-			.validate({ TransactionalProperty(self, transform: { $0 }, $0) },
+	) -> PropertyEditor<Value, NewError> {
+		return PropertyEditor<Value, NewError>
+			.validate({ PropertyEditor(self, transform: { $0 }, $0) },
 			          with: other,
 			          predicate)
 	}

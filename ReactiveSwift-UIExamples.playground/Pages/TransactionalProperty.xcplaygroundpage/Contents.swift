@@ -12,8 +12,8 @@ final class ViewModel {
 		static let usernameUnavailable = FormError(reason: "The username has been taken.")
 	}
 
-	let email: TransactionalProperty<String, FormError>
-	let emailConfirmation: TransactionalProperty<String, FormError>
+	let email: PropertyEditor<String, FormError>
+	let emailConfirmation: PropertyEditor<String, FormError>
 	let termsAccepted: MutableProperty<Bool>
 	let reasons: Signal<String, NoError>
 
@@ -36,7 +36,7 @@ final class ViewModel {
 			}
 
 		// Aggregate latest failure contexts as a stream of strings.
-		reasons = Property.combineLatest(email.validations, emailConfirmation.validations)
+		reasons = Property.combineLatest(email.result, emailConfirmation.result)
 			.signal
 			.map { [$0, $1].flatMap { $0.error?.reason }.joined(separator: "\n") }
 
@@ -44,10 +44,10 @@ final class ViewModel {
 		//
 		// It outputs the valid username for the `Action` to work on, or `nil` if the form
 		// is invalid and the `Action` would be disabled consequently.
-		let validatedUsername = Property.combineLatest(email.validations,
-		                                               emailConfirmation.validations,
+		let validatedUsername = Property.combineLatest(email.result,
+		                                               emailConfirmation.result,
 		                                               termsAccepted)
-			.map { !$0.isFailed && !$1.isFailed && $2 }
+			.map { !$0.isFailure && !$1.isFailure && $2 }
 			.combineLatest(with: username)
 			.map { isValid, username in isValid ? username : nil }
 
@@ -69,8 +69,8 @@ final class ViewController: UIViewController {
 		super.viewDidLoad()
 
 		// Initialize the interactive controls.
-		formView.emailField.text = viewModel.email.value
-		formView.emailConfirmationField.text = viewModel.emailConfirmation.value
+		formView.emailField.text = viewModel.email.commitedValue
+		formView.emailConfirmationField.text = viewModel.emailConfirmation.commitedValue
 		formView.termsSwitch.isOn = false
 
 		// Setup bindings with the interactive controls.
@@ -135,11 +135,11 @@ func main() {
 		print("ViewModel.submit: execution producer has completed.")
 	}
 
-	viewModel.email.validations.signal.observeValues {
+	viewModel.email.result.signal.observeValues {
 		print("ViewModel.email: Validation result - \($0 != nil ? "\($0!)" : "No validation has ever been performed.")")
 	}
 
-	viewModel.emailConfirmation.validations.signal.observeValues {
+	viewModel.emailConfirmation.result.signal.observeValues {
 		print("ViewModel.emailConfirmation: Validation result - \($0 != nil ? "\($0!)" : "No validation has ever been performed.")")
 	}
 }
