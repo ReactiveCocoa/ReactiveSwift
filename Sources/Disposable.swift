@@ -19,6 +19,10 @@ public protocol Disposable: class {
 	func dispose()
 }
 
+public protocol NestedDisposable: Disposable {
+	func setInner(_ disposable: Disposable?)
+}
+
 /// Represents the state of a disposable.
 private enum DisposableState: Int32 {
 	/// The disposable is active.
@@ -107,7 +111,7 @@ public final class ActionDisposable: Disposable {
 }
 
 /// A disposable that will dispose of any number of other disposables.
-public final class CompositeDisposable: Disposable {
+public final class CompositeDisposable: NestedDisposable {
 	private let disposables: Atomic<Bag<Disposable>?>
 	private var state: UnsafeAtomicState<DisposableState>
 
@@ -238,6 +242,10 @@ public final class CompositeDisposable: Disposable {
 		return add(ActionDisposable(action: action))
 	}
 
+	public func setInner(_ disposable: Disposable?) {
+		add(disposable)
+	}
+
 	deinit {
 		state.deinitialize()
 	}
@@ -286,7 +294,7 @@ extension ScopedDisposable where Inner: AnyDisposable {
 
 /// A disposable that disposes of its wrapped disposable, and allows its
 /// wrapped disposable to be replaced.
-public final class SerialDisposable: Disposable {
+public final class SerialDisposable: NestedDisposable {
 	private let _inner: Atomic<Disposable?>
 	private var state: UnsafeAtomicState<DisposableState>
 
@@ -325,6 +333,10 @@ public final class SerialDisposable: Disposable {
 		if state.tryDispose() {
 			_inner.swap(nil)?.dispose()
 		}
+	}
+
+	public func setInner(_ disposable: Disposable?) {
+		inner = disposable
 	}
 
 	deinit {
