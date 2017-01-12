@@ -69,8 +69,8 @@ final class ViewController: UIViewController {
 		super.viewDidLoad()
 
 		// Initialize the interactive controls.
-		formView.emailField.text = viewModel.email.commitedValue
-		formView.emailConfirmationField.text = viewModel.emailConfirmation.commitedValue
+		formView.emailField.text = viewModel.email.commited.value
+		formView.emailConfirmationField.text = viewModel.emailConfirmation.commited.value
 		formView.termsSwitch.isOn = false
 
 		// Setup bindings with the interactive controls.

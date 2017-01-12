@@ -12,25 +12,12 @@ import Result
 /// words, it is possible for `value` to be invalid, causing `validations`
 /// to be a `failure`. Rely on `validations` for asserting a pass in validation.
 public final class PropertyEditor<Value, ValidationError: Error> {
-	/// The current value of the property.
+	/// The commited value of the property.
 	///
 	/// It does not guarantee that the value is valid with regard to `self`, since
 	/// changes might be initiated from the inner properties. Check `validations`
 	/// for the latest validation state.
-	public var commitedValue: Value {
-		return cache.value
-	}
-
-	/// A SignalProducer that emits the current committed value of the property,
-	/// followed by all subsequent changes.
-	public var commitedProducer: SignalProducer<Value, NoError> {
-		return cache.producer
-	}
-
-	/// A Signal that emits all subsequent changes of the property.
-	public var commitedSignal: Signal<Value, NoError> {
-		return cache.signal
-	}
+	public var commited: Property<Value>
 
 	/// The lifetime of the property.
 	public let lifetime: Lifetime
@@ -44,9 +31,6 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 	/// The existential box that wraps the synchronization mechanic of the root
 	/// property of the composed chain.
 	private let rootBox: PropertyEditorBoxBase<()>
-
-	/// The cache which holds the latest value in terms of `Value`.
-	private let cache: Property<Value>
 
 	/// Create an `PropertyEditor` that presents `inner` as a property of
 	/// `Value`, and invoke `body` with the proposed value whenever the setter is
@@ -79,7 +63,7 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 
 		self.result = Property(capturing: _validations)
 		self.lifetime = inner.lifetime
-		self.cache = inner.map(transform)
+		self.commited = inner.map(transform)
 		self.rootBox = PropertyEditorBox(inner)
 
 		action = { input in
@@ -151,14 +135,14 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		validationSetup: ((MutableProperty<ValidationResult<Value, ValidationError>>) -> Void)?
 	) {
 		let _validations: MutableProperty<ValidationResult<Value, ValidationError>> = inner.property.rootBox.lock {
-			let property = MutableProperty(ValidationResult(inner.property.commitedValue, transform: transform, validator: validator))
+			let property = MutableProperty(ValidationResult(inner.property.commited.value, transform: transform, validator: validator))
 			validationSetup?(property)
 			return property
 		}
 
 		self.result = Property(capturing: _validations)
 		self.lifetime = inner.property.lifetime
-		self.cache = inner.property.cache.map(transform)
+		self.commited = inner.property.commited.map(transform)
 		self.rootBox = inner.property.rootBox
 
 
@@ -189,7 +173,7 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 	/// - returns: the result of the action.
 	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result {
 		return try rootBox.lock {
-			return try action(cache.value)
+			return try action(commited.value)
 		}
 	}
 
@@ -201,7 +185,7 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 	/// - returns: The result of the action.
 	public func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
 		var value: Value {
-			get { return commitedValue }
+			get { return commited.value }
 			set { self.try(newValue) }
 		}
 
@@ -212,7 +196,7 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 
 	internal func revalidate() {
 		rootBox.lock {
-			action(cache.value)
+			action(commited.value)
 		}
 	}
 }
@@ -225,7 +209,7 @@ extension PropertyEditor: BindingTargetProtocol {
 
 extension PropertyEditor: BindingSourceProtocol {
 	public func observe(_ observer: Observer<Value, NoError>, during lifetime: Lifetime) -> Disposable? {
-		return commitedProducer
+		return commited.producer
 			.take(during: lifetime)
 			.start(observer)
 	}
