@@ -177,23 +177,6 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		}
 	}
 
-	/// Atomically modifies the variable.
-	///
-	/// - parameters:
-	///   - action: A closure that takes the current value.
-	///
-	/// - returns: The result of the action.
-	public func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
-		var value: Value {
-			get { return commited.value }
-			set { self.try(newValue) }
-		}
-
-		return try rootBox.lock {
-			return try action(&value)
-		}
-	}
-
 	internal func revalidate() {
 		rootBox.lock {
 			action(commited.value)
