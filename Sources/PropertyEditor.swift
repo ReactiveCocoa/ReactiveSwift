@@ -1,22 +1,43 @@
 import Result
 
-/// An editor that monitor, validates and commits changes to its root property.
+/// An editor that monitors, validates and commits changes to its root property.
 ///
-/// ## Consistency when nested
+/// Validation failure raised by intermediate editors would back-propagate to
+/// the outer editors.
 ///
-/// `PropertyEditor` would back-propagate the validation failure if a
-/// proposed value from an outer editor fails with its inner property.
+/// ```
+/// let outer = root
+///   .validate { $0 == "Valid" ? nil : .intermediateInvalid }
+///   .validate { $0.hasSuffix("Valid") ? nil : .outerInvalid }
 ///
-/// It would also evaluate values originated from the inner property. In other
-/// words, it is possible for `value` to be invalid, causing `validations`
-/// to be a `failure`. Rely on `validations` for asserting a pass in validation.
+/// outer.attemptSet("isValid")
+///
+/// intermediate.result.value // `.failure("isValid", .intermediateInvalid)`
+/// outer.result.value        // `.failure("isValid", .intermediateInvalid)`
+/// ```
+///
+/// Changes originated from the intermediate editors and the root property are
+/// monitored and would trigger validations automatically.
+///
+/// ```
+/// let root = MutableProperty("Valid")
+/// let outer = root
+///   .validate { $0 == "Valid" ? nil : .outerInvalid }
+///
+/// outer.result.value        // `.success("Valid")
+///
+/// root.value = "🎃"
+/// outer.result.value        // `.failure("🎃", .outerInvalid)`
+/// ```
 public final class PropertyEditor<Value, ValidationError: Error> {
-	/// The commited value with regard to the root property of the editor.
+	/// The committed value of the editor, synchronized with the root property.
 	///
-	/// It does not guarantee that the value is valid with regard to `self`, since
-	/// changes might be initiated from the inner properties. Check `validations`
-	/// for the latest validation state.
-	public var commited: Property<Value>
+	/// As changes can be initiated from the intermediate editors and the root
+	/// property without being first validated by `self`, the committed value can
+	/// be invalid.
+	///
+	/// Refer to `result` for the latest validation result.
+	public var committed: Property<Value>
 
 	/// The lifetime token of the editor.
 	private let lifetimeToken: Lifetime.Token
@@ -24,15 +45,14 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 	/// The lifetime of the editor.
 	public let lifetime: Lifetime
 
-	/// The latest validation that have been made by the editor.
+	/// The result of the last attempted edit of the root property.
 	public let result: Property<ValidationResult<Value, ValidationError>>
 
 	/// The action associated with the editor.
 	private let action: (Value) -> Void
 
-	/// The existential box that wraps the synchronization mechanic of the root
-	/// property of the composed chain.
-	private let rootBox: PropertyEditorBoxBase<()>
+	/// The synchronization mechanic of the root property.
+	private let rootLock: RootPropertyLockBoxBase<()>
 
 	/// Create an `PropertyEditor` that presents an editing interface of `inner`
 	/// in another value type, using the given forward transform and the given
@@ -66,8 +86,8 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		self.result = Property(capturing: _validations)
 		self.lifetimeToken = Lifetime.Token()
 		self.lifetime = Lifetime(lifetimeToken)
-		self.commited = inner.map(transform)
-		self.rootBox = PropertyEditorBox(inner)
+		self.committed = inner.map(transform)
+		self.rootLock = RootPropertyLockBox(inner)
 
 		action = { input in
 			switch body(input) {
@@ -137,8 +157,8 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		validator: @escaping (Value) -> Result<T.Value, ValidationError>,
 		validationSetup: ((MutableProperty<ValidationResult<Value, ValidationError>>) -> Void)?
 	) {
-		let _validations: MutableProperty<ValidationResult<Value, ValidationError>> = inner.property.rootBox.lock {
-			let property = MutableProperty(ValidationResult(inner.property.commited.value, transform: transform, validator: validator))
+		let _validations: MutableProperty<ValidationResult<Value, ValidationError>> = inner.property.rootLock.lock {
+			let property = MutableProperty(ValidationResult(inner.property.committed.value, transform: transform, validator: validator))
 			validationSetup?(property)
 			return property
 		}
@@ -146,8 +166,8 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		self.result = Property(capturing: _validations)
 		self.lifetimeToken = Lifetime.Token()
 		self.lifetime = Lifetime(lifetimeToken)
-		self.commited = inner.property.commited.map(transform)
-		self.rootBox = inner.property.rootBox
+		self.committed = inner.property.committed.map(transform)
+		self.rootLock = inner.property.rootLock
 
 
 		action = { input in
@@ -161,9 +181,12 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		}
 	}
 
-	@discardableResult
-	public func `try`(_ newValue: Value) {
-		rootBox.lock {
+	/// Attempt to edit the property with the given value.
+	///
+	/// - parameters:
+	///   - newValue: The proposed value.
+	public func attemptSet(_ newValue: Value) {
+		rootLock.lock {
 			action(newValue)
 		}
 	}
@@ -176,27 +199,27 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 	///
 	/// - returns: the result of the action.
 	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result {
-		return try rootBox.lock {
-			return try action(commited.value)
+		return try rootLock.lock {
+			return try action(committed.value)
 		}
 	}
 
 	internal func revalidate() {
-		rootBox.lock {
-			action(commited.value)
+		rootLock.lock {
+			action(committed.value)
 		}
 	}
 }
 
 extension PropertyEditor: BindingTargetProtocol {
 	public func consume(_ value: Value) {
-		self.try(value)
+		self.attemptSet(value)
 	}
 }
 
 extension PropertyEditor: BindingSourceProtocol {
 	public func observe(_ observer: Observer<Value, NoError>, during lifetime: Lifetime) -> Disposable? {
-		return commited.producer
+		return committed.producer
 			.take(during: lifetime)
 			.start(observer)
 	}
@@ -228,10 +251,15 @@ extension PropertyEditor: _PropertyEditorProtocol {
 	}
 }
 
+/// Represents the result of the validation performed by `PropertyEditor`.
 public enum ValidationResult<Value, Error: Swift.Error> {
+	/// The value passed the validation.
 	case success(Value)
+
+	/// The value failed the validation.
 	case failure(Value, Error)
 
+	/// Whether the validation was failed.
 	public var isFailure: Bool {
 		if case .failure = self {
 			return true
@@ -240,6 +268,7 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 		}
 	}
 
+	/// Extract the error if the validation was failed.
 	public var error: Error? {
 		if case let .failure(_, error) = self {
 			return error
@@ -248,6 +277,7 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 		}
 	}
 
+	/// Convert `self` to `Result`, ignoring the failed value.
 	public var result: Result<Value, Error> {
 		switch self {
 		case let .success(value):
@@ -268,7 +298,7 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 		}
 	}
 
-	public func map<U, E: Swift.Error>(_ transform: (Value) -> U, _ errorTransform: (Error) -> E, validator: (U) -> Result<Value, E>) -> ValidationResult<U, E> {
+	fileprivate func map<U, E: Swift.Error>(_ transform: (Value) -> U, _ errorTransform: (Error) -> E, validator: (U) -> Result<Value, E>) -> ValidationResult<U, E> {
 		switch self {
 		case let .success(value):
 			switch validator(transform(value)) {
@@ -284,19 +314,20 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 	}
 }
 
-// FIXME: Remove the type parameter that works around type checker weirdness.
-private class PropertyEditorBox<Property: ComposableMutablePropertyProtocol>: PropertyEditorBoxBase<()> {
+// FIXME: The `()` type parameter of `RootPropertyLockBoxBase` was introduced to
+//        workaround an issue preventing `lock` being overriden.
+private class RootPropertyLockBox<Property: ComposableMutablePropertyProtocol>: RootPropertyLockBoxBase<()> {
 	private let base: Property
 
 	init(_ base: Property) { self.base = base }
 
-	override func lock<R>(_ action: (()) throws -> R) rethrows -> R {
-		return try base.withValue { _ in return try action(()) }
+	override func lock<R>(_ action: () throws -> R) rethrows -> R {
+		return try base.withValue { _ in return try action() }
 	}
 }
 
-private class PropertyEditorBoxBase<Value> {
-	func lock<R>(_ action: (()) throws -> R) rethrows -> R {
+private class RootPropertyLockBoxBase<U> {
+	func lock<R>(_ action: (U) throws -> R) rethrows -> R {
 		fatalError()
 	}
 }
@@ -418,7 +449,7 @@ extension _PropertyEditorProtocol {
 		let d = other.signal.observeValues { [weak property] _ in
 			if let property = property {
 				if case let .failure(failedValue, _) = property.result.value {
-					property.property.try(failedValue)
+					property.property.attemptSet(failedValue)
 				} else {
 					property.property.revalidate()
 				}
@@ -454,7 +485,7 @@ extension _PropertyEditorProtocol {
 		let d = otherValidations.signal.observeValues { [weak property] _ in
 			if let property = property {
 				if case let .failure(failedValue, _) = property.result.value {
-					property.property.try(failedValue)
+					property.property.attemptSet(failedValue)
 				} else {
 					property.property.revalidate()
 				}
