@@ -75,8 +75,7 @@ extension PropertyProtocol {
 	///   - transform: A closure that will map the current `value` of this
 	///                `Property` to a new value.
 	///
-	/// - returns: A new instance of `AnyProperty` who's holds a mapped value
-	///            from `self`.
+	/// - returns: A property that holds a mapped value from `self`.
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Property<U> {
 		return lift { $0.map(transform) }
 	}
