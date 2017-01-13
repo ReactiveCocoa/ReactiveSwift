@@ -102,8 +102,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 				}
 			}
 
-		self.isEnabled = state.map { $0.isEnabled }
-		self.isExecuting = state.map { $0.isExecuting }
+		self.isEnabled = state.map { $0.isEnabled }.skipRepeats()
+		self.isExecuting = state.map { $0.isExecuting }.skipRepeats()
 	}
 
 	/// Initializes an action that will be conditionally enabled, and creates a
