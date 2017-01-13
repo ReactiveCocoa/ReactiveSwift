@@ -1,40 +1,42 @@
 import Result
 
-/// A mutable, observable property that has an optionally failable action
-/// associated with the setter.
+/// An editor that monitor, validates and commits changes to its root property.
 ///
 /// ## Consistency when nested
 ///
 /// `PropertyEditor` would back-propagate the validation failure if a
-/// proposed value from an outer property fails with its inner property.
+/// proposed value from an outer editor fails with its inner property.
 ///
 /// It would also evaluate values originated from the inner property. In other
 /// words, it is possible for `value` to be invalid, causing `validations`
 /// to be a `failure`. Rely on `validations` for asserting a pass in validation.
 public final class PropertyEditor<Value, ValidationError: Error> {
-	/// The commited value of the property.
+	/// The commited value with regard to the root property of the editor.
 	///
 	/// It does not guarantee that the value is valid with regard to `self`, since
 	/// changes might be initiated from the inner properties. Check `validations`
 	/// for the latest validation state.
 	public var commited: Property<Value>
 
-	/// The lifetime of the property.
+	/// The lifetime token of the editor.
+	private let lifetimeToken: Lifetime.Token
+
+	/// The lifetime of the editor.
 	public let lifetime: Lifetime
 
-	/// The latest validation that have been made by the property.
+	/// The latest validation that have been made by the editor.
 	public let result: Property<ValidationResult<Value, ValidationError>>
 
-	/// The action associated with the property.
+	/// The action associated with the editor.
 	private let action: (Value) -> Void
 
 	/// The existential box that wraps the synchronization mechanic of the root
 	/// property of the composed chain.
 	private let rootBox: PropertyEditorBoxBase<()>
 
-	/// Create an `PropertyEditor` that presents `inner` as a property of
-	/// `Value`, and invoke `body` with the proposed value whenever the setter is
-	/// invoked.
+	/// Create an `PropertyEditor` that presents an editing interface of `inner`
+	/// in another value type, using the given forward transform and the given
+	/// failable reverse transform.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -62,7 +64,8 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		}
 
 		self.result = Property(capturing: _validations)
-		self.lifetime = inner.lifetime
+		self.lifetimeToken = Lifetime.Token()
+		self.lifetime = Lifetime(lifetimeToken)
 		self.commited = inner.map(transform)
 		self.rootBox = PropertyEditorBox(inner)
 
@@ -80,9 +83,9 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		}
 	}
 
-	/// Create an `PropertyEditor` that presents `inner` as an
-	/// `PropertyEditor` of `U` value, and invoke `body` with the proposed
-	/// value whenever the setter is invoked.
+	/// Create an `PropertyEditor` that presents an editing interface of `inner`
+	/// in another value type and error type, using the given forward transform,
+	/// the given failable reverse transform, and the given error transform.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -108,9 +111,9 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		})
 	}
 
-	/// Create an `PropertyEditor` that presents `inner` as an
-	/// `PropertyEditor` of `U` value, and invoke `body` with the proposed
-	/// value whenever the setter is invoked.
+	/// Create an `PropertyEditor` that presents an editing interface of `inner`
+	/// in another value type, using the given forward transform and the given
+	/// failable reverse transform.
 	///
 	/// If `success` is returned by `body`, the associated value would be
 	/// persisted to `inner`. Otherwise, the failure would be emitted by the
@@ -141,7 +144,8 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		}
 
 		self.result = Property(capturing: _validations)
-		self.lifetime = inner.property.lifetime
+		self.lifetimeToken = Lifetime.Token()
+		self.lifetime = Lifetime(lifetimeToken)
 		self.commited = inner.property.commited.map(transform)
 		self.rootBox = inner.property.rootBox
 
