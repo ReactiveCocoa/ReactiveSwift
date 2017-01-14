@@ -1842,17 +1842,25 @@ extension SignalProtocol {
 	///            `interval` seconds apart.
 	public func debounce(_ interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> Signal<Value, Error> {
 		precondition(interval >= 0)
+
+		let d = SerialDisposable()
 		
-		return self
-			.materialize()
-			.flatMap(.latest) { event -> SignalProducer<Event<Value, Error>, NoError> in
-				if event.isTerminating {
-					return SignalProducer(value: event).observe(on: scheduler)
-				} else {
-					return SignalProducer(value: event).delay(interval, on: scheduler)
+		return Signal { observer in
+			return self.observe { event in
+				switch event {
+				case let .value(value):
+					let date = scheduler.currentDate.addingTimeInterval(interval)
+					d.inner = scheduler.schedule(after: date) {
+						observer.send(value: value)
+					}
+
+				case .completed, .failed, .interrupted:
+					d.inner = scheduler.schedule {
+						observer.action(event)
+					}
 				}
 			}
-			.dematerialize()
+		}
 	}
 }
 
