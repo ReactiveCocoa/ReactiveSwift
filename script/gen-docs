@@ -5,6 +5,16 @@ if [[ -z "$TRAVIS_TAG" ]]; then
     exit 0
 fi
 
+if [[ -z "$RAC_CIBOT_TOKEN" ]]; then
+    echo "CI bot token is undefined. Abort."
+    exit 0
+fi
+
+if [[ -z "$RAC_CIBOT_USERNAME" ]]; then
+    echo "CI bot username is undefined. Abort."
+    exit 0
+fi
+
 echo "Documentation builder. The tag is \`${TRAVIS_TAG}\`."
 
 gem install jazzy
