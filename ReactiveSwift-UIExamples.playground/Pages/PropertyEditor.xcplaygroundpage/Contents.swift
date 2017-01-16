@@ -22,12 +22,11 @@ final class ViewModel {
 	init(userService: UserService) {
 		termsAccepted = MutableProperty(false)
 
-		let username = MutableProperty("example")
-
 		// Setup property validation for `email`.
-		email = username.map(forward: { !$0.isEmpty ? "\($0)@reactivecocoa.io" : "" },
-		                     tryReverse: { Result($0.stripSuffix("@reactivecocoa.io"),
-		                                          failWith: .invalidEmail) })
+		email = MutableProperty("")
+			.validate { input in
+				return input.hasSuffix("@reactivecocoa.io") ? nil : .invalidEmail
+			}
 
 		// Setup property validation for `emailConfirmation`.
 		emailConfirmation = MutableProperty("")
@@ -44,16 +43,18 @@ final class ViewModel {
 		//
 		// It outputs the valid username for the `Action` to work on, or `nil` if the form
 		// is invalid and the `Action` would be disabled consequently.
-		let validatedUsername = Property.combineLatest(email.result,
-		                                               emailConfirmation.result,
-		                                               termsAccepted)
+		let validatedEmail = Property.combineLatest(email.result,
+		                                            emailConfirmation.result,
+		                                            termsAccepted)
 			.map { !$0.isFailure && !$1.isFailure && $2 }
-			.combineLatest(with: username)
-			.map { isValid, username in isValid ? username : nil }
+			.combineLatest(with: email.committed)
+			.map { isValid, email in isValid ? email : nil }
 
 		// The action to be invoked when the submit button is pressed.
 		// It enables only if all the controls have passed their validations.
-		submit = Action(input: validatedUsername) { username in
+		submit = Action(input: validatedEmail) { (email: String) in
+			let username = email.stripSuffix("@reactivecocoa.io")!
+
 			return userService.canUseUsername(username)
 				.promoteErrors(FormError.self)
 				.attemptMap { Result<(), FormError>($0 ? () : nil, failWith: .usernameUnavailable) }
@@ -106,8 +107,11 @@ final class ViewController: UIViewController {
 }
 
 final class UserService {
+	let (requestSignal, requestObserver) = Signal<String, NoError>.pipe()
+
 	func canUseUsername(_ string: String) -> SignalProducer<Bool, NoError> {
 		return SignalProducer { observer, disposable in
+			self.requestObserver.send(value: string)
 			observer.send(value: true)
 			observer.sendCompleted()
 		}
@@ -127,8 +131,8 @@ func main() {
 	window.makeKeyAndVisible()
 
 	// Setup console messages.
-	viewModel.submit.values.observeValues {
-		print("ViewModel.submit: Username `\($0)`.")
+	userService.requestSignal.observeValues {
+		print("UserService.requestSignal: Username `\($0)`.")
 	}
 
 	viewModel.submit.completed.observeValues {
