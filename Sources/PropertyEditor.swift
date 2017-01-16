@@ -220,6 +220,8 @@ extension PropertyEditor: BindingSourceProtocol {
 	}
 }
 
+// FIXME: To be replaced by extensions with concrete same-type requirement in
+//        Swift 3.1.
 public protocol _PropertyEditorProtocol: class {
 	associatedtype Value
 	associatedtype ValidationError: Swift.Error
