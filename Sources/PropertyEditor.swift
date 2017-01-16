@@ -49,7 +49,7 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 	public let result: Property<ValidationResult<Value, ValidationError>>
 
 	/// The action associated with the editor.
-	private let action: (Value) -> Void
+	private let action: (Value) -> Bool
 
 	/// The synchronization mechanic of the root property.
 	private let rootLock: RootPropertyLockBoxBase<()>
@@ -96,9 +96,11 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 				inner.value = innerResult
 				_validations.value = .success(input)
 				mutesValueBackpropagation = false
+				return true
 
 			case let .failure(error):
 				_validations.value = .failure(input, error)
+				return false
 			}
 		}
 	}
@@ -173,10 +175,11 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 		action = { input in
 			switch validator(input) {
 			case let .success(innerResult):
-				inner.property.action(innerResult)
+				return inner.property.action(innerResult)
 
 			case let .failure(error):
 				_validations.value = .failure(input, error)
+				return false
 			}
 		}
 	}
@@ -185,9 +188,12 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 	///
 	/// - parameters:
 	///   - newValue: The proposed value.
-	public func attemptSet(_ newValue: Value) {
-		rootLock.lock {
-			action(newValue)
+	///
+	/// - returns: A boolean indicating whether the attempt succeds.
+	@discardableResult
+	public func attemptSet(_ newValue: Value) -> Bool {
+		return rootLock.lock {
+			return action(newValue)
 		}
 	}
 
@@ -197,7 +203,7 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 	/// - parameters:
 	///   - action: A closure that accepts current property value.
 	///
-	/// - returns: the result of the action.
+	/// - returns: The result of the action.
 	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result {
 		return try rootLock.lock {
 			return try action(committed.value)
@@ -206,7 +212,7 @@ public final class PropertyEditor<Value, ValidationError: Error> {
 
 	internal func revalidate() {
 		rootLock.lock {
-			action(committed.value)
+			_ = action(committed.value)
 		}
 	}
 }

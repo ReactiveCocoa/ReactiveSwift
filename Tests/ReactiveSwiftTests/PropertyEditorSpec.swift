@@ -33,7 +33,8 @@ class PropertyEditorSpec: QuickSpec {
 			}
 
 			it("should map changes originated from the outer property") {
-				mapped.attemptSet("2")
+				let result = mapped.attemptSet("2")
+				expect(result) == true
 				expect(root.value) == 2
 			}
 
@@ -49,8 +50,9 @@ class PropertyEditorSpec: QuickSpec {
 				expect(rootValues) == [0, 1]
 				expect(mappedValues) == ["0", "1"]
 
-				mapped.attemptSet("2")
+				let result = mapped.attemptSet("2")
 
+				expect(result) == true
 				expect(rootValues) == [0, 1, 2]
 				expect(mappedValues) == ["0", "1", "2"]
 			}
@@ -86,14 +88,16 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should propagate writes to the root") {
-					mapped.attemptSet("2")
+					let result = mapped.attemptSet("2")
 
+					expect(result) == true
 					expect(rootValues) == [0, 2]
 					expect(mappedValues) == ["0", "2"]
 					expect(nestedMappedValues) == [0, 2]
 
-					nestedMapped.attemptSet(3)
+					let result2 = nestedMapped.attemptSet(3)
 
+					expect(result2) == true
 					expect(rootValues) == [0, 2, 3]
 					expect(mappedValues) == ["0", "2", "3"]
 					expect(nestedMappedValues) == [0, 2, 3]
@@ -140,16 +144,18 @@ class PropertyEditorSpec: QuickSpec {
 			}
 
 			it("should map the valid changes originated from the outer property") {
-				mapped.attemptSet("2")
+				let result = mapped.attemptSet("2")
 
+				expect(result) == true
 				expect(mapped.committed.value) == "2"
 				expect(root.value) == 2
 				expect(validationResult) == .success("2")
 			}
 
 			it("should block invalid changes originated from the outer property") {
-				mapped.attemptSet("😦")
+				let result = mapped.attemptSet("😦")
 
+				expect(result) == false
 				expect(mapped.committed.value) == "0"
 				expect(root.value) == 0
 				expect(validationResult) == .errorDefault("😦")
@@ -172,14 +178,16 @@ class PropertyEditorSpec: QuickSpec {
 				expect(mappedValues) == ["0", "1"]
 				expect(mappedValidations) == [.success("1")]
 
-				mapped.attemptSet("2")
+				let result = mapped.attemptSet("2")
 
+				expect(result) == true
 				expect(rootValues) == [0, 1, 2]
 				expect(mappedValues) == ["0", "1", "2"]
 				expect(mappedValidations) == [.success("1"), .success("2")]
 
-				mapped.attemptSet("😦")
+				let result2 = mapped.attemptSet("😦")
 
+				expect(result2) == false
 				expect(rootValues) == [0, 1, 2]
 				expect(mappedValues) == ["0", "1", "2"]
 				expect(mappedValidations) == [.success("1"), .success("2"), .errorDefault("😦")]
@@ -238,16 +246,18 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should let valid.committed.values get through") {
-					mapped.attemptSet("2")
+					let result = mapped.attemptSet("2")
 
+					expect(result) == true
 					expect(rootValues) == [0, 2]
 					expect(mappedValues) == ["0", "2"]
 					expect(nestedMappedValues) == ["@0", "@2"]
 					expect(mappedValidations) == [.success("2")]
 					expect(nestedMappedValidations) == [.success("@2")]
 
-					nestedMapped.attemptSet("@3")
+					let result2 = nestedMapped.attemptSet("@3")
 
+					expect(result2) == true
 					expect(rootValues) == [0, 2, 3]
 					expect(mappedValues) == ["0", "2", "3"]
 					expect(nestedMappedValues) == ["@0", "@2", "@3"]
@@ -256,8 +266,9 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should propagate the validation error back to the outer property in the middle of the chain") {
-					nestedMapped.attemptSet("@🚦")
+					let result = nestedMapped.attemptSet("@🚦")
 
+					expect(result) == false
 					expect(rootValues) == [0]
 					expect(mappedValues) == ["0"]
 					expect(nestedMappedValues) == ["@0"]
@@ -266,8 +277,9 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should block the validation error from proceeding") {
-					nestedMapped.attemptSet("🚦")
+					let result = nestedMapped.attemptSet("🚦")
 
+					expect(result) == false
 					expect(rootValues) == [0]
 					expect(mappedValues) == ["0"]
 					expect(nestedMappedValues) == ["@0"]
@@ -308,7 +320,9 @@ class PropertyEditorSpec: QuickSpec {
 			}
 
 			it("should let valid.committed.values get through") {
-				validated.attemptSet(10)
+				let result = validated.attemptSet(10)
+
+				expect(result) == true
 				expect(root.value) == 10
 				expect(validated.committed.value) == 10
 
@@ -316,7 +330,9 @@ class PropertyEditorSpec: QuickSpec {
 			}
 
 			it("should block invalid.committed.values") {
-				validated.attemptSet(-10)
+				let result = validated.attemptSet(-10)
+
+				expect(result) == false
 				expect(root.value) == 0
 				expect(validated.committed.value) == 0
 
@@ -409,16 +425,18 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should let valid.committed.values get through") {
-					validated.attemptSet(100)
+					let result = validated.attemptSet(100)
 
+					expect(result) == true
 					expect(rootValues) == [100]
 					expect(validatedValues) == [100]
 					expect(nestedValidatedValues) == [100]
 					expect(validations) == [.success(100)]
 					expect(nestedValidations) == [.success(100)]
 
-					nestedValidated.attemptSet(200)
+					let result2 = nestedValidated.attemptSet(200)
 
+					expect(result2) == true
 					expect(rootValues) == [100, 200]
 					expect(validatedValues) == [100, 200]
 					expect(nestedValidatedValues) == [100, 200]
@@ -427,8 +445,9 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should block the validation error from proceeding") {
-					nestedValidated.attemptSet(-50)
+					let result = nestedValidated.attemptSet(-50)
 
+					expect(result) == false
 					expect(rootValues) == []
 					expect(validatedValues) == []
 					expect(nestedValidatedValues) == []
@@ -437,8 +456,9 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should propagate the validation error back to the outer property in the middle of the chain") {
-					validated.attemptSet(-100)
+					let result = validated.attemptSet(-100)
 
+					expect(result) == false
 					expect(rootValues) == []
 					expect(validatedValues) == []
 					expect(nestedValidatedValues) == []
@@ -488,7 +508,9 @@ class PropertyEditorSpec: QuickSpec {
 				it("should let valid.committed.values get through") {
 					other.value = "🎃"
 
-					validated.attemptSet(10)
+					let result = validated.attemptSet(10)
+
+					expect(result) == true
 					expect(root.value) == 10
 					expect(validated.committed.value) == 10
 
@@ -496,7 +518,9 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should block invalid.committed.values") {
-					validated.attemptSet(-10)
+					let result = validated.attemptSet(-10)
+
+					expect(result) == false
 					expect(root.value) == 0
 					expect(validated.committed.value) == 0
 
@@ -510,7 +534,9 @@ class PropertyEditorSpec: QuickSpec {
 				}
 
 				it("should automatically revalidate the latest failed.committed.value if the dependency changes") {
-					validated.attemptSet(10)
+					let result = validated.attemptSet(10)
+
+					expect(result) == false
 					expect(root.value) == 0
 					expect(validated.committed.value) == 0
 
@@ -589,8 +615,9 @@ class PropertyEditorSpec: QuickSpec {
 						expect(validations) == [.success(0)]
 						expect(nestedValidations) == [.error1(0)]
 
-						validated.attemptSet(70)
+						let result = validated.attemptSet(70)
 
+						expect(result) == true
 						expect(rootValues) == [0, 70]
 						expect(validatedValues) == [0, 70]
 						expect(nestedValidatedValues) == [0, 70]
@@ -605,8 +632,9 @@ class PropertyEditorSpec: QuickSpec {
 						expect(validations) == [.success(0), .success(70)]
 						expect(nestedValidations) == [.error1(0), .error1(70), .error1(70)]
 
-						nestedValidated.attemptSet(200)
+						let result2 = nestedValidated.attemptSet(200)
 
+						expect(result2) == true
 						expect(rootValues) == [0, 70, 200]
 						expect(validatedValues) == [0, 70, 200]
 						expect(nestedValidatedValues) == [0, 70, 200]
@@ -615,8 +643,9 @@ class PropertyEditorSpec: QuickSpec {
 					}
 
 					it("should block the validation error from proceeding") {
-						nestedValidated.attemptSet(-50)
+						let result = nestedValidated.attemptSet(-50)
 
+						expect(result) == false
 						expect(rootValues) == []
 						expect(validatedValues) == []
 						expect(nestedValidatedValues) == []
@@ -625,8 +654,9 @@ class PropertyEditorSpec: QuickSpec {
 					}
 
 					it("should propagate the validation error back to the outer property in the middle of the chain") {
-						validated.attemptSet(-100)
+						let result = validated.attemptSet(-100)
 
+						expect(result) == false
 						expect(rootValues) == []
 						expect(validatedValues) == []
 						expect(nestedValidatedValues) == []
@@ -643,8 +673,9 @@ class PropertyEditorSpec: QuickSpec {
 						expect(validations) == []
 						expect(nestedValidations) == [.error1(0)]
 						
-						nestedValidated.attemptSet(-100)
-						
+						let result = nestedValidated.attemptSet(-100)
+
+						expect(result) == false
 						expect(rootValues) == []
 						expect(validatedValues) == []
 						expect(nestedValidatedValues) == []
@@ -694,10 +725,13 @@ class PropertyEditorSpec: QuickSpec {
 				validationResult = nil
 			}
 
-			it("should let valid.committed.values get through") {
-				other.attemptSet("🎃")
+			it("should let valid.committed.values get through even if the dependency fails its validation") {
+				let otherResult = other.attemptSet("🎃")
+				expect(otherResult) == false
 
-				validated.attemptSet(10)
+				let result = validated.attemptSet(10)
+				expect(result) == true
+
 				expect(root.value) == 10
 				expect(validated.committed.value) == 10
 
@@ -705,7 +739,9 @@ class PropertyEditorSpec: QuickSpec {
 			}
 
 			it("should block invalid.committed.values") {
-				validated.attemptSet(-10)
+				let result = validated.attemptSet(-10)
+				expect(result) == false
+
 				expect(root.value) == 0
 				expect(validated.committed.value) == 0
 
@@ -719,13 +755,16 @@ class PropertyEditorSpec: QuickSpec {
 			}
 
 			it("should automatically revalidate the latest failed.committed.value if the dependency changes") {
-				validated.attemptSet(10)
+				let result = validated.attemptSet(10)
+				expect(result) == false
+
 				expect(root.value) == 0
 				expect(validated.committed.value) == 0
 
 				expect(validationResult) == .errorDefault(10)
 
-				other.attemptSet("🎃")
+				let otherResult = other.attemptSet("🎃")
+				expect(otherResult) == false
 
 				expect(root.value) == 10
 				expect(validated.committed.value) == 10
@@ -733,13 +772,17 @@ class PropertyEditorSpec: QuickSpec {
 			}
 
 			it("should automatically revalidate the latest failed.committed.value whenever the dependency has been proposed a new input") {
-				validated.attemptSet(10)
+				let result = validated.attemptSet(10)
+
+				expect(result) == false
 				expect(root.value) == 0
 				expect(validated.committed.value) == 0
 
 				expect(validationResult) == .errorDefault(10)
 
-				other.attemptSet("🎃")
+				let otherResult = other.attemptSet("🎃")
+
+				expect(otherResult) == false
 				expect(other.committed.value) == ""
 				expect(FlattenedResult(other.result.value)) == FlattenedResult.error2("🎃")
 
@@ -747,7 +790,9 @@ class PropertyEditorSpec: QuickSpec {
 				expect(validated.committed.value) == 10
 				expect(validationResult) == .success(10)
 
-				other.attemptSet("👻🎃")
+				let otherResult2 = other.attemptSet("👻🎃")
+
+				expect(otherResult2) == true
 				expect(other.committed.value) == "👻🎃"
 				expect(FlattenedResult(other.result.value)) == FlattenedResult.success("👻🎃")
 
