@@ -12,31 +12,33 @@ final class ViewModel {
 		static let usernameUnavailable = FormError(reason: "The username has been taken.")
 	}
 
-	let email: PropertyEditor<String, FormError>
-	let emailConfirmation: PropertyEditor<String, FormError>
+	let email: MutableValidatingProperty<String, FormError>
+	let emailConfirmation: MutableValidatingProperty<String, FormError>
 	let termsAccepted: MutableProperty<Bool>
+
 	let reasons: Signal<String, NoError>
 
 	let submit: Action<(), (), FormError>
 
 	init(userService: UserService) {
+		email = MutableValidatingProperty<String, FormError>("") { input, error in
+			if !input.hasSuffix("@reactivecocoa.io") {
+				error = .invalidEmail
+			}
+		}
+
+		emailConfirmation = MutableValidatingProperty<String, FormError>("", with: email) { input, email, error in
+			if input != email {
+				error = .mismatchEmail
+			}
+		}
+
 		termsAccepted = MutableProperty(false)
-
-		// Setup property validation for `email`.
-		email = MutableProperty("")
-			.validate { input in
-				return input.hasSuffix("@reactivecocoa.io") ? nil : .invalidEmail
-			}
-
-		// Setup property validation for `emailConfirmation`.
-		emailConfirmation = MutableProperty("")
-			.validate(with: email) { input, currentEmail in
-				return input == currentEmail ? nil : .mismatchEmail
-			}
 
 		// Aggregate latest failure contexts as a stream of strings.
 		reasons = Property.combineLatest(email.result, emailConfirmation.result)
 			.signal
+			.debounce(0.1, on: QueueScheduler.main)
 			.map { [$0, $1].flatMap { $0.error?.reason }.joined(separator: "\n") }
 
 		// A `Property` of the validated username.
@@ -47,7 +49,7 @@ final class ViewModel {
 		                                            emailConfirmation.result,
 		                                            termsAccepted)
 			.map { !$0.isFailure && !$1.isFailure && $2 }
-			.combineLatest(with: email.committed)
+			.combineLatest(with: email)
 			.map { isValid, email in isValid ? email : nil }
 
 		// The action to be invoked when the submit button is pressed.
@@ -70,8 +72,8 @@ final class ViewController: UIViewController {
 		super.viewDidLoad()
 
 		// Initialize the interactive controls.
-		formView.emailField.text = viewModel.email.committed.value
-		formView.emailConfirmationField.text = viewModel.emailConfirmation.committed.value
+		formView.emailField.text = viewModel.email.value
+		formView.emailConfirmationField.text = viewModel.emailConfirmation.value
 		formView.termsSwitch.isOn = false
 
 		// Setup bindings with the interactive controls.
