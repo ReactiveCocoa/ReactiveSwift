@@ -71,9 +71,7 @@ matrix:
       - pod lib lint ReactiveSwift.podspec
       env:
         - JOB=PODSPEC
-    - os: osx
-      language: generic
-      script:
+    - script:
         - swift build
       env:
         - JOB=SWIFTPM_DARWIN
@@ -88,9 +86,7 @@ matrix:
         - swift build
         - swift test
       env: JOB=SWIFTPM_LINUX
-    - os: osx
-      language: generic
-      script:
+    - script:
         - script/gen-docs
       env:
         - JOB=JAZZY_DOCS_GEN
