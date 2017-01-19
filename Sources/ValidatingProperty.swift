@@ -72,28 +72,27 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	///   - validator: The closure to invoke for any proposed value to `self`.
 	public init(
 		_ initial: Value,
-		_ validator: @escaping (Value, inout (ValidationError?)) -> Void
+		_ validator: @escaping (Value) -> ValidatorOutput<Value, ValidationError>
 	) {
 		var mutesValueBackpropagation = false
 
 		storage = MutableProperty(initial)
-		let mutableResult = MutableProperty(ValidationResult(initial, validator: validator))
+		let mutableResult = MutableProperty(ValidationResult(initial, validator(initial)))
 		result = Property(capturing: mutableResult)
 
 		mutableResult <~ storage.signal
 			.filter { _ in !mutesValueBackpropagation }
-			.map { ValidationResult($0, validator: validator) }
+			.map { ValidationResult($0, validator($0)) }
 
 		setter = { [storage] input in
-			var error: ValidationError?
-			validator(input, &error)
+			let writebackValue: Value? = mutableResult.modify { result in
+				result = ValidationResult(input, validator(input))
+				return result.value
+			}
 
-			if let error = error {
-				mutableResult.value = .failure(input, error)
-			} else {
+			if let value = writebackValue {
 				mutesValueBackpropagation = true
-				storage.value = input
-				mutableResult.value = .success(input)
+				storage.value = value
 				mutesValueBackpropagation = false
 			}
 		}
@@ -102,24 +101,25 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	public convenience init<Other: PropertyProtocol>(
 		_ initial: Value,
 		with other: Other,
-		_ validator: @escaping (Value, Other.Value, inout (ValidationError?)) -> Void
+		_ validator: @escaping (Value, Other.Value) -> ValidatorOutput<Value, ValidationError>
 	) {
 		let other = Property(other)
 
-		self.init(initial) { input, error in
-			validator(input, other.value, &error)
+		self.init(initial) { input in
+			return validator(input, other.value)
 		}
 
 		other.signal
 			.take(during: lifetime)
 			.observeValues { [weak self] _ in
 				if let s = self {
-					s.withValue { current in
-						if case let .failure(failedValue, _) = s.result.value {
-							s.value = failedValue
-						} else {
-							s.value = current
-						}
+					switch s.result.value {
+					case let .failure(failedValue, _):
+						s.value = failedValue
+					case let .substitution(substitutedValue, _, _):
+						s.value = substitutedValue
+					case let .success(value):
+						s.value = value
 					}
 				}
 			}
@@ -128,33 +128,36 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	public convenience init<U, E: Swift.Error>(
 		_ initial: Value,
 		with other: MutableValidatingProperty<U, E>,
-		_ validator: @escaping (Value, U, inout (ValidationError?)) -> Void
+		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
 	) {
 		let otherValidations = other.result
 
-		self.init(initial) { input, error in
+		self.init(initial) { input in
 			let otherValue: U
 
 			switch otherValidations.value {
 			case let .success(value):
 				otherValue = value
+			case let .substitution(_, value, _):
+				otherValue = value
 			case let .failure(value, _):
 				otherValue = value
 			}
 
-			validator(input, otherValue, &error)
+			return validator(input, otherValue)
 		}
 
 		otherValidations.signal
 			.take(during: lifetime)
 			.observeValues { [weak self] _ in
 			if let s = self {
-				s.withValue { current in
-					if case let .failure(failedValue, _) = s.result.value {
-						s.value = failedValue
-					} else {
-						s.value = current
-					}
+				switch s.result.value {
+				case let .failure(failedValue, _):
+					s.value = failedValue
+				case let .substitution(substitutedValue, _, _):
+					s.value = substitutedValue
+				case let .success(value):
+					s.value = value
 				}
 			}
 		}
@@ -166,13 +169,24 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	}
 }
 
+public enum ValidatorOutput<Value, Error: Swift.Error> {
+	case success
+
+	case substitution(Value, Error)
+
+	case failure(Error)
+}
+
 /// Represents the result of the validation performed by `PropertyEditor`.
 public enum ValidationResult<Value, Error: Swift.Error> {
 	/// The value passed the validation.
 	case success(Value)
 
+	/// The value was a substituted value due to a failed validation.
+	case substitution(substituted: Value, proposed: Value, Error)
+
 	/// The value failed the validation.
-	case failure(Value, Error)
+	case failure(proposed: Value, Error)
 
 	/// Whether the validation was failed.
 	public var isFailure: Bool {
@@ -180,6 +194,19 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 			return true
 		} else {
 			return false
+		}
+	}
+
+	/// Extract the value if the validation is passed, or a substituted value
+	/// for failure is provided.
+	public var value: Value? {
+		switch self {
+		case let .success(value):
+			return value
+		case let .substitution(value, _, _):
+			return value
+		case .failure:
+			return nil
 		}
 	}
 
@@ -192,20 +219,16 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 		}
 	}
 
-	/// Convert `self` to `Result`, ignoring the failed value.
-	public var result: Result<Value, Error> {
-		switch self {
-		case let .success(value):
-			return .success(value)
-		case let .failure(_, error):
-			return .failure(error)
+	fileprivate init(_ value: Value, _ output: ValidatorOutput<Value, Error>) {
+		switch output {
+		case .success:
+			self = .success(value)
+
+		case let .substitution(substitutedValue, error):
+			self = .substitution(substituted: substitutedValue, proposed: value, error)
+
+		case let .failure(error):
+			self = .failure(proposed: value, error)
 		}
-	}
-
-	fileprivate init(_ value: Value, validator: (Value, inout (Error?)) -> Void) {
-		var error: Error?
-		validator(value, &error)
-
-		self = error.map { .failure(value, $0) } ?? .success(value)
 	}
 }

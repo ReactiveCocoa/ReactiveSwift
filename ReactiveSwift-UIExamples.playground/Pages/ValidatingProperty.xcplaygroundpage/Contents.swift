@@ -21,16 +21,12 @@ final class ViewModel {
 	let submit: Action<(), (), FormError>
 
 	init(userService: UserService) {
-		email = MutableValidatingProperty<String, FormError>("") { input, error in
-			if !input.hasSuffix("@reactivecocoa.io") {
-				error = .invalidEmail
-			}
+		email = MutableValidatingProperty<String, FormError>("") { input in
+			return input.hasSuffix("@reactivecocoa.io") ? .success : .failure(.invalidEmail)
 		}
 
-		emailConfirmation = MutableValidatingProperty<String, FormError>("", with: email) { input, email, error in
-			if input != email {
-				error = .mismatchEmail
-			}
+		emailConfirmation = MutableValidatingProperty<String, FormError>("", with: email) { input, email in
+			return input == email ? .success : .failure(.mismatchEmail)
 		}
 
 		termsAccepted = MutableProperty(false)

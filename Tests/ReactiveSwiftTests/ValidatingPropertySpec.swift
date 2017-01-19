@@ -11,9 +11,7 @@ class ValidatingPropertySpec: QuickSpec {
 				var validationResult: FlattenedResult<Int>?
 
 				beforeEach {
-					validated = MutableValidatingProperty(0) { input, error in
-						error = input < 0 ? .default : nil
-					}
+					validated = MutableValidatingProperty(0) { $0 >= 0 ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
 
 					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -33,6 +31,13 @@ class ValidatingPropertySpec: QuickSpec {
 					expect(validationResult) == .success(10)
 				}
 
+				it("should denote the substitution") {
+					validated.value = 100
+
+					expect(validated.value) == Int.max
+					expect(validationResult) == .substitution(Int.max, 100, .default)
+				}
+
 				it("should block invalid values") {
 					validated.value = -10
 
@@ -49,9 +54,7 @@ class ValidatingPropertySpec: QuickSpec {
 				beforeEach {
 					other = MutableProperty("")
 
-					validated = MutableValidatingProperty(0, with: other) { input, otherInput, error in
-						error = input < 0 || otherInput != "🎃" ? .default : nil
-					}
+					validated = MutableValidatingProperty(0, with: other) { $0 >= 0 && $1 == "🎃" ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
 
 					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -86,6 +89,14 @@ class ValidatingPropertySpec: QuickSpec {
 					expect(validationResult) == .errorDefault(-10)
 				}
 
+				it("should denote the substitution") {
+					other.value = "🎃"
+					validated.value = 100
+
+					expect(validated.value) == Int.max
+					expect(validationResult) == .substitution(Int.max, 100, .default)
+				}
+
 				it("should automatically revalidate the latest failed value if the dependency changes") {
 					validated.value = 10
 
@@ -97,6 +108,23 @@ class ValidatingPropertySpec: QuickSpec {
 					expect(validated.value) == 10
 					expect(validationResult) == .success(10)
 				}
+
+				it("should automatically revalidate the latest substituted value if the dependency changes") {
+					validated.value = 100
+
+					expect(validated.value) == 0
+					expect(validationResult) == .errorDefault(100)
+
+					other.value = "🎃"
+
+					expect(validated.value) == Int.max
+					expect(validationResult) == .substitution(Int.max, 100, .default)
+
+					validated.value = -1
+
+					expect(validated.value) == Int.max
+					expect(validationResult) == .errorDefault(-1)
+				}
 			}
 
 			describe("a MutableValidatingProperty dependency") {
@@ -105,13 +133,9 @@ class ValidatingPropertySpec: QuickSpec {
 				var validationResult: FlattenedResult<Int>?
 
 				beforeEach {
-					other = MutableValidatingProperty("") { input, error in
-						error = !(input.hasSuffix("🎃") && input != "🎃") ? .error2 : nil
-					}
+					other = MutableValidatingProperty("") { $0.hasSuffix("🎃") && $0 != "🎃" ? .success : .failure(.error2) }
 
-					validated = MutableValidatingProperty(0, with: other) { input, otherInput, error in
-						error = input < 0 || !otherInput.hasSuffix("🎃") ? .default : nil
-					}
+					validated = MutableValidatingProperty(0, with: other) { $0 >= 0 && $1.hasSuffix("🎃") ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
 
 					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -146,6 +170,14 @@ class ValidatingPropertySpec: QuickSpec {
 					expect(validationResult) == .errorDefault(-10)
 				}
 
+				it("should denote the substitution") {
+					other.value = "🎃"
+					validated.value = 100
+
+					expect(validated.value) == Int.max
+					expect(validationResult) == .substitution(Int.max, 100, .default)
+				}
+
 				it("should automatically revalidate the latest failed value if the dependency changes") {
 					validated.value = 10
 
@@ -156,6 +188,23 @@ class ValidatingPropertySpec: QuickSpec {
 
 					expect(validated.value) == 10
 					expect(validationResult) == .success(10)
+				}
+
+				it("should automatically revalidate the latest substituted value if the dependency changes") {
+					validated.value = 100
+
+					expect(validated.value) == 0
+					expect(validationResult) == .errorDefault(100)
+
+					other.value = "🎃"
+
+					expect(validated.value) == Int.max
+					expect(validationResult) == .substitution(Int.max, 100, .default)
+
+					validated.value = -1
+
+					expect(validated.value) == Int.max
+					expect(validationResult) == .errorDefault(-1)
 				}
 
 				it("should automatically revalidate the latest failed value whenever the dependency has been proposed a new input") {
@@ -190,11 +239,15 @@ private enum FlattenedResult<Value: Equatable>: Equatable {
 	case error1(Value)
 	case error2(Value)
 	case success(Value)
+	case substitution(Value, Value, TestError?)
 
 	init(_ result: ValidationResult<Value, TestError>) {
 		switch result {
 		case let .success(value):
 			self = .success(value)
+
+		case let .substitution(substitutedValue, proposedValue, error):
+			self = .substitution(substitutedValue, proposedValue, error)
 
 		case let .failure(value, error):
 			switch error {
@@ -218,6 +271,8 @@ private enum FlattenedResult<Value: Equatable>: Equatable {
 			return lhsValue == rhsValue
 		case (let .success(lhsValue), let .success(rhsValue)):
 			return lhsValue == rhsValue
+		case (let .substitution(lhsSubstitution, lhsProposed, lhsError), let .substitution(rhsSubstitution, rhsProposed, rhsError)):
+			return lhsSubstitution == rhsSubstitution && lhsProposed == rhsProposed && lhsError == rhsError
 		default:
 			return false
 		}
