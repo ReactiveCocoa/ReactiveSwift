@@ -49,6 +49,21 @@ let interrupter = frames.start { frame in ... }
 interrupter.dispose()
 ```
 
+#### `Lifetime`: limits the scope of an observation
+When observing a `Signal` or `SignalProducer`, it doesn't make sense to continue emitting values if there's no longer anyone observing them.
+Consider the video stream: once you stop watching the video, the stream can be automatically closed by providing a `Lifetime`:
+
+```swift
+class VideoPlayer {
+  private let (lifetime, token) = Lifetime.makeLifetime()
+
+  func play() {
+    let frames: SignalProducer<VideoFrame, ConnectionError> = ...
+    frames.take(during: lifetime).start { frame in ... }
+  }
+}
+```
+
 #### `Property`: an observable box that always holds a value.
 `Property` is a variable that can be observed for its changes. In other words, it is a stream of values with a stronger guarantee than `Signal` — the latest value is always available, and the stream would never fail.
 
