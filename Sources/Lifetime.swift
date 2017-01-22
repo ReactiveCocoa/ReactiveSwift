@@ -52,10 +52,7 @@ public final class Lifetime {
 	///
 	/// ```
 	/// class MyController {
-	///		private let token = Lifetime.Token()
-	///		public var lifetime: Lifetime {
-	///			return Lifetime(token)
-	///		}
+	///		private let (lifetime, token) = Lifetime.makeLifetime()
 	/// }
 	/// ```
 	public final class Token {
