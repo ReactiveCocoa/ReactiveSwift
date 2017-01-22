@@ -513,6 +513,29 @@ class SignalSpec: QuickSpec {
 				expect(lastValue) == 2
 			}
 		}
+		
+		describe("filterMap") {
+			it("should omit values from the signal that are nil after the transformation") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				
+				var lastValue: Int?
+				
+				mappedSignal.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+
+				observer.send(value: "0")
+				expect(lastValue) == 0
+				
+				observer.send(value: "1")
+				expect(lastValue) == 1
+				
+				observer.send(value: "A")
+				expect(lastValue) == 1
+			}
+			
+		}
 
 		describe("skipNil") {
 			it("should forward only non-nil values") {
