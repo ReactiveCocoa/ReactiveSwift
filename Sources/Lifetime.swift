@@ -6,6 +6,12 @@ import enum Result.NoError
 public final class Lifetime {
 	/// MARK: Type properties and methods
 
+	/// Factory method for creating a `Lifetime` and its associated `Token`.
+	public static func makeLifetime() -> (Lifetime, Token) {
+		let token = Token()
+		return (Lifetime(token), token)
+	}
+
 	/// A `Lifetime` that has already ended.
 	public static var empty: Lifetime {
 		return Lifetime(ended: .empty)

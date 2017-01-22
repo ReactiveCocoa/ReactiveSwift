@@ -30,6 +30,21 @@ final class LifetimeSpec: QuickSpec {
 				object.value = nil
 				expect(isCompleted) == true
 			}
+
+			it("should provide a convenience factory method") {
+				let lifetime: Lifetime
+				var token: Lifetime.Token
+
+				(lifetime, token) = Lifetime.makeLifetime()
+
+				var isCompleted = false
+				lifetime.ended.observeCompleted { isCompleted = true }
+
+				token = Lifetime.Token()
+				_ = token
+
+				expect(isCompleted) == true
+			}
 		}
 	}
 }
