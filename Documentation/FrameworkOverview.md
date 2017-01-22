@@ -108,6 +108,41 @@ from a [signal](#signals). Within RAC, an observer is represented as an [`Observ
 Observers can be implicitly created by using the callback-based versions of the
 `Signal.observe` or `SignalProducer.start` methods.
 
+## Lifetimes
+
+When observing a signal or starting a signal producer, it is important to consider how long the observation should last. For example, when observing a signal in order to update a UI component, it makes sense to stop observing it once the component is no longer on screen. This idea is expressed in ReactiveSwift by the `Lifetime` type.
+
+```swift
+import Foundation
+
+final class SettingsController {
+  // Define a lifetime for instances of this class. When an instance is
+  // deinitialized, the lifetime ends.
+  private let (lifetime, token) = Lifetime.makeLifetime()
+
+  func observeDefaultsChanged(_ defaults: UserDefaults = .standard) {
+    // `take(during: lifetime)` ensures the observation ends when this object
+    // is deinitialized
+    NotificationCenter.default.reactive
+      .notifications(forName: UserDefaults.didChangeNotification, object: defaults)
+      .take(during: lifetime)
+      .observeValues { [weak self] _ in self?.defaultsChanged(defaults) }
+  }
+
+  private func defaultsChanged(_ defaults: UserDefaults) {
+    // perform some updates
+  }
+}
+```
+
+The `token` is a `Lifetime.Token`, which we need to keep a strong reference to in order for the `Lifetime` to work.
+(Note: It's crucial that there is only a single strong reference to `token`, so that it is deinitialized at the same time as `self`.)
+
+`Lifetime` is useful any time that an observation might outlive the observer:
+
+- In the `NotificationCenter` example above, without a `Lifetime` the observation would never complete (leaking memory and wasting CPU cycles).
+- Consider a signal producer that fires a network request — incorporating a `Lifetime` might allow the request to be automatically cancelled if the observer is deinitialized.
+
 ## Actions
 
 An **action**, represented by the [`Action`][Action] type, will do some work when
