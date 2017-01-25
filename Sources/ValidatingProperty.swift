@@ -1,23 +1,11 @@
 import Result
 
-/// An editor that monitors, validates and commits changes to its root property.
+/// A mutable property that validates mutations before committing them.
 ///
-/// Validation failure raised by intermediate editors would back-propagate to
-/// the outer editors.
-///
-/// ```
-/// let outer = root
-///   .validate { $0 == "Valid" ? nil : .intermediateInvalid }
-///   .validate { $0.hasSuffix("Valid") ? nil : .outerInvalid }
-///
-/// outer.attemptSet("isValid")
-///
-/// intermediate.result.value // `.failure("isValid", .intermediateInvalid)`
-/// outer.result.value        // `.failure("isValid", .intermediateInvalid)`
-/// ```
-///
-/// Changes originated from the intermediate editors and the root property are
-/// monitored and would trigger validations automatically.
+/// If the property wraps an arbitrary mutable property, changes originated from
+/// the inner property are monitored, and would be automatically validated.
+/// Note that these would still appear as committed values even if they fail the
+/// validation.
 ///
 /// ```
 /// let root = MutableProperty("Valid")
@@ -52,16 +40,15 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	/// The lifetime of the editor.
 	public let lifetime: Lifetime
 
-	/// Create an `PropertyEditor` that presents an editing interface of `inner`
-	/// in another value type, using the given forward transform and the given
-	/// failable reverse transform.
+	/// Create an `MutableValidatingProperty` that presents a mutable validating
+	/// view for an inner mutable property.
 	///
-	/// If `success` is returned by `body`, the associated value would be
-	/// persisted to `inner`. Otherwise, the failure would be emitted by the
-	/// `validations` signal.
+	/// If `success` is returned by `validator`, the associated value would be
+	/// committed to `inner`. Otherwise, the failure would be exposed by the
+	/// `result` property of `self`.
 	///
 	/// - parameters:
-	///   - initial: The initial value.
+	///   - inner: The inner property which validated values are committed to.
 	///   - validator: The closure to invoke for any proposed value to `self`.
 	public init<Inner: ComposableMutablePropertyProtocol>(
 		_ inner: Inner,
@@ -96,16 +83,16 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		}
 	}
 
-	/// Create an `PropertyEditor` that presents an editing interface of `inner`
-	/// in another value type, using the given forward transform and the given
-	/// failable reverse transform.
+	/// Create an `MutableValidatingProperty` that validates mutations before
+	/// committing them.
 	///
-	/// If `success` is returned by `body`, the associated value would be
-	/// persisted to `inner`. Otherwise, the failure would be emitted by the
-	/// `validations` signal.
+	/// If `success` is returned by `validator`, the associated value would be
+	/// committed to `inner`. Otherwise, the failure would be exposed by the
+	/// `result` property of `self`.
 	///
 	/// - parameters:
-	///   - initial: The initial value.
+	///   - initial: The initial value of the property. It is not required to
+	///              pass the validation as specified by `validator`.
 	///   - validator: The closure to invoke for any proposed value to `self`.
 	public convenience init(
 		_ initial: Value,
@@ -114,6 +101,17 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		self.init(MutableProperty(initial), validator)
 	}
 
+	/// Create an `MutableValidatingProperty` that presents a mutable validating
+	/// view for an inner mutable property.
+	///
+	/// If `success` is returned by `validator`, the associated value would be
+	/// committed to `inner`. Otherwise, the failure would be exposed by the
+	/// `result` property of `self`.
+	///
+	/// - parameters:
+	///   - inner: The inner property which validated values are committed to.
+	///   - other: The property that `validator` depends on.
+	///   - validator: The closure to invoke for any proposed value to `self`.
 	public convenience init<Other: PropertyProtocol>(
 		_ inner: MutableProperty<Value>,
 		with other: Other,
@@ -141,6 +139,18 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		}
 	}
 
+	/// Create an `MutableValidatingProperty` that validates mutations before
+	/// committing them.
+	///
+	/// If `success` is returned by `validator`, the associated value would be
+	/// committed to `inner`. Otherwise, the failure would be exposed by the
+	/// `result` property of `self`.
+	///
+	/// - parameters:
+	///   - initial: The initial value of the property. It is not required to
+	///              pass the validation as specified by `validator`.
+	///   - other: The property that `validator` depends on.
+	///   - validator: The closure to invoke for any proposed value to `self`.
 	public convenience init<Other: PropertyProtocol>(
 		_ initial: Value,
 		with other: Other,
@@ -149,6 +159,17 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		self.init(MutableProperty(initial), with: other, validator)
 	}
 
+	/// Create an `MutableValidatingProperty` that presents a mutable validating
+	/// view for an inner mutable property.
+	///
+	/// If `success` is returned by `validator`, the associated value would be
+	/// committed to `inner`. Otherwise, the failure would be exposed by the
+	/// `result` property of `self`.
+	///
+	/// - parameters:
+	///   - inner: The inner property which validated values are committed to.
+	///   - other: The property that `validator` depends on.
+	///   - validator: The closure to invoke for any proposed value to `self`.
 	public convenience init<U, E: Swift.Error>(
 		_ inner: MutableProperty<Value>,
 		with other: MutableValidatingProperty<U, E>,
@@ -157,6 +178,18 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		self.init(inner, with: other, validator)
 	}
 
+	/// Create an `MutableValidatingProperty` that validates mutations before
+	/// committing them.
+	///
+	/// If `success` is returned by `validator`, the associated value would be
+	/// committed to `inner`. Otherwise, the failure would be exposed by the
+	/// `result` property of `self`.
+	///
+	/// - parameters:
+	///   - initial: The initial value of the property. It is not required to
+	///              pass the validation as specified by `validator`.
+	///   - other: The property that `validator` depends on.
+	///   - validator: The closure to invoke for any proposed value to `self`.
 	public convenience init<U, E: Swift.Error>(
 		_ initial: Value,
 		with other: MutableValidatingProperty<U, E>,
