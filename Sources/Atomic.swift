@@ -125,6 +125,12 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 #endif
 }
 
+/// A pthread mutex wrapper. Manual memory management by calling
+/// `deinitialize` is required.
+///
+/// The wrapper is a struct so that it can be inlined when it is contained as
+/// part of a reference type, and dodges an extra level of calling indirection
+/// that would otherwise happen if the wrapper itself is an reference type.
 internal struct PosixThreadMutex {
 	private let mutex: UnsafeMutablePointer<pthread_mutex_t>
 
