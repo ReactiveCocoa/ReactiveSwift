@@ -30,8 +30,7 @@ import Result
 /// outer.result.value        // `.failure("🎃", .outerInvalid)`
 /// ```
 public final class MutableValidatingProperty<Value, ValidationError: Swift.Error>: MutablePropertyProtocol {
-	private let storage: MutableProperty<Value>
-
+	private let getter: () -> Value
 	private let setter: (Value) -> Void
 
 	/// The result of the last attempted edit of the root property.
@@ -42,21 +41,59 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	/// The value could have failed the validation. Refer to `result` for the
 	/// latest validation result.
 	public var value: Value {
-		get { return storage.value }
+		get { return getter() }
 		set { setter(newValue) }
 	}
 
-	public var producer: SignalProducer<Value, NoError> {
-		return storage.producer
-	}
+	public let producer: SignalProducer<Value, NoError>
 
-	public var signal: Signal<Value, NoError> {
-		return storage.signal
-	}
+	public let signal: Signal<Value, NoError>
 
 	/// The lifetime of the editor.
-	public var lifetime: Lifetime {
-		return storage.lifetime
+	public let lifetime: Lifetime
+
+	/// Create an `PropertyEditor` that presents an editing interface of `inner`
+	/// in another value type, using the given forward transform and the given
+	/// failable reverse transform.
+	///
+	/// If `success` is returned by `body`, the associated value would be
+	/// persisted to `inner`. Otherwise, the failure would be emitted by the
+	/// `validations` signal.
+	///
+	/// - parameters:
+	///   - initial: The initial value.
+	///   - validator: The closure to invoke for any proposed value to `self`.
+	public init<Inner: ComposableMutablePropertyProtocol>(
+		_ inner: Inner,
+		_ validator: @escaping (Value) -> ValidatorOutput<Value, ValidationError>
+	) where Inner.Value == Value {
+		var mutesValueBackpropagation = false
+
+		getter = { inner.value }
+		producer = inner.producer
+		signal = inner.signal
+		lifetime = inner.lifetime
+
+		(result, setter) = inner.withValue { initial in
+			let mutableResult = MutableProperty(ValidationResult(initial, validator(initial)))
+
+			mutableResult <~ inner.signal
+				.filter { _ in !mutesValueBackpropagation }
+				.map { ValidationResult($0, validator($0)) }
+
+			return (Property(capturing: mutableResult), { input in
+				let writebackValue: Value? = mutableResult.modify { result in
+					result = ValidationResult(input, validator(input))
+					return result.value
+				}
+
+				if let value = writebackValue {
+					mutesValueBackpropagation = true
+					inner.value = value
+					mutesValueBackpropagation = false
+				}
+			})
+		}
 	}
 
 	/// Create an `PropertyEditor` that presents an editing interface of `inner`
@@ -70,42 +107,21 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	/// - parameters:
 	///   - initial: The initial value.
 	///   - validator: The closure to invoke for any proposed value to `self`.
-	public init(
+	public convenience init(
 		_ initial: Value,
 		_ validator: @escaping (Value) -> ValidatorOutput<Value, ValidationError>
 	) {
-		var mutesValueBackpropagation = false
-
-		storage = MutableProperty(initial)
-		let mutableResult = MutableProperty(ValidationResult(initial, validator(initial)))
-		result = Property(capturing: mutableResult)
-
-		mutableResult <~ storage.signal
-			.filter { _ in !mutesValueBackpropagation }
-			.map { ValidationResult($0, validator($0)) }
-
-		setter = { [storage] input in
-			let writebackValue: Value? = mutableResult.modify { result in
-				result = ValidationResult(input, validator(input))
-				return result.value
-			}
-
-			if let value = writebackValue {
-				mutesValueBackpropagation = true
-				storage.value = value
-				mutesValueBackpropagation = false
-			}
-		}
+		self.init(MutableProperty(initial), validator)
 	}
 
 	public convenience init<Other: PropertyProtocol>(
-		_ initial: Value,
+		_ inner: MutableProperty<Value>,
 		with other: Other,
 		_ validator: @escaping (Value, Other.Value) -> ValidatorOutput<Value, ValidationError>
 	) {
 		let other = Property(other)
 
-		self.init(initial) { input in
+		self.init(inner) { input in
 			return validator(input, other.value)
 		}
 
@@ -122,7 +138,23 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 						s.value = value
 					}
 				}
-			}
+		}
+	}
+
+	public convenience init<Other: PropertyProtocol>(
+		_ initial: Value,
+		with other: Other,
+		_ validator: @escaping (Value, Other.Value) -> ValidatorOutput<Value, ValidationError>
+	) {
+		self.init(MutableProperty(initial), with: other, validator)
+	}
+
+	public convenience init<U, E: Swift.Error>(
+		_ inner: MutableProperty<Value>,
+		with other: MutableValidatingProperty<U, E>,
+		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
+	) {
+		self.init(inner, with: other, validator)
 	}
 
 	public convenience init<U, E: Swift.Error>(
@@ -162,11 +194,6 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 			}
 		}
 	}
-
-	@discardableResult
-	public func withValue<R>(_ action: (Value) throws -> R) rethrows -> R {
-		return try storage.withValue(action: action)
-	}
 }
 
 public enum ValidatorOutput<Value, Error: Swift.Error> {
@@ -183,7 +210,7 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 	case success(Value)
 
 	/// The value was a substituted value due to a failed validation.
-	case substitution(substituted: Value, proposed: Value, Error)
+	case substitution(substituted: Value, proposed: Value, Error?)
 
 	/// The value failed the validation.
 	case failure(proposed: Value, Error)

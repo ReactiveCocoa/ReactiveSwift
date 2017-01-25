@@ -7,11 +7,13 @@ class ValidatingPropertySpec: QuickSpec {
 	override func spec() {
 		describe("MutableValidatingProperty") {
 			describe("no dependency") {
+				var root: MutableProperty<Int>!
 				var validated: MutableValidatingProperty<Int, TestError>!
 				var validationResult: FlattenedResult<Int>?
 
 				beforeEach {
-					validated = MutableValidatingProperty(0) { $0 >= 0 ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
+					root = MutableProperty(0)
+					validated = MutableValidatingProperty(root) { $0 >= 0 ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
 
 					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -22,6 +24,16 @@ class ValidatingPropertySpec: QuickSpec {
 
 				afterEach {
 					validationResult = nil
+
+					weak var weakRoot = root
+					expect(weakRoot).notTo(beNil())
+
+					root = nil
+					expect(weakRoot).notTo(beNil())
+
+					validated = nil
+					expect(weakRoot).to(beNil())
+
 				}
 
 				it("should let valid values get through") {
@@ -42,6 +54,18 @@ class ValidatingPropertySpec: QuickSpec {
 					validated.value = -10
 
 					expect(validated.value) == 0
+					expect(validationResult) == .errorDefault(-10)
+				}
+
+				it("should validate changes originated from the root property") {
+					root.value = 10
+
+					expect(validated.value) == 10
+					expect(validationResult) == .success(10)
+
+					root.value = -10
+
+					expect(validated.value) == -10
 					expect(validationResult) == .errorDefault(-10)
 				}
 			}
