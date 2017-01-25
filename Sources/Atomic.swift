@@ -379,7 +379,7 @@ extension AtomicProtocol {
 	/// - returns: The old value.
 	@discardableResult
 	@inline(__always)
-	func swap(_ newValue: Value) -> Value {
+	public func swap(_ newValue: Value) -> Value {
 		return modify { (value: inout Value) in
 			let oldValue = value
 			value = newValue
