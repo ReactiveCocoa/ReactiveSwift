@@ -50,9 +50,25 @@ extension MutablePropertyProtocol {
 	}
 }
 
-/// Represents a mutable property that can be composed.
+/// Represents a mutable property that can be safety composed by exposing its
+/// synchronization mechanic through the defined closure-based interface.
 public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
+	/// Atomically performs an arbitrary action using the current value of the
+	/// variable.
+	///
+	/// - parameters:
+	///   - action: A closure that accepts current property value.
+	///
+	/// - returns: the result of the action.
 	func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result
+
+	/// Atomically modifies the variable.
+	///
+	/// - parameters:
+	///   - action: A closure that accepts old property value and returns a new
+	///             property value.
+	///
+	/// - returns: The result of the action.
 	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
 }
 

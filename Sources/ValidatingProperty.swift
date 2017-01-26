@@ -33,19 +33,25 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		set { setter(newValue) }
 	}
 
+	/// A producer for Signals that will send the property's current value,
+	/// followed by all changes over time, then complete when the property has
+	/// deinitialized.
 	public let producer: SignalProducer<Value, NoError>
 
+	/// A signal that will send the property's changes over time,
+	/// then complete when the property has deinitialized.
 	public let signal: Signal<Value, NoError>
 
-	/// The lifetime of the editor.
+	/// The lifetime of the property.
 	public let lifetime: Lifetime
 
-	/// Create an `MutableValidatingProperty` that presents a mutable validating
+	/// Create a `MutableValidatingProperty` that presents a mutable validating
 	/// view for an inner mutable property.
 	///
-	/// If `success` is returned by `validator`, the associated value would be
-	/// committed to `inner`. Otherwise, the failure would be exposed by the
-	/// `result` property of `self`.
+	/// The proposed value is only committed when `success` is returned by the
+	/// `validator` closure.
+	///
+	/// - note: `inner` is retained by the created property.
 	///
 	/// - parameters:
 	///   - inner: The inner property which validated values are committed to.
@@ -54,18 +60,20 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		_ inner: Inner,
 		_ validator: @escaping (Value) -> ValidatorOutput<Value, ValidationError>
 	) where Inner.Value == Value {
-		var mutesValueBackpropagation = false
-
 		getter = { inner.value }
 		producer = inner.producer
 		signal = inner.signal
 		lifetime = inner.lifetime
 
+		// This flag temporarily suspends the monitoring on the inner property for
+		// writebacks that are triggered by successful validations.
+		var isSettingInnerValue = false
+
 		(result, setter) = inner.withValue { initial in
 			let mutableResult = MutableProperty(ValidationResult(initial, validator(initial)))
 
 			mutableResult <~ inner.signal
-				.filter { _ in !mutesValueBackpropagation }
+				.filter { _ in !isSettingInnerValue }
 				.map { ValidationResult($0, validator($0)) }
 
 			return (Property(capturing: mutableResult), { input in
@@ -75,20 +83,19 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 				}
 
 				if let value = writebackValue {
-					mutesValueBackpropagation = true
+					isSettingInnerValue = true
 					inner.value = value
-					mutesValueBackpropagation = false
+					isSettingInnerValue = false
 				}
 			})
 		}
 	}
 
-	/// Create an `MutableValidatingProperty` that validates mutations before
+	/// Create a `MutableValidatingProperty` that validates mutations before
 	/// committing them.
 	///
-	/// If `success` is returned by `validator`, the associated value would be
-	/// committed to `inner`. Otherwise, the failure would be exposed by the
-	/// `result` property of `self`.
+	/// The proposed value is only committed when `success` is returned by the
+	/// `validator` closure.
 	///
 	/// - parameters:
 	///   - initial: The initial value of the property. It is not required to
@@ -101,12 +108,13 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		self.init(MutableProperty(initial), validator)
 	}
 
-	/// Create an `MutableValidatingProperty` that presents a mutable validating
+	/// Create a `MutableValidatingProperty` that presents a mutable validating
 	/// view for an inner mutable property.
 	///
-	/// If `success` is returned by `validator`, the associated value would be
-	/// committed to `inner`. Otherwise, the failure would be exposed by the
-	/// `result` property of `self`.
+	/// The proposed value is only committed when `success` is returned by the
+	/// `validator` closure.
+	///
+	/// - note: `inner` is retained by the created property.
 	///
 	/// - parameters:
 	///   - inner: The inner property which validated values are committed to.
@@ -139,12 +147,11 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		}
 	}
 
-	/// Create an `MutableValidatingProperty` that validates mutations before
+	/// Create a `MutableValidatingProperty` that validates mutations before
 	/// committing them.
 	///
-	/// If `success` is returned by `validator`, the associated value would be
-	/// committed to `inner`. Otherwise, the failure would be exposed by the
-	/// `result` property of `self`.
+	/// The proposed value is only committed when `success` is returned by the
+	/// `validator` closure.
 	///
 	/// - parameters:
 	///   - initial: The initial value of the property. It is not required to
@@ -159,12 +166,13 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		self.init(MutableProperty(initial), with: other, validator)
 	}
 
-	/// Create an `MutableValidatingProperty` that presents a mutable validating
+	/// Create a `MutableValidatingProperty` that presents a mutable validating
 	/// view for an inner mutable property.
 	///
-	/// If `success` is returned by `validator`, the associated value would be
-	/// committed to `inner`. Otherwise, the failure would be exposed by the
-	/// `result` property of `self`.
+	/// The proposed value is only committed when `success` is returned by the
+	/// `validator` closure.
+	///
+	/// - note: `inner` is retained by the created property.
 	///
 	/// - parameters:
 	///   - inner: The inner property which validated values are committed to.
@@ -178,12 +186,11 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		self.init(inner, with: other, validator)
 	}
 
-	/// Create an `MutableValidatingProperty` that validates mutations before
+	/// Create a `MutableValidatingProperty` that validates mutations before
 	/// committing them.
 	///
-	/// If `success` is returned by `validator`, the associated value would be
-	/// committed to `inner`. Otherwise, the failure would be exposed by the
-	/// `result` property of `self`.
+	/// The proposed value is only committed when `success` is returned by the
+	/// `validator` closure.
 	///
 	/// - parameters:
 	///   - initial: The initial value of the property. It is not required to
@@ -229,17 +236,21 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	}
 }
 
+/// Represents a decision of a validator of a validating property made on a
+/// proposed value.
 public enum ValidatorOutput<Value, Error: Swift.Error> {
+	/// The value is valid.
 	case success
 
 	/// The value is invalid, but the validator can provide a substitution derived
 	/// from the invalid value that would be considered valid.
 	case substitution(Value, Error?)
 
+	/// The value is invalid.
 	case failure(Error)
 }
 
-/// Represents the result of the validation performed by `PropertyEditor`.
+/// Represents the result of the validation performed by a validating property.
 public enum ValidationResult<Value, Error: Swift.Error> {
 	/// The value passed the validation.
 	case success(Value)
