@@ -65,6 +65,35 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		}
 	}
 
+	/// Initializes a SignalProducer that uses a closure to supply its value
+	/// during the .start event. This initializer is similar to `init(value:)`,
+	/// but it exists to avoid letting "deceptively simple" accessors from being
+	/// evaluated immediately from within the body of a `.flatMap` call, e.g.:
+	///
+	/// ```
+	/// let imageProducer = underlyingSignal.flatMap(.latest) {
+	///     return SignalProducer(value: $0.slowImageLoad)
+	///         .start(on: backgroundScheduler)
+	/// }
+	/// ```
+	///
+	/// The above code will be evaluated immediately at the call site, and not
+	/// on the `backgroundScheduler` as stated. Instead, this pattern can now
+	/// work as expected:
+	///
+	/// ```
+	/// let imageProducer = underlyingSignal.flatMap(.latest) {
+	///     return SignalProducer(lazyValue: { $0.slowImageLoad })
+	///         .start(on: backgroundScheduler)
+	/// }
+	/// ```
+	public init(lazyValue: @escaping () -> Value) {
+		self.init { observer, disposable in
+			observer.send(value: lazyValue())
+			observer.sendCompleted()
+		}
+	}
+
 	/// Creates a producer for a `Signal` that will immediately fail with the
 	/// given error.
 	///

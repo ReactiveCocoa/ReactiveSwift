@@ -819,6 +819,64 @@ class PropertySpec: QuickSpec {
 				}
 			}
 
+			describe("lens") {
+				it("should return the result of the getter on each value change") {
+					let initialValue = (character: "🎃", other: 42)
+					let nextValue = (character: "😾", other: 74)
+
+					let tupleProperty = MutableProperty<(character: String, other: Int)>(initialValue)
+					let theLens = tupleProperty.lens { $0.character }
+
+					expect(theLens).to(sendValue("🎃", sendError: nil, complete: false))
+
+					tupleProperty.value = nextValue
+
+					expect(theLens).to(sendValue("😾", sendError: nil, complete: false))
+				}
+
+				it("should evaluate its getter lazily") {
+					let initialValue = (character: "🎃", other: 42)
+					let tupleProperty = MutableProperty<(character: String, other: Int)>(initialValue)
+
+					var getterEvaluated = false
+					let theLens = tupleProperty.lens { (tuple: (character: String, other: Int)) -> String in
+						getterEvaluated = true
+						return tuple.character
+					}
+
+					expect(getterEvaluated).to(beFalse())
+					expect(theLens).to(sendValue("🎃", sendError: nil, complete: false))
+					expect(getterEvaluated).to(beTrue())
+				}
+
+				it("should evaluate its getter lazily on the specified scheduler") {
+					let initialValue = (character: "🎃", other: 42)
+					let tupleProperty = MutableProperty<(character: String, other: Int)>(initialValue)
+
+					let testScheduler = TestScheduler()
+
+					var getterEvaluated = false
+					let theLens = tupleProperty.lens(on: testScheduler) { (tuple: (character: String, other: Int)) -> String in
+						getterEvaluated = true
+						return tuple.character
+					}
+
+					var characters: [String] = []
+					theLens.startWithValues { character in
+						characters.append(character)
+					}
+
+					expect(getterEvaluated).to(beFalse())
+					expect(characters).to(beEmpty())
+
+					testScheduler.run()
+
+					expect(getterEvaluated) == true
+					expect(characters).toNot(beEmpty())
+					expect(characters) == ["🎃"]
+				}
+			}
+
 			describe("zip") {
 				var property: MutableProperty<String>!
 				var otherProperty: MutableProperty<String>!

@@ -50,6 +50,87 @@ extension MutablePropertyProtocol {
 	}
 }
 
+/// Lens operations
+///
+/// A lens serves as a read-only, "focused" view of attributes of the underlying
+/// value in a property. For instance, if a `Property` is storing a model object
+/// representing a `Person`, you could obtain `SignalProducer`s for individual 
+/// attributes using the following:
+///
+/// ```
+/// let personProperty: MutableProperty<Person>
+/// let nameProducer: SignalProducer<String, NoError>
+/// nameProducer = personProperty.lens { $0.name }
+/// ```
+///
+///	In this example, `nameProducer` would send a new name along each time the
+/// `personProperty` is modified. This is nearly equivalent to a
+/// `flatMap(.latest)` operation that returns a `SignalProducer` with only a
+/// single value.
+
+extension PropertyProtocol {
+	/// Returns a `SignalProducer` that sends a new value each time this 
+	/// property's value changes using the supplied `getter` to supply the
+	/// value being sent.
+	///
+	/// - note: The `getter` is evaluated lazily—i.e. only when the returned
+	///         `SignalProducer` instance is `start()`ed.
+	///
+	/// Consider the following example:
+	///
+	/// ```
+	/// let personProperty: MutableProperty<Person>
+	/// let nameProducer: SignalProducer<String, NoError>
+	/// nameProducer = personProperty.lazyLens { $0.name }
+	/// ```
+	///
+	///	Here, `nameProducer` sends a new name along every time `personProperty`
+	/// is modified.
+	///
+	/// - parameters:
+	///	  - getter: The closure used to obtain the returned value from this
+	///             property's underlying value.
+	///
+	/// - returns: A signal producer that returns values obtained using `getter`
+	///            each time this property's value changes.
+	public func lens<U>(getter: @escaping (Value) -> U) -> SignalProducer<U, NoError> {
+		return producer.flatMap(.latest) { model in SignalProducer(lazyValue: { getter(model) }) }
+	}
+
+	/// Returns a `SignalProducer` that sends a new value each time this
+	/// property's value changes using the supplied `getter` to supply the
+	/// value being sent.
+	///
+	/// - note: The `getter` is evaluated lazily—i.e. only when the returned
+	///         `SignalProducer` instance is `start()`ed.
+	///
+	/// Consider the following example:
+	///
+	/// ```
+	/// let personProperty: MutableProperty<Person>
+	/// let nameProducer: SignalProducer<String, NoError>
+	/// nameProducer = personProperty.lazyLens { $0.name }
+	/// ```
+	///
+	///	Here, `nameProducer` sends a new name along every time `personProperty`
+	/// is modified.
+	///
+	/// - parameters:
+	///	  - scheduler: The scheduler on which the new `SignalProducer` is 
+	///                started.
+	///	  - getter: The closure used to obtain the returned value from this
+	///             property's underlying value.
+	///
+	/// - returns: A signal producer that returns values obtained using `getter`
+	///            each time this property's value changes.
+	public func lens<U>(on scheduler: SchedulerProtocol, getter: @escaping (Value) -> U) -> SignalProducer<U, NoError> {
+		return producer.flatMap(.latest) { model in
+			return SignalProducer(lazyValue: { getter(model) })
+				.start(on: scheduler)
+		}
+	}
+}
+
 // Property operators.
 //
 // A composed property is a transformed view of its sources, and does not
