@@ -232,7 +232,9 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 public enum ValidatorOutput<Value, Error: Swift.Error> {
 	case success
 
-	case substitution(Value, Error)
+	/// The value is invalid, but the validator can provide a substitution derived
+	/// from the invalid value that would be considered valid.
+	case substitution(Value, Error?)
 
 	case failure(Error)
 }
