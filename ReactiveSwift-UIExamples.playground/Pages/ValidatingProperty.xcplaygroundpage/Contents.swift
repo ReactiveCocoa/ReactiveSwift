@@ -44,9 +44,7 @@ final class ViewModel {
 		let validatedEmail = Property.combineLatest(email.result,
 		                                            emailConfirmation.result,
 		                                            termsAccepted)
-			.map { !$0.isFailure && !$1.isFailure && $2 }
-			.combineLatest(with: email)
-			.map { isValid, email in isValid ? email : nil }
+			.map { e, ec, t in e.value.flatMap { !ec.isFailure && t ? $0 : nil } }
 
 		// The action to be invoked when the submit button is pressed.
 		// It enables only if all the controls have passed their validations.
