@@ -75,10 +75,6 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///   - execute: A closure that returns the `SignalProducer` returned by
 	///              calling `apply(Input)` on the action, optionally using
 	///              the current value of `state`.
-	public init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> Result<Output, Error>) {
-		fatalError()
-	}
-
 	public init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
