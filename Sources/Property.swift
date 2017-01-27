@@ -94,7 +94,7 @@ extension PropertyProtocol {
 	/// - returns: A signal producer that returns values obtained using `getter`
 	///            each time this property's value changes.
 	public func lens<U>(getter: @escaping (Value) -> U) -> SignalProducer<U, NoError> {
-		return producer.flatMap(.latest) { model in SignalProducer(lazyValue: { getter(model) }) }
+		return producer.flatMap(.latest) { model in SignalProducer(value: getter(model)) }
 	}
 
 	/// Returns a `SignalProducer` that sends a new value each time this
@@ -125,7 +125,7 @@ extension PropertyProtocol {
 	///            each time this property's value changes.
 	public func lens<U>(on scheduler: SchedulerProtocol, getter: @escaping (Value) -> U) -> SignalProducer<U, NoError> {
 		return producer.flatMap(.latest) { model in
-			return SignalProducer(lazyValue: { getter(model) })
+			return SignalProducer({ getter(model) })
 				.start(on: scheduler)
 		}
 	}

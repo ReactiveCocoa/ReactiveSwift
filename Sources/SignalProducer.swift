@@ -83,13 +83,13 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// ```
 	/// let imageProducer = underlyingSignal.flatMap(.latest) {
-	///     return SignalProducer(lazyValue: { $0.slowImageLoad })
+	///     return SignalProducer({ $0.slowImageLoad })
 	///         .start(on: backgroundScheduler)
 	/// }
 	/// ```
-	public init(lazyValue: @escaping () -> Value) {
+	public init(_ block: @escaping () -> Value) {
 		self.init { observer, disposable in
-			observer.send(value: lazyValue())
+			observer.send(value: block())
 			observer.sendCompleted()
 		}
 	}

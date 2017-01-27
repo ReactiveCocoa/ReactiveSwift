@@ -212,7 +212,7 @@ class SignalProducerSpec: QuickSpec {
 					return "🎃"
 				}
 
-				let lazyProducer = SignalProducer<String, NoError>(lazyValue: lazyGetter)
+				let lazyProducer = SignalProducer<String, NoError>(lazyGetter)
 
 				expect(evaluated).to(beFalse())
 
