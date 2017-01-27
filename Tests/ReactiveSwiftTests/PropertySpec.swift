@@ -875,6 +875,33 @@ class PropertySpec: QuickSpec {
 					expect(characters).toNot(beEmpty())
 					expect(characters) == ["🎃"]
 				}
+
+				it("should evaluate its getter lazily on the scheduler we specify") {
+					let initialValue = (character: "🎃", other: 42)
+					let tupleProperty = MutableProperty<(character: String, other: Int)>(initialValue)
+
+					let labelKey = DispatchSpecificKey<String>()
+					let testQueue = DispatchQueue(label: "test queue", target: .main)
+					testQueue.setSpecific(key: labelKey, value: "test queue")
+					testQueue.suspend()
+					let testScheduler = QueueScheduler(internalQueue: testQueue)
+
+					var isOnTestQueue = false
+					let theLens = tupleProperty.lens(on: testScheduler) { (tuple: (character: String, other: Int)) -> String in
+						isOnTestQueue = DispatchQueue.getSpecific(key: labelKey) == "test queue"
+						return tuple.character
+					}
+
+					var characters: [String] = []
+					theLens.startWithValues { character in
+						characters.append(character)
+					}
+
+					testQueue.resume()
+
+					expect(isOnTestQueue).toEventually(beTrue())
+					expect(characters).toEventually(equal(["🎃"]))
+				}
 			}
 
 			describe("zip") {
