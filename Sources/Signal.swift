@@ -571,6 +571,31 @@ extension SignalProtocol {
 			}
 		}
 	}
+	
+	/// Applies `transform` to values from `signal` and forwards values with non `nil` results unwrapped.
+	/// - parameters:
+	///   - transform: A closure that accepts a value from the `value` event and
+	///                returns a new optional value.
+	///
+	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
+	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
+		return Signal { observer in
+			return self.observe { (event: Event<Value, Error>) -> Void in
+				switch event {
+				case let .value(value):
+					if let mapped = transform(value) {
+						observer.send(value: mapped)
+					}
+				case let .failed(error):
+					observer.send(error: error)
+				case .completed:
+					observer.sendCompleted()
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
+		}
+	}
 }
 
 extension SignalProtocol where Value: OptionalProtocol {

@@ -464,6 +464,16 @@ extension SignalProducerProtocol {
 		return lift { $0.filter(predicate) }
 	}
 
+	/// Applies `transform` to values from the producer and forwards values with non `nil` results unwrapped.
+	/// - parameters:
+	///   - transform: A closure that accepts a value from the `value` event and
+	///                returns a new optional value.
+	///
+	/// - returns: A producer that will send new values, that are non `nil` after the transformation.
+	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> SignalProducer<U, Error> {
+		return lift { $0.filterMap(transform) }
+	}
+	
 	/// Yield the first `count` values from the input producer.
 	///
 	/// - precondition: `count` must be non-negative number.

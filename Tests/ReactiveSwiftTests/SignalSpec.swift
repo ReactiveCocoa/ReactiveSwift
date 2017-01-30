@@ -513,6 +513,94 @@ class SignalSpec: QuickSpec {
 				expect(lastValue) == 2
 			}
 		}
+		
+		describe("filterMap") {
+			it("should omit values from the signal that are nil after the transformation") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				
+				var lastValue: Int?
+				
+				mappedSignal.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+
+				observer.send(value: "0")
+				expect(lastValue) == 0
+				
+				observer.send(value: "1")
+				expect(lastValue) == 1
+				
+				observer.send(value: "A")
+				expect(lastValue) == 1
+			}
+			
+			it("should stop emiting values after an error") {
+				let (signal, observer) = Signal<String, TestError>.pipe()
+				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				
+				var lastValue: Int?
+				
+				mappedSignal.observeResult { result in
+					if let value = result.value {
+						lastValue = value
+					}
+				}
+				
+				expect(lastValue).to(beNil())
+				
+				observer.send(value: "0")
+				expect(lastValue) == 0
+				
+				observer.send(error: .default)
+				
+				observer.send(value: "1")
+				expect(lastValue) == 0
+			}
+			
+			it("should stop emiting values after a complete") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				
+				var lastValue: Int?
+				
+				mappedSignal.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer.send(value: "0")
+				expect(lastValue) == 0
+				
+				observer.sendCompleted()
+				
+				observer.send(value: "1")
+				expect(lastValue) == 0
+			}
+			
+			it("should send completed") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				
+				var completed: Bool = false
+				
+				mappedSignal.observeCompleted { completed = true }
+				observer.sendCompleted()
+				
+				expect(completed) == true
+			}
+			
+			it("should send failure") {
+				let (signal, observer) = Signal<String, TestError>.pipe()
+				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				
+				var failure: TestError?
+				
+				mappedSignal.observeFailed { failure = $0 }
+				observer.send(error: .error1)
+				
+				expect(failure) == .error1
+			}
+		}
 
 		describe("skipNil") {
 			it("should forward only non-nil values") {
