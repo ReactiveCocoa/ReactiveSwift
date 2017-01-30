@@ -576,6 +576,30 @@ class SignalSpec: QuickSpec {
 				observer.send(value: "1")
 				expect(lastValue) == 0
 			}
+			
+			it("should send completed") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				
+				var completed: Bool = false
+				
+				mappedSignal.observeCompleted { completed = true }
+				observer.sendCompleted()
+				
+				expect(completed) == true
+			}
+			
+			it("should send failure") {
+				let (signal, observer) = Signal<String, TestError>.pipe()
+				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				
+				var failure: TestError?
+				
+				mappedSignal.observeFailed { failure = $0 }
+				observer.send(error: .error1)
+				
+				expect(failure) == .error1
+			}
 		}
 
 		describe("skipNil") {
