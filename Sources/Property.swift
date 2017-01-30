@@ -50,84 +50,36 @@ extension MutablePropertyProtocol {
 	}
 }
 
-/// Lens operations
-///
-/// A lens serves as a read-only, "focused" view of attributes of the underlying
-/// value in a property. For instance, if a `Property` is storing a model object
-/// representing a `Person`, you could obtain `SignalProducer`s for individual 
-/// attributes using the following:
-///
-/// ```
-/// let personProperty: MutableProperty<Person>
-/// let nameProducer: SignalProducer<String, NoError>
-/// nameProducer = personProperty.lens { $0.name }
-/// ```
-///
-///	In this example, `nameProducer` would send a new name along each time the
-/// `personProperty` is modified. This is nearly equivalent to a
-/// `flatMap(.latest)` operation that returns a `SignalProducer` with only a
-/// single value.
-
 extension PropertyProtocol {
-	/// Returns a `SignalProducer` that sends a new value each time this 
-	/// property's value changes using the supplied `getter` to supply the
-	/// value being sent.
-	///
-	/// - note: The `getter` is evaluated lazily—i.e. only when the returned
-	///         `SignalProducer` instance is `start()`ed.
-	///
-	/// Consider the following example:
-	///
-	/// ```
-	/// let personProperty: MutableProperty<Person>
-	/// let nameProducer: SignalProducer<String, NoError>
-	/// nameProducer = personProperty.lazyLens { $0.name }
-	/// ```
-	///
-	///	Here, `nameProducer` sends a new name along every time `personProperty`
-	/// is modified.
-	///
-	/// - parameters:
-	///	  - getter: The closure used to obtain the returned value from this
-	///             property's underlying value.
-	///
-	/// - returns: A signal producer that returns values obtained using `getter`
-	///            each time this property's value changes.
-	public func lens<U>(getter: @escaping (Value) -> U) -> SignalProducer<U, NoError> {
-		return producer.flatMap(.latest) { model in SignalProducer(value: getter(model)) }
-	}
-
 	/// Returns a `SignalProducer` that sends a new value each time this
-	/// property's value changes using the supplied `getter` to supply the
+	/// property's value changes, using the supplied `transform` to supply the
 	/// value being sent.
-	///
-	/// - note: The `getter` is evaluated lazily—i.e. only when the returned
-	///         `SignalProducer` instance is `start()`ed.
 	///
 	/// Consider the following example:
 	///
 	/// ```
 	/// let personProperty: MutableProperty<Person>
 	/// let nameProducer: SignalProducer<String, NoError>
-	/// nameProducer = personProperty.lazyLens { $0.name }
+	/// nameProducer = personProperty.lazyLens(on: scheduler) { $0.name }
 	/// ```
 	///
 	///	Here, `nameProducer` sends a new name along every time `personProperty`
-	/// is modified.
+	/// is modified, but only when scheduled for execution by `scheduler`. So
+	/// if the invocation of `$0.name` involves a lengthy calculation (like a 
+	/// read from disk, or a network call), then repeated changes to 
+	/// `personProperty`'s value will not result in excessive calls to 
+	/// `$0.name`.
 	///
 	/// - parameters:
-	///	  - scheduler: The scheduler on which the new `SignalProducer` is 
+	///	  - scheduler: The scheduler on which the inner `SignalProducer` is
 	///                started.
 	///	  - getter: The closure used to obtain the returned value from this
 	///             property's underlying value.
 	///
 	/// - returns: A signal producer that returns values obtained using `getter`
 	///            each time this property's value changes.
-	public func lens<U>(on scheduler: SchedulerProtocol, getter: @escaping (Value) -> U) -> SignalProducer<U, NoError> {
-		return producer.flatMap(.latest) { model in
-			return SignalProducer({ getter(model) })
-				.start(on: scheduler)
-		}
+	public func lazyMap<U>(on scheduler: SchedulerProtocol, transform: @escaping (Value) -> U) -> SignalProducer<U, NoError> {
+		return producer.lazyMap(on: scheduler, transform: transform)
 	}
 }
 
@@ -769,8 +721,7 @@ extension MutableProperty {
 	///
 	/// ```
 	/// let personProperty = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
-	/// let firstNameBinding: BindingTarget<String>
-	/// firstNameBinding = personProperty.lens {
+	/// let firstNameBinding = personProperty.bindingTarget {
 	///         return Person(firstName: $1, lastName: $0.lastName)
 	///     }
 	///
@@ -787,7 +738,7 @@ extension MutableProperty {
 	///	  - setter: A closure that takes a value of type `U` to produce a new
 	///             value for this property
 	///
-	public func lens<U>(setter: @escaping (Value, U) -> Value) -> BindingTarget<U> {
+	public func bindingTarget<U>(setter: @escaping (Value, U) -> Value) -> BindingTarget<U> {
 		return BindingTarget(lifetime: self.lifetime, setter: { [weak self] (inputValue: U) in
 			self?.modify({ (theValue: inout Value) -> Void in
 				theValue = setter(theValue, inputValue)
@@ -802,8 +753,7 @@ extension MutableProperty {
 	///
 	/// ```
 	/// let personProperty = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
-	/// let firstNameBinding: BindingTarget<String>
-	/// firstNameBinding = personProperty.lens {
+	/// let firstNameBinding = personProperty.bindingTarget {
 	///         return Person(firstName: $1, lastName: $0.lastName)
 	///     }
 	///
@@ -821,7 +771,7 @@ extension MutableProperty {
 	///	  - setter: A closure that takes a value of type `U` to produce a new
 	///             value for this property
 	///
-	public func lens<U>(on scheduler: SchedulerProtocol, setter: @escaping (Value, U) -> Value) -> BindingTarget<U> {
+	public func bindingTarget<U>(on scheduler: SchedulerProtocol, setter: @escaping (Value, U) -> Value) -> BindingTarget<U> {
 		return BindingTarget(on: scheduler, lifetime: self.lifetime, setter: { [weak self] (inputValue: U) in
 			self?.modify({ (theValue: inout Value) -> Void in
 				theValue = setter(theValue, inputValue)

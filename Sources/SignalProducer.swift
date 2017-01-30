@@ -65,28 +65,16 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		}
 	}
 
-	/// Initializes a SignalProducer that uses a closure to supply its value
-	/// during the .start event. This initializer is similar to `init(value:)`,
-	/// but it exists to avoid letting "deceptively simple" accessors from being
-	/// evaluated immediately from within the body of a `.flatMap` call, e.g.:
+	/// Creates a producer for a `Signal` that immediately sends one value, then
+	/// completes.
 	///
-	/// ```
-	/// let imageProducer = underlyingSignal.flatMap(.latest) {
-	///     return SignalProducer(value: $0.slowImageLoad)
-	///         .start(on: backgroundScheduler)
-	/// }
-	/// ```
+	/// This initializer differs from `init(value:)` in that it will not 
+	/// evaluate the closure supplying its sole `value` event until the 
+	/// `SignalProducer` is started.
 	///
-	/// The above code will be evaluated immediately at the call site, and not
-	/// on the `backgroundScheduler` as stated. Instead, this pattern can now
-	/// work as expected:
-	///
-	/// ```
-	/// let imageProducer = underlyingSignal.flatMap(.latest) {
-	///     return SignalProducer({ $0.slowImageLoad })
-	///         .start(on: backgroundScheduler)
-	/// }
-	/// ```
+	/// - parameters:
+	///   - block: A block that supplies a value to be sent by the `Signal` in
+	///			   a `value` event.
 	public init(_ block: @escaping () -> Value) {
 		self.init { observer, disposable in
 			observer.send(value: block())
@@ -479,6 +467,25 @@ extension SignalProducerProtocol {
 	/// - returns: A producer that emits errors of new type.
 	public func mapError<F>(_ transform: @escaping (Error) -> F) -> SignalProducer<Value, F> {
 		return lift { $0.mapError(transform) }
+	}
+
+	/// Maps each value in the producer to a new value, lazily evaluating the
+	/// supplied transformation on the specified scheduler.
+	///
+	/// - note: The difference between `lazyMap` and `map` is that `lazyMap` 
+	///         will not force the transformation to get invoked immediately
+	///			when a new value is sent. Furthermore, subsequent `.value` 
+	///			events will not cause `transform` to repeatedly evaluate when
+	///			it has not been scheduled for execution by `scheduler`.
+	///
+	/// - parameters:
+	///	  - transform: The closure used to obtain the returned value from this
+	///                producer's underlying value.
+	///
+	/// - returns: A producer that, when started, sends values obtained using 
+	///			   `transform` as this producer sends values.
+	public func lazyMap<U>(on scheduler: SchedulerProtocol, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
+		return lift { $0.lazyMap(on: scheduler, transform: transform) }
 	}
 
 	/// Preserve only the values of the producer that pass the given predicate.

@@ -819,64 +819,114 @@ class PropertySpec: QuickSpec {
 				}
 			}
 
-			describe("lens") {
-				it("should return the result of the getter on each value change") {
+			describe("lazyMap") {
+				describe("with a scheduled binding") {
+					var destination: MutableProperty<String>!
+					var tupleProperty: MutableProperty<(character: String, other: Int)>!
+
+					var theLens: SignalProducer<String, NoError>!
+					var getterCounter: Int = 0
+					var lensScheduler: TestScheduler!
+					var targetScheduler: TestScheduler!
+					var target: BindingTarget<String>!
+
+					beforeEach {
+						let initialValue = (character: "invisible", other: 72)
+						tupleProperty = MutableProperty(initialValue)
+						destination = MutableProperty("test")
+
+						lensScheduler = TestScheduler()
+						targetScheduler = TestScheduler()
+
+						getterCounter = 0
+						theLens = tupleProperty.lazyMap(on: lensScheduler) { (tuple: (character: String, other: Int)) -> String in
+							getterCounter += 1
+							return tuple.character
+						}
+
+						target = BindingTarget<String>(on: targetScheduler, lifetime: destination.lifetime) {
+							destination.value = $0
+						}
+
+						target <~ theLens
+					}
+
+					it("should not propagate values until scheduled") {
+						// Send a value along
+						tupleProperty.value = (character: "🎃", other: 42)
+
+						// The destination should not change value, and the getter
+						// should not have evaluated yet, as neither has been scheduled
+						expect(destination.value) == "test"
+						expect(getterCounter) == 0
+
+						// Advance both schedulers
+						lensScheduler.advance()
+						targetScheduler.advance()
+
+						// The destination receives the previously-sent value, and the
+						// getter obviously evaluated
+						expect(destination.value) == "🎃"
+						expect(getterCounter) == 1
+					}
+
+					it("should evaluate the getter only when scheduled") {
+						// Send a value along
+						tupleProperty.value = (character: "🎃", other: 42)
+
+						// The destination should not change value, and the getter
+						// should not have evaluated yet, as neither has been scheduled
+						expect(destination.value) == "test"
+						expect(getterCounter) == 0
+
+						// When the getter's scheduler advances, the getter should
+						// be evaluated, but the destination still shouldn't accept
+						// the new value
+						lensScheduler.advance()
+						expect(getterCounter) == 1
+						expect(destination.value) == "test"
+
+						// Sending other values along shouldn't evaluate the getter
+						tupleProperty.value = (character: "😾", other: 42)
+						tupleProperty.value = (character: "🎃", other: 13)
+						tupleProperty.value = (character: "👻", other: 17)
+						expect(getterCounter) == 1
+						expect(destination.value) == "test"
+
+						// Push the scheduler along for the lens, and the getter
+						// should evaluate
+						lensScheduler.advance()
+						expect(getterCounter) == 2
+						
+						// And finally, pushing the target scheduler along we should
+						// see that only the last-sent value was accepted
+						targetScheduler.advance()
+						expect(destination.value) == "👻"
+					}
+				}
+
+				it("should produce the result of the getter on each value change") {
 					let initialValue = (character: "🎃", other: 42)
 					let nextValue = (character: "😾", other: 74)
 
+					let scheduler = QueueScheduler(queue: .global(priority: .default))
+
 					let tupleProperty = MutableProperty<(character: String, other: Int)>(initialValue)
-					let theLens = tupleProperty.lens { $0.character }
-
-					expect(theLens).to(sendValue("🎃", sendError: nil, complete: false))
-
-					tupleProperty.value = nextValue
-
-					expect(theLens).to(sendValue("😾", sendError: nil, complete: false))
-				}
-
-				it("should evaluate its getter lazily") {
-					let initialValue = (character: "🎃", other: 42)
-					let tupleProperty = MutableProperty<(character: String, other: Int)>(initialValue)
-
-					var getterEvaluated = false
-					let theLens = tupleProperty.lens { (tuple: (character: String, other: Int)) -> String in
-						getterEvaluated = true
-						return tuple.character
-					}
-
-					expect(getterEvaluated).to(beFalse())
-					expect(theLens).to(sendValue("🎃", sendError: nil, complete: false))
-					expect(getterEvaluated).to(beTrue())
-				}
-
-				it("should evaluate its getter lazily on the specified scheduler") {
-					let initialValue = (character: "🎃", other: 42)
-					let tupleProperty = MutableProperty<(character: String, other: Int)>(initialValue)
-
-					let testScheduler = TestScheduler()
-
-					var getterEvaluated = false
-					let theLens = tupleProperty.lens(on: testScheduler) { (tuple: (character: String, other: Int)) -> String in
-						getterEvaluated = true
-						return tuple.character
-					}
+					let theLens = tupleProperty.lazyMap(on: scheduler) { $0.character }
 
 					var characters: [String] = []
 					theLens.startWithValues { character in
 						characters.append(character)
 					}
 
-					expect(getterEvaluated).to(beFalse())
-					expect(characters).to(beEmpty())
+					expect(characters).toEventually(equal(["🎃"]))
 
-					testScheduler.run()
+					tupleProperty.value = nextValue
 
-					expect(getterEvaluated) == true
-					expect(characters).toNot(beEmpty())
-					expect(characters) == ["🎃"]
+					expect(characters).toEventually(equal(["🎃", "😾"]))
 				}
 
-				it("should evaluate its getter lazily on the scheduler we specify") {
+				it("should evaluate its getter on the specified scheduler") {
 					let initialValue = (character: "🎃", other: 42)
 					let tupleProperty = MutableProperty<(character: String, other: Int)>(initialValue)
 
@@ -887,7 +937,7 @@ class PropertySpec: QuickSpec {
 					let testScheduler = QueueScheduler(internalQueue: testQueue)
 
 					var isOnTestQueue = false
-					let theLens = tupleProperty.lens(on: testScheduler) { (tuple: (character: String, other: Int)) -> String in
+					let theLens = tupleProperty.lazyMap(on: testScheduler) { (tuple: (character: String, other: Int)) -> String in
 						isOnTestQueue = DispatchQueue.getSpecific(key: labelKey) == "test queue"
 						return tuple.character
 					}
@@ -1786,7 +1836,7 @@ class PropertySpec: QuickSpec {
 				}
 			}
 
-			describe("through a lens") {
+			describe("bindingTarget") {
 				struct Person {
 					var firstName: String
 					var lastName: String
@@ -1794,7 +1844,7 @@ class PropertySpec: QuickSpec {
 
 				it("should produce new values when a bound value is modified") {
 					let personProperty = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
-					let firstNameBinding: BindingTarget<String> = personProperty.lens { return Person(firstName: $1, lastName: $0.lastName) }
+					let firstNameBinding = personProperty.bindingTarget { return Person(firstName: $1, lastName: $0.lastName) }
 
 					expect(personProperty.value.firstName) == "Steve"
 					expect(personProperty.value.lastName) == "McQueen"
@@ -1808,7 +1858,7 @@ class PropertySpec: QuickSpec {
 				it("should consume values using the specified scheduler") {
 					let testScheduler = TestScheduler()
 					let personProperty = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
-					let firstNameBinding: BindingTarget<String> = personProperty.lens(on: testScheduler) { return Person(firstName: $1, lastName: $0.lastName) }
+					let firstNameBinding = personProperty.bindingTarget(on: testScheduler) { return Person(firstName: $1, lastName: $0.lastName) }
 
 					expect(personProperty.value.firstName) == "Steve"
 					expect(personProperty.value.lastName) == "McQueen"
@@ -1828,7 +1878,7 @@ class PropertySpec: QuickSpec {
 
 				it("should tear down a binding with the underlying property") {
 					var property: Optional<MutableProperty<Person>> = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
-					let binding: BindingTarget<String> = property!.lens { return Person(firstName: $1, lastName: $0.lastName) }
+					let binding = property!.bindingTarget { return Person(firstName: $1, lastName: $0.lastName) }
 
 					var propertyEnded = false
 					property!.lifetime.ended.observeCompleted {

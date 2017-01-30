@@ -549,6 +549,25 @@ extension SignalProtocol {
 		}
 	}
 
+	/// Maps each value in the signal to a new value, lazily evaluating the
+	/// supplied transformation on the specified scheduler.
+	///
+	/// - note: The difference between `lazyMap` and `map` is that `lazyMap`
+	///         will not force the transformation to get invoked immediately
+	///			when a new value is sent. Furthermore, subsequent `.value`
+	///			events will not cause `transform` to repeatedly evaluate when
+	///			it has not been scheduled for execution by `scheduler`.
+	///
+	/// - parameters:
+	///	  - transform: The closure used to obtain the returned value from this
+	///                producer's underlying value.
+	///
+	/// - returns: A signal that sends values obtained using `transform` as this 
+	///            signal sends values.
+	public func lazyMap<U>(on scheduler: SchedulerProtocol, transform: @escaping (Value) -> U) -> Signal<U, Error> {
+		return flatMap(.latest) { model in SignalProducer({ transform(model) }).start(on: scheduler) }
+	}
+
 	/// Preserve only the values of the signal that pass the given predicate.
 	///
 	/// - parameters:

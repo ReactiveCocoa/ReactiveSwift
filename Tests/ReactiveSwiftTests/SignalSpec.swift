@@ -12,7 +12,7 @@ import Dispatch
 import Result
 import Nimble
 import Quick
-import ReactiveSwift
+@testable import ReactiveSwift
 
 class SignalSpec: QuickSpec {
 	override func spec() {
@@ -489,6 +489,103 @@ class SignalSpec: QuickSpec {
 
 				observer.send(error: TestError.default)
 				expect(error) == producerError
+			}
+		}
+
+		describe("lazyMap") {
+			describe("with a scheduled binding") {
+				var token: Lifetime.Token!
+				var lifetime: Lifetime!
+				var destination: [String] = []
+				var tupleSignal: Signal<(character: String, other: Int), NoError>!
+				var tupleObserver: Signal<(character: String, other: Int), NoError>.Observer!
+				var theLens: Signal<String, NoError>!
+				var getterCounter: Int = 0
+				var lensScheduler: TestScheduler!
+				var targetScheduler: TestScheduler!
+				var target: BindingTarget<String>!
+
+				beforeEach {
+					destination = []
+					token = Lifetime.Token()
+					lifetime = Lifetime(token)
+
+					let (producer, observer) = Signal<(character: String, other: Int), NoError>.pipe()
+					tupleSignal = producer
+					tupleObserver = observer
+
+					lensScheduler = TestScheduler()
+					targetScheduler = TestScheduler()
+
+					getterCounter = 0
+					theLens = tupleSignal.lazyMap(on: lensScheduler) { (tuple: (character: String, other: Int)) -> String in
+						getterCounter += 1
+						return tuple.character
+					}
+
+					target = BindingTarget<String>(on: targetScheduler, lifetime: lifetime) {
+						destination.append($0)
+					}
+
+					target <~ theLens
+				}
+
+				it("should not propagate values until scheduled") {
+					// Send a value along
+					tupleObserver.send(value: (character: "🎃", other: 42))
+
+					// The destination should not change value, and the getter
+					// should not have evaluated yet, as neither has been scheduled
+					expect(destination) == []
+					expect(getterCounter) == 0
+
+					// Advance both schedulers
+					lensScheduler.advance()
+					targetScheduler.advance()
+
+					// The destination receives the previously-sent value, and the
+					// getter obviously evaluated
+					expect(destination) == ["🎃"]
+					expect(getterCounter) == 1
+				}
+
+				it("should evaluate the getter only when scheduled") {
+					// Send a value along
+					tupleObserver.send(value: (character: "🎃", other: 42))
+
+					// The destination should not change value, and the getter
+					// should not have evaluated yet, as neither has been scheduled
+					expect(destination) == []
+					expect(getterCounter) == 0
+
+					// When the getter's scheduler advances, the getter should
+					// be evaluated, but the destination still shouldn't accept
+					// the new value
+					lensScheduler.advance()
+					expect(getterCounter) == 1
+					expect(destination) == []
+
+					// Sending other values along shouldn't evaluate the getter
+					tupleObserver.send(value: (character: "😾", other: 42))
+					tupleObserver.send(value: (character: "🍬", other: 13))
+					tupleObserver.send(value: (character: "👻", other: 17))
+					expect(getterCounter) == 1
+					expect(destination) == []
+
+					// Push the scheduler along for the lens, and the getter
+					// should evaluate
+					lensScheduler.advance()
+					expect(getterCounter) == 2
+
+					// ...but the destination still won't receive the value
+					expect(destination) == []
+
+					// Finally, pushing the target scheduler along will
+					// propagate only the first and last values
+					targetScheduler.advance()
+					expect(getterCounter) == 2
+					expect(destination) == ["🎃", "👻"]
+				}
 			}
 		}
 

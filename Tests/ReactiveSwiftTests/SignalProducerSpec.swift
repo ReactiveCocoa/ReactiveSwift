@@ -204,7 +204,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
-		describe("init(lazyValue:)") {
+		describe("init(_ block:)") {
 			it("should not evaluate the supplied closure until started") {
 				var evaluated: Bool = false
 				func lazyGetter() -> String {
