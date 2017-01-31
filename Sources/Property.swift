@@ -678,3 +678,71 @@ public final class MutableProperty<Value>: MutablePropertyProtocol {
 		observer.sendCompleted()
 	}
 }
+
+extension MutableProperty {
+
+	/// Returns a `BindingTarget` that invokes the given setter to generate a
+	/// new value for this property.
+	///
+	/// Consider the following example:
+	///
+	/// ```
+	/// let personProperty = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
+	/// let firstNameBinding = personProperty.bindingTarget { newFirstName, person in
+	///         return Person(firstName: newFirstName, lastName: person.lastName)
+	///     }
+	///
+	/// // Sets only the firstName value
+	/// firstNameBinding <~ SignalProducer(value: "Lightning")
+	///
+	/// // The personProperty now has a new Person value
+	/// ```
+	///
+	/// - note: The lifetime of this `BindingTarget` is tied to the underlying
+	///         `MutableProperty` instance.
+	///
+	/// - parameters:
+	///   - setter: A closure that takes a value of type `U` to produce a new
+	///             value for this property
+	///
+	public func bindingTarget<U>(setter: @escaping (Value, U) -> Value) -> BindingTarget<U> {
+		return BindingTarget(lifetime: self.lifetime, setter: { [weak self] (inputValue: U) in
+			self?.modify({ (theValue: inout Value) -> Void in
+				theValue = setter(theValue, inputValue)
+			})
+		})
+	}
+
+	/// Returns a `BindingTarget` that invokes the given setter to generate a
+	/// new value for this property.
+	///
+	/// Consider the following example:
+	///
+	/// ```
+	/// let personProperty = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
+	/// let firstNameBinding = personProperty.bindingTarget { newFirstName, person in
+	///         return Person(firstName: newFirstName, lastName: person.lastName)
+	///     }
+	///
+	/// // Sets only the firstName value
+	/// firstNameBinding <~ SignalProducer(value: "Lightning")
+	///
+	/// // The personProperty now has a new Person value
+	/// ```
+	///
+	/// - note: The lifetime of this `BindingTarget` is tied to the underlying
+	///         `MutableProperty` instance.
+	///
+	/// - parameters:
+	///   - scheduler: The scheduler on which the `BindingTarget` is scheduled
+	///   - setter: A closure that takes a value of type `U` to produce a new
+	///             value for this property
+	///
+	public func bindingTarget<U>(on scheduler: SchedulerProtocol, setter: @escaping (Value, U) -> Value) -> BindingTarget<U> {
+		return BindingTarget(on: scheduler, lifetime: self.lifetime, setter: { [weak self] (inputValue: U) in
+			self?.modify({ (theValue: inout Value) -> Void in
+				theValue = setter(theValue, inputValue)
+			})
+		})
+	}
+}

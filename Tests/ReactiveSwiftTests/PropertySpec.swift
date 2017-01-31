@@ -1701,5 +1701,76 @@ class PropertySpec: QuickSpec {
 				}
 			}
 		}
+
+
+		describe("bindingTarget") {
+			struct Person {
+				var firstName: String
+				var lastName: String
+			}
+
+			it("should produce new values when a bound value is modified") {
+				let personProperty = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
+				let firstNameBinding = personProperty.bindingTarget { return Person(firstName: $1, lastName: $0.lastName) }
+
+				expect(personProperty.value.firstName) == "Steve"
+				expect(personProperty.value.lastName) == "McQueen"
+
+				firstNameBinding <~ SignalProducer(value: "Lightning")
+
+				expect(personProperty.value.firstName) == "Lightning"
+				expect(personProperty.value.lastName) == "McQueen"
+			}
+
+			it("should consume values using the specified scheduler") {
+				let testScheduler = TestScheduler()
+				let personProperty = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
+				let firstNameBinding = personProperty.bindingTarget(on: testScheduler) { return Person(firstName: $1, lastName: $0.lastName) }
+
+				expect(personProperty.value.firstName) == "Steve"
+				expect(personProperty.value.lastName) == "McQueen"
+
+				firstNameBinding <~ SignalProducer(value: "Lightning")
+
+				// The value should not be propagated right now
+				expect(personProperty.value.firstName) == "Steve"
+				expect(personProperty.value.lastName) == "McQueen"
+
+				testScheduler.run()
+
+				// After running the scheduler, the value comes through
+				expect(personProperty.value.firstName) == "Lightning"
+				expect(personProperty.value.lastName) == "McQueen"
+			}
+
+			it("should tear down a binding with the underlying property") {
+				var property: Optional<MutableProperty<Person>> = MutableProperty(Person(firstName: "Steve", lastName: "McQueen"))
+				let binding = property!.bindingTarget { return Person(firstName: $1, lastName: $0.lastName) }
+
+				var propertyEnded = false
+				property!.lifetime.ended.observeCompleted {
+					propertyEnded = true
+				}
+
+				var bindingEnded = false
+				binding.lifetime.ended.observeCompleted {
+					bindingEnded = true
+				}
+
+				expect(bindingEnded) == false
+
+				binding <~ SignalProducer(value: "Lightning")
+
+				expect(bindingEnded) == false
+
+				property = nil
+
+				expect(propertyEnded) == true
+				expect(bindingEnded) == true
+
+				// This shouldn't blow up afterward, either
+				binding <~ SignalProducer(value: "Lightning")
+			}
+		}
 	}
 }
