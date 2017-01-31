@@ -678,4 +678,3 @@ public final class MutableProperty<Value>: MutablePropertyProtocol {
 		observer.sendCompleted()
 	}
 }
-
