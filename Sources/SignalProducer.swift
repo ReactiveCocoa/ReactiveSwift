@@ -472,11 +472,11 @@ extension SignalProducerProtocol {
 	/// Maps each value in the producer to a new value, lazily evaluating the
 	/// supplied transformation on the specified scheduler.
 	///
-	/// - note: The difference between `lazyMap` and `map` is that `lazyMap` 
-	///         will not force the transformation to get invoked immediately
-	///			when a new value is sent. Furthermore, subsequent `.value` 
-	///			events will not cause `transform` to repeatedly evaluate when
-	///			it has not been scheduled for execution by `scheduler`.
+	/// - important: Unlike `map`, there is not a 1-1 mapping between incoming 
+	///              values, and values sent on the returned producer. If 
+	///              `scheduler` has not yet scheduled `transform` for 
+	///              execution, then each new value will replace the last one as 
+	///              the parameter to `transform` once it is finally executed.
 	///
 	/// - parameters:
 	///	  - transform: The closure used to obtain the returned value from this
