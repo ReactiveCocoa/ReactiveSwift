@@ -74,7 +74,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - block: A block that supplies a value to be sent by the `Signal` in
-	///			   a `value` event.
+	///            a `value` event.
 	public init(_ block: @escaping () -> Value) {
 		self.init { observer, disposable in
 			observer.send(value: block())
@@ -483,7 +483,7 @@ extension SignalProducerProtocol {
 	///                producer's underlying value.
 	///
 	/// - returns: A producer that, when started, sends values obtained using 
-	///			   `transform` as this producer sends values.
+	///            `transform` as this producer sends values.
 	public func lazyMap<U>(on scheduler: SchedulerProtocol, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.lazyMap(on: scheduler, transform: transform) }
 	}
