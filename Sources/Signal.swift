@@ -559,7 +559,7 @@ extension SignalProtocol {
 	///              the parameter to `transform` once it is finally executed.
 	///
 	/// - parameters:
-	///	  - transform: The closure used to obtain the returned value from this
+	///   - transform: The closure used to obtain the returned value from this
 	///                signal's underlying value.
 	///
 	/// - returns: A signal that sends values obtained using `transform` as this 
