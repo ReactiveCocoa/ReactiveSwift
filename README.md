@@ -72,7 +72,7 @@ It is like the continuously updated current time offset of a video playback — 
 ```swift
 let currentTime: Property<TimeInterval> = video.currentTime
 print("Current time offset: \(currentTime.value)")
-currentTime.observeValues { timeBar.timeLabel.text = "\($0)" }
+currentTime.signal.observeValues { timeBar.timeLabel.text = "\($0)" }
 ```
 
 #### `Action`: a serialized worker with a preset action.
