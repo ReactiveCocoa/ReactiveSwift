@@ -1045,13 +1045,19 @@ extension SignalProducerProtocol {
 		return lift { $0.attemptMap(operation) }
 	}
 
-	/// Throttle values sent by the receiver, so that at least `interval`
-	/// seconds pass between each, then forwards them on the given scheduler.
+	/// Don't send a value until at least `interval` seconds have passed since
+	/// *the returned signal* last sent a value, then forward the latest value 
+	/// on `scheduler`.
+	///
+	/// If the receiver sent values constantly, then the returned signal would
+	/// forward values every `interval` seconds.
+	///
+	/// To measure from when the *receiver* last sent a value, see `debounce`.
 	///
 	/// - note: If multiple values are received before the interval has elapsed,
 	///         the latest value is the one that will be passed on.
 	///
-	/// - norw: If `self` terminates while a value is being throttled, that
+	/// - note: If `self` terminates while a value is being throttled, that
 	///         value will be discarded and the returned producer will terminate
 	///         immediately.
 	///
@@ -1097,9 +1103,15 @@ extension SignalProducerProtocol {
 		return lift { $0.throttle(while: shouldThrottle, on: scheduler) }
 	}
 
-	/// Debounce values sent by the receiver, such that at least `interval`
-	/// seconds pass after the receiver has last sent a value, then
-	/// forward the latest value on the given scheduler.
+	/// Don't send a value until at least `interval` seconds have passed since
+    /// *the receiver* last sent a value, then forward the latest value on
+	/// `scheduler`.
+	///
+	/// If the receiver sent values constantly, then the returned signal would
+	/// never foward any values.
+	///
+	/// To measure from when the *returned signal* last sent a value, see
+	/// `throttle`.
 	///
 	/// - note: If multiple values are received before the interval has elapsed,
 	///         the latest value is the one that will be passed on.
