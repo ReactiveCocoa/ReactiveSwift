@@ -144,8 +144,8 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 				switch s.result.value {
 				case let .failure(failedValue, _):
 					s.value = failedValue
-				case let .substitution(substitutedValue, _, _):
-					s.value = substitutedValue
+				case let .substitution(_, failedValue, _):
+					s.value = failedValue
 				case let .success(value):
 					s.value = value
 				}
@@ -214,12 +214,12 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 			let otherValue: U
 
 			switch otherValidations.value {
-			case let .success(value):
-				otherValue = value
-			case let .substitution(_, value, _):
-				otherValue = value
-			case let .failure(value, _):
-				otherValue = value
+			case let .success(succeeded):
+				otherValue = succeeded
+			case let .substitution(_, proposed, _):
+				otherValue = proposed
+			case let .failure(failed, _):
+				otherValue = failed
 			}
 
 			return validator(input, otherValue)
@@ -234,12 +234,12 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 				guard let s = self else { return }
 
 				switch s.result.value {
-				case let .failure(failedValue, _):
-					s.value = failedValue
-				case let .substitution(substitutedValue, _, _):
-					s.value = substitutedValue
-				case let .success(value):
-					s.value = value
+				case let .failure(failed, _):
+					s.value = failed
+				case let .substitution(_, proposed, _):
+					s.value = proposed
+				case let .success(succeeded):
+					s.value = succeeded
 				}
 			}
 	}
@@ -306,8 +306,8 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 		case .success:
 			self = .success(value)
 
-		case let .substitution(substitutedValue, error):
-			self = .substitution(substituted: substitutedValue, proposed: value, error)
+		case let .substitution(substituted, error):
+			self = .substitution(substituted: substituted, proposed: value, error)
 
 		case let .failure(error):
 			self = .failure(proposed: value, error)
