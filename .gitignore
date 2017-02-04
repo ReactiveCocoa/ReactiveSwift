@@ -14,6 +14,7 @@ xcuserdata
 profile
 *.moved-aside
 PlaygroundUtility.remap
+*.xctimeline
 
 # SwiftPM
 .build
