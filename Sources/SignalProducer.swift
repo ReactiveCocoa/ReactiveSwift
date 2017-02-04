@@ -65,6 +65,23 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		}
 	}
 
+	/// Creates a producer for a `Signal` that immediately sends one value, then
+	/// completes.
+	///
+	/// This initializer differs from `init(value:)` in that it will not 
+	/// evaluate the closure supplying its sole `value` event until the 
+	/// `SignalProducer` is started.
+	///
+	/// - parameters:
+	///   - block: A block that supplies a value to be sent by the `Signal` in
+	///            a `value` event.
+	public init(_ block: @escaping () -> Value) {
+		self.init { observer, disposable in
+			observer.send(value: block())
+			observer.sendCompleted()
+		}
+	}
+
 	/// Creates a producer for a `Signal` that will immediately fail with the
 	/// given error.
 	///
@@ -450,6 +467,25 @@ extension SignalProducerProtocol {
 	/// - returns: A producer that emits errors of new type.
 	public func mapError<F>(_ transform: @escaping (Error) -> F) -> SignalProducer<Value, F> {
 		return lift { $0.mapError(transform) }
+	}
+
+	/// Maps each value in the producer to a new value, lazily evaluating the
+	/// supplied transformation on the specified scheduler.
+	///
+	/// - important: Unlike `map`, there is not a 1-1 mapping between incoming 
+	///              values, and values sent on the returned producer. If 
+	///              `scheduler` has not yet scheduled `transform` for 
+	///              execution, then each new value will replace the last one as 
+	///              the parameter to `transform` once it is finally executed.
+	///
+	/// - parameters:
+	///   - transform: The closure used to obtain the returned value from this
+	///                producer's underlying value.
+	///
+	/// - returns: A producer that, when started, sends values obtained using 
+	///            `transform` as this producer sends values.
+	public func lazyMap<U>(on scheduler: SchedulerProtocol, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
+		return lift { $0.lazyMap(on: scheduler, transform: transform) }
 	}
 
 	/// Preserve only the values of the producer that pass the given predicate.

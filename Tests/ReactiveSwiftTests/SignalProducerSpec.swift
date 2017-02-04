@@ -204,6 +204,23 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
+		describe("init(_ block:)") {
+			it("should not evaluate the supplied closure until started") {
+				var evaluated: Bool = false
+				func lazyGetter() -> String {
+					evaluated = true
+					return "🎃"
+				}
+
+				let lazyProducer = SignalProducer<String, NoError>(lazyGetter)
+
+				expect(evaluated).to(beFalse())
+
+				expect(lazyProducer).to(sendValue("🎃", sendError: nil, complete: true))
+				expect(evaluated).to(beTrue())
+			}
+		}
+
 		describe("init(error:)") {
 			it("should immediately send the error") {
 				let producerError = NSError(domain: "com.reactivecocoa.errordomain", code: 4815, userInfo: nil)
