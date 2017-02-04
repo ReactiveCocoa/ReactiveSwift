@@ -68,16 +68,16 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// Creates a producer for a `Signal` that immediately sends one value, then
 	/// completes.
 	///
-	/// This initializer differs from `init(value:)` in that it will not 
-	/// evaluate the closure supplying its sole `value` event until the 
-	/// `SignalProducer` is started.
+	/// This initializer differs from `init(value:)` in that its sole `value`
+	/// event is constructed lazily by invoking the supplied `action` when
+	/// the `SignalProducer` is started.
 	///
 	/// - parameters:
-	///   - block: A block that supplies a value to be sent by the `Signal` in
-	///            a `value` event.
-	public init(_ block: @escaping () -> Value) {
+	///   - action: A action that yields a value to be sent by the `Signal` as
+	///             a `value` event.
+	public init(_ action: @escaping () -> Value) {
 		self.init { observer, disposable in
-			observer.send(value: block())
+			observer.send(value: action())
 			observer.sendCompleted()
 		}
 	}
