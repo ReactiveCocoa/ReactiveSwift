@@ -124,25 +124,30 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		_ inner: MutableProperty<Value>,
 		with other: Other,
 		_ validator: @escaping (Value, Other.Value) -> ValidatorOutput<Value, ValidationError>
-	) {
+		) {
+		// Capture a copy that reflects `other` without influencing the lifetime of
+		// `other`.
 		let other = Property(other)
 
 		self.init(inner) { input in
 			return validator(input, other.value)
 		}
 
+		// When `other` pushes out a new value, the resulting property would react 
+		// by revalidating itself with its last attempted value, regardless of
+		// success or failure.
 		other.signal
 			.take(during: lifetime)
 			.observeValues { [weak self] _ in
-				if let s = self {
-					switch s.result.value {
-					case let .failure(failedValue, _):
-						s.value = failedValue
-					case let .substitution(substitutedValue, _, _):
-						s.value = substitutedValue
-					case let .success(value):
-						s.value = value
-					}
+				guard let s = self else { return }
+
+				switch s.result.value {
+				case let .failure(failedValue, _):
+					s.value = failedValue
+				case let .substitution(substitutedValue, _, _):
+					s.value = substitutedValue
+				case let .success(value):
+					s.value = value
 				}
 		}
 	}
@@ -202,6 +207,7 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		with other: MutableValidatingProperty<U, E>,
 		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
 	) {
+		// Capture only `other.result` but not `other`.
 		let otherValidations = other.result
 
 		self.init(initial) { input in
@@ -219,10 +225,14 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 			return validator(input, otherValue)
 		}
 
+		// When `other` pushes out a new validation result, the resulting property
+		// would react by revalidating itself with its last attempted value,
+		// regardless of success or failure.
 		otherValidations.signal
 			.take(during: lifetime)
 			.observeValues { [weak self] _ in
-			if let s = self {
+				guard let s = self else { return }
+
 				switch s.result.value {
 				case let .failure(failedValue, _):
 					s.value = failedValue
@@ -232,7 +242,6 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 					s.value = value
 				}
 			}
-		}
 	}
 }
 
