@@ -452,7 +452,7 @@ The primary goal of ReactiveSwift 2.0 is to remove single-implementation protoco
 
 ReactiveSwift 2.0 may include other proposed breaking changes.
 
-As resilience would be enforced in Swift 4.0, it is important for us to have a clean and steady API to start with. The expectation is to **have the API cleanup and the reviewing to be concluded in ReactiveSwift 2.0**, before we move on to ReactiveSwift 3.0 and Swift 4.0. Any contribution to help realising this goal is welcomed.
+As Swift 4.0 introduces library evolution and resilience, it is important for us to have a clean and steady API to start with. The expectation is to **have the API cleanup and the reviewing to be concluded in ReactiveSwift 2.0**, before we move on to ReactiveSwift 3.0 and Swift 4.0. Any contribution to help realising this goal is welcomed.
 
 #### ReactiveSwift 3.0
 It targets Swift 4.0.x. The estimated schedule is late 2017.
@@ -461,7 +461,7 @@ The release may contain breaking changes, depending on what features are being d
 
 ReactiveSwift 3.0 would focus on two main goals:
 
-1. Swift 4.0 Resilience
+1. Swift 4.0 Library Evolution and Resilience
 2. Adapt to new features introduced in Swift 4.0 Phase 2.
 
 [ReactiveCocoa]: https://github.com/ReactiveCocoa/ReactiveCocoa/#readme
