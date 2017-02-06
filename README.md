@@ -448,7 +448,7 @@ It targets Swift 3.1.x. The estimated schedule is Spring 2017.
 
 The release contains breaking changes. But they are not expected to affect the general mass of users, but only a few specific use cases.
 
-The primary goal of ReactiveSwift 2.0 is to remove single-implementation protocols, e.g. `SignalProtocol`, `SignalProducerProtocol`, that serve as a workaround to **concrete same-type requirements**.
+The primary goal of ReactiveSwift 2.0 is to adopt **concrete same-type requirements**, and remove as many single-implementation protocols as possible.
 
 ReactiveSwift 2.0 may include other proposed breaking changes.
 
