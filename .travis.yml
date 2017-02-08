@@ -72,7 +72,11 @@ matrix:
       env:
         - JOB=PODSPEC
     - script:
+        - mv .Package.test.swift Package.swift
+        - swift package update
+        - cd Packages/Quick-* && git checkout 5c0d10516d473e041f73b957c4137d5a536390cb && cd ../../
         - swift build
+        - swift test
       env:
         - JOB=SWIFTPM_DARWIN
     - os: linux
