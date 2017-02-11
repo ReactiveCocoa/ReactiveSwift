@@ -351,49 +351,47 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 	/// - note: The returned signal completes only when `signal` and all
 	///         producers emitted from `signal` complete.
 	fileprivate func concat() -> Signal<Value.Value, Error> {
-		return Signal<Value.Value, Error> { relayObserver in
-			let disposable = CompositeDisposable()
-			let relayDisposable = CompositeDisposable()
+		let relayDisposable = CompositeDisposable()
+		let action = observeConcat(relayDisposable)
 
-			disposable += relayDisposable
-			disposable += self.observeConcat(relayObserver, relayDisposable)
-
-			return disposable
-		}
+		return Signal.composer
+			.onCreate { $1 += relayDisposable }
+			.observe(self, nil, action)
+			.make()
 	}
 	
-	fileprivate func observeConcat(_ observer: Observer<Value.Value, Error>, _ disposable: CompositeDisposable? = nil) -> Disposable? {
+	fileprivate func observeConcat(_ disposable: CompositeDisposable? = nil) -> (Event<Value, Error>, Observer<Value.Value, Error>) -> Void {
 		let state = Atomic(ConcatState<Value.Value, Error>())
-		
-		func startNextIfNeeded() {
-			while let producer = state.modify({ $0.dequeue() }) {
-				producer.startWithSignal { signal, inner in
-					let handle = disposable?.add(inner)
 
-					signal.observe { event in
-						switch event {
-						case .completed, .interrupted:
-							handle?.remove()
-							
-							let shouldStart: Bool = state.modify {
-								$0.active = nil
-								return !$0.isStarting
+		return { event, observer in
+			func startNextIfNeeded() {
+				while let producer = state.modify({ $0.dequeue() }) {
+					producer.startWithSignal { signal, inner in
+						let handle = disposable?.add(inner)
+
+						signal.observe { event in
+							switch event {
+							case .completed, .interrupted:
+								handle?.remove()
+
+								let shouldStart: Bool = state.modify {
+									$0.active = nil
+									return !$0.isStarting
+								}
+
+								if shouldStart {
+									startNextIfNeeded()
+								}
+
+							case .value, .failed:
+								observer.action(event)
 							}
-
-							if shouldStart {
-								startNextIfNeeded()
-							}
-
-						case .value, .failed:
-							observer.action(event)
 						}
 					}
+					state.modify { $0.isStarting = false }
 				}
-				state.modify { $0.isStarting = false }
 			}
-		}
-		
-		return observe { event in
+
 			switch event {
 			case let .value(value):
 				state.modify { $0.queue.append(value.producer) }
@@ -407,7 +405,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 					state.queue.append(SignalProducer.empty.on(completed: observer.sendCompleted))
 				}
 				startNextIfNeeded()
-				
+
 			case .interrupted:
 				observer.sendInterrupted()
 			}
@@ -428,8 +426,12 @@ extension SignalProducerProtocol where Value: SignalProducerProtocol, Error == V
 	fileprivate func concat() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { observer, disposable in
 			self.startWithSignal { signal, signalDisposable in
+				let action = signal.observeConcat(disposable)
+
 				disposable += signalDisposable
-				_ = signal.observeConcat(observer, disposable)
+				disposable += signal.observe { event in
+					action(event, observer)
+				}
 			}
 		}
 	}
@@ -498,31 +500,30 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 	/// toward the producer added earlier. Returns a Signal that will forward
 	/// events from the inner producers as they arrive.
 	fileprivate func merge() -> Signal<Value.Value, Error> {
-		return Signal<Value.Value, Error> { relayObserver in
-			let disposable = CompositeDisposable()
-			let relayDisposable = CompositeDisposable()
+		let relayDisposable = CompositeDisposable()
+		let action = self.observeMerge(relayDisposable)
 
-			disposable += relayDisposable
-			disposable += self.observeMerge(relayObserver, relayDisposable)
-
-			return disposable
-		}
+		return Signal.composer
+			.onCreate { $1 += relayDisposable }
+			.observe(self, nil, action)
+			.make()
 	}
 
-	fileprivate func observeMerge(_ observer: Observer<Value.Value, Error>, _ disposable: CompositeDisposable) -> Disposable? {
+	fileprivate func observeMerge(_ disposable: CompositeDisposable) -> (Event<Value, Error>, Observer<Value.Value, Error>) -> Void {
 		let inFlight = Atomic(1)
-		let decrementInFlight = {
-			let shouldComplete: Bool = inFlight.modify {
-				$0 -= 1
-				return $0 == 0
+
+		return { event, observer in
+			let decrementInFlight = {
+				let shouldComplete: Bool = inFlight.modify {
+					$0 -= 1
+					return $0 == 0
+				}
+
+				if shouldComplete {
+					observer.sendCompleted()
+				}
 			}
 
-			if shouldComplete {
-				observer.sendCompleted()
-			}
-		}
-
-		return self.observe { event in
 			switch event {
 			case let .value(producer):
 				producer.startWithSignal { innerSignal, innerDisposable in
@@ -561,11 +562,13 @@ extension SignalProducerProtocol where Value: SignalProducerProtocol, Error == V
 	fileprivate func merge() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { relayObserver, disposable in
 			self.startWithSignal { signal, signalDisposable in
+				let action = signal.observeMerge(disposable)
+
 				disposable += signalDisposable
-
-				_ = signal.observeMerge(relayObserver, disposable)
+				disposable += signal.observe { event in
+					action(event, relayObserver)
+				}
 			}
-
 		}
 	}
 }
@@ -620,21 +623,19 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 	/// The returned signal completes when `signal` and the latest inner
 	/// signal have both completed.
 	fileprivate func switchToLatest() -> Signal<Value.Value, Error> {
-		return Signal<Value.Value, Error> { observer in
-			let composite = CompositeDisposable()
-			let serial = SerialDisposable()
+		let serial = SerialDisposable()
+		let action = self.observeSwitchToLatest(serial)
 
-			composite += serial
-			composite += self.observeSwitchToLatest(observer, serial)
-
-			return composite
-		}
+		return Signal.composer
+			.onCreate { $1 += serial }
+			.observe(self, nil, action)
+			.make()
 	}
 
-	fileprivate func observeSwitchToLatest(_ observer: Observer<Value.Value, Error>, _ latestInnerDisposable: SerialDisposable) -> Disposable? {
+	fileprivate func observeSwitchToLatest(_ latestInnerDisposable: SerialDisposable) -> (Event<Value, Error>, Observer<Value.Value, Error>) -> Void {
 		let state = Atomic(LatestState<Value, Error>())
 
-		return self.observe { event in
+		return { event, observer in
 			switch event {
 			case let .value(innerProducer):
 				innerProducer.startWithSignal { innerSignal, innerDisposable in
@@ -719,8 +720,12 @@ extension SignalProducerProtocol where Value: SignalProducerProtocol, Error == V
 			disposable += latestInnerDisposable
 
 			self.startWithSignal { signal, signalDisposable in
+				let action = signal.observeSwitchToLatest(latestInnerDisposable)
+
 				disposable += signalDisposable
-				disposable += signal.observeSwitchToLatest(observer, latestInnerDisposable)
+				disposable += signal.observe { event in
+					action(event, observer)
+				}
 			}
 		}
 	}
@@ -915,13 +920,12 @@ extension SignalProtocol {
 	/// Catches any failure that may occur on the input signal, mapping to a new
 	/// producer that starts in its place.
 	public func flatMapError<F>(_ handler: @escaping (Error) -> SignalProducer<Value, F>) -> Signal<Value, F> {
-		return Signal { observer in
-			self.observeFlatMapError(handler, observer, SerialDisposable())
-		}
+		let action = self.observeFlatMapError(handler, SerialDisposable())
+		return Signal.composer.observe(self, nil, action).make()
 	}
 
-	fileprivate func observeFlatMapError<F>(_ handler: @escaping (Error) -> SignalProducer<Value, F>, _ observer: Observer<Value, F>, _ serialDisposable: SerialDisposable) -> Disposable? {
-		return self.observe { event in
+	fileprivate func observeFlatMapError<F>(_ handler: @escaping (Error) -> SignalProducer<Value, F>, _ serialDisposable: SerialDisposable) -> (Event<Value, Error>, Observer<Value, F>) -> Void {
+		return { event, observer in
 			switch event {
 			case let .value(value):
 				observer.send(value: value)
@@ -949,8 +953,11 @@ extension SignalProducerProtocol {
 
 			self.startWithSignal { signal, signalDisposable in
 				serialDisposable.inner = signalDisposable
+				let action = signal.observeFlatMapError(handler, serialDisposable)
 
-				_ = signal.observeFlatMapError(handler, observer, serialDisposable)
+				disposable += signal.observe { event in
+					action(event, observer)
+				}
 			}
 		}
 	}
