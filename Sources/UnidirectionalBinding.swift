@@ -53,7 +53,10 @@ public protocol BindingTargetProtocol: class {
 	var lifetime: Lifetime { get }
 
 	/// Consume a value from the binding.
-	func consume(_ value: Value)
+	///
+	/// - warning: Conforming types must not retain `self` in the returned value
+	///            consumer closure.
+	var consume: (Value) -> Void { get }
 }
 
 /// Binds a source to a target, updating the target's value to the latest
@@ -91,17 +94,8 @@ public func <~
 	(target: Target, source: Source) -> Disposable?
 	where Source.Value == Target.Value, Source.Error == NoError
 {
-	// Alter the semantics of `BindingTarget` to not require it to be retained.
-	// This is done here--and not in a separate function--so that all variants
-	// of `<~` can get this behavior.
-	let observer: Observer<Target.Value, NoError>
-	if let target = target as? BindingTarget<Target.Value> {
-		observer = Observer(value: { [setter = target.setter] in setter($0) })
-	} else {
-		observer = Observer(value: { [weak target] in target?.consume($0) })
-	}
-
-	return source.observe(observer, during: target.lifetime)
+	return source.observe(Observer(value: target.consume),
+	                      during: target.lifetime)
 }
 
 /// Binds a source to a target, updating the target's value to the latest
@@ -139,23 +133,15 @@ public func <~
 	(target: Target, source: Source) -> Disposable?
 	where Target.Value: OptionalProtocol, Source.Value == Target.Value.Wrapped, Source.Error == NoError
 {
-	// Alter the semantics of `BindingTarget` to not require it to be retained.
-	// This is done here--and not in a separate function--so that all variants
-	// of `<~` can get this behavior.
-	let observer: Observer<Source.Value, NoError>
-	if let target = target as? BindingTarget<Target.Value> {
-		observer = Observer(value: { [setter = target.setter] in setter(Target.Value(reconstructing: $0)) })
-	} else {
-		observer = Observer(value: { [weak target] in target?.consume(Target.Value(reconstructing: $0)) })
-	}
-
-	return source.observe(observer, during: target.lifetime)
+	let consume = target.consume
+	return source.observe(Observer(value: { consume(Target.Value(reconstructing: $0)) }),
+	                      during: target.lifetime)
 }
 
 /// A binding target that can be used with the `<~` operator.
 public final class BindingTarget<Value>: BindingTargetProtocol {
 	public let lifetime: Lifetime
-	fileprivate let setter: (Value) -> Void
+	public let consume: (Value) -> Void
 
 	/// Creates a binding target.
 	///
@@ -163,7 +149,7 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
 	///   - setter: The action to consume values.
 	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void) {
-		self.setter = setter
+		self.consume = setter
 		self.lifetime = lifetime
 	}
 
@@ -180,9 +166,5 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 			}
 		}
 		self.init(lifetime: lifetime, setter: setter)
-	}
-
-	public func consume(_ value: Value) {
-		setter(value)
 	}
 }

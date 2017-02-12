@@ -45,8 +45,8 @@ public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProtocol
 
 /// Default implementation of `MutablePropertyProtocol` for `BindingTarget`.
 extension MutablePropertyProtocol {
-	public func consume(_ value: Value) {
-		self.value = value
+	public var consume: (Value) -> Void {
+		return { [weak self] in self?.value = $0 }
 	}
 }
 
