@@ -207,7 +207,7 @@ private struct ActionState {
 }
 
 /// A protocol used to constraint `Action` initializers.
-public protocol ActionProtocol: BindingTargetProtocol {
+public protocol ActionProtocol: BindingTargetProvider {
 	/// The type of argument to apply the action to.
 	associatedtype Input
 	/// The type of values returned by the action.
@@ -259,15 +259,13 @@ public protocol ActionProtocol: BindingTargetProtocol {
 	func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>>
 }
 
-extension ActionProtocol {
-	public func consume(_ value: Input) {
-		apply(value).start()
-	}
-}
-
 extension Action: ActionProtocol {
 	public var action: Action {
 		return self
+	}
+
+	public var bindingTarget: BindingTarget<Input> {
+		return BindingTarget(lifetime: lifetime) { [weak self] in self?.apply($0).start() }
 	}
 }
 

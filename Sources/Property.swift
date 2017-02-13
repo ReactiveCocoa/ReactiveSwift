@@ -5,7 +5,7 @@ import enum Result.NoError
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: class, BindingSourceProtocol {
+public protocol PropertyProtocol: class, BindingSource {
 	associatedtype Value
 
 	/// The current value of the property.
@@ -38,15 +38,18 @@ extension PropertyProtocol {
 }
 
 /// Represents an observable property that can be mutated directly.
-public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProtocol {
+public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProvider {
 	/// The current value of the property.
 	var value: Value { get set }
+
+	/// The lifetime of the property.
+	var lifetime: Lifetime { get }
 }
 
-/// Default implementation of `MutablePropertyProtocol` for `BindingTarget`.
+/// Default implementation of `BindingTargetProvider` for mutable properties.
 extension MutablePropertyProtocol {
-	public func consume(_ value: Value) {
-		self.value = value
+	public var bindingTarget: BindingTarget<Value> {
+		return BindingTarget(lifetime: lifetime) { [weak self] in self?.value = $0 }
 	}
 }
 

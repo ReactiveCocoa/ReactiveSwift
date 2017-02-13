@@ -8,6 +8,29 @@ public typealias SchedulerProtocol = Scheduler
 @available(*, deprecated, renamed:"DateScheduler")
 public typealias DateSchedulerProtocol = DateScheduler
 
+@available(*, deprecated, renamed:"BindingSource")
+public typealias BindingSourceProtocol = BindingSource
+
+@available(*, unavailable, message:"The protocol has been replaced by `BindingTargetProvider`.")
+public protocol BindingTargetProtocol {}
+
+extension BindingTarget {
+	@available(*, deprecated, renamed:"action")
+	public func consume(_ value: Value) {
+		action(value)
+	}
+
+	@available(*, deprecated, renamed:"init(lifetime:action:)")
+	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void, _ void: Void? = nil) {
+		self.init(lifetime: lifetime, action: setter)
+	}
+
+	@available(*, deprecated, renamed:"init(on:lifetime:action:)")
+	public init(on scheduler: Scheduler, lifetime: Lifetime, setter: @escaping (Value) -> Void, _ void: Void? = nil) {
+		self.init(on: scheduler, lifetime: lifetime, action: setter)
+	}
+}
+
 // MARK: Removed Types and APIs in ReactiveCocoa 5.0.
 
 // Renamed Protocols
