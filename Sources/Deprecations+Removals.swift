@@ -1,6 +1,10 @@
 import Foundation
 import enum Result.NoError
 
+// MARK: Removed Types in ReactiveSwift 2.0.
+@available(*, unavailable, message:"Extensions to concrete types can be constrained with same type requirements since Swift 3.1.")
+public protocol ActionProtocol {}
+
 // MARK: Removed Types and APIs in ReactiveCocoa 5.0.
 
 // Renamed Protocols
@@ -65,11 +69,11 @@ extension ScopedDisposable {
 	public var innerDisposable: Disposable { fatalError() }
 }
 
-extension ActionProtocol {
-	@available(*, unavailable, renamed:"isEnabled")
+extension Action {
+	@available(*, unavailable, renamed:"isEnabled.value")
 	public var enabled: Bool { fatalError() }
 
-	@available(*, unavailable, renamed:"isExecuting")
+	@available(*, unavailable, renamed:"isExecuting.value")
 	public var executing: Bool { fatalError() }
 }
 
