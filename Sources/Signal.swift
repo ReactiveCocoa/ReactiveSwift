@@ -927,8 +927,8 @@ extension SignalProtocol {
 	/// - note: If either signal is interrupted, the returned signal will also
 	///         be interrupted.
 	///
-	/// - note: The returned signal will not complete until both inputs send
-	///         completed.
+	/// - note: The returned signal will not complete until both inputs
+	///         complete.
 	///
 	/// - parameters:
 	///   - otherSignal: A signal to combine `self`'s value with.

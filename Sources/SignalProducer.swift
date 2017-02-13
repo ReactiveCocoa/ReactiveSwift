@@ -661,8 +661,8 @@ extension SignalProducerProtocol {
 	/// - note: If either producer is interrupted, the returned producer will
 	///         also be interrupted.
 	///
-	/// - note: The returned producer will not complete until both inputs send
-	///         completed.
+	/// - note: The returned producer will not complete until both inputs
+	///         complete.
 	///
 	/// - parameters:
 	///   - other: A producer to combine `self`'s value with.
@@ -682,8 +682,8 @@ extension SignalProducerProtocol {
 	/// - note: If either input is interrupted, the returned producer will also
 	///         be interrupted.
 	///
-	/// - note: The returned producer will not complete until both inputs send
-	///         completed.
+	/// - note: The returned producer will not complete until both inputs
+	///         complete.
 	///
 	/// - parameters:
 	///   - other: A signal to combine `self`'s value with.
