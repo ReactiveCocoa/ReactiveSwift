@@ -661,6 +661,9 @@ extension SignalProducerProtocol {
 	/// - note: If either producer is interrupted, the returned producer will
 	///         also be interrupted.
 	///
+	/// - note: The returned producer will not complete until both inputs
+	///         complete.
+	///
 	/// - parameters:
 	///   - other: A producer to combine `self`'s value with.
 	///
@@ -678,6 +681,9 @@ extension SignalProducerProtocol {
 	///
 	/// - note: If either input is interrupted, the returned producer will also
 	///         be interrupted.
+	///
+	/// - note: The returned producer will not complete until both inputs
+	///         complete.
 	///
 	/// - parameters:
 	///   - other: A signal to combine `self`'s value with.
@@ -1476,13 +1482,13 @@ extension SignalProducerProtocol {
 
 extension SignalProducerProtocol {
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
 		return a.combineLatest(with: b)
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(Value, B, C), Error> {
 		return combineLatest(a, b)
 			.combineLatest(with: c)
@@ -1490,7 +1496,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(Value, B, C, D), Error> {
 		return combineLatest(a, b, c)
 			.combineLatest(with: d)
@@ -1498,7 +1504,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(Value, B, C, D, E), Error> {
 		return combineLatest(a, b, c, d)
 			.combineLatest(with: e)
@@ -1506,7 +1512,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(Value, B, C, D, E, F), Error> {
 		return combineLatest(a, b, c, d, e)
 			.combineLatest(with: f)
@@ -1514,7 +1520,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(Value, B, C, D, E, F, G), Error> {
 		return combineLatest(a, b, c, d, e, f)
 			.combineLatest(with: g)
@@ -1522,7 +1528,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H), Error> {
 		return combineLatest(a, b, c, d, e, f, g)
 			.combineLatest(with: h)
@@ -1530,7 +1536,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> {
 		return combineLatest(a, b, c, d, e, f, g, h)
 			.combineLatest(with: i)
@@ -1538,7 +1544,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> {
 		return combineLatest(a, b, c, d, e, f, g, h, i)
 			.combineLatest(with: j)
@@ -1546,7 +1552,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`. Will return an empty `SignalProducer` if the sequence is empty.
+	/// `combineLatest(with:)`. Will return an empty `SignalProducer` if the sequence is empty.
 	public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error>
 		where S.Iterator.Element == SignalProducer<Value, Error>
 	{

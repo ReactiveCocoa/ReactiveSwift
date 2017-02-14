@@ -927,6 +927,9 @@ extension SignalProtocol {
 	/// - note: If either signal is interrupted, the returned signal will also
 	///         be interrupted.
 	///
+	/// - note: The returned signal will not complete until both inputs
+	///         complete.
+	///
 	/// - parameters:
 	///   - otherSignal: A signal to combine `self`'s value with.
 	///
@@ -1981,13 +1984,13 @@ private enum ThrottleWhileState<Value> {
 
 extension SignalProtocol {
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>) -> Signal<(Value, B), Error> {
 		return a.combineLatest(with: b)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>) -> Signal<(Value, B, C), Error> {
 		return combineLatest(a, b)
 			.combineLatest(with: c)
@@ -1995,7 +1998,7 @@ extension SignalProtocol {
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>) -> Signal<(Value, B, C, D), Error> {
 		return combineLatest(a, b, c)
 			.combineLatest(with: d)
@@ -2003,7 +2006,7 @@ extension SignalProtocol {
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>) -> Signal<(Value, B, C, D, E), Error> {
 		return combineLatest(a, b, c, d)
 			.combineLatest(with: e)
@@ -2011,7 +2014,7 @@ extension SignalProtocol {
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>) -> Signal<(Value, B, C, D, E, F), Error> {
 		return combineLatest(a, b, c, d, e)
 			.combineLatest(with: f)
@@ -2019,7 +2022,7 @@ extension SignalProtocol {
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>) -> Signal<(Value, B, C, D, E, F, G), Error> {
 		return combineLatest(a, b, c, d, e, f)
 			.combineLatest(with: g)
@@ -2027,7 +2030,7 @@ extension SignalProtocol {
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>) -> Signal<(Value, B, C, D, E, F, G, H), Error> {
 		return combineLatest(a, b, c, d, e, f, g)
 			.combineLatest(with: h)
@@ -2035,7 +2038,7 @@ extension SignalProtocol {
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>) -> Signal<(Value, B, C, D, E, F, G, H, I), Error> {
 		return combineLatest(a, b, c, d, e, f, g, h)
 			.combineLatest(with: i)
@@ -2043,7 +2046,7 @@ extension SignalProtocol {
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>) -> Signal<(Value, B, C, D, E, F, G, H, I, J), Error> {
 		return combineLatest(a, b, c, d, e, f, g, h, i)
 			.combineLatest(with: j)
@@ -2051,7 +2054,7 @@ extension SignalProtocol {
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
-	/// `combineLatestWith`. No events will be sent if the sequence is empty.
+	/// `combineLatest(with:)`. No events will be sent if the sequence is empty.
 	public static func combineLatest<S: Sequence>(_ signals: S) -> Signal<[Value], Error>
 		where S.Iterator.Element == Signal<Value, Error>
 	{
