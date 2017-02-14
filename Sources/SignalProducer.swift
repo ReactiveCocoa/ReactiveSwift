@@ -484,7 +484,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that, when started, sends values obtained using 
 	///            `transform` as this producer sends values.
-	public func lazyMap<U>(on scheduler: SchedulerProtocol, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
+	public func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.lazyMap(on: scheduler, transform: transform) }
 	}
 
@@ -648,7 +648,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that, when started, will yield `self` values on
 	///            provided scheduler.
-	public func observe(on scheduler: SchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func observe(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.observe(on: scheduler) }
 	}
 
@@ -700,7 +700,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that, when started, will delay `value` and
 	///            `completed` events and will yield them on given scheduler.
-	public func delay(_ interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.delay(interval, on: scheduler) }
 	}
 
@@ -1097,7 +1097,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that sends values at least `interval` seconds
 	///            appart on a given scheduler.
-	public func throttle(_ interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func throttle(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.throttle(interval, on: scheduler) }
 	}
 
@@ -1123,7 +1123,7 @@ extension SignalProducerProtocol {
 	///   - scheduler: A scheduler to deliver events on.
 	///
 	/// - returns: A producer that sends values only while `shouldThrottle` is false.
-	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: SchedulerProtocol) -> SignalProducer<Value, Error>
+	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: Scheduler) -> SignalProducer<Value, Error>
 		where P.Value == Bool
 	{
 		// Using `Property.init(_:)` avoids capturing a strong reference
@@ -1150,7 +1150,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that sends values that are sent from `self` at
 	///            least `interval` seconds apart.
-	public func debounce(_ interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.debounce(interval, on: scheduler) }
 	}
 
@@ -1170,7 +1170,7 @@ extension SignalProducerProtocol {
 	/// - returns: A producer that sends events for at most `interval` seconds,
 	///            then, if not `completed` - sends `error` with `failed` event
 	///            on `scheduler`.
-	public func timeout(after interval: TimeInterval, raising error: Error, on scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func timeout(after interval: TimeInterval, raising error: Error, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.timeout(after: interval, raising: error, on: scheduler) }
 	}
 }
@@ -1230,7 +1230,7 @@ extension SignalProducerProtocol where Error == NoError {
 	public func timeout<NewError: Swift.Error>(
 		after interval: TimeInterval,
 		raising error: NewError,
-		on scheduler: DateSchedulerProtocol
+		on scheduler: DateScheduler
 	) -> SignalProducer<Value, NewError> {
 		return lift { $0.timeout(after: interval, raising: error, on: scheduler) }
 	}
@@ -1462,7 +1462,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that will deliver events on given `scheduler` when
 	///            started.
-	public func start(on scheduler: SchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func start(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, compositeDisposable in
 			compositeDisposable += scheduler.schedule {
 				self.startWithSignal { signal, signalDisposable in
@@ -2124,7 +2124,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 ///   - scheduler: A scheduler to deliver events on.
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
-public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Date, NoError> {
+public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -> SignalProducer<Date, NoError> {
 	// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
 	// at least 10% of the timer interval.
 	return timer(interval: interval, on: scheduler, leeway: interval * 0.1)
@@ -2147,7 +2147,7 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerPro
 ///             recommends a leeway of at least 10% of the timer interval.
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
-public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerProtocol, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> {
+public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> {
 	precondition(interval.timeInterval >= 0)
 	precondition(leeway.timeInterval >= 0)
 

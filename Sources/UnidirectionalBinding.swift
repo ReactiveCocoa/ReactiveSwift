@@ -173,7 +173,7 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 	///   - scheduler: The scheduler on which the `setter` consumes the values.
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
 	///   - setter: The action to consume values.
-	public convenience init(on scheduler: SchedulerProtocol, lifetime: Lifetime, setter: @escaping (Value) -> Void) {
+	public convenience init(on scheduler: Scheduler, lifetime: Lifetime, setter: @escaping (Value) -> Void) {
 		let setter: (Value) -> Void = { value in
 			scheduler.schedule {
 				setter(value)
