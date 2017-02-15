@@ -8,6 +8,7 @@ Quick.QCKMain([
     AtomicSpec.self,
     BagSpec.self,
     DisposableSpec.self,
+    DeprecationSpec.self,
     FlattenSpec.self,
     FoundationExtensionsSpec.self,
     LifetimeSpec.self,

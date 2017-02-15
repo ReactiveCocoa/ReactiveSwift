@@ -11,8 +11,32 @@ public typealias DateSchedulerProtocol = DateScheduler
 @available(*, deprecated, renamed:"BindingSource")
 public typealias BindingSourceProtocol = BindingSource
 
-@available(*, unavailable, message:"The protocol has been replaced by `BindingTargetProvider`.")
-public protocol BindingTargetProtocol {}
+@available(*, deprecated, message:"The protocol has been replaced by `BindingTargetProvider`, and will be removed in a future version.")
+public protocol BindingTargetProtocol: class, BindingTargetProvider {
+	var lifetime: Lifetime { get }
+
+	func consume(_ value: Value)
+}
+
+extension BindingTargetProtocol {
+	public var bindingTarget: BindingTarget<Value> {
+		return BindingTarget(lifetime: lifetime) { [weak self] in self?.consume($0) }
+	}
+}
+
+extension MutablePropertyProtocol {
+	@available(*, deprecated, message:"Use the regular setter.")
+	public func consume(_ value: Value) {
+		self.value = value
+	}
+}
+
+extension Action: BindingTargetProtocol {
+	@available(*, deprecated, message:"Use the regular SignalProducer.")
+	public func consume(_ value: Input) {
+		self.apply(value).start()
+	}
+}
 
 extension BindingTarget {
 	@available(*, deprecated, renamed:"action")
