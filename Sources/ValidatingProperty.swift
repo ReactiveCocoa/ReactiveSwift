@@ -9,8 +9,9 @@ import Result
 ///
 /// ```
 /// let root = MutableProperty("Valid")
-/// let outer = root
-///   .validate { $0 == "Valid" ? nil : .outerInvalid }
+/// let outer = MutableValidatingProperty(root) {
+///   $0 == "Valid" ? .success : .failure(.outerInvalid)
+/// }
 ///
 /// outer.result.value        // `.success("Valid")
 ///
