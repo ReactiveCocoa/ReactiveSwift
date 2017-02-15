@@ -12,8 +12,8 @@ final class ViewModel {
 		static let usernameUnavailable = FormError(reason: "The username has been taken.")
 	}
 
-	let email: MutableValidatingProperty<String, FormError>
-	let emailConfirmation: MutableValidatingProperty<String, FormError>
+	let email: ValidatingProperty<String, FormError>
+	let emailConfirmation: ValidatingProperty<String, FormError>
 	let termsAccepted: MutableProperty<Bool>
 
 	let reasons: Signal<String, NoError>
@@ -21,11 +21,11 @@ final class ViewModel {
 	let submit: Action<(), (), FormError>
 
 	init(userService: UserService) {
-		email = MutableValidatingProperty<String, FormError>("") { input in
+		email = ValidatingProperty<String, FormError>("") { input in
 			return input.hasSuffix("@reactivecocoa.io") ? .success : .failure(.invalidEmail)
 		}
 
-		emailConfirmation = MutableValidatingProperty<String, FormError>("", with: email) { input, email in
+		emailConfirmation = ValidatingProperty<String, FormError>("", with: email) { input, email in
 			return input == email ? .success : .failure(.mismatchEmail)
 		}
 
