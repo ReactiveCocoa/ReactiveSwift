@@ -1939,7 +1939,7 @@ extension SignalProducerProtocol {
 	/// - parameters:
 	///   - grouping: a closure that determines the grouping key for a given value
 	///
-	/// - returns: A producer of producers amits one producer for each group and forwards
+	/// - returns: A producer of producers that emits one producer for each group and forwards
 	///            each value from the original producer to the inner producer corresponding 
 	///            to the group to which the value belongs to (as determined by the key)
 	public func group<Key: Hashable>(by grouping: @escaping (Value) -> Key) -> SignalProducer<(Key, SignalProducer<Value, Error>), Error> {
