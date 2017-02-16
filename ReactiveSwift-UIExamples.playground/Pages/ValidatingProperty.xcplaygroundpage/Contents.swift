@@ -22,11 +22,11 @@ final class ViewModel {
 
 	init(userService: UserService) {
 		email = ValidatingProperty<String, FormError>("") { input in
-			return input.hasSuffix("@reactivecocoa.io") ? .success : .failure(.invalidEmail)
+			return input.hasSuffix("@reactivecocoa.io") ? .valid : .invalid(.invalidEmail)
 		}
 
 		emailConfirmation = ValidatingProperty<String, FormError>("", with: email) { input, email in
-			return input == email ? .success : .failure(.mismatchEmail)
+			return input == email ? .valid : .invalid(.mismatchEmail)
 		}
 
 		termsAccepted = MutableProperty(false)
@@ -44,7 +44,7 @@ final class ViewModel {
 		let validatedEmail = Property.combineLatest(email.result,
 		                                            emailConfirmation.result,
 		                                            termsAccepted)
-			.map { e, ec, t in e.value.flatMap { !ec.isFailure && t ? $0 : nil } }
+			.map { e, ec, t in e.value.flatMap { !ec.isInvalid && t ? $0 : nil } }
 
 		// The action to be invoked when the submit button is pressed.
 		// It enables only if all the controls have passed their validations.
