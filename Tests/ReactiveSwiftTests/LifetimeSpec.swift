@@ -1,6 +1,6 @@
 import Quick
 import Nimble
-@testable import ReactiveSwift
+import ReactiveSwift
 import Result
 
 final class LifetimeSpec: QuickSpec {
