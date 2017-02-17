@@ -58,7 +58,7 @@ class ActionSpec: QuickSpec {
 				action.errors.observeValues { errors.append($0) }
 				action.completed.observeValues { completedCount += 1 }
 			}
-			
+
 			it("should retain the state property") {
 				var property: MutableProperty<Bool>? = MutableProperty(false)
 				weak var weakProperty = property
@@ -112,6 +112,21 @@ class ActionSpec: QuickSpec {
 				enabled.value = false
 				expect(action.isEnabled.value) == false
 				expect(action.isExecuting.value) == false
+			}
+
+			it("should not deadlock") {
+				final class ViewModel {
+					let action2 = Action<(), (), NoError> { SignalProducer(value: ()) }
+				}
+
+				let action1 = Action<(), ViewModel, NoError> { SignalProducer(value: ViewModel()) }
+
+				action1.values
+					.flatMap(.latest) { viewModel in viewModel.action2.values.map { _ in viewModel } }
+					.observeValues { _ in }
+
+				action1.apply().start()
+				action1.apply().start()
 			}
 
 			describe("completed") {
