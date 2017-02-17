@@ -7,7 +7,7 @@
 //
 
 import Foundation
-
+import Dispatch
 import Result
 import Nimble
 import Quick
@@ -135,6 +135,36 @@ class ActionSpec: QuickSpec {
 
 				action1.apply().start()
 				action1.apply().start()
+			}
+
+			if #available(macOS 10.10, *) {
+				it("should not loop indefinitely") {
+					let condition = MutableProperty(1)
+
+					let action = Action<Void, Void, NoError>(state: condition, enabledIf: { $0 == 0 }) { _ in
+						return .empty
+					}
+
+					let disposable = CompositeDisposable()
+
+					waitUntil(timeout: 0.01) { done in
+						let target = DispatchQueue(label: "test target queue")
+						let highPriority = QueueScheduler(qos: .userInitiated, targeting: target)
+						let lowPriority = QueueScheduler(qos: .default, targeting: target)
+
+						disposable += action.isExecuting.producer
+							.observe(on: highPriority)
+							.startWithValues { _ in
+								condition.value = 10
+							}
+
+						disposable += lowPriority.schedule {
+							done()
+						}
+					}
+
+					disposable.dispose()
+				}
 			}
 
 			describe("completed") {
