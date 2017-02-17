@@ -121,6 +121,14 @@ class ActionSpec: QuickSpec {
 
 				let action1 = Action<(), ViewModel, NoError> { SignalProducer(value: ViewModel()) }
 
+				// Fixed in #267. (https://github.com/ReactiveCocoa/ReactiveSwift/pull/267)
+				//
+				// The deadlock happened as the observer disposable releases the closure
+				// `{ _ in viewModel }` here without releasing the mapped signal's
+				// `updateLock` first. The deinitialization of the closure triggered the
+				// propagation of terminal event of the `Action`, which eventually hit
+				// the mapped signal and attempted to acquire `updateLock` to transition
+				// the signal's state.
 				action1.values
 					.flatMap(.latest) { viewModel in viewModel.action2.values.map { _ in viewModel } }
 					.observeValues { _ in }
