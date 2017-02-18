@@ -313,13 +313,24 @@ public final class Signal<Value, Error: Swift.Error> {
 			return ActionDisposable { [weak self] in
 				if let s = self {
 					s.updateLock.lock()
+
 					if case let .alive(snapshot) = s.state {
 						var observers = snapshot.observers
 						observers.remove(using: token)
-						s.state = .alive(AliveState(observers: observers,
-						                            retaining: observers.isEmpty ? nil : self))
+
+						// Ensure the old signal state snapshot does not deinitialize before
+						// `updateLock` is released. Otherwise, it might result in a
+						// deadlock in cases where a `Signal` legitimately receives terminal
+						// events recursively as a result of the deinitialization of the
+						// snapshot.
+						withExtendedLifetime(snapshot) {
+							s.state = .alive(AliveState(observers: observers,
+							                            retaining: observers.isEmpty ? nil : self))
+							s.updateLock.unlock()
+						}
+					} else {
+						s.updateLock.unlock()
 					}
-					s.updateLock.unlock()
 				}
 			}
 		} else {
