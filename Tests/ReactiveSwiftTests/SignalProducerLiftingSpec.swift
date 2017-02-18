@@ -6,12 +6,13 @@
 //  Copyright © 2015 GitHub. All rights reserved.
 //
 
+import Dispatch
 import Foundation
 
 import Result
 import Nimble
 import Quick
-import ReactiveSwift
+@testable import ReactiveSwift
 
 class SignalProducerLiftingSpec: QuickSpec {
 	override func spec() {
@@ -51,6 +52,265 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				observer.send(error: TestError.default)
 				expect(error) == producerError
+			}
+		}
+
+		describe("lazyMap") {
+
+			describe("with a scheduled binding") {
+				var token: Lifetime.Token!
+				var lifetime: Lifetime!
+				var destination: [String] = []
+				var tupleProducer: SignalProducer<(character: String, other: Int), NoError>!
+				var tupleObserver: Signal<(character: String, other: Int), NoError>.Observer!
+				var theLens: SignalProducer<String, NoError>!
+				var getterCounter: Int = 0
+				var lensScheduler: TestScheduler!
+				var targetScheduler: TestScheduler!
+				var target: BindingTarget<String>!
+
+				beforeEach {
+					destination = []
+					token = Lifetime.Token()
+					lifetime = Lifetime(token)
+
+					let (producer, observer) = SignalProducer<(character: String, other: Int), NoError>.pipe()
+					tupleProducer = producer
+					tupleObserver = observer
+
+					lensScheduler = TestScheduler()
+					targetScheduler = TestScheduler()
+
+					getterCounter = 0
+					theLens = tupleProducer.lazyMap(on: lensScheduler) { (tuple: (character: String, other: Int)) -> String in
+						getterCounter += 1
+						return tuple.character
+					}
+
+					target = BindingTarget<String>(on: targetScheduler, lifetime: lifetime) {
+						destination.append($0)
+					}
+
+					target <~ theLens
+				}
+
+				it("should not propagate values until scheduled") {
+					// Send a value along
+					tupleObserver.send(value: (character: "🎃", other: 42))
+
+					// The destination should not change value, and the getter
+					// should not have evaluated yet, as neither has been scheduled
+					expect(destination) == []
+					expect(getterCounter) == 0
+
+					// Advance both schedulers
+					lensScheduler.advance()
+					targetScheduler.advance()
+
+					// The destination receives the previously-sent value, and the
+					// getter obviously evaluated
+					expect(destination) == ["🎃"]
+					expect(getterCounter) == 1
+				}
+
+				it("should evaluate the getter only when scheduled") {
+					// Send a value along
+					tupleObserver.send(value: (character: "🎃", other: 42))
+
+					// The destination should not change value, and the getter
+					// should not have evaluated yet, as neither has been scheduled
+					expect(destination) == []
+					expect(getterCounter) == 0
+
+					// When the getter's scheduler advances, the getter should
+					// be evaluated, but the destination still shouldn't accept
+					// the new value
+					lensScheduler.advance()
+					expect(getterCounter) == 1
+					expect(destination) == []
+
+					// Sending other values along shouldn't evaluate the getter
+					tupleObserver.send(value: (character: "😾", other: 42))
+					tupleObserver.send(value: (character: "🍬", other: 13))
+					tupleObserver.send(value: (character: "👻", other: 17))
+					expect(getterCounter) == 1
+					expect(destination) == []
+
+					// Push the scheduler along for the lens, and the getter
+					// should evaluate
+					lensScheduler.advance()
+					expect(getterCounter) == 2
+
+					// ...but the destination still won't receive the value
+					expect(destination) == []
+
+					// Finally, pushing the target scheduler along will
+					// propagate only the first and last values
+					targetScheduler.advance()
+					expect(getterCounter) == 2
+					expect(destination) == ["🎃", "👻"]
+				}
+			}
+
+			it("should return the result of the getter on each value change") {
+				let initialValue = (character: "🎃", other: 42)
+				let nextValue = (character: "😾", other: 74)
+
+				let scheduler = TestScheduler()
+				let (tupleProducer, tupleObserver) = SignalProducer<(character: String, other: Int), NoError>.pipe()
+				let theLens: SignalProducer<String, NoError> = tupleProducer.lazyMap(on: scheduler) { $0.character }
+
+				var output: [String] = []
+				theLens.startWithValues { value in
+					output.append(value)
+				}
+
+				tupleObserver.send(value: initialValue)
+
+				scheduler.advance()
+				expect(output) == ["🎃"]
+
+				tupleObserver.send(value: nextValue)
+
+				scheduler.advance()
+				expect(output) == ["🎃", "😾"]
+			}
+
+			it("should evaluate its getter lazily") {
+				let initialValue = (character: "🎃", other: 42)
+				let nextValue = (character: "😾", other: 74)
+
+				let (tupleProducer, tupleObserver) = SignalProducer<(character: String, other: Int), NoError>.pipe()
+
+				let scheduler = TestScheduler()
+				var output: [String] = []
+				var getterEvaluated = false
+				let theLens: SignalProducer<String, NoError> = tupleProducer.lazyMap(on: scheduler) { (tuple: (character: String, other: Int)) -> String in
+					getterEvaluated = true
+					return tuple.character
+				}
+
+				// No surprise here, but the getter should not be evaluated
+				// since the underlying producer has yet to be started.
+				expect(getterEvaluated).to(beFalse())
+
+				// Similarly, sending values won't cause anything to happen.
+				tupleObserver.send(value: initialValue)
+				expect(output).to(beEmpty())
+				expect(getterEvaluated).to(beFalse())
+
+				// Start the signal, appending future values to the output array
+				theLens.startWithValues { value in output.append(value) }
+
+				// Even when the producer has yet to start, there should be no
+				// evaluation of the getter
+				expect(getterEvaluated).to(beFalse())
+
+				// Now we send a value through the producer
+				tupleObserver.send(value: initialValue)
+
+				// The getter should still not be evaluated, as it has not yet
+				// been scheduled
+				expect(getterEvaluated).to(beFalse())
+
+				// Now advance the scheduler to allow things to proceed
+				scheduler.advance()
+
+				// Now the getter gets evaluated, and the output is what we'd
+				// expect
+				expect(getterEvaluated).to(beTrue())
+				expect(output) == ["🎃"]
+
+				// And now subsequent values continue to come through
+				tupleObserver.send(value: nextValue)
+				scheduler.advance()
+				expect(output) == ["🎃", "😾"]
+			}
+
+			it("should evaluate its getter lazily on a different scheduler") {
+				let initialValue = (character: "🎃", other: 42)
+				let nextValue = (character: "😾", other: 74)
+
+				let (tupleProducer, tupleObserver) = SignalProducer<(character: String, other: Int), NoError>.pipe()
+
+				let scheduler = TestScheduler()
+
+				var output: [String] = []
+				var getterEvaluated = false
+				let theLens: SignalProducer<String, NoError> = tupleProducer.lazyMap(on: scheduler) { (tuple: (character: String, other: Int)) -> String in
+					getterEvaluated = true
+					return tuple.character
+				}
+
+				// No surprise here, but the getter should not be evaluated
+				// since the underlying producer has yet to be started.
+				expect(getterEvaluated).to(beFalse())
+
+				// Similarly, sending values won't cause anything to happen.
+				tupleObserver.send(value: initialValue)
+				expect(output).to(beEmpty())
+				expect(getterEvaluated).to(beFalse())
+
+				// Start the signal, appending future values to the output array
+				theLens.startWithValues { value in output.append(value) }
+
+				// Even when the producer has yet to start, there should be no
+				// evaluation of the getter
+				expect(getterEvaluated).to(beFalse())
+
+				tupleObserver.send(value: initialValue)
+
+				// The getter should still not get evaluated, as it was not yet
+				// scheduled
+				expect(getterEvaluated).to(beFalse())
+				expect(output).to(beEmpty())
+
+				scheduler.run()
+
+				// Now that the scheduler's run, things can continue to move forward
+				expect(getterEvaluated).to(beTrue())
+				expect(output) == ["🎃"]
+
+				tupleObserver.send(value: nextValue)
+
+				// Subsequent values should still be held up by the scheduler
+				// not getting run
+				expect(output) == ["🎃"]
+				
+				scheduler.run()
+				
+				expect(output) == ["🎃", "😾"]
+			}
+
+			it("should evaluate its getter lazily on the scheduler we specify") {
+				let initialValue = (character: "🎃", other: 42)
+
+				let (tupleProducer, tupleObserver) = SignalProducer<(character: String, other: Int), NoError>.pipe()
+
+				let labelKey = DispatchSpecificKey<String>()
+				let testQueue = DispatchQueue(label: "test queue", target: .main)
+				testQueue.setSpecific(key: labelKey, value: "test queue")
+				testQueue.suspend()
+				let testScheduler = QueueScheduler(internalQueue: testQueue)
+
+				var output: [String] = []
+				var isOnTestQueue = false
+				let theLens = tupleProducer.lazyMap(on: testScheduler) { (tuple: (character: String, other: Int)) -> String in
+					isOnTestQueue = DispatchQueue.getSpecific(key: labelKey) == "test queue"
+					return tuple.character
+				}
+				
+				// Start the signal, appending future values to the output array
+				theLens.startWithValues { value in output.append(value) }
+				testQueue.resume()
+				
+				expect(isOnTestQueue).to(beFalse())
+				expect(output).to(beEmpty())
+				
+				tupleObserver.send(value: initialValue)
+				
+				expect(isOnTestQueue).toEventually(beTrue())
+				expect(output).toEventually(equal(["🎃"]))
 			}
 		}
 

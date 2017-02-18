@@ -14,7 +14,7 @@ import Foundation
 #endif
 
 /// Represents a serial queue of work items.
-public protocol SchedulerProtocol {
+public protocol Scheduler {
 	/// Enqueues an action on the scheduler.
 	///
 	/// When the work is executed depends on the scheduler in use.
@@ -27,7 +27,7 @@ public protocol SchedulerProtocol {
 
 /// A particular kind of scheduler that supports enqueuing actions at future
 /// dates.
-public protocol DateSchedulerProtocol: SchedulerProtocol {
+public protocol DateScheduler: Scheduler {
 	/// The current date, as determined by this scheduler.
 	///
 	/// This can be implemented to deterministically return a known date (e.g.,
@@ -65,7 +65,7 @@ public protocol DateSchedulerProtocol: SchedulerProtocol {
 }
 
 /// A scheduler that performs all work synchronously.
-public final class ImmediateScheduler: SchedulerProtocol {
+public final class ImmediateScheduler: Scheduler {
 	public init() {}
 
 	/// Immediately calls passed in `action`.
@@ -86,7 +86,7 @@ public final class ImmediateScheduler: SchedulerProtocol {
 /// If the caller is already running on the main queue when an action is
 /// scheduled, it may be run synchronously. However, ordering between actions
 /// will always be preserved.
-public final class UIScheduler: SchedulerProtocol {
+public final class UIScheduler: Scheduler {
 	private static let dispatchSpecificKey = DispatchSpecificKey<UInt8>()
 	private static let dispatchSpecificValue = UInt8.max
 	private static var __once: () = {
@@ -97,7 +97,20 @@ public final class UIScheduler: SchedulerProtocol {
 	#if os(Linux)
 	private var queueLength: Atomic<Int32> = Atomic(0)
 	#else
-	private var queueLength: Int32 = 0
+	// `inout` references do not guarantee atomicity. Use `UnsafeMutablePointer`
+	// instead.
+	//
+	// https://lists.swift.org/pipermail/swift-users/Week-of-Mon-20161205/004147.html
+	private let queueLength: UnsafeMutablePointer<Int32> = {
+		let memory = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
+		memory.initialize(to: 0)
+		return memory
+	}()
+
+	deinit {
+		queueLength.deinitialize()
+		queueLength.deallocate(capacity: 1)
+	}
 	#endif
 
 	/// Initializes `UIScheduler`
@@ -129,7 +142,7 @@ public final class UIScheduler: SchedulerProtocol {
 			#if os(Linux)
 				self.queueLength.modify { $0 -= 1 }
 			#else
-				OSAtomicDecrement32(&self.queueLength)
+				OSAtomicDecrement32(self.queueLength)
 			#endif
 		}
 
@@ -139,7 +152,7 @@ public final class UIScheduler: SchedulerProtocol {
 				return value
 			}
 		#else
-			let queued = OSAtomicIncrement32(&queueLength)
+			let queued = OSAtomicIncrement32(queueLength)
 		#endif
 
 		// If we're already running on the main queue, and there isn't work
@@ -155,7 +168,7 @@ public final class UIScheduler: SchedulerProtocol {
 }
 
 /// A scheduler backed by a serial GCD queue.
-public final class QueueScheduler: DateSchedulerProtocol {
+public final class QueueScheduler: DateScheduler {
 	/// A singleton `QueueScheduler` that always targets the main thread's GCD
 	/// queue.
 	///
@@ -313,7 +326,7 @@ public final class QueueScheduler: DateSchedulerProtocol {
 }
 
 /// A scheduler that implements virtualized time, for use in testing.
-public final class TestScheduler: DateSchedulerProtocol {
+public final class TestScheduler: DateScheduler {
 	private final class ScheduledAction {
 		let date: Date
 		let action: () -> Void

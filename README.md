@@ -49,6 +49,21 @@ let interrupter = frames.start { frame in ... }
 interrupter.dispose()
 ```
 
+#### `Lifetime`: limits the scope of an observation
+When observing a `Signal` or `SignalProducer`, it doesn't make sense to continue emitting values if there's no longer anyone observing them.
+Consider the video stream: once you stop watching the video, the stream can be automatically closed by providing a `Lifetime`:
+
+```swift
+class VideoPlayer {
+  private let (lifetime, token) = Lifetime.makeLifetime()
+
+  func play() {
+    let frames: SignalProducer<VideoFrame, ConnectionError> = ...
+    frames.take(during: lifetime).start { frame in ... }
+  }
+}
+```
+
 #### `Property`: an observable box that always holds a value.
 `Property` is a variable that can be observed for its changes. In other words, it is a stream of values with a stronger guarantee than `Signal` — the latest value is always available, and the stream would never fail.
 
@@ -57,13 +72,13 @@ It is like the continuously updated current time offset of a video playback — 
 ```swift
 let currentTime: Property<TimeInterval> = video.currentTime
 print("Current time offset: \(currentTime.value)")
-currentTime.observeValues { timeBar.timeLabel.text = "\($0)" }
+currentTime.signal.observeValues { timeBar.timeLabel.text = "\($0)" }
 ```
 
 #### `Action`: a serialized worker with a preset action.
 When being invoked with an input, `Action` apply the input and the latest state to the preset action, and pushes the output to any interested parties.
 
-It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snacks. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
+It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snack. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
 
 ```swift
 // Purchase from the vending machine with a specific option.
@@ -71,8 +86,8 @@ vendingMachine.purchase
     .apply(snackId)
     .startWithResult { result
         switch result {
-        case let .success(snacks):
-            print("Snack: \(snacks)")
+        case let .success(snack):
+            print("Snack: \(snack)")
 
         case let .failure(error):
             // Out of stock? Insufficient fund?
@@ -82,7 +97,7 @@ vendingMachine.purchase
 
 // The vending machine.
 class VendingMachine {
-    let purchase: Action<(), [Snack], VendingMachineError>
+    let purchase: Action<Int, Snack, VendingMachineError>
     let coins: MutableProperty<Int>
 
     // The vending machine is connected with a sales recorder.
@@ -91,6 +106,7 @@ class VendingMachine {
         purchase = Action(state: coins, enabledIf: { $0 > 0 }) { coins, snackId in
             return SignalProducer { observer, _ in
                 // The sales magic happens here.
+                // Fetch a snack based on its id
             }
         }
 
@@ -279,13 +295,13 @@ let searchString = textField.reactive.continuousTextValues
 
 For more information and advance usage, check the [Debugging Techniques](Documentation/DebuggingTechniques.md) document.
 
-## How does ReactiveSwift relate to Rx?
-
-While ReactiveCocoa was inspired and heavily influenced by [ReactiveX][] (Rx), ReactiveSwift is
-an opinionated implementation of [functional reactive programming][], and _intentionally_ not a
+## How does ReactiveSwift relate to RxSwift?
+RxSwift is a Swift implementation of the [ReactiveX][] (Rx) APIs. While ReactiveCocoa
+was inspired and heavily influenced by Rx, ReactiveSwift is an opinionated
+implementation of [functional reactive programming][], and _intentionally_ not a
 direct port like [RxSwift][].
 
-ReactiveSwift differs from ReactiveX in places that:
+ReactiveSwift differs from RxSwift/ReactiveX where doing so:
 
  * Results in a simpler API
  * Addresses common sources of confusion
@@ -380,7 +396,7 @@ If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
-pod 'ReactiveSwift', '1.0.0'
+pod 'ReactiveSwift', '~> 1.0.0'
 ```
 
 #### Swift Package Manager
@@ -432,11 +448,11 @@ It targets Swift 3.1.x. The estimated schedule is Spring 2017.
 
 The release contains breaking changes. But they are not expected to affect the general mass of users, but only a few specific use cases.
 
-The primary goal of ReactiveSwift 2.0 is to remove single-implementation protocols, e.g. `SignalProtocol`, `SignalProducerProtocol`, that serve as a workaround to **concrete same-type requirements**.
+The primary goal of ReactiveSwift 2.0 is to adopt **concrete same-type requirements**, and remove as many single-implementation protocols as possible.
 
 ReactiveSwift 2.0 may include other proposed breaking changes.
 
-As resilience would be enforced in Swift 4.0, it is important for us to have a clean and steady API to start with. The expectation is to **have the API cleanup and the reviewing to be concluded in ReactiveSwift 2.0**, before we move on to ReactiveSwift 3.0 and Swift 4.0. Any contribution to help realising this goal is welcomed.
+As Swift 4.0 introduces library evolution and resilience, it is important for us to have a clean and steady API to start with. The expectation is to **have the API cleanup and the reviewing to be concluded in ReactiveSwift 2.0**, before we move on to ReactiveSwift 3.0 and Swift 4.0. Any contribution to help realising this goal is welcomed.
 
 #### ReactiveSwift 3.0
 It targets Swift 4.0.x. The estimated schedule is late 2017.
@@ -445,7 +461,7 @@ The release may contain breaking changes, depending on what features are being d
 
 ReactiveSwift 3.0 would focus on two main goals:
 
-1. Swift 4.0 Resilience
+1. Swift 4.0 Library Evolution and Resilience
 2. Adapt to new features introduced in Swift 4.0 Phase 2.
 
 [ReactiveCocoa]: https://github.com/ReactiveCocoa/ReactiveCocoa/#readme

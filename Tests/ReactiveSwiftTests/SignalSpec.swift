@@ -12,7 +12,7 @@ import Dispatch
 import Result
 import Nimble
 import Quick
-import ReactiveSwift
+@testable import ReactiveSwift
 
 class SignalSpec: QuickSpec {
 	override func spec() {
@@ -492,6 +492,103 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("lazyMap") {
+			describe("with a scheduled binding") {
+				var token: Lifetime.Token!
+				var lifetime: Lifetime!
+				var destination: [String] = []
+				var tupleSignal: Signal<(character: String, other: Int), NoError>!
+				var tupleObserver: Signal<(character: String, other: Int), NoError>.Observer!
+				var theLens: Signal<String, NoError>!
+				var getterCounter: Int = 0
+				var lensScheduler: TestScheduler!
+				var targetScheduler: TestScheduler!
+				var target: BindingTarget<String>!
+
+				beforeEach {
+					destination = []
+					token = Lifetime.Token()
+					lifetime = Lifetime(token)
+
+					let (producer, observer) = Signal<(character: String, other: Int), NoError>.pipe()
+					tupleSignal = producer
+					tupleObserver = observer
+
+					lensScheduler = TestScheduler()
+					targetScheduler = TestScheduler()
+
+					getterCounter = 0
+					theLens = tupleSignal.lazyMap(on: lensScheduler) { (tuple: (character: String, other: Int)) -> String in
+						getterCounter += 1
+						return tuple.character
+					}
+
+					target = BindingTarget<String>(on: targetScheduler, lifetime: lifetime) {
+						destination.append($0)
+					}
+
+					target <~ theLens
+				}
+
+				it("should not propagate values until scheduled") {
+					// Send a value along
+					tupleObserver.send(value: (character: "🎃", other: 42))
+
+					// The destination should not change value, and the getter
+					// should not have evaluated yet, as neither has been scheduled
+					expect(destination) == []
+					expect(getterCounter) == 0
+
+					// Advance both schedulers
+					lensScheduler.advance()
+					targetScheduler.advance()
+
+					// The destination receives the previously-sent value, and the
+					// getter obviously evaluated
+					expect(destination) == ["🎃"]
+					expect(getterCounter) == 1
+				}
+
+				it("should evaluate the getter only when scheduled") {
+					// Send a value along
+					tupleObserver.send(value: (character: "🎃", other: 42))
+
+					// The destination should not change value, and the getter
+					// should not have evaluated yet, as neither has been scheduled
+					expect(destination) == []
+					expect(getterCounter) == 0
+
+					// When the getter's scheduler advances, the getter should
+					// be evaluated, but the destination still shouldn't accept
+					// the new value
+					lensScheduler.advance()
+					expect(getterCounter) == 1
+					expect(destination) == []
+
+					// Sending other values along shouldn't evaluate the getter
+					tupleObserver.send(value: (character: "😾", other: 42))
+					tupleObserver.send(value: (character: "🍬", other: 13))
+					tupleObserver.send(value: (character: "👻", other: 17))
+					expect(getterCounter) == 1
+					expect(destination) == []
+
+					// Push the scheduler along for the lens, and the getter
+					// should evaluate
+					lensScheduler.advance()
+					expect(getterCounter) == 2
+
+					// ...but the destination still won't receive the value
+					expect(destination) == []
+
+					// Finally, pushing the target scheduler along will
+					// propagate only the first and last values
+					targetScheduler.advance()
+					expect(getterCounter) == 2
+					expect(destination) == ["🎃", "👻"]
+				}
+			}
+		}
+
 		describe("filter") {
 			it("should omit values from the signal") {
 				let (signal, observer) = Signal<Int, NoError>.pipe()
@@ -511,6 +608,94 @@ class SignalSpec: QuickSpec {
 
 				observer.send(value: 2)
 				expect(lastValue) == 2
+			}
+		}
+		
+		describe("filterMap") {
+			it("should omit values from the signal that are nil after the transformation") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				
+				var lastValue: Int?
+				
+				mappedSignal.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+
+				observer.send(value: "0")
+				expect(lastValue) == 0
+				
+				observer.send(value: "1")
+				expect(lastValue) == 1
+				
+				observer.send(value: "A")
+				expect(lastValue) == 1
+			}
+			
+			it("should stop emiting values after an error") {
+				let (signal, observer) = Signal<String, TestError>.pipe()
+				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				
+				var lastValue: Int?
+				
+				mappedSignal.observeResult { result in
+					if let value = result.value {
+						lastValue = value
+					}
+				}
+				
+				expect(lastValue).to(beNil())
+				
+				observer.send(value: "0")
+				expect(lastValue) == 0
+				
+				observer.send(error: .default)
+				
+				observer.send(value: "1")
+				expect(lastValue) == 0
+			}
+			
+			it("should stop emiting values after a complete") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				
+				var lastValue: Int?
+				
+				mappedSignal.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer.send(value: "0")
+				expect(lastValue) == 0
+				
+				observer.sendCompleted()
+				
+				observer.send(value: "1")
+				expect(lastValue) == 0
+			}
+			
+			it("should send completed") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				
+				var completed: Bool = false
+				
+				mappedSignal.observeCompleted { completed = true }
+				observer.sendCompleted()
+				
+				expect(completed) == true
+			}
+			
+			it("should send failure") {
+				let (signal, observer) = Signal<String, TestError>.pipe()
+				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				
+				var failure: TestError?
+				
+				mappedSignal.observeFailed { failure = $0 }
+				observer.send(error: .error1)
+				
+				expect(failure) == .error1
 			}
 		}
 
@@ -2705,6 +2890,73 @@ class SignalSpec: QuickSpec {
 					observer.send(value: 1)
 					observer.send(error: .error1)
 				}
+			}
+		}
+		
+		describe("negated attribute") {
+			it("should return the negate of a value in a Boolean signal") {
+				let (signal, observer) = Signal<Bool, NoError>.pipe()
+				signal.negated.observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer.send(value: true)
+				observer.sendCompleted()
+			}
+		}
+		
+		describe("and attribute") {
+			it("should emit true when both signals emits the same value") {
+				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				signal1.and(signal2).observeValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer2.send(value: true)
+				
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+			}
+			
+			it("should emit false when both signals emits opposite values") {
+				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				signal1.and(signal2).observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer1.send(value: false)
+				observer2.send(value: true)
+				
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+			}
+		}
+		
+		describe("or attribute") {
+			it("should emit true when at least one of the signals emits true") {
+				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				signal1.or(signal2).observeValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer2.send(value: false)
+				
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+			}
+			
+			it("should emit false when both signals emits false") {
+				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
+				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				signal1.or(signal2).observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer1.send(value: false)
+				observer2.send(value: false)
+				
+				observer1.sendCompleted()
+				observer2.sendCompleted()
 			}
 		}
 	}

@@ -50,6 +50,28 @@ extension MutablePropertyProtocol {
 	}
 }
 
+/// Represents a mutable property that can be safety composed by exposing its
+/// synchronization mechanic through the defined closure-based interface.
+public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
+	/// Atomically performs an arbitrary action using the current value of the
+	/// variable.
+	///
+	/// - parameters:
+	///   - action: A closure that accepts current property value.
+	///
+	/// - returns: the result of the action.
+	func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result
+
+	/// Atomically modifies the variable.
+	///
+	/// - parameters:
+	///   - action: A closure that accepts old property value and returns a new
+	///             property value.
+	///
+	/// - returns: The result of the action.
+	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
+}
+
 // Property operators.
 //
 // A composed property is a transformed view of its sources, and does not
@@ -75,14 +97,13 @@ extension PropertyProtocol {
 	///   - transform: A closure that will map the current `value` of this
 	///                `Property` to a new value.
 	///
-	/// - returns: A new instance of `AnyProperty` who's holds a mapped value
-	///            from `self`.
+	/// - returns: A property that holds a mapped value from `self`.
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Property<U> {
 		return lift { $0.map(transform) }
 	}
 
 	/// Combines the current value and the subsequent values of two `Property`s in
-	/// the manner described by `Signal.combineLatestWith:`.
+	/// the manner described by `Signal.combineLatest(with:)`.
 	///
 	/// - parameters:
 	///   - other: A property to combine `self`'s value with.
@@ -218,7 +239,7 @@ extension PropertyProtocol {
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-		public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D) -> Property<(A.Value, B.Value, C.Value, D.Value)> where Value == A.Value {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D) -> Property<(A.Value, B.Value, C.Value, D.Value)> where Value == A.Value {
 		return combineLatest(a, b, c)
 			.combineLatest(with: d)
 			.map(repack)
@@ -226,7 +247,7 @@ extension PropertyProtocol {
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-		public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value)> where Value == A.Value {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value)> where Value == A.Value {
 		return combineLatest(a, b, c, d)
 			.combineLatest(with: e)
 			.map(repack)
@@ -234,7 +255,7 @@ extension PropertyProtocol {
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-		public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value)> where Value == A.Value {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value)> where Value == A.Value {
 		return combineLatest(a, b, c, d, e)
 			.combineLatest(with: f)
 			.map(repack)
@@ -242,7 +263,7 @@ extension PropertyProtocol {
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-		public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value)> where Value == A.Value {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value)> where Value == A.Value {
 		return combineLatest(a, b, c, d, e, f)
 			.combineLatest(with: g)
 			.map(repack)
@@ -250,7 +271,7 @@ extension PropertyProtocol {
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-		public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value)> where Value == A.Value {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value)> where Value == A.Value {
 		return combineLatest(a, b, c, d, e, f, g)
 			.combineLatest(with: h)
 			.map(repack)
@@ -258,7 +279,7 @@ extension PropertyProtocol {
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-		public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value)> where Value == A.Value {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value)> where Value == A.Value {
 		return combineLatest(a, b, c, d, e, f, g, h)
 			.combineLatest(with: i)
 			.map(repack)
@@ -266,7 +287,7 @@ extension PropertyProtocol {
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-		public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol, J: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value, J.Value)> where Value == A.Value {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol, J: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> Property<(A.Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value, J.Value)> where Value == A.Value {
 		return combineLatest(a, b, c, d, e, f, g, h, i)
 			.combineLatest(with: j)
 			.map(repack)
@@ -368,6 +389,37 @@ extension PropertyProtocol {
 		}
 		
 		return nil
+	}
+}
+
+extension PropertyProtocol where Value == Bool {
+	/// Create a property that computes a logical NOT in the latest values of `self`.
+	///
+	/// - returns: A property that contains the logial NOT results.
+	public var negated: Property<Value> {
+		return self.lift { $0.negated }
+	}
+	
+	/// Create a property that computes a logical AND between the latest values of `self`
+	/// and `property`.
+	///
+	/// - parameters:
+	///   - property: Property to be combined with `self`.
+	///
+	/// - returns: A property that contains the logial AND results.
+	public func and(_ property: Property<Value>) -> Property<Value> {
+		return self.lift(SignalProducer.and)(property)
+	}
+	
+	/// Create a property that computes a logical OR between the latest values of `self`
+	/// and `property`.
+	///
+	/// - parameters:
+	///   - property: Property to be combined with `self`.
+	///
+	/// - returns: A property that contains the logial OR results.
+	public func or(_ property: Property<Value>) -> Property<Value> {
+		return self.lift(SignalProducer.or)(property)
 	}
 }
 
@@ -549,7 +601,7 @@ public final class Property<Value>: PropertyProtocol {
 /// A mutable property of type `Value` that allows observation of its changes.
 ///
 /// Instances of this class are thread-safe.
-public final class MutableProperty<Value>: MutablePropertyProtocol {
+public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	private let token: Lifetime.Token
 	private let observer: Signal<Value, NoError>.Observer
 	private let atomic: RecursiveAtomic<Value>
