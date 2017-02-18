@@ -80,7 +80,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		lifetime = Lifetime(deinitToken)
 		
 		// Retain the `property` for the created `Action`.
-		lifetime.ended.observeCompleted { _ = property }
+		lifetime.observeEnded { _ = property }
 
 		executeClosure = { state, input in execute(state as! State.Value, input) }
 

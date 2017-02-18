@@ -856,7 +856,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that will deliver events until `lifetime` ends.
 	public func take(during lifetime: Lifetime) -> SignalProducer<Value, Error> {
-		return take(until: lifetime.ended)
+		return lift { $0.take(during: lifetime) }
 	}
 
 	/// Forward events from `self` until `trigger` sends a `value` or `completed`

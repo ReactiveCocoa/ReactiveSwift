@@ -20,7 +20,10 @@ public final class Lifetime {
 	/// MARK: Instance properties
 
 	/// A signal that sends a `completed` event when the lifetime ends.
-	public let ended: Signal<(), NoError>
+	///
+	/// - note: Consider using `Lifetime.observeEnded` if only a closure observer
+	///         is to be attached.
+ 	public let ended: Signal<(), NoError>
 
 	/// MARK: Initializers
 
@@ -43,6 +46,22 @@ public final class Lifetime {
 	///            associated object.
 	public convenience init(_ token: Token) {
 		self.init(ended: token.ended)
+	}
+
+	/// Observe the termination of `self`.
+	///
+	/// - parameters:
+	///   - action: The action to be invoked when `self` ends.
+	///
+	/// - returns: A disposable that detaches `action` from the lifetime, or `nil`
+	///            if `lifetime` has already ended.
+	@discardableResult
+	public func observeEnded(_ action: @escaping () -> Void) -> Disposable? {
+		return ended.observe { event in
+			if event.isTerminating {
+				action()
+			}
+		}
 	}
 
 	/// A token object which completes its signal when it deinitializes.

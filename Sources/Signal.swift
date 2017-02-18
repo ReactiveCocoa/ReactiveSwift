@@ -1322,7 +1322,12 @@ extension SignalProtocol {
 	///
 	/// - returns: A signal that will deliver events until `lifetime` ends.
 	public func take(during lifetime: Lifetime) -> Signal<Value, Error> {
-		return take(until: lifetime.ended)
+		return Signal { observer in
+			let disposable = CompositeDisposable()
+			disposable += self.observe(observer)
+			disposable += lifetime.observeEnded(observer.sendCompleted)
+			return disposable
+		}
 	}
 
 	/// Forward events from `self` until `trigger` sends a `value` or
