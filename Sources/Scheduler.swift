@@ -19,6 +19,9 @@ public protocol Scheduler {
 	///
 	/// When the work is executed depends on the scheduler in use.
 	///
+	/// - parameters:
+	///   - action: The action to be scheduled.
+	///
 	/// - returns: Optional `Disposable` that can be used to cancel the work
 	///            before it begins.
 	@discardableResult
@@ -37,8 +40,8 @@ public protocol DateScheduler: Scheduler {
 	/// Schedules an action for execution at or after the given date.
 	///
 	/// - parameters:
-	///   - date: Starting time.
-	///   - action: Closure of the action to perform.
+	///   - date: The start date.
+	///   - action: A closure of the action to be performed.
 	///
 	/// - returns: Optional `Disposable` that can be used to cancel the work
 	///            before it begins.
@@ -49,10 +52,10 @@ public protocol DateScheduler: Scheduler {
 	/// given date.
 	///
 	/// - parameters:
-	///   - date: Starting time.
-	///   - repeatingEvery: Repetition interval.
-	///   - withLeeway: Some delta for repetition.
-	///   - action: Closure of the action to perform.
+	///   - date: The start date.
+	///   - interval: A repetition interval.
+	///   - leeway: Some delta for repetition.
+	///   - action: A closure of the action to be performed.
 	///
 	///	- note: If you plan to specify an `interval` value greater than 200,000
 	///			seconds, use `schedule(after:interval:leeway:action)` instead
@@ -71,7 +74,7 @@ public final class ImmediateScheduler: Scheduler {
 	/// Immediately calls passed in `action`.
 	///
 	/// - parameters:
-	///   - action: Closure of the action to perform.
+	///   - action: A closure of the action to be performed.
 	///
 	/// - returns: `nil`.
 	@discardableResult
@@ -127,7 +130,7 @@ public final class UIScheduler: Scheduler {
 	/// the action is called instantly.
 	///
 	/// - parameters:
-	///   - action: Closure of the action to perform on the main thread.
+	///   - action: A closure of the action to be performed on the main thread.
 	///
 	/// - returns: `Disposable` that can be used to cancel the work before it
 	///            begins.
@@ -205,7 +208,7 @@ public final class QueueScheduler: DateScheduler {
 	///
 	/// - parameters:
 	///   - qos: Dispatch queue's QoS value.
-	///   - name: Name for the queue in the form of reverse domain.
+	///   - name: A name for the queue in the form of reverse domain.
 	///   - targeting: (Optional) The queue on which this scheduler's work is
 	///     targeted
 	@available(OSX 10.10, *)
@@ -224,7 +227,7 @@ public final class QueueScheduler: DateScheduler {
 	/// Schedules action for dispatch on internal queue
 	///
 	/// - parameters:
-	///   - action: Closure of the action to schedule.
+	///   - action: A closure of the action to be scheduled.
 	///
 	/// - returns: `Disposable` that can be used to cancel the work before it
 	///            begins.
@@ -253,8 +256,8 @@ public final class QueueScheduler: DateScheduler {
 	/// Schedules an action for execution at or after the given date.
 	///
 	/// - parameters:
-	///   - date: Starting time.
-	///   - action: Closure of the action to perform.
+	///   - date: The start date.
+	///   - action: A closure of the action to be performed.
 	///
 	/// - returns: Optional `Disposable` that can be used to cancel the work
 	///            before it begins.
@@ -272,12 +275,12 @@ public final class QueueScheduler: DateScheduler {
 	}
 
 	/// Schedules a recurring action at the given interval and beginning at the
-	/// given start time. A reasonable default timer interval leeway is
+	/// given start date. A reasonable default timer interval leeway is
 	/// provided.
 	///
 	/// - parameters:
-	///   - date: Date to schedule the first action for.
-	///   - repeatingEvery: Repetition interval.
+	///   - date: A date to schedule the first action for.
+	///   - interval: A repetition interval.
 	///   - action: Closure of the action to repeat.
 	///
 	///	- note: If you plan to specify an `interval` value greater than 200,000 
@@ -297,10 +300,10 @@ public final class QueueScheduler: DateScheduler {
 	/// beginning at the given start time.
 	///
 	/// - parameters:
-	///   - date: Date to schedule the first action for.
-	///   - repeatingEvery: Repetition interval.
+	///   - date: A date to schedule the first action for.
+	///   - interval: A repetition interval.
 	///   - leeway: Some delta for repetition interval.
-	///   - action: Closure of the action to repeat.
+	///   - action: A closure of the action to repeat.
 	///
 	/// - returns: Optional `Disposable` that can be used to cancel the work
 	///            before it begins.
@@ -395,11 +398,11 @@ public final class TestScheduler: DateScheduler {
 		return schedule(ScheduledAction(date: currentDate, action: action))
 	}
 
-	/// Schedules an action for execution at or after the given date.
+	/// Schedules an action for execution after some delay.
 	///
 	/// - parameters:
-	///   - date: Starting date.
-	///   - action: Closure of the action to perform.
+	///   - delay: A delay for execution.
+	///   - action: A closure of the action to perform.
 	///
 	/// - returns: Optional disposable that can be used to cancel the work
 	///            before it begins.
@@ -408,18 +411,27 @@ public final class TestScheduler: DateScheduler {
 		return schedule(after: currentDate.addingTimeInterval(delay), action: action)
 	}
 
+	/// Schedules an action for execution at or after the given date.
+	///
+	/// - parameters:
+	///   - date: A starting date.
+	///   - action: A closure of the action to perform.
+	///
+	/// - returns: Optional disposable that can be used to cancel the work
+	///            before it begins.
 	@discardableResult
 	public func schedule(after date: Date, action: @escaping () -> Void) -> Disposable? {
 		return schedule(ScheduledAction(date: date, action: action))
 	}
 
 	/// Schedules a recurring action at the given interval, beginning at the
-	/// given start time
+	/// given start date.
 	///
 	/// - parameters:
-	///   - date: Date to schedule the first action for.
-	///   - repeatingEvery: Repetition interval.
-	///   - action: Closure of the action to repeat.
+	///   - date: A date to schedule the first action for.
+	///   - interval: A repetition interval.
+	///   - disposable: A disposable.
+	///   - action: A closure of the action to repeat.
 	///
 	///	- note: If you plan to specify an `interval` value greater than 200,000
 	///			seconds, use `schedule(after:interval:leeway:action)` instead
@@ -436,14 +448,14 @@ public final class TestScheduler: DateScheduler {
 		}
 	}
 
-	/// Schedules a recurring action at the given interval, beginning at the
-	/// given interval (counted from `currentDate`).
+	/// Schedules a recurring action after given delay repeated at the given,
+	/// interval, beginning at the given interval counted from `currentDate`.
 	///
 	/// - parameters:
-	///   - interval: Interval to add to `currentDate`.
-	///   - repeatingEvery: Repetition interval.
+	///   - delay: A delay for action's dispatch.
+	///   - interval: A repetition interval.
 	///	  - leeway: Some delta for repetition interval.
-	///   - action: Closure of the action to repeat.
+	///   - action: A closure of the action to repeat.
 	///
 	/// - returns: Optional `Disposable` that can be used to cancel the work
 	///            before it begins.
@@ -453,13 +465,13 @@ public final class TestScheduler: DateScheduler {
 	}
 
 	/// Schedules a recurring action at the given interval with
-	/// provided leeway, beginning at the given start time.
+	/// provided leeway, beginning at the given start date.
 	///
 	/// - parameters:
-	///   - date: Date to schedule the first action for.
-	///   - repeatingEvery: Repetition interval.
+	///   - date: A date to schedule the first action for.
+	///   - interval: A repetition interval.
 	///	  - leeway: Some delta for repetition interval.
-	///   - action: Closure of the action to repeat.
+	///   - action: A closure of the action to repeat.
 	///
 	/// - returns: Optional `Disposable` that can be used to cancel the work
 	///	           before it begins.
@@ -516,7 +528,7 @@ public final class TestScheduler: DateScheduler {
 	}
 
 	/// Dequeues and executes all scheduled actions, leaving the scheduler's
-	/// date at `NSDate.distantFuture()`.
+	/// date at `Date.distantFuture()`.
 	public func run() {
 		advance(to: Date.distantFuture)
 	}
@@ -525,7 +537,7 @@ public final class TestScheduler: DateScheduler {
 	/// This simulates that user changes device date.
 	///
 	/// - parameters:
-	///   - interval: Interval by which the current date will be retreated.
+	///   - interval: An interval by which the current date will be retreated.
 	public func rewind(by interval: DispatchTimeInterval) {
 		lock.lock()
 		
