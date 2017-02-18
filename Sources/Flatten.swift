@@ -393,7 +393,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 			}
 		}
 		
-		return observe { event in
+		return self.observe(with: observer) { event, observer in
 			switch event {
 			case let .value(value):
 				state.modify { $0.queue.append(value.producer) }
@@ -522,7 +522,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 			}
 		}
 
-		return self.observe { event in
+		return self.observe(with: observer) { event, observer in
 			switch event {
 			case let .value(producer):
 				producer.startWithSignal { innerSignal, innerDisposable in
@@ -634,7 +634,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 	fileprivate func observeSwitchToLatest(_ observer: Observer<Value.Value, Error>, _ latestInnerDisposable: SerialDisposable) -> Disposable? {
 		let state = Atomic(LatestState<Value, Error>())
 
-		return self.observe { event in
+		return self.observe(with: observer) { event, observer in
 			switch event {
 			case let .value(innerProducer):
 				innerProducer.startWithSignal { innerSignal, innerDisposable in
@@ -921,7 +921,7 @@ extension SignalProtocol {
 	}
 
 	fileprivate func observeFlatMapError<F>(_ handler: @escaping (Error) -> SignalProducer<Value, F>, _ observer: Observer<Value, F>, _ serialDisposable: SerialDisposable) -> Disposable? {
-		return self.observe { event in
+		return self.observe(with: observer) { event, observer in
 			switch event {
 			case let .value(value):
 				observer.send(value: value)
