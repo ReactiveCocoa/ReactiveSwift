@@ -18,7 +18,7 @@ import Result
 /// root.value = "🎃"
 /// outer.result.value        // `.failure("🎃", .outerInvalid)`
 /// ```
-public final class MutableValidatingProperty<Value, ValidationError: Swift.Error>: MutablePropertyProtocol {
+public final class ValidatingProperty<Value, ValidationError: Swift.Error>: MutablePropertyProtocol {
 	private let getter: () -> Value
 	private let setter: (Value) -> Void
 
@@ -46,7 +46,7 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	/// The lifetime of the property.
 	public let lifetime: Lifetime
 
-	/// Create a `MutableValidatingProperty` that presents a mutable validating
+	/// Create a `ValidatingProperty` that presents a mutable validating
 	/// view for an inner mutable property.
 	///
 	/// The proposed value is only committed when `success` is returned by the
@@ -92,7 +92,7 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		}
 	}
 
-	/// Create a `MutableValidatingProperty` that validates mutations before
+	/// Create a `ValidatingProperty` that validates mutations before
 	/// committing them.
 	///
 	/// The proposed value is only committed when `success` is returned by the
@@ -109,7 +109,7 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		self.init(MutableProperty(initial), validator)
 	}
 
-	/// Create a `MutableValidatingProperty` that presents a mutable validating
+	/// Create a `ValidatingProperty` that presents a mutable validating
 	/// view for an inner mutable property.
 	///
 	/// The proposed value is only committed when `success` is returned by the
@@ -153,7 +153,7 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		}
 	}
 
-	/// Create a `MutableValidatingProperty` that validates mutations before
+	/// Create a `ValidatingProperty` that validates mutations before
 	/// committing them.
 	///
 	/// The proposed value is only committed when `success` is returned by the
@@ -172,7 +172,7 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 		self.init(MutableProperty(initial), with: other, validator)
 	}
 
-	/// Create a `MutableValidatingProperty` that presents a mutable validating
+	/// Create a `ValidatingProperty` that presents a mutable validating
 	/// view for an inner mutable property.
 	///
 	/// The proposed value is only committed when `success` is returned by the
@@ -186,13 +186,13 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	///   - validator: The closure to invoke for any proposed value to `self`.
 	public convenience init<U, E: Swift.Error>(
 		_ inner: MutableProperty<Value>,
-		with other: MutableValidatingProperty<U, E>,
+		with other: ValidatingProperty<U, E>,
 		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
 	) {
 		self.init(inner, with: other, validator)
 	}
 
-	/// Create a `MutableValidatingProperty` that validates mutations before
+	/// Create a `ValidatingProperty` that validates mutations before
 	/// committing them.
 	///
 	/// The proposed value is only committed when `success` is returned by the
@@ -205,7 +205,7 @@ public final class MutableValidatingProperty<Value, ValidationError: Swift.Error
 	///   - validator: The closure to invoke for any proposed value to `self`.
 	public convenience init<U, E: Swift.Error>(
 		_ initial: Value,
-		with other: MutableValidatingProperty<U, E>,
+		with other: ValidatingProperty<U, E>,
 		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
 	) {
 		// Capture only `other.result` but not `other`.

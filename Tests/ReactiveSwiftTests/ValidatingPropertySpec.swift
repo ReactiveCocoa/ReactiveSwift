@@ -5,15 +5,15 @@ import Result
 
 class ValidatingPropertySpec: QuickSpec {
 	override func spec() {
-		describe("MutableValidatingProperty") {
+		describe("ValidatingProperty") {
 			describe("no dependency") {
 				var root: MutableProperty<Int>!
-				var validated: MutableValidatingProperty<Int, TestError>!
+				var validated: ValidatingProperty<Int, TestError>!
 				var validationResult: FlattenedResult<Int>?
 
 				beforeEach {
 					root = MutableProperty(0)
-					validated = MutableValidatingProperty(root) { $0 >= 0 ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
+					validated = ValidatingProperty(root) { $0 >= 0 ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
 
 					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -72,13 +72,13 @@ class ValidatingPropertySpec: QuickSpec {
 
 			describe("a MutablePropertyProtocol dependency") {
 				var other: MutableProperty<String>!
-				var validated: MutableValidatingProperty<Int, TestError>!
+				var validated: ValidatingProperty<Int, TestError>!
 				var validationResult: FlattenedResult<Int>?
 
 				beforeEach {
 					other = MutableProperty("")
 
-					validated = MutableValidatingProperty(0, with: other) { $0 >= 0 && $1 == "🎃" ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
+					validated = ValidatingProperty(0, with: other) { $0 >= 0 && $1 == "🎃" ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
 
 					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
@@ -151,15 +151,15 @@ class ValidatingPropertySpec: QuickSpec {
 				}
 			}
 
-			describe("a MutableValidatingProperty dependency") {
-				var other: MutableValidatingProperty<String, TestError>!
-				var validated: MutableValidatingProperty<Int, TestError>!
+			describe("a ValidatingProperty dependency") {
+				var other: ValidatingProperty<String, TestError>!
+				var validated: ValidatingProperty<Int, TestError>!
 				var validationResult: FlattenedResult<Int>?
 
 				beforeEach {
-					other = MutableValidatingProperty("") { $0.hasSuffix("🎃") && $0 != "🎃" ? .success : .failure(.error2) }
+					other = ValidatingProperty("") { $0.hasSuffix("🎃") && $0 != "🎃" ? .success : .failure(.error2) }
 
-					validated = MutableValidatingProperty(0, with: other) { $0 >= 0 && $1.hasSuffix("🎃") ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
+					validated = ValidatingProperty(0, with: other) { $0 >= 0 && $1.hasSuffix("🎃") ? ($0 == 100 ? .substitution(Int.max, .default) : .success) : .failure(.default) }
 
 					validated.result.signal.observeValues { validationResult = FlattenedResult($0) }
 
