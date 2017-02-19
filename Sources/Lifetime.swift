@@ -4,7 +4,7 @@ import enum Result.NoError
 /// Represents the lifetime of an object, and provides a hook to observe when
 /// the object deinitializes.
 public final class Lifetime {
-	/// MARK: Type properties and methods
+	// MARK: Type properties and methods
 
 	/// Factory method for creating a `Lifetime` and its associated `Token`.
 	public static func make() -> (lifetime: Lifetime, token: Token) {
@@ -17,7 +17,7 @@ public final class Lifetime {
 		return Lifetime(ended: .empty)
 	}
 
-	/// MARK: Instance properties
+	// MARK: Instance properties
 
 	/// A signal that sends a `completed` event when the lifetime ends.
 	///
@@ -25,7 +25,7 @@ public final class Lifetime {
 	///         is to be attached.
  	public let ended: Signal<(), NoError>
 
-	/// MARK: Initializers
+	// MARK: Initializers
 
 	/// Initialize a `Lifetime` object with the supplied ended signal.
 	///
