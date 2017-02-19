@@ -35,7 +35,7 @@ final class LifetimeSpec: QuickSpec {
 				let lifetime: Lifetime
 				var token: Lifetime.Token
 
-				(lifetime, token) = Lifetime.makeLifetime()
+				(lifetime, token) = Lifetime.make()
 
 				var isEnded = false
 				lifetime.observeEnded { isEnded = true }
