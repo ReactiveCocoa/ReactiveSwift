@@ -974,6 +974,8 @@ extension SignalProtocol {
 	/// - note: failed and `interrupted` events are always scheduled
 	///         immediately.
 	///
+	/// - precondition: `interval` must be non-negative number.
+	///
 	/// - parameters:
 	///   - interval: Interval to delay `value` and `completed` events by.
 	///   - scheduler: A scheduler to deliver delayed events on.
@@ -1002,6 +1004,8 @@ extension SignalProtocol {
 	}
 
 	/// Skip first `count` number of values then act as usual.
+	///
+	/// - precondition: `count` must be non-negative number.
 	///
 	/// - parameters:
 	///   - count: A number of values to skip.
@@ -1739,6 +1743,8 @@ extension SignalProtocol {
 	///         a value is being throttled, and if there is a new value sent,
 	///         the new value will be passed anyway.
 	///
+	/// - precondition: `interval` must be non-negative number.
+	///
 	/// - parameters:
 	///   - interval: Number of seconds to wait between sent values.
 	///   - scheduler: A scheduler to deliver events on.
@@ -1912,6 +1918,8 @@ extension SignalProtocol {
 	/// - note: If the input signal terminates while a value is being debounced, 
 	///         that value will be discarded and the returned signal will 
 	///         terminate immediately.
+	///
+	/// - precondition: `interval` must be non-negative number.
 	///
 	/// - parameters:
 	///   - interval: A number of seconds to wait before sending a value.
@@ -2192,6 +2200,8 @@ extension SignalProtocol {
 	/// - note: If the interval is 0, the timeout will be scheduled immediately. 
 	///         The signal must complete synchronously (or on a faster
 	///         scheduler) to avoid the timeout.
+	///
+	/// - precondition: `interval` must be non-negative number.
 	///
 	/// - parameters:
 	///   - error: Error to send with failed event if `self` is not completed

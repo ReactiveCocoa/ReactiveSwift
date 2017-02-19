@@ -299,6 +299,9 @@ public final class QueueScheduler: DateScheduler {
 	/// Schedules a recurring action at the given interval with provided leeway,
 	/// beginning at the given start time.
 	///
+	/// - precondition: `interval` must be non-negative number.
+	/// - precondition: `leeway` must be non-negative number.
+	///
 	/// - parameters:
 	///   - date: A date to schedule the first action for.
 	///   - interval: A repetition interval.
@@ -426,6 +429,8 @@ public final class TestScheduler: DateScheduler {
 
 	/// Schedules a recurring action at the given interval, beginning at the
 	/// given start date.
+	///
+	/// - precondition: `interval` must be non-negative.
 	///
 	/// - parameters:
 	///   - date: A date to schedule the first action for.

@@ -23,10 +23,10 @@ public struct Reactive<Base> {
 	/// The `Base` instance the extensions would be invoked with.
 	public let base: Base
 
-	// Construct a proxy.
-	//
-	// - parameters:
-	//   - base: The object to be proxied.
+	/// Construct a proxy
+	///
+	/// - parameters:
+	///   - base: The object to be proxied.
 	fileprivate init(_ base: Base) {
 		self.base = base
 	}
