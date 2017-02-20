@@ -55,7 +55,7 @@ Consider the video stream: once you stop watching the video, the stream can be a
 
 ```swift
 class VideoPlayer {
-  private let (lifetime, token) = Lifetime.makeLifetime()
+  private let (lifetime, token) = Lifetime.make()
 
   func play() {
     let frames: SignalProducer<VideoFrame, ConnectionError> = ...
