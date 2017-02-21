@@ -249,14 +249,14 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 /// Represents a decision of a validator of a validating property made on a
 /// proposed value.
 public enum ValidatorOutput<Value, Error: Swift.Error> {
-	/// The value is valid.
+	/// The value passes the validation.
 	case success
 
-	/// The value is invalid, but the validator can provide a substitution derived
-	/// from the invalid value that would be considered valid.
+	/// The value fails the validation, but the validator provides a
+	/// substitution which is considered valid.
 	case substitution(Value, Error?)
 
-	/// The value is invalid.
+	/// The value fails the validation.
 	case failure(Error)
 }
 
@@ -265,11 +265,12 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 	/// The value passed the validation.
 	case success(Value)
 
-	/// The value was a substituted value due to a failed validation.
-	case substitution(substituted: Value, proposed: Value, Error?)
+	/// The value failed the validation, but the validator provided a
+	/// substitution which is considered valid.
+	case substitution(substituted: Value, proposed: Value, error: Error?)
 
 	/// The value failed the validation.
-	case failure(proposed: Value, Error)
+	case failure(proposed: Value, error: Error)
 
 	/// Whether the validation was failed.
 	public var isFailure: Bool {
@@ -280,8 +281,9 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 		}
 	}
 
-	/// Extract the value if the validation is passed, or a substituted value
-	/// for failure is provided.
+	/// Extract the valid value.
+	///
+	/// - note: The `substitution` case is also considered valid.
 	public var value: Value? {
 		switch self {
 		case let .success(value):
@@ -308,10 +310,10 @@ public enum ValidationResult<Value, Error: Swift.Error> {
 			self = .success(value)
 
 		case let .substitution(substituted, error):
-			self = .substitution(substituted: substituted, proposed: value, error)
+			self = .substitution(substituted: substituted, proposed: value, error: error)
 
 		case let .failure(error):
-			self = .failure(proposed: value, error)
+			self = .failure(proposed: value, error: error)
 		}
 	}
 }
