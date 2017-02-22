@@ -78,15 +78,19 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 				.map { ValidationResult($0, validator($0)) }
 
 			return (Property(capturing: mutableResult), { input in
-				let writebackValue: Value? = mutableResult.modify { result in
-					result = ValidationResult(input, validator(input))
-					return result.value
-				}
+				// Acquire the lock of `inner` to ensure no modification happens until
+				// the validation logic here completes.
+				inner.withValue { _ in
+					let writebackValue: Value? = mutableResult.modify { result in
+						result = ValidationResult(input, validator(input))
+						return result.value
+					}
 
-				if let value = writebackValue {
-					isSettingInnerValue = true
-					inner.value = value
-					isSettingInnerValue = false
+					if let value = writebackValue {
+						isSettingInnerValue = true
+						inner.value = value
+						isSettingInnerValue = false
+					}
 				}
 			})
 		}
