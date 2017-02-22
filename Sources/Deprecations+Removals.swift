@@ -8,6 +8,53 @@ public typealias SchedulerProtocol = Scheduler
 @available(*, deprecated, renamed:"DateScheduler")
 public typealias DateSchedulerProtocol = DateScheduler
 
+@available(*, deprecated, renamed:"BindingSource")
+public typealias BindingSourceProtocol = BindingSource
+
+@available(*, deprecated, message:"The protocol has been replaced by `BindingTargetProvider`, and will be removed in a future version.")
+public protocol BindingTargetProtocol: class, BindingTargetProvider {
+	var lifetime: Lifetime { get }
+
+	func consume(_ value: Value)
+}
+
+extension BindingTargetProtocol {
+	public var bindingTarget: BindingTarget<Value> {
+		return BindingTarget(lifetime: lifetime) { [weak self] in self?.consume($0) }
+	}
+}
+
+extension MutablePropertyProtocol {
+	@available(*, deprecated, message:"Use the regular setter.")
+	public func consume(_ value: Value) {
+		self.value = value
+	}
+}
+
+extension Action: BindingTargetProtocol {
+	@available(*, deprecated, message:"Use the regular SignalProducer.")
+	public func consume(_ value: Input) {
+		self.apply(value).start()
+	}
+}
+
+extension BindingTarget {
+	@available(*, deprecated, renamed:"action")
+	public func consume(_ value: Value) {
+		action(value)
+	}
+
+	@available(*, deprecated, renamed:"init(lifetime:action:)")
+	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void, _ void: Void? = nil) {
+		self.init(lifetime: lifetime, action: setter)
+	}
+
+	@available(*, deprecated, renamed:"init(on:lifetime:action:)")
+	public init(on scheduler: Scheduler, lifetime: Lifetime, setter: @escaping (Value) -> Void, _ void: Void? = nil) {
+		self.init(on: scheduler, lifetime: lifetime, action: setter)
+	}
+}
+
 // MARK: Removed Types and APIs in ReactiveCocoa 5.0.
 
 // Renamed Protocols
