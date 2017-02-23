@@ -58,7 +58,6 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 	/// - returns:
 	///   `true` if the current state matches the expected state. `false`
 	///   otherwise.
-	@inline(__always)
 	internal func `is`(_ expected: State) -> Bool {
 		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
 		                                       expected.rawValue,
@@ -73,7 +72,6 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 	///
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
-	@inline(__always)
 	internal func tryTransition(from expected: State, to next: State) -> Bool {
 		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
 		                                       next.rawValue,
