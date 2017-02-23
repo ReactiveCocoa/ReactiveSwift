@@ -1864,10 +1864,10 @@ extension SignalProducerProtocol {
 	/// This operator is only recommended when you absolutely need to introduce
 	/// a layer of caching in front of another `SignalProducer`.
 	///
-	/// - precondtion: `capacity` must be non-negative integer.
+	/// - precondition: `capacity` must be non-negative integer.
 	///
 	/// - parameters:
-	///   - capcity: Number of values to hold.
+	///   - capacity: Number of values to hold.
 	///
 	/// - returns: A caching producer that will hold up to last `capacity`
 	///            values.
