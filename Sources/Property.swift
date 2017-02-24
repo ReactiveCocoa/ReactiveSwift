@@ -607,19 +607,40 @@ public final class Property<Value>: PropertyProtocol {
 public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	private let token: Lifetime.Token
 	private let observer: Signal<Value, NoError>.Observer
-	private let atomic: RecursiveAtomic<Value>
+	private let lock: CountingRecursiveLock
+	private let storage: Storage<Value>
+
+	private var recursiveQueue: Storage<[Value]>
 
 	/// The current value of the property.
 	///
 	/// Setting this to a new value will notify all observers of `signal`, or
 	/// signals created using `producer`.
+	///
+	/// - note: Both the getter and the setter can be called recursively.
 	public var value: Value {
 		get {
-			return atomic.withValue { $0 }
+			lock.readLock()
+			let value = storage.value
+			lock.readUnlock()
+			return value
 		}
 
 		set {
-			swap(newValue)
+			lock.writeLock()
+			storage.value = newValue
+
+			if lock.recursiveWriteDepth == 1 {
+				observer.send(value: newValue)
+
+				while !recursiveQueue.value.isEmpty {
+					observer.send(value: recursiveQueue.value.removeFirst())
+				}
+			} else {
+				recursiveQueue.value.append(newValue)
+			}
+
+			lock.writeUnlock()
 		}
 	}
 
@@ -634,16 +655,50 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// followed by all changes over time, then complete when the property has
 	/// deinitialized.
 	public var producer: SignalProducer<Value, NoError> {
-		return SignalProducer { [atomic, weak self] producerObserver, producerDisposable in
-			atomic.withValue { value in
-				if let strongSelf = self {
-					producerObserver.send(value: value)
-					producerDisposable += strongSelf.signal.observe(producerObserver)
-				} else {
-					producerObserver.send(value: value)
-					producerObserver.sendCompleted()
+		return SignalProducer { [storage, lock, weak self] producerObserver, producerDisposable in
+			lock.readLock()
+
+			if let strongSelf = self {
+				// FIXME: Remove the relay when #140 is landed.
+				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/140
+				let recursiveQueue: Storage<[Value]> = Storage([])
+				let (relaySignal, relayObserver) = Signal<Value, NoError>.pipe()
+
+				var pair = Optional((recursiveQueue, lock))
+
+				producerDisposable += strongSelf.signal.observe { event in
+					switch event {
+					case .value:
+						// The produced `Signal` is contended *only* if it is started when
+						// the write depth is non-zero. For the rest of the time, the
+						// contention would have already been tackled by `value.set`.
+						//
+						// `pair` is cleared after the latest value is replayed.
+						if let (recursiveQueue, lock) = pair, lock.recursiveWriteDepth != 0 {
+							recursiveQueue.value.append(event.value!)
+						} else {
+							relayObserver.action(event)
+						}
+
+					case .completed, .failed, .interrupted:
+						relayObserver.action(event)
+					}
 				}
+
+				producerDisposable += relaySignal.signal.observe(producerObserver)
+				relayObserver.send(value: storage.value)
+
+				while !recursiveQueue.value.isEmpty {
+					relayObserver.send(value: recursiveQueue.value.removeFirst())
+				}
+
+				pair = nil
+			} else {
+				producerObserver.send(value: storage.value)
+				producerObserver.sendCompleted()
 			}
+
+			lock.readUnlock()
 		}
 	}
 
@@ -652,16 +707,15 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - parameters:
 	///   - initialValue: Starting value for the mutable property.
 	public init(_ initialValue: Value) {
+		recursiveQueue = Storage([])
+
 		(signal, observer) = Signal.pipe()
+
 		token = Lifetime.Token()
 		lifetime = Lifetime(token)
 
-		/// Need a recursive lock around `value` to allow recursive access to
-		/// `value`. Note that recursive sets will still deadlock because the
-		/// underlying producer prevents sending recursive events.
-		atomic = RecursiveAtomic(initialValue,
-		                          name: "org.reactivecocoa.ReactiveSwift.MutableProperty",
-		                          didSet: observer.send(value:))
+		lock = CountingRecursiveLock(name: "org.reactivecocoa.ReactiveSwift.MutableProperty")
+		storage = Storage(initialValue)
 	}
 
 	/// Atomically replaces the contents of the variable.
@@ -672,10 +726,18 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - returns: The previous property value.
 	@discardableResult
 	public func swap(_ newValue: Value) -> Value {
-		return atomic.swap(newValue)
+		return modify { value in
+			let old = value
+			value = newValue
+			return old
+		}
 	}
 
 	/// Atomically modifies the variable.
+	///
+	/// - note: Mutations should only be made through the `inout` reference.
+	///         Any nested invocation to mutating methods would raise an
+	///         assertion.
 	///
 	/// - parameters:
 	///   - action: A closure that accepts old property value and returns a new
@@ -684,7 +746,24 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - returns: The result of the action.
 	@discardableResult
 	public func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
-		return try atomic.modify(action)
+		lock.writeLock()
+
+		// Mutating a variable when it is passed as an `inout` parameter leads to
+		// undefined behavior. So reentrancy has to be disabled.
+		let result = try lock.unsafeDisableReentrancy { try action(&storage.value) }
+
+		if lock.recursiveWriteDepth == 1 {
+			observer.send(value: storage.value)
+
+			while !recursiveQueue.value.isEmpty {
+				observer.send(value: recursiveQueue.value.removeFirst())
+			}
+		} else {
+			recursiveQueue.value.append(storage.value)
+		}
+
+		lock.writeUnlock()
+		return result
 	}
 
 	/// Atomically performs an arbitrary action using the current value of the
@@ -696,10 +775,21 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - returns: the result of the action.
 	@discardableResult
 	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result {
-		return try atomic.withValue(action)
+		lock.readLock()
+		let result = try action(storage.value)
+		lock.readUnlock()
+		return result
 	}
 
 	deinit {
 		observer.sendCompleted()
+	}
+}
+
+private final class Storage<Value> {
+	var value: Value
+
+	init(_ initial: Value) {
+		value = initial
 	}
 }
