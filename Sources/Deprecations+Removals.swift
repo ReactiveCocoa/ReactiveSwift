@@ -55,6 +55,46 @@ extension BindingTarget {
 	}
 }
 
+/// A protocol used to constraint convenience `Atomic` methods and properties.
+@available(*, deprecated, message:"The protocol has been deprecated, and will be removed in a future version.")
+public protocol AtomicProtocol: class {
+	associatedtype Value
+
+	@discardableResult
+	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result
+
+	@discardableResult
+	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
+}
+
+extension AtomicProtocol {
+	/// Atomically get or set the value of the variable.
+	public var value: Value {
+		get {
+			return withValue { $0 }
+		}
+
+		set(newValue) {
+			swap(newValue)
+		}
+	}
+
+	/// Atomically replace the contents of the variable.
+	///
+	/// - parameters:
+	///   - newValue: A new value for the variable.
+	///
+	/// - returns: The old value.
+	@discardableResult
+	public func swap(_ newValue: Value) -> Value {
+		return modify { (value: inout Value) in
+			let oldValue = value
+			value = newValue
+			return oldValue
+		}
+	}
+}
+
 // MARK: Removed Types and APIs in ReactiveCocoa 5.0.
 
 // Renamed Protocols
