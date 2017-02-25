@@ -9,6 +9,13 @@
 import Foundation
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 import MachO
+#else
+internal struct os_unfair_lock_s {}
+internal typealias os_unfair_lock_t = UnsafeMutablePointer<os_unfair_lock_s>
+internal typealias os_unfair_lock = os_unfair_lock_s
+internal func os_unfair_lock_lock(_ lock: os_unfair_lock_t) { fatalError() }
+internal func os_unfair_lock_unlock(_ lock: os_unfair_lock_t) { fatalError() }
+internal func os_unfair_lock_trylock(_ lock: os_unfair_lock_t) -> Bool { fatalError() }
 #endif
 
 /// Represents a finite state machine that can transit from one state to
@@ -123,43 +130,154 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 #endif
 }
 
-final class PosixThreadMutex: NSLocking {
-	private var mutex = pthread_mutex_t()
+/// A reference counted version of `UnsafeUnfairLock`.
+internal final class UnfairLock {
+	let _lock: UnsafeUnfairLock
 
-	init() {
-		let result = pthread_mutex_init(&mutex, nil)
-		precondition(result == 0, "Failed to initialize mutex with error \(result).")
+	internal init(label: String = "") {
+		_lock = UnsafeUnfairLock(label: label)
 	}
 
 	deinit {
-		let result = pthread_mutex_destroy(&mutex)
-		precondition(result == 0, "Failed to destroy mutex with error \(result).")
+		_lock.destroy()
 	}
 
-	func lock() {
-		let result = pthread_mutex_lock(&mutex)
-		precondition(result == 0, "Failed to lock \(self) with error \(result).")
+	internal func lock() {
+		_lock.lock()
 	}
 
-	func unlock() {
-		let result = pthread_mutex_unlock(&mutex)
-		precondition(result == 0, "Failed to unlock \(self) with error \(result).")
+	internal func unlock() {
+		_lock.unlock()
+	}
+
+	internal func `try`() -> Bool {
+		return _lock.try()
+	}
+}
+
+/// An unfair lock which requires manual deallocation. It does not guarantee
+/// waiting threads to be waken in the lock acquisition order.
+internal enum UnsafeUnfairLock {
+	case mutex(UnsafeMutablePointer<pthread_mutex_t>)
+
+	@available(macOS 10.12, iOS 10, tvOS 10, watchOS 3, *)
+	case unfairLock(os_unfair_lock_t)
+
+	internal init(label: String = "") {
+		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+		if #available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+			let lock = os_unfair_lock_t.allocate(capacity: 1)
+			lock.initialize(to: os_unfair_lock())
+
+			self = .unfairLock(lock)
+			return
+		}
+		#endif
+
+		let mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
+		mutex.initialize(to: pthread_mutex_t())
+
+		let result = pthread_mutex_init(mutex, nil)
+		if result != 0 {
+			preconditionFailure("Failed to initialize mutex with error \(result).")
+		}
+
+		self = .mutex(mutex)
+	}
+
+	internal func destroy() {
+		switch self {
+		case let .unfairLock(lock):
+			lock.deinitialize()
+			lock.deallocate(capacity: 1)
+
+		case let .mutex(mutex):
+			let result = pthread_mutex_destroy(mutex)
+			if result != 0 {
+				preconditionFailure("Failed to destroy mutex with error \(result).")
+			}
+
+			mutex.deinitialize()
+			mutex.deallocate(capacity: 1)
+		}
+	}
+
+	internal func lock() {
+		switch self {
+		case let .unfairLock(lock):
+			if #available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+				os_unfair_lock_lock(lock)
+			} else {
+				fatalError("Unexpected miscompliation.")
+			}
+
+		case let .mutex(mutex):
+			let result = pthread_mutex_lock(mutex)
+			if result != 0 {
+				preconditionFailure("Failed to lock \(self) with error \(result).")
+			}
+		}
+	}
+
+	internal func unlock() {
+		switch self {
+		case let .unfairLock(lock):
+			if #available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+				os_unfair_lock_unlock(lock)
+			} else {
+				fatalError("Unexpected miscompliation.")
+			}
+
+		case let .mutex(mutex):
+			let result = pthread_mutex_unlock(mutex)
+			if result != 0 {
+				preconditionFailure("Failed to unlock \(self) with error \(result).")
+			}
+		}
+	}
+
+	internal func `try`() -> Bool {
+		switch self {
+		case let .unfairLock(lock):
+			if #available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+				return os_unfair_lock_trylock(lock)
+			} else {
+				fatalError("Unexpected miscompliation.")
+			}
+
+		case let .mutex(mutex):
+			let result = pthread_mutex_trylock(mutex)
+			switch result {
+			case 0:
+				return true
+			case EBUSY:
+				return false
+			default:
+				preconditionFailure("Failed to lock \(self) with error \(result).")
+			}
+		}
 	}
 }
 
 /// An atomic variable.
 public final class Atomic<Value>: AtomicProtocol {
-	private let lock: PosixThreadMutex
+	private let lock: UnsafeUnfairLock
 	private var _value: Value
 
 	/// Atomically get or set the value of the variable.
 	public var value: Value {
 		get {
-			return withValue { $0 }
+			lock.lock()
+			let value = _value
+			lock.unlock()
+
+			return value
 		}
 
-		set(newValue) {
-			swap(newValue)
+		set {
+			lock.lock()
+			_value = newValue
+			lock.unlock()
 		}
 	}
 
@@ -169,7 +287,11 @@ public final class Atomic<Value>: AtomicProtocol {
 	///   - value: Initial value for `self`.
 	public init(_ value: Value) {
 		_value = value
-		lock = PosixThreadMutex()
+		lock = UnsafeUnfairLock()
+	}
+
+	deinit {
+		lock.destroy()
 	}
 
 	/// Atomically modifies the variable.
