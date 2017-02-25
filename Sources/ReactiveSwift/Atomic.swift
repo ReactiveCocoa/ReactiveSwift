@@ -11,6 +11,10 @@ import Foundation
 import MachO
 #endif
 
+#if SWIFT_PACKAGE
+import OSLocking
+#endif
+
 /// Represents a finite state machine that can transit from one state to
 /// another.
 internal protocol AtomicStateProtocol {
@@ -123,43 +127,135 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 #endif
 }
 
-final class PosixThreadMutex: NSLocking {
-	private var mutex = pthread_mutex_t()
+/// A reference counted version of `UnsafeUnfairLock`.
+internal final class UnfairLock {
+	let _lock: UnsafeUnfairLock
 
-	init() {
-		let result = pthread_mutex_init(&mutex, nil)
-		precondition(result == 0, "Failed to initialize mutex with error \(result).")
+	internal init(label: String = "") {
+		_lock = UnsafeUnfairLock(label: label)
 	}
 
 	deinit {
-		let result = pthread_mutex_destroy(&mutex)
-		precondition(result == 0, "Failed to destroy mutex with error \(result).")
+		_lock.destroy()
 	}
 
-	func lock() {
-		let result = pthread_mutex_lock(&mutex)
-		precondition(result == 0, "Failed to lock \(self) with error \(result).")
+	internal func lock() {
+		_lock.lock()
 	}
 
-	func unlock() {
-		let result = pthread_mutex_unlock(&mutex)
-		precondition(result == 0, "Failed to unlock \(self) with error \(result).")
+	internal func unlock() {
+		_lock.unlock()
+	}
+
+	internal func `try`() -> Bool {
+		return _lock.try()
+	}
+}
+
+@_fixed_layout
+internal struct UnsafeUnfairLock {
+	@_fixed_layout
+	private enum Implementation {
+		case libplatform(UnsafeRawPointer)
+		case pthread(UnsafeMutablePointer<pthread_mutex_t>)
+	}
+
+	private let storage: Implementation
+
+	internal init(label: String = "") {
+		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+			if #available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+				storage = .libplatform(_ras_os_unfair_lock_create())
+				return
+			}
+		#endif
+
+		let mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
+		mutex.initialize(to: pthread_mutex_t())
+		pthread_mutex_init(mutex, nil)
+
+		storage = .pthread(mutex)
+	}
+
+	internal func destroy() {
+		switch storage {
+		case let .libplatform(lock):
+			free(UnsafeMutableRawPointer(mutating: lock))
+
+		case let .pthread(mutex):
+			pthread_mutex_destroy(mutex)
+			mutex.deinitialize()
+			mutex.deallocate(capacity: 1)
+		}
+	}
+
+	internal func lock() {
+		switch storage {
+		case let .libplatform(lock):
+			typealias LockFunc = @convention(c) (UnsafeRawPointer) -> Void
+			unsafeBitCast(_ras_os_unfair_lock, to: LockFunc.self)(lock)
+
+		case let .pthread(mutex):
+			let error = pthread_mutex_lock(mutex)
+			if error != 0 {
+				fatalError("Failed to lock a pthread mutex with error code \(error).")
+			}
+		}
+	}
+
+	internal func unlock() {
+		switch storage {
+		case let .libplatform(lock):
+			typealias UnlockFunc = @convention(c) (UnsafeRawPointer) -> Void
+			unsafeBitCast(_ras_os_unfair_unlock, to: UnlockFunc.self)(lock)
+
+		case let .pthread(mutex):
+			let error = pthread_mutex_unlock(mutex)
+			if error != 0 {
+				fatalError("Failed to unlock a pthread mutex with error code \(error).")
+			}
+		}
+	}
+
+	internal func `try`() -> Bool {
+		switch storage {
+		case let .libplatform(lock):
+			typealias TryLockFunc = @convention(c) (UnsafeRawPointer) -> CBool
+			return unsafeBitCast(_ras_os_unfair_trylock, to: TryLockFunc.self)(lock)
+
+		case let .pthread(mutex):
+			let error = pthread_mutex_trylock(mutex)
+			switch error {
+			case 0:
+				return true
+			case EBUSY:
+				return false
+			default:
+				fatalError("Failed to lock a pthread mutex with error code \(error).")
+			}
+		}
 	}
 }
 
 /// An atomic variable.
 public final class Atomic<Value>: AtomicProtocol {
-	private let lock: PosixThreadMutex
+	private let lock: UnsafeUnfairLock
 	private var _value: Value
 
 	/// Atomically get or set the value of the variable.
 	public var value: Value {
 		get {
-			return withValue { $0 }
+			lock.lock()
+			let value = _value
+			lock.unlock()
+
+			return value
 		}
 
-		set(newValue) {
-			swap(newValue)
+		set {
+			lock.lock()
+			_value = newValue
+			lock.unlock()
 		}
 	}
 
@@ -169,7 +265,11 @@ public final class Atomic<Value>: AtomicProtocol {
 	///   - value: Initial value for `self`.
 	public init(_ value: Value) {
 		_value = value
-		lock = PosixThreadMutex()
+		lock = UnsafeUnfairLock()
+	}
+
+	deinit {
+		lock.destroy()
 	}
 
 	/// Atomically modifies the variable.

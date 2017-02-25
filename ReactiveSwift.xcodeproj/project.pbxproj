@@ -135,6 +135,14 @@
 		9AB847AA1E61BEB900680AF6 /* ResultExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB8474D1E61BDDE00680AF6 /* ResultExtensions.swift */; };
 		9AB847AB1E61BEB900680AF6 /* TupleExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB847511E61BDDE00680AF6 /* TupleExtensions.swift */; };
 		9AB847AC1E61BEB900680AF6 /* FoundationExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB847451E61BDDE00680AF6 /* FoundationExtensions.swift */; };
+		9AB847B01E61F65A00680AF6 /* OSLocking.c in Sources */ = {isa = PBXBuildFile; fileRef = 9AB847AE1E61F65A00680AF6 /* OSLocking.c */; };
+		9AB847B11E61F65A00680AF6 /* OSLocking.c in Sources */ = {isa = PBXBuildFile; fileRef = 9AB847AE1E61F65A00680AF6 /* OSLocking.c */; };
+		9AB847B21E61F65A00680AF6 /* OSLocking.c in Sources */ = {isa = PBXBuildFile; fileRef = 9AB847AE1E61F65A00680AF6 /* OSLocking.c */; };
+		9AB847B31E61F65A00680AF6 /* OSLocking.c in Sources */ = {isa = PBXBuildFile; fileRef = 9AB847AE1E61F65A00680AF6 /* OSLocking.c */; };
+		9AB847C41E6207CC00680AF6 /* OSLocking.h in Headers */ = {isa = PBXBuildFile; fileRef = 9AB847C31E6207CC00680AF6 /* OSLocking.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		9AB847C51E6207CC00680AF6 /* OSLocking.h in Headers */ = {isa = PBXBuildFile; fileRef = 9AB847C31E6207CC00680AF6 /* OSLocking.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		9AB847C61E6207CC00680AF6 /* OSLocking.h in Headers */ = {isa = PBXBuildFile; fileRef = 9AB847C31E6207CC00680AF6 /* OSLocking.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		9AB847C71E6207CC00680AF6 /* OSLocking.h in Headers */ = {isa = PBXBuildFile; fileRef = 9AB847C31E6207CC00680AF6 /* OSLocking.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A9B315C91B3940980001CB9C /* Result.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDC42E2E1AE7AB8B00965373 /* Result.framework */; };
 		B696FB811A7640C00075236D /* TestError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B696FB801A7640C00075236D /* TestError.swift */; };
 		B696FB821A7640C00075236D /* TestError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B696FB801A7640C00075236D /* TestError.swift */; };
@@ -270,6 +278,9 @@
 		9AB847511E61BDDE00680AF6 /* TupleExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = TupleExtensions.swift; path = ReactiveSwift/TupleExtensions.swift; sourceTree = "<group>"; };
 		9AB847521E61BDDE00680AF6 /* UnidirectionalBinding.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = UnidirectionalBinding.swift; path = ReactiveSwift/UnidirectionalBinding.swift; sourceTree = "<group>"; };
 		9AB847531E61BDDE00680AF6 /* ValidatingProperty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ValidatingProperty.swift; path = ReactiveSwift/ValidatingProperty.swift; sourceTree = "<group>"; };
+		9AB847AE1E61F65A00680AF6 /* OSLocking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = OSLocking.c; path = OSLocking/OSLocking.c; sourceTree = "<group>"; };
+		9AB847B81E62007C00680AF6 /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; name = module.modulemap; path = ReactiveSwift/module.modulemap; sourceTree = "<group>"; };
+		9AB847C31E6207CC00680AF6 /* OSLocking.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OSLocking.h; path = OSLocking/include/OSLocking.h; sourceTree = "<group>"; };
 		A97451331B3A935E00F48E55 /* watchOS-Application.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Application.xcconfig"; sourceTree = "<group>"; };
 		A97451341B3A935E00F48E55 /* watchOS-Base.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Base.xcconfig"; sourceTree = "<group>"; };
 		A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Framework.xcconfig"; sourceTree = "<group>"; };
@@ -395,6 +406,15 @@
 			path = tvOS;
 			sourceTree = "<group>";
 		};
+		9AB847AD1E61F5FC00680AF6 /* Locking */ = {
+			isa = PBXGroup;
+			children = (
+				9AB847C31E6207CC00680AF6 /* OSLocking.h */,
+				9AB847AE1E61F65A00680AF6 /* OSLocking.c */,
+			);
+			name = Locking;
+			sourceTree = "<group>";
+		};
 		A97451321B3A935E00F48E55 /* watchOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -470,6 +490,7 @@
 				9AB847531E61BDDE00680AF6 /* ValidatingProperty.swift */,
 				D03B4A3B19F4C281009E02AC /* Extensions */,
 				D03B4A3A19F4C26D009E02AC /* Internal Utilities */,
+				9AB847AD1E61F5FC00680AF6 /* Locking */,
 				D04725ED19E49ED7006002AA /* Supporting Files */,
 				9AB847401E61BDDE00680AF6 /* Deprecations+Removals.swift */,
 			);
@@ -483,6 +504,7 @@
 				9AB8474C1E61BDDE00680AF6 /* ReactiveSwift.h */,
 				9AB847461E61BDDE00680AF6 /* Info.plist */,
 				CDC42E2E1AE7AB8B00965373 /* Result.framework */,
+				9AB847B81E62007C00680AF6 /* module.modulemap */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -601,6 +623,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9AB847C71E6207CC00680AF6 /* OSLocking.h in Headers */,
 				9AB8476D1E61BE9700680AF6 /* ReactiveSwift.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -609,6 +632,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9AB847C61E6207CC00680AF6 /* OSLocking.h in Headers */,
 				9AB8476C1E61BE9600680AF6 /* ReactiveSwift.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -617,6 +641,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9AB847C41E6207CC00680AF6 /* OSLocking.h in Headers */,
 				9AB847631E61BDDE00680AF6 /* ReactiveSwift.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -625,6 +650,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9AB847C51E6207CC00680AF6 /* OSLocking.h in Headers */,
 				9AB8476B1E61BE9600680AF6 /* ReactiveSwift.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -771,7 +797,7 @@
 				ORGANIZATIONNAME = GitHub;
 				TargetAttributes = {
 					57A4D1AF1BA13D7A00F7D4B1 = {
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 0820;
 					};
 					7DFBED021CDB8C9500EE435B = {
 						CreatedOnToolsVersion = 7.3.1;
@@ -779,11 +805,11 @@
 					};
 					A9B315531B3940610001CB9C = {
 						CreatedOnToolsVersion = 7.0;
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 0820;
 					};
 					D04725E919E49ED7006002AA = {
 						CreatedOnToolsVersion = 6.1;
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 0820;
 					};
 					D04725F419E49ED7006002AA = {
 						CreatedOnToolsVersion = 6.1;
@@ -791,7 +817,7 @@
 					};
 					D047260B19E49F82006002AA = {
 						CreatedOnToolsVersion = 6.1;
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 0820;
 					};
 					D047261519E49F82006002AA = {
 						CreatedOnToolsVersion = 6.1;
@@ -900,6 +926,7 @@
 				9AB847991E61BEB900680AF6 /* Deprecations+Removals.swift in Sources */,
 				9AB847A51E61BEB900680AF6 /* Atomic.swift in Sources */,
 				9AB847A31E61BEB900680AF6 /* UnidirectionalBinding.swift in Sources */,
+				9AB847B31E61F65A00680AF6 /* OSLocking.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -955,6 +982,7 @@
 				9AB847841E61BEB800680AF6 /* Deprecations+Removals.swift in Sources */,
 				9AB847901E61BEB800680AF6 /* Atomic.swift in Sources */,
 				9AB8478E1E61BEB800680AF6 /* UnidirectionalBinding.swift in Sources */,
+				9AB847B21E61F65A00680AF6 /* OSLocking.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -983,6 +1011,7 @@
 				9AB847611E61BDDE00680AF6 /* Property.swift in Sources */,
 				9AB847641E61BDDE00680AF6 /* ResultExtensions.swift in Sources */,
 				9AB847551E61BDDE00680AF6 /* Atomic.swift in Sources */,
+				9AB847B01E61F65A00680AF6 /* OSLocking.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1038,6 +1067,7 @@
 				9AB8476F1E61BEB800680AF6 /* Deprecations+Removals.swift in Sources */,
 				9AB8477B1E61BEB800680AF6 /* Atomic.swift in Sources */,
 				9AB847791E61BEB800680AF6 /* UnidirectionalBinding.swift in Sources */,
+				9AB847B11E61F65A00680AF6 /* OSLocking.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1093,6 +1123,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
@@ -1101,6 +1133,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
 		};
@@ -1108,6 +1142,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
@@ -1116,6 +1152,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Test;
 		};
@@ -1123,6 +1161,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
@@ -1131,6 +1171,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Release;
 		};
@@ -1138,6 +1180,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
@@ -1146,6 +1190,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Profile;
 		};
@@ -1217,6 +1263,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
@@ -1225,6 +1273,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
 		};
@@ -1232,6 +1282,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
@@ -1240,6 +1292,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Test;
 		};
@@ -1247,6 +1301,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
@@ -1255,6 +1311,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Release;
 		};
@@ -1262,6 +1320,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
@@ -1270,6 +1330,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Profile;
 		};
@@ -1283,6 +1345,7 @@
 				ENABLE_TESTABILITY = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MODULEMAP_FILE = "$(SRCROOT)/Sources/ReactiveSwift/module.modulemap";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactivecocoa.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
 				SWIFT_VERSION = 3.0;
@@ -1300,9 +1363,9 @@
 				BITCODE_GENERATION_MODE = bitcode;
 				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				GCC_OPTIMIZATION_LEVEL = 0;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MODULEMAP_FILE = "$(SRCROOT)/Sources/ReactiveSwift/module.modulemap";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactivecocoa.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
 				SWIFT_VERSION = 3.0;
@@ -1317,11 +1380,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263A19E49FE8006002AA /* Mac-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
 		};
@@ -1329,11 +1395,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263A19E49FE8006002AA /* Mac-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Release;
 		};
@@ -1369,11 +1438,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263419E49FE8006002AA /* iOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
 		};
@@ -1381,11 +1453,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263419E49FE8006002AA /* iOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Release;
 		};
@@ -1428,6 +1503,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MODULEMAP_FILE = "$(SRCROOT)/Sources/ReactiveSwift/module.modulemap";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactivecocoa.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
 				SWIFT_VERSION = 3.0;
@@ -1442,11 +1518,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263A19E49FE8006002AA /* Mac-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Profile;
 		};
@@ -1468,11 +1547,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263419E49FE8006002AA /* iOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Profile;
 		};
@@ -1500,6 +1582,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MODULEMAP_FILE = "$(SRCROOT)/Sources/ReactiveSwift/module.modulemap";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactivecocoa.$(PRODUCT_NAME:rfc1034identifier)-Tests";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
 				SWIFT_VERSION = 3.0;
@@ -1514,11 +1597,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263A19E49FE8006002AA /* Mac-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Test;
 		};
@@ -1540,11 +1626,14 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263419E49FE8006002AA /* iOS-Framework.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = Sources/ReactiveSwift/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 3.0;
 			};
 			name = Test;
 		};
