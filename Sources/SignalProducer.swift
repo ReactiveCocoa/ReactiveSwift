@@ -1087,15 +1087,26 @@ extension SignalProducerProtocol {
 		return lift { $0.attemptMap(operation) }
 	}
 
-	/// Throttle values sent by the receiver, so that at least `interval`
-	/// seconds pass between each, then forwards them on the given scheduler.
+	/// Forward the latest value on `scheduler` after at least `interval`
+	/// seconds have passed since *the returned signal* last sent a value.
+	///
+	/// If `self` always sends values more frequently than `interval` seconds,
+	/// then the returned signal will send a value every `interval` seconds.
+	///
+	/// To measure from when `self` last sent a value, see `debounce`.
+	///
+	/// - seealso: `debounce`
 	///
 	/// - note: If multiple values are received before the interval has elapsed,
 	///         the latest value is the one that will be passed on.
 	///
-	/// - norw: If `self` terminates while a value is being throttled, that
+	/// - note: If `self` terminates while a value is being throttled, that
 	///         value will be discarded and the returned producer will terminate
 	///         immediately.
+	///
+	/// - note: If the device time changed backwards before previous date while
+	///         a value is being throttled, and if there is a new value sent,
+	///         the new value will be passed anyway.
 	///
 	/// - parameters:
 	///   - interval: Number of seconds to wait between sent values.
@@ -1139,9 +1150,16 @@ extension SignalProducerProtocol {
 		return lift { $0.throttle(while: shouldThrottle, on: scheduler) }
 	}
 
-	/// Debounce values sent by the receiver, such that at least `interval`
-	/// seconds pass after the receiver has last sent a value, then
-	/// forward the latest value on the given scheduler.
+	/// Forward the latest value on `scheduler` after at least `interval`
+	/// seconds have passed since `self` last sent a value.
+	///
+	/// If `self` always sends values more frequently than `interval` seconds,
+	/// then the returned signal will never send any values.
+	///
+	/// To measure from when the *returned signal* last sent a value, see
+	/// `throttle`.
+	///
+	/// - seealso: `throttle`
 	///
 	/// - note: If multiple values are received before the interval has elapsed,
 	///         the latest value is the one that will be passed on.
