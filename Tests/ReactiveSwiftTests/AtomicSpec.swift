@@ -35,6 +35,16 @@ class AtomicSpec: QuickSpec {
 			expect(atomic.value) == 2
 		}
 
+		it("should modify the value atomically despite throwing an error") {
+			expect {
+				try atomic.modify {
+					$0 += 1
+					throw TestError.default
+				}
+			}.to(throwError(TestError.default))
+			expect(atomic.value) == 2
+		}
+
 		it("should perform an action with the value") {
 			let result: Bool = atomic.withValue { $0 == 1 }
 			expect(result) == true

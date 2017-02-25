@@ -166,6 +166,18 @@ class PropertySpec: QuickSpec {
 				expect(property.value) == subsequentPropertyValue
 			}
 
+			it("should modify the value atomically despite throwing an error") {
+				let property = MutableProperty(initialPropertyValue)
+
+				expect {
+					try property.modify {
+						$0 = subsequentPropertyValue
+						throw TestError.default
+					}
+				}.to(throwError(TestError.default))
+				expect(property.value) == subsequentPropertyValue
+			}
+
 			it("should swap the value atomically and subsquently send out a Value event with the new value") {
 				let property = MutableProperty(initialPropertyValue)
 				var value: String?
