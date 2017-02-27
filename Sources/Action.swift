@@ -207,6 +207,7 @@ private struct ActionState {
 }
 
 /// A protocol used to constraint `Action` initializers.
+@available(swift, deprecated: 3.1, message: "This protocol is no longer necessary and will be removed in a future version of ReactiveSwift. Use Action directly instead.")
 public protocol ActionProtocol: BindingTargetProvider, BindingTargetProtocol {
 	/// The type of argument to apply the action to.
 	associatedtype Input
