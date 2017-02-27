@@ -484,7 +484,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that, when started, sends values obtained using 
 	///            `transform` as this producer sends values.
-	public func lazyMap<U>(on scheduler: SchedulerProtocol, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
+	public func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.lazyMap(on: scheduler, transform: transform) }
 	}
 
@@ -648,7 +648,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that, when started, will yield `self` values on
 	///            provided scheduler.
-	public func observe(on scheduler: SchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func observe(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.observe(on: scheduler) }
 	}
 
@@ -660,6 +660,9 @@ extension SignalProducerProtocol {
 	///
 	/// - note: If either producer is interrupted, the returned producer will
 	///         also be interrupted.
+	///
+	/// - note: The returned producer will not complete until both inputs
+	///         complete.
 	///
 	/// - parameters:
 	///   - other: A producer to combine `self`'s value with.
@@ -678,6 +681,9 @@ extension SignalProducerProtocol {
 	///
 	/// - note: If either input is interrupted, the returned producer will also
 	///         be interrupted.
+	///
+	/// - note: The returned producer will not complete until both inputs
+	///         complete.
 	///
 	/// - parameters:
 	///   - other: A signal to combine `self`'s value with.
@@ -700,7 +706,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that, when started, will delay `value` and
 	///            `completed` events and will yield them on given scheduler.
-	public func delay(_ interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.delay(interval, on: scheduler) }
 	}
 
@@ -850,7 +856,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that will deliver events until `lifetime` ends.
 	public func take(during lifetime: Lifetime) -> SignalProducer<Value, Error> {
-		return take(until: lifetime.ended)
+		return lift { $0.take(during: lifetime) }
 	}
 
 	/// Forward events from `self` until `trigger` sends a `value` or `completed`
@@ -1081,15 +1087,26 @@ extension SignalProducerProtocol {
 		return lift { $0.attemptMap(operation) }
 	}
 
-	/// Throttle values sent by the receiver, so that at least `interval`
-	/// seconds pass between each, then forwards them on the given scheduler.
+	/// Forward the latest value on `scheduler` after at least `interval`
+	/// seconds have passed since *the returned signal* last sent a value.
+	///
+	/// If `self` always sends values more frequently than `interval` seconds,
+	/// then the returned signal will send a value every `interval` seconds.
+	///
+	/// To measure from when `self` last sent a value, see `debounce`.
+	///
+	/// - seealso: `debounce`
 	///
 	/// - note: If multiple values are received before the interval has elapsed,
 	///         the latest value is the one that will be passed on.
 	///
-	/// - norw: If `self` terminates while a value is being throttled, that
+	/// - note: If `self` terminates while a value is being throttled, that
 	///         value will be discarded and the returned producer will terminate
 	///         immediately.
+	///
+	/// - note: If the device time changed backwards before previous date while
+	///         a value is being throttled, and if there is a new value sent,
+	///         the new value will be passed anyway.
 	///
 	/// - parameters:
 	///   - interval: Number of seconds to wait between sent values.
@@ -1097,7 +1114,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that sends values at least `interval` seconds
 	///            appart on a given scheduler.
-	public func throttle(_ interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func throttle(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.throttle(interval, on: scheduler) }
 	}
 
@@ -1123,7 +1140,7 @@ extension SignalProducerProtocol {
 	///   - scheduler: A scheduler to deliver events on.
 	///
 	/// - returns: A producer that sends values only while `shouldThrottle` is false.
-	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: SchedulerProtocol) -> SignalProducer<Value, Error>
+	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: Scheduler) -> SignalProducer<Value, Error>
 		where P.Value == Bool
 	{
 		// Using `Property.init(_:)` avoids capturing a strong reference
@@ -1133,9 +1150,16 @@ extension SignalProducerProtocol {
 		return lift { $0.throttle(while: shouldThrottle, on: scheduler) }
 	}
 
-	/// Debounce values sent by the receiver, such that at least `interval`
-	/// seconds pass after the receiver has last sent a value, then
-	/// forward the latest value on the given scheduler.
+	/// Forward the latest value on `scheduler` after at least `interval`
+	/// seconds have passed since `self` last sent a value.
+	///
+	/// If `self` always sends values more frequently than `interval` seconds,
+	/// then the returned signal will never send any values.
+	///
+	/// To measure from when the *returned signal* last sent a value, see
+	/// `throttle`.
+	///
+	/// - seealso: `throttle`
 	///
 	/// - note: If multiple values are received before the interval has elapsed,
 	///         the latest value is the one that will be passed on.
@@ -1150,7 +1174,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that sends values that are sent from `self` at
 	///            least `interval` seconds apart.
-	public func debounce(_ interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.debounce(interval, on: scheduler) }
 	}
 
@@ -1170,7 +1194,7 @@ extension SignalProducerProtocol {
 	/// - returns: A producer that sends events for at most `interval` seconds,
 	///            then, if not `completed` - sends `error` with `failed` event
 	///            on `scheduler`.
-	public func timeout(after interval: TimeInterval, raising error: Error, on scheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func timeout(after interval: TimeInterval, raising error: Error, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return lift { $0.timeout(after: interval, raising: error, on: scheduler) }
 	}
 }
@@ -1230,7 +1254,7 @@ extension SignalProducerProtocol where Error == NoError {
 	public func timeout<NewError: Swift.Error>(
 		after interval: TimeInterval,
 		raising error: NewError,
-		on scheduler: DateSchedulerProtocol
+		on scheduler: DateScheduler
 	) -> SignalProducer<Value, NewError> {
 		return lift { $0.timeout(after: interval, raising: error, on: scheduler) }
 	}
@@ -1462,7 +1486,7 @@ extension SignalProducerProtocol {
 	///
 	/// - returns: A producer that will deliver events on given `scheduler` when
 	///            started.
-	public func start(on scheduler: SchedulerProtocol) -> SignalProducer<Value, Error> {
+	public func start(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, compositeDisposable in
 			compositeDisposable += scheduler.schedule {
 				self.startWithSignal { signal, signalDisposable in
@@ -1476,13 +1500,13 @@ extension SignalProducerProtocol {
 
 extension SignalProducerProtocol {
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
 		return a.combineLatest(with: b)
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(Value, B, C), Error> {
 		return combineLatest(a, b)
 			.combineLatest(with: c)
@@ -1490,7 +1514,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(Value, B, C, D), Error> {
 		return combineLatest(a, b, c)
 			.combineLatest(with: d)
@@ -1498,7 +1522,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(Value, B, C, D, E), Error> {
 		return combineLatest(a, b, c, d)
 			.combineLatest(with: e)
@@ -1506,7 +1530,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(Value, B, C, D, E, F), Error> {
 		return combineLatest(a, b, c, d, e)
 			.combineLatest(with: f)
@@ -1514,7 +1538,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(Value, B, C, D, E, F, G), Error> {
 		return combineLatest(a, b, c, d, e, f)
 			.combineLatest(with: g)
@@ -1522,7 +1546,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H), Error> {
 		return combineLatest(a, b, c, d, e, f, g)
 			.combineLatest(with: h)
@@ -1530,7 +1554,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> {
 		return combineLatest(a, b, c, d, e, f, g, h)
 			.combineLatest(with: i)
@@ -1538,7 +1562,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`.
+	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> {
 		return combineLatest(a, b, c, d, e, f, g, h, i)
 			.combineLatest(with: j)
@@ -1546,7 +1570,7 @@ extension SignalProducerProtocol {
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
-	/// `combineLatestWith`. Will return an empty `SignalProducer` if the sequence is empty.
+	/// `combineLatest(with:)`. Will return an empty `SignalProducer` if the sequence is empty.
 	public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error>
 		where S.Iterator.Element == SignalProducer<Value, Error>
 	{
@@ -1858,10 +1882,10 @@ extension SignalProducerProtocol {
 	/// This operator is only recommended when you absolutely need to introduce
 	/// a layer of caching in front of another `SignalProducer`.
 	///
-	/// - precondtion: `capacity` must be non-negative integer.
+	/// - precondition: `capacity` must be non-negative integer.
 	///
 	/// - parameters:
-	///   - capcity: Number of values to hold.
+	///   - capacity: Number of values to hold.
 	///
 	/// - returns: A caching producer that will hold up to last `capacity`
 	///            values.
@@ -2124,7 +2148,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 ///   - scheduler: A scheduler to deliver events on.
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
-public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Date, NoError> {
+public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -> SignalProducer<Date, NoError> {
 	// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
 	// at least 10% of the timer interval.
 	return timer(interval: interval, on: scheduler, leeway: interval * 0.1)
@@ -2147,7 +2171,7 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerPro
 ///             recommends a leeway of at least 10% of the timer interval.
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
-public func timer(interval: DispatchTimeInterval, on scheduler: DateSchedulerProtocol, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> {
+public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> {
 	precondition(interval.timeInterval >= 0)
 	precondition(leeway.timeInterval >= 0)
 

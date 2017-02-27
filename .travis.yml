@@ -9,6 +9,7 @@ branches:
     - master
     # Credit: @Omnikron13, https://github.com/mojombo/semver/issues/32
     - /^(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
+    - /^hotfix-(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/ 
 before_script:
   - git submodule update --init --recursive
 script:
@@ -72,7 +73,9 @@ matrix:
       env:
         - JOB=PODSPEC
     - script:
+        - mv .Package.test.swift Package.swift
         - swift build
+        - swift test
       env:
         - JOB=SWIFTPM_DARWIN
     - os: linux

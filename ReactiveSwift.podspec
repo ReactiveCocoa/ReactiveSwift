@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name         = "ReactiveSwift"
   # Version goes here and will be used to access the git tag later on, once we have a first release.
-  s.version      = "1.0.0"
+  s.version      = "1.0.1"
   s.summary      = "Streams of values over time"
   s.description  = <<-DESC
                    ReactiveSwift is a Swift framework inspired by Functional Reactive Programming. It provides APIs for composing and transforming streams of values over time.
@@ -18,4 +18,6 @@ Pod::Spec.new do |s|
   # Directory glob for all Swift files
   s.source_files  = "Sources/*.{swift}"
   s.dependency 'Result', '~> 3.1'
+
+  s.pod_target_xcconfig = {"OTHER_SWIFT_FLAGS[config=Release]" => "-suppress-warnings" }
 end

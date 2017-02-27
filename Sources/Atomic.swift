@@ -58,7 +58,6 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 	/// - returns:
 	///   `true` if the current state matches the expected state. `false`
 	///   otherwise.
-	@inline(__always)
 	internal func `is`(_ expected: State) -> Bool {
 		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
 		                                       expected.rawValue,
@@ -73,7 +72,6 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 	///
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
-	@inline(__always)
 	internal func tryTransition(from expected: State, to next: State) -> Bool {
 		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
 		                                       next.rawValue,
@@ -154,6 +152,17 @@ public final class Atomic<Value>: AtomicProtocol {
 	private let lock: PosixThreadMutex
 	private var _value: Value
 
+	/// Atomically get or set the value of the variable.
+	public var value: Value {
+		get {
+			return withValue { $0 }
+		}
+
+		set(newValue) {
+			swap(newValue)
+		}
+	}
+
 	/// Initialize the variable with the given initial value.
 	/// 
 	/// - parameters:
@@ -191,6 +200,21 @@ public final class Atomic<Value>: AtomicProtocol {
 
 		return try action(_value)
 	}
+
+	/// Atomically replace the contents of the variable.
+	///
+	/// - parameters:
+	///   - newValue: A new value for the variable.
+	///
+	/// - returns: The old value.
+	@discardableResult
+	public func swap(_ newValue: Value) -> Value {
+		return modify { (value: inout Value) in
+			let oldValue = value
+			value = newValue
+			return oldValue
+		}
+	}
 }
 
 
@@ -199,6 +223,17 @@ internal final class RecursiveAtomic<Value>: AtomicProtocol {
 	private let lock: NSRecursiveLock
 	private var _value: Value
 	private let didSetObserver: ((Value) -> Void)?
+
+	/// Atomically get or set the value of the variable.
+	public var value: Value {
+		get {
+			return withValue { $0 }
+		}
+
+		set(newValue) {
+			swap(newValue)
+		}
+	}
 
 	/// Initialize the variable with the given initial value.
 	/// 
@@ -244,30 +279,6 @@ internal final class RecursiveAtomic<Value>: AtomicProtocol {
 		defer { lock.unlock() }
 
 		return try action(_value)
-	}
-}
-
-/// A protocol used to constraint convenience `Atomic` methods and properties.
-public protocol AtomicProtocol: class {
-	associatedtype Value
-
-	@discardableResult
-	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result
-
-	@discardableResult
-	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
-}
-
-extension AtomicProtocol {	
-	/// Atomically get or set the value of the variable.
-	public var value: Value {
-		get {
-			return withValue { $0 }
-		}
-	
-		set(newValue) {
-			swap(newValue)
-		}
 	}
 
 	/// Atomically replace the contents of the variable.

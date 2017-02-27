@@ -12,7 +12,7 @@ precedencegroup BindingPrecedence {
 infix operator <~ : BindingPrecedence
 
 /// Describes a source which can be bound.
-public protocol BindingSourceProtocol {
+public protocol BindingSource {
 	associatedtype Value
 	associatedtype Error: Swift.Error
 
@@ -21,14 +21,14 @@ public protocol BindingSourceProtocol {
 	func observe(_ observer: Observer<Value, Error>, during lifetime: Lifetime) -> Disposable?
 }
 
-extension Signal: BindingSourceProtocol {
+extension Signal: BindingSource {
 	@discardableResult
 	public func observe(_ observer: Observer, during lifetime: Lifetime) -> Disposable? {
 		return self.take(during: lifetime).observe(observer)
 	}
 }
 
-extension SignalProducer: BindingSourceProtocol {
+extension SignalProducer: BindingSource {
 	@discardableResult
 	public func observe(_ observer: ProducedSignal.Observer, during lifetime: Lifetime) -> Disposable? {
 		var disposable: Disposable!
@@ -44,16 +44,11 @@ extension SignalProducer: BindingSourceProtocol {
 	}
 }
 
-/// Describes a target which can be bound.
-public protocol BindingTargetProtocol: class {
+/// Describes an entity which be bond towards.
+public protocol BindingTargetProvider {
 	associatedtype Value
 
-	/// The lifetime of `self`. The binding operators use this to determine when
-	/// the binding should be torn down.
-	var lifetime: Lifetime { get }
-
-	/// Consume a value from the binding.
-	func consume(_ value: Value)
+	var bindingTarget: BindingTarget<Value> { get }
 }
 
 /// Binds a source to a target, updating the target's value to the latest
@@ -87,21 +82,12 @@ public protocol BindingTargetProtocol: class {
 ///            event.
 @discardableResult
 public func <~
-	<Target: BindingTargetProtocol, Source: BindingSourceProtocol>
-	(target: Target, source: Source) -> Disposable?
-	where Source.Value == Target.Value, Source.Error == NoError
+	<Provider: BindingTargetProvider, Source: BindingSource>
+	(provider: Provider, source: Source) -> Disposable?
+	where Source.Value == Provider.Value, Source.Error == NoError
 {
-	// Alter the semantics of `BindingTarget` to not require it to be retained.
-	// This is done here--and not in a separate function--so that all variants
-	// of `<~` can get this behavior.
-	let observer: Observer<Target.Value, NoError>
-	if let target = target as? BindingTarget<Target.Value> {
-		observer = Observer(value: { [setter = target.setter] in setter($0) })
-	} else {
-		observer = Observer(value: { [weak target] in target?.consume($0) })
-	}
-
-	return source.observe(observer, during: target.lifetime)
+	return source.observe(Observer(value: provider.bindingTarget.action),
+	                      during: provider.bindingTarget.lifetime)
 }
 
 /// Binds a source to a target, updating the target's value to the latest
@@ -135,35 +121,31 @@ public func <~
 ///            event.
 @discardableResult
 public func <~
-	<Target: BindingTargetProtocol, Source: BindingSourceProtocol>
-	(target: Target, source: Source) -> Disposable?
-	where Target.Value: OptionalProtocol, Source.Value == Target.Value.Wrapped, Source.Error == NoError
+	<Provider: BindingTargetProvider, Source: BindingSource>
+	(provider: Provider, source: Source) -> Disposable?
+	where Provider.Value: OptionalProtocol, Source.Value == Provider.Value.Wrapped, Source.Error == NoError
 {
-	// Alter the semantics of `BindingTarget` to not require it to be retained.
-	// This is done here--and not in a separate function--so that all variants
-	// of `<~` can get this behavior.
-	let observer: Observer<Source.Value, NoError>
-	if let target = target as? BindingTarget<Target.Value> {
-		observer = Observer(value: { [setter = target.setter] in setter(Target.Value(reconstructing: $0)) })
-	} else {
-		observer = Observer(value: { [weak target] in target?.consume(Target.Value(reconstructing: $0)) })
-	}
-
-	return source.observe(observer, during: target.lifetime)
+	let action = provider.bindingTarget.action
+	return source.observe(Observer(value: { action(Provider.Value(reconstructing: $0)) }),
+	                      during: provider.bindingTarget.lifetime)
 }
 
 /// A binding target that can be used with the `<~` operator.
-public final class BindingTarget<Value>: BindingTargetProtocol {
+public struct BindingTarget<Value>: BindingTargetProvider {
 	public let lifetime: Lifetime
-	fileprivate let setter: (Value) -> Void
+	public let action: (Value) -> Void
+
+	public var bindingTarget: BindingTarget<Value> {
+		return self
+	}
 
 	/// Creates a binding target.
 	///
 	/// - parameters:
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
-	///   - setter: The action to consume values.
-	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void) {
-		self.setter = setter
+	///   - action: The action to consume values.
+	public init(lifetime: Lifetime, action: @escaping (Value) -> Void) {
+		self.action = action
 		self.lifetime = lifetime
 	}
 
@@ -172,17 +154,13 @@ public final class BindingTarget<Value>: BindingTargetProtocol {
 	/// - parameters:
 	///   - scheduler: The scheduler on which the `setter` consumes the values.
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
-	///   - setter: The action to consume values.
-	public convenience init(on scheduler: SchedulerProtocol, lifetime: Lifetime, setter: @escaping (Value) -> Void) {
+	///   - action: The action to consume values.
+	public init(on scheduler: Scheduler, lifetime: Lifetime, action: @escaping (Value) -> Void) {
 		let setter: (Value) -> Void = { value in
 			scheduler.schedule {
-				setter(value)
+				action(value)
 			}
 		}
-		self.init(lifetime: lifetime, setter: setter)
-	}
-
-	public func consume(_ value: Value) {
-		setter(value)
+		self.init(lifetime: lifetime, action: setter)
 	}
 }

@@ -80,7 +80,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		lifetime = Lifetime(deinitToken)
 		
 		// Retain the `property` for the created `Action`.
-		lifetime.ended.observeCompleted { _ = property }
+		lifetime.observeEnded { _ = property }
 
 		executeClosure = { state, input in execute(state as! State.Value, input) }
 
@@ -208,7 +208,7 @@ private struct ActionState {
 
 /// A protocol used to constraint `Action` initializers.
 @available(swift, deprecated: 3.1, message: "This protocol is no longer necessary and will be removed in a future version of ReactiveSwift. Use Action directly instead.")
-public protocol ActionProtocol: BindingTargetProtocol {
+public protocol ActionProtocol: BindingTargetProvider, BindingTargetProtocol {
 	/// The type of argument to apply the action to.
 	associatedtype Input
 	/// The type of values returned by the action.
@@ -260,15 +260,13 @@ public protocol ActionProtocol: BindingTargetProtocol {
 	func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>>
 }
 
-extension ActionProtocol {
-	public func consume(_ value: Input) {
-		apply(value).start()
-	}
-}
-
 extension Action: ActionProtocol {
 	public var action: Action {
 		return self
+	}
+
+	public var bindingTarget: BindingTarget<Input> {
+		return BindingTarget(lifetime: lifetime) { [weak self] in self?.apply($0).start() }
 	}
 }
 

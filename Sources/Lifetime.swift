@@ -7,7 +7,7 @@ public final class Lifetime {
 	/// MARK: Type properties and methods
 
 	/// Factory method for creating a `Lifetime` and its associated `Token`.
-	public static func makeLifetime() -> (Lifetime, Token) {
+	public static func make() -> (lifetime: Lifetime, token: Token) {
 		let token = Token()
 		return (Lifetime(token), token)
 	}
@@ -20,7 +20,10 @@ public final class Lifetime {
 	/// MARK: Instance properties
 
 	/// A signal that sends a `completed` event when the lifetime ends.
-	public let ended: Signal<(), NoError>
+	///
+	/// - note: Consider using `Lifetime.observeEnded` if only a closure observer
+	///         is to be attached.
+ 	public let ended: Signal<(), NoError>
 
 	/// MARK: Initializers
 
@@ -45,6 +48,22 @@ public final class Lifetime {
 		self.init(ended: token.ended)
 	}
 
+	/// Observe the termination of `self`.
+	///
+	/// - parameters:
+	///   - action: The action to be invoked when `self` ends.
+	///
+	/// - returns: A disposable that detaches `action` from the lifetime, or `nil`
+	///            if `lifetime` has already ended.
+	@discardableResult
+	public func observeEnded(_ action: @escaping () -> Void) -> Disposable? {
+		return ended.observe { event in
+			if event.isTerminating {
+				action()
+			}
+		}
+	}
+
 	/// A token object which completes its signal when it deinitializes.
 	///
 	/// It is generally used in conjuncion with `Lifetime` as a private
@@ -52,7 +71,7 @@ public final class Lifetime {
 	///
 	/// ```
 	/// class MyController {
-	///		private let (lifetime, token) = Lifetime.makeLifetime()
+	///		private let (lifetime, token) = Lifetime.make()
 	/// }
 	/// ```
 	public final class Token {

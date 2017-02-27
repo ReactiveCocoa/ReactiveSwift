@@ -118,7 +118,7 @@ import Foundation
 final class SettingsController {
   // Define a lifetime for instances of this class. When an instance is
   // deinitialized, the lifetime ends.
-  private let (lifetime, token) = Lifetime.makeLifetime()
+  private let (lifetime, token) = Lifetime.make()
 
   func observeDefaultsChanged(_ defaults: UserDefaults = .standard) {
     // `take(during: lifetime)` ensures the observation ends when this object

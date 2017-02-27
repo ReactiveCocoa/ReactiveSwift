@@ -69,6 +69,9 @@
 		9A1D067D1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
 		9A1D067E1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
 		9A1D067F1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
+		9A681A9E1E5A241B00B097CF /* DeprecationSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */; };
+		9A681A9F1E5A241B00B097CF /* DeprecationSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */; };
+		9A681AA01E5A241B00B097CF /* DeprecationSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */; };
 		9A9100DF1E0E6E620093E346 /* ValidatingProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */; };
 		9A9100E01E0E6E670093E346 /* ValidatingProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */; };
 		9A9100E11E0E6E680093E346 /* ValidatingProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */; };
@@ -246,6 +249,7 @@
 		9A090C131DA0309E00EE97CA /* Reactive.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Reactive.swift; sourceTree = "<group>"; };
 		9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingPropertySpec.swift; sourceTree = "<group>"; };
 		9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnidirectionalBindingSpec.swift; sourceTree = "<group>"; };
+		9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeprecationSpec.swift; sourceTree = "<group>"; };
 		9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingProperty.swift; sourceTree = "<group>"; };
 		9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Deprecations+Removals.swift"; sourceTree = "<group>"; };
 		A97451331B3A935E00F48E55 /* watchOS-Application.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Application.xcconfig"; sourceTree = "<group>"; };
@@ -512,6 +516,7 @@
 				C79B64731CD38B2B003F2376 /* TestLogger.swift */,
 				9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */,
 				9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */,
+				9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */,
 				D04725FA19E49ED7006002AA /* Supporting Files */,
 			);
 			name = ReactiveSwiftTests;
@@ -919,6 +924,7 @@
 				7DFBED291CDB8DE300EE435B /* SchedulerSpec.swift in Sources */,
 				7DFBED2A1CDB8DE300EE435B /* SignalLifetimeSpec.swift in Sources */,
 				7DFBED2B1CDB8DE300EE435B /* SignalProducerSpec.swift in Sources */,
+				9A681AA01E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
 				7DFBED2C1CDB8DE300EE435B /* SignalProducerLiftingSpec.swift in Sources */,
 				7DFBED2D1CDB8DE300EE435B /* SignalSpec.swift in Sources */,
 				7DFBED2E1CDB8DE300EE435B /* FlattenSpec.swift in Sources */,
@@ -1001,6 +1007,7 @@
 				C79B64741CD38B2B003F2376 /* TestLogger.swift in Sources */,
 				CA6F28501C52626B001879D2 /* FlattenSpec.swift in Sources */,
 				4A0E11041D2A95200065D310 /* LifetimeSpec.swift in Sources */,
+				9A681A9E1E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
 				CDCD247A1C277EEC00710AEE /* AtomicSpec.swift in Sources */,
 				579504331BB8A34200A5E482 /* BagSpec.swift in Sources */,
 				D0A226081A72E0E900D33B74 /* SignalSpec.swift in Sources */,
@@ -1055,6 +1062,7 @@
 				BFA6B94E1A7604D500C846D1 /* SignalProducerNimbleMatchers.swift in Sources */,
 				B696FB821A7640C00075236D /* TestError.swift in Sources */,
 				D8170FC21B100EBC004192AD /* FoundationExtensionsSpec.swift in Sources */,
+				9A681A9F1E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
 				D0C3131419EF2B2000984962 /* SchedulerSpec.swift in Sources */,
 				C79B64751CD38B2B003F2376 /* TestLogger.swift in Sources */,
 				D0C3131219EF2B2000984962 /* DisposableSpec.swift in Sources */,

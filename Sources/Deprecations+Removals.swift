@@ -1,6 +1,100 @@
 import Foundation
 import enum Result.NoError
 
+// MARK: Depreciated types in ReactiveSwift 1.x.
+@available(*, deprecated, renamed:"Scheduler")
+public typealias SchedulerProtocol = Scheduler
+
+@available(*, deprecated, renamed:"DateScheduler")
+public typealias DateSchedulerProtocol = DateScheduler
+
+@available(*, deprecated, renamed:"BindingSource")
+public typealias BindingSourceProtocol = BindingSource
+
+@available(*, deprecated, message:"The protocol has been replaced by `BindingTargetProvider`, and will be removed in a future version.")
+public protocol BindingTargetProtocol: class, BindingTargetProvider {
+	var lifetime: Lifetime { get }
+
+	func consume(_ value: Value)
+}
+
+extension BindingTargetProtocol {
+	public var bindingTarget: BindingTarget<Value> {
+		return BindingTarget(lifetime: lifetime) { [weak self] in self?.consume($0) }
+	}
+}
+
+extension MutablePropertyProtocol {
+	@available(*, deprecated, message:"Use the regular setter.")
+	public func consume(_ value: Value) {
+		self.value = value
+	}
+}
+
+extension Action: BindingTargetProtocol {
+	@available(*, deprecated, message:"Use the regular SignalProducer.")
+	public func consume(_ value: Input) {
+		self.apply(value).start()
+	}
+}
+
+extension BindingTarget {
+	@available(*, deprecated, renamed:"action")
+	public func consume(_ value: Value) {
+		action(value)
+	}
+
+	@available(*, deprecated, renamed:"init(lifetime:action:)")
+	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void, _ void: Void? = nil) {
+		self.init(lifetime: lifetime, action: setter)
+	}
+
+	@available(*, deprecated, renamed:"init(on:lifetime:action:)")
+	public init(on scheduler: Scheduler, lifetime: Lifetime, setter: @escaping (Value) -> Void, _ void: Void? = nil) {
+		self.init(on: scheduler, lifetime: lifetime, action: setter)
+	}
+}
+
+/// A protocol used to constraint convenience `Atomic` methods and properties.
+@available(*, deprecated, message:"The protocol has been deprecated, and will be removed in a future version.")
+public protocol AtomicProtocol: class {
+	associatedtype Value
+
+	@discardableResult
+	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result
+
+	@discardableResult
+	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
+}
+
+extension AtomicProtocol {
+	/// Atomically get or set the value of the variable.
+	public var value: Value {
+		get {
+			return withValue { $0 }
+		}
+
+		set(newValue) {
+			swap(newValue)
+		}
+	}
+
+	/// Atomically replace the contents of the variable.
+	///
+	/// - parameters:
+	///   - newValue: A new value for the variable.
+	///
+	/// - returns: The old value.
+	@discardableResult
+	public func swap(_ newValue: Value) -> Value {
+		return modify { (value: inout Value) in
+			let oldValue = value
+			value = newValue
+			return oldValue
+		}
+	}
+}
+
 // MARK: Removed Types and APIs in ReactiveCocoa 5.0.
 
 // Renamed Protocols
@@ -22,10 +116,10 @@ public enum MutablePropertyType {}
 @available(*, unavailable, renamed:"ObserverProtocol")
 public enum ObserverType {}
 
-@available(*, unavailable, renamed:"SchedulerProtocol")
+@available(*, unavailable, renamed:"Scheduler")
 public enum SchedulerType {}
 
-@available(*, unavailable, renamed:"DateSchedulerProtocol")
+@available(*, unavailable, renamed:"DateScheduler")
 public enum DateSchedulerType {}
 
 @available(*, unavailable, renamed:"OptionalProtocol")
@@ -192,7 +286,7 @@ extension SignalProtocol {
 	public func skip(_ count: Int) -> Signal<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"observe(on:)")
-	public func observeOn(_ scheduler: SchedulerProtocol) -> Signal<Value, Error> { fatalError() }
+	public func observeOn(_ scheduler: Scheduler) -> Signal<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"combineLatest(with:)")
 	public func combineLatestWith<S: SignalProtocol>(_ otherSignal: S) -> Signal<(Value, S.Value), Error> { fatalError() }
@@ -216,7 +310,7 @@ extension SignalProtocol {
 	public func takeWhile(_ predicate: (Value) -> Bool) -> Signal<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"timeout(after:raising:on:)")
-	public func timeoutWithError(_ error: Error, afterInterval: TimeInterval, onScheduler: DateSchedulerProtocol) -> Signal<Value, Error> { fatalError() }
+	public func timeoutWithError(_ error: Error, afterInterval: TimeInterval, onScheduler: DateScheduler) -> Signal<Value, Error> { fatalError() }
 
 	@available(*, unavailable, message: "This Signal may emit errors which must be handled explicitly, or observed using `observeResult(_:)`")
 	public func observeNext(_ next: (Value) -> Void) -> Disposable? { fatalError() }
@@ -253,10 +347,10 @@ extension SignalProducerProtocol {
 	public func retry(_ count: Int) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"observe(on:)")
-	public func observeOn(_ scheduler: SchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
+	public func observeOn(_ scheduler: Scheduler) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"start(on:)")
-	public func startOn(_ scheduler: SchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
+	public func startOn(_ scheduler: Scheduler) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"combineLatest(with:)")
 	public func combineLatestWith<U>(_ otherProducer: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> { fatalError() }
@@ -295,7 +389,7 @@ extension SignalProducerProtocol {
 	public func takeWhile(_ predicate: (Value) -> Bool) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, renamed:"timeout(after:raising:on:)")
-	public func timeoutWithError(_ error: Error, afterInterval: TimeInterval, onScheduler: DateSchedulerProtocol) -> SignalProducer<Value, Error> { fatalError() }
+	public func timeoutWithError(_ error: Error, afterInterval: TimeInterval, onScheduler: DateScheduler) -> SignalProducer<Value, Error> { fatalError() }
 
 	@available(*, unavailable, message:"This SignalProducer may emit errors which must be handled explicitly, or observed using `startWithResult(_:)`.")
 	public func startWithNext(_ next: (Value) -> Void) -> Disposable { fatalError() }
@@ -348,7 +442,7 @@ extension Property {
 	public convenience init(initialValue: Value, signal: Signal<Value, NoError>) { fatalError() }
 }
 
-extension DateSchedulerProtocol {
+extension DateScheduler {
 	@available(*, unavailable, renamed:"schedule(after:action:)")
 	func scheduleAfter(date: Date, _ action: () -> Void) -> Disposable? { fatalError() }
 
@@ -399,10 +493,10 @@ extension Reactive where Base: URLSession {
 // Free functions
 
 @available(*, unavailable, message:"timer(interval:on:) now uses DispatchTimeInterval")
-public func timer(interval: TimeInterval, on scheduler: DateSchedulerProtocol) -> SignalProducer<Date, NoError> { fatalError() }
+public func timer(interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Date, NoError> { fatalError() }
 
 @available(*, unavailable, message:"timer(interval:on:leeway:) now uses DispatchTimeInterval")
-public func timer(interval: TimeInterval, on scheduler: DateSchedulerProtocol, leeway: TimeInterval) -> SignalProducer<Date, NoError> { fatalError() }
+public func timer(interval: TimeInterval, on scheduler: DateScheduler, leeway: TimeInterval) -> SignalProducer<Date, NoError> { fatalError() }
 
 @available(*, unavailable, renamed:"Signal.combineLatest")
 public func combineLatest<A, B, Error>(_ a: Signal<A, Error>, _ b: Signal<B, Error>) -> Signal<(A, B), Error> { fatalError() }

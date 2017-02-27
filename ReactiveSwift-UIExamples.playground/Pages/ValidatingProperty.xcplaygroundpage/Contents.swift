@@ -12,8 +12,8 @@ final class ViewModel {
 		static let usernameUnavailable = FormError(reason: "The username has been taken.")
 	}
 
-	let email: MutableValidatingProperty<String, FormError>
-	let emailConfirmation: MutableValidatingProperty<String, FormError>
+	let email: ValidatingProperty<String, FormError>
+	let emailConfirmation: ValidatingProperty<String, FormError>
 	let termsAccepted: MutableProperty<Bool>
 
 	let reasons: Signal<String, NoError>
@@ -21,12 +21,12 @@ final class ViewModel {
 	let submit: Action<(), (), FormError>
 
 	init(userService: UserService) {
-		email = MutableValidatingProperty<String, FormError>("") { input in
-			return input.hasSuffix("@reactivecocoa.io") ? .success : .failure(.invalidEmail)
+		email = ValidatingProperty<String, FormError>("") { input in
+			return input.hasSuffix("@reactivecocoa.io") ? .valid : .invalid(.invalidEmail)
 		}
 
-		emailConfirmation = MutableValidatingProperty<String, FormError>("", with: email) { input, email in
-			return input == email ? .success : .failure(.mismatchEmail)
+		emailConfirmation = ValidatingProperty<String, FormError>("", with: email) { input, email in
+			return input == email ? .valid : .invalid(.mismatchEmail)
 		}
 
 		termsAccepted = MutableProperty(false)
@@ -44,7 +44,7 @@ final class ViewModel {
 		let validatedEmail = Property.combineLatest(email.result,
 		                                            emailConfirmation.result,
 		                                            termsAccepted)
-			.map { e, ec, t in e.value.flatMap { !ec.isFailure && t ? $0 : nil } }
+			.map { e, ec, t in e.value.flatMap { !ec.isInvalid && t ? $0 : nil } }
 
 		// The action to be invoked when the submit button is pressed.
 		// It enables only if all the controls have passed their validations.

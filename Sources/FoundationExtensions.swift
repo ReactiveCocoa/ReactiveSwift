@@ -121,7 +121,7 @@ extension DispatchTimeInterval {
 	/// - note: This method is only used internally to "scale down" a time 
 	///			interval. Specifically it's used only to scale intervals to 10% 
 	///			of their original value for the default `leeway` parameter in 
-	///			`SchedulerProtocol.schedule(after:action:)` schedule and similar
+	///			`Scheduler.schedule(after:action:)` schedule and similar
 	///			other methods.
 	///
 	///			If seconds is over 200,000, 10% is ~2,000, and hence we end up

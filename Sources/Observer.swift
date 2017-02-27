@@ -7,6 +7,7 @@
 //
 
 /// A protocol for type-constrained extensions of `Observer`.
+@available(*, deprecated, message: "The protocol will be removed in a future version of ReactiveSwift. Use Observer directly.")
 public protocol ObserverProtocol {
 	associatedtype Value
 	associatedtype Error: Swift.Error
@@ -73,9 +74,7 @@ public final class Observer<Value, Error: Swift.Error> {
 			}
 		}
 	}
-}
 
-extension Observer: ObserverProtocol {
 	/// Puts a `value` event into `self`.
 	///
 	/// - parameters:
@@ -102,3 +101,5 @@ extension Observer: ObserverProtocol {
 		action(.interrupted)
 	}
 }
+
+extension Observer: ObserverProtocol {}

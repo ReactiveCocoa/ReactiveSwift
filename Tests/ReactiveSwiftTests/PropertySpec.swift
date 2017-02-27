@@ -253,7 +253,7 @@ class PropertySpec: QuickSpec {
 				var property = Optional(MutableProperty<Int>(1))
 
 				var isEnded = false
-				property!.lifetime.ended.observeCompleted {
+				property!.lifetime.observeEnded {
 					isEnded = true
 				}
 
