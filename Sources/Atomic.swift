@@ -33,7 +33,7 @@ internal protocol AtomicStateProtocol {
 internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol where State.RawValue == Int32 {
 	internal typealias Transition = (expected: State, next: State)
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-	internal let value: UnsafeMutablePointer<Int32>
+	private let value: UnsafeMutablePointer<Int32>
 
 	/// Create a finite state machine with the specified initial state.
 	///
