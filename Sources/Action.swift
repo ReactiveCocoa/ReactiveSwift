@@ -87,8 +87,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		(events, eventsObserver) = Signal<Event<Output, Error>, NoError>.pipe()
 		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
 
-		values = events.map { $0.value }.skipNil()
-		errors = events.map { $0.error }.skipNil()
+		values = events.filterMap { $0.value }
+		errors = events.filterMap { $0.error }
 		completed = events.filter { $0.isCompleted }.map { _ in }
 
 		let initial = ActionState(value: property.value, isEnabled: { isEnabled($0 as! State.Value) })
