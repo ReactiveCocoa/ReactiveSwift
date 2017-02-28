@@ -1953,8 +1953,8 @@ extension SignalProducerProtocol where Value == Bool {
 	/// Create a producer that computes a logical NOT in the latest values of `self`.
 	///
 	/// - returns: A producer that emits the logical NOT results.
-	public var negated: SignalProducer<Value, Error> {
-		return self.lift { $0.negated }
+	public func negate() -> SignalProducer<Value, Error> {
+		return self.lift { $0.negate() }
 	}
 	
 	/// Create a producer that computes a logical AND between the latest values of `self`
