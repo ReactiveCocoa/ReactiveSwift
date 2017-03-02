@@ -13,6 +13,7 @@ import MachO
 
 #if SWIFT_PACKAGE
 import OSLocking
+internal typealias UnsafeUnfairLock = OSLocking.UnsafeUnfairLock
 #endif
 
 /// Represents a finite state machine that can transit from one state to
@@ -128,10 +129,10 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 }
 
 /// A reference counted version of `UnsafeUnfairLock`.
-internal final class UnfairLock {
+public final class UnfairLock {
 	let _lock: UnsafeUnfairLock
 
-	internal init(label: String = "") {
+	public init(label: String = "") {
 		_lock = UnsafeUnfairLock(label: label)
 	}
 
@@ -139,101 +140,29 @@ internal final class UnfairLock {
 		_lock.destroy()
 	}
 
-	internal func lock() {
+	public func lock() {
 		_lock.lock()
 	}
 
-	internal func unlock() {
+	public func unlock() {
 		_lock.unlock()
 	}
 
-	internal func `try`() -> Bool {
+	public func `try`() -> Bool {
 		return _lock.try()
 	}
 }
 
-@_fixed_layout
-internal struct UnsafeUnfairLock {
-	@_fixed_layout
-	private enum Implementation {
-		case libplatform(UnsafeRawPointer)
-		case pthread(UnsafeMutablePointer<pthread_mutex_t>)
-	}
-
-	private let storage: Implementation
-
+extension UnsafeUnfairLock {
 	internal init(label: String = "") {
 		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 			if #available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
-				storage = .libplatform(_ras_os_unfair_lock_create())
+				self.init(_usesUnfairLock: true)
 				return
 			}
 		#endif
 
-		let mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
-		mutex.initialize(to: pthread_mutex_t())
-		pthread_mutex_init(mutex, nil)
-
-		storage = .pthread(mutex)
-	}
-
-	internal func destroy() {
-		switch storage {
-		case let .libplatform(lock):
-			free(UnsafeMutableRawPointer(mutating: lock))
-
-		case let .pthread(mutex):
-			pthread_mutex_destroy(mutex)
-			mutex.deinitialize()
-			mutex.deallocate(capacity: 1)
-		}
-	}
-
-	internal func lock() {
-		switch storage {
-		case let .libplatform(lock):
-			typealias LockFunc = @convention(c) (UnsafeRawPointer) -> Void
-			unsafeBitCast(_ras_os_unfair_lock, to: LockFunc.self)(lock)
-
-		case let .pthread(mutex):
-			let error = pthread_mutex_lock(mutex)
-			if error != 0 {
-				fatalError("Failed to lock a pthread mutex with error code \(error).")
-			}
-		}
-	}
-
-	internal func unlock() {
-		switch storage {
-		case let .libplatform(lock):
-			typealias UnlockFunc = @convention(c) (UnsafeRawPointer) -> Void
-			unsafeBitCast(_ras_os_unfair_unlock, to: UnlockFunc.self)(lock)
-
-		case let .pthread(mutex):
-			let error = pthread_mutex_unlock(mutex)
-			if error != 0 {
-				fatalError("Failed to unlock a pthread mutex with error code \(error).")
-			}
-		}
-	}
-
-	internal func `try`() -> Bool {
-		switch storage {
-		case let .libplatform(lock):
-			typealias TryLockFunc = @convention(c) (UnsafeRawPointer) -> CBool
-			return unsafeBitCast(_ras_os_unfair_trylock, to: TryLockFunc.self)(lock)
-
-		case let .pthread(mutex):
-			let error = pthread_mutex_trylock(mutex)
-			switch error {
-			case 0:
-				return true
-			case EBUSY:
-				return false
-			default:
-				fatalError("Failed to lock a pthread mutex with error code \(error).")
-			}
-		}
+		self.init(_usesUnfairLock: false)
 	}
 }
 
