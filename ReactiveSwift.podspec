@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   s.tvos.deployment_target = "9.0"
   s.source       = { :git => "https://github.com/ReactiveCocoa/ReactiveSwift.git", :tag => "#{s.version}" }
   # Directory glob for all Swift files
-  s.source_files  = "Sources/*.{swift}"
+  s.source_files  = "Sources/ReactiveSwift/*.{swift}"
   s.dependency 'Result', '~> 3.1'
 
   s.pod_target_xcconfig = {"OTHER_SWIFT_FLAGS[config=Release]" => "-suppress-warnings" }
