@@ -11,6 +11,11 @@ import Foundation
 import MachO
 #endif
 
+#if SWIFT_PACKAGE
+import OSLocking
+internal typealias UnsafeUnfairLock = OSLocking.UnsafeUnfairLock
+#endif
+
 /// Represents a finite state machine that can transit from one state to
 /// another.
 internal protocol AtomicStateProtocol {
@@ -123,43 +128,63 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 #endif
 }
 
-final class PosixThreadMutex: NSLocking {
-	private var mutex = pthread_mutex_t()
+/// A reference counted version of `UnsafeUnfairLock`.
+public final class UnfairLock {
+	let _lock: UnsafeUnfairLock
 
-	init() {
-		let result = pthread_mutex_init(&mutex, nil)
-		precondition(result == 0, "Failed to initialize mutex with error \(result).")
+	public init(label: String = "") {
+		_lock = UnsafeUnfairLock(label: label)
 	}
 
 	deinit {
-		let result = pthread_mutex_destroy(&mutex)
-		precondition(result == 0, "Failed to destroy mutex with error \(result).")
+		_lock.destroy()
 	}
 
-	func lock() {
-		let result = pthread_mutex_lock(&mutex)
-		precondition(result == 0, "Failed to lock \(self) with error \(result).")
+	public func lock() {
+		_lock.lock()
 	}
 
-	func unlock() {
-		let result = pthread_mutex_unlock(&mutex)
-		precondition(result == 0, "Failed to unlock \(self) with error \(result).")
+	public func unlock() {
+		_lock.unlock()
+	}
+
+	public func `try`() -> Bool {
+		return _lock.try()
+	}
+}
+
+extension UnsafeUnfairLock {
+	internal init(label: String = "") {
+		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+			if #available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+				self.init(_usesUnfairLock: true)
+				return
+			}
+		#endif
+
+		self.init(_usesUnfairLock: false)
 	}
 }
 
 /// An atomic variable.
 public final class Atomic<Value>: AtomicProtocol {
-	private let lock: PosixThreadMutex
+	private let lock: UnsafeUnfairLock
 	private var _value: Value
 
 	/// Atomically get or set the value of the variable.
 	public var value: Value {
 		get {
-			return withValue { $0 }
+			lock.lock()
+			let value = _value
+			lock.unlock()
+
+			return value
 		}
 
-		set(newValue) {
-			swap(newValue)
+		set {
+			lock.lock()
+			_value = newValue
+			lock.unlock()
 		}
 	}
 
@@ -169,7 +194,11 @@ public final class Atomic<Value>: AtomicProtocol {
 	///   - value: Initial value for `self`.
 	public init(_ value: Value) {
 		_value = value
-		lock = PosixThreadMutex()
+		lock = UnsafeUnfairLock()
+	}
+
+	deinit {
+		lock.destroy()
 	}
 
 	/// Atomically modifies the variable.
