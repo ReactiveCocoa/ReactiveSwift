@@ -399,8 +399,8 @@ extension PropertyProtocol where Value == Bool {
 	/// Create a property that computes a logical NOT in the latest values of `self`.
 	///
 	/// - returns: A property that contains the logial NOT results.
-	public var negated: Property<Value> {
-		return self.lift { $0.negated }
+	public func negate() -> Property<Value> {
+		return self.lift { $0.negate() }
 	}
 	
 	/// Create a property that computes a logical AND between the latest values of `self`

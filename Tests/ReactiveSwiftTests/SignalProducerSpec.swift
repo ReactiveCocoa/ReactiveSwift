@@ -2458,7 +2458,7 @@ class SignalProducerSpec: QuickSpec {
 					observer.sendCompleted()
 				}
 				
-				producer.negated.startWithValues { value in
+				producer.negate().startWithValues { value in
 					expect(value).to(beFalse())
 				}
 			}

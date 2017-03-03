@@ -1519,7 +1519,7 @@ class PropertySpec: QuickSpec {
 			describe("negated attribute") {
 				it("should return the negate of a value in a Boolean property") {
 					let property = MutableProperty(true)
-					expect(property.negated.value).to(beFalse())
+					expect(property.negate().value).to(beFalse())
 				}
 			}
 			

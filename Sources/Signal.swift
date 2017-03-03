@@ -2279,7 +2279,7 @@ extension SignalProtocol where Value == Bool {
 	/// Create a signal that computes a logical NOT in the latest values of `self`.
 	///
 	/// - returns: A signal that emits the logical NOT results.
-	public var negated: Signal<Value, Error> {
+	public func negate() -> Signal<Value, Error> {
 		return self.map(!)
 	}
 	

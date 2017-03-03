@@ -2,6 +2,27 @@ import Foundation
 import enum Result.NoError
 
 // MARK: Depreciated types in ReactiveSwift 1.x.
+extension SignalProtocol where Value == Bool {
+	@available(*, deprecated, renamed: "negate()")
+	public var negated: Signal<Bool, Error> {
+		return negate()
+	}
+}
+
+extension SignalProducerProtocol where Value == Bool {
+	@available(*, deprecated, renamed: "negate()")
+	public var negated: SignalProducer<Bool, Error> {
+		return negate()
+	}
+}
+
+extension PropertyProtocol where Value == Bool {
+	@available(*, deprecated, renamed: "negate()")
+	public var negated: Property<Bool> {
+		return negate()
+	}
+}
+
 @available(*, deprecated, renamed:"Scheduler")
 public typealias SchedulerProtocol = Scheduler
 
