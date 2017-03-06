@@ -66,6 +66,8 @@ matrix:
         - JOB=PODSPEC
     - script:
         - mv .Package.test.swift Package.swift
+        - swift package update
+        - cd Packages/Nimble-* && git checkout 8116a83864ee78339798c3ef425c42f6ca6bf034 && cd ../../
         - swift build
         - swift test
       env:
@@ -78,6 +80,8 @@ matrix:
         - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
       script:
         - mv .Package.test.swift Package.swift
+        - swift package update
+        - cd Packages/Nimble-* && git checkout 8116a83864ee78339798c3ef425c42f6ca6bf034 && cd ../../
         - swift build
         - swift test
       env: JOB=SWIFTPM_LINUX
