@@ -1730,6 +1730,27 @@ extension SignalProducer {
 		}
 	}
 
+	/// Retry `self` when it sends error and `when` sends `()` value.
+	/// Retries will be stopped when `when` sends either `.error` or `.completed`.
+	///
+	/// - precondition: `count` must be non-negative integer.
+	///
+	/// - parameters:
+	///   - strategy: The preferred flatten strategy.
+	///   - when: 
+	///     The signal producer transformed from `self`'s error with its values
+	///     triggering next retries. Retries will be stopped when `when` sends
+	///     either `.error` or `.completed`.
+	///
+	/// - returns: A signal producer that restarts when `when` sends `()` value.
+	public func retry(_ strategy: FlattenStrategy, when: @escaping (Error) -> SignalProducer<(), Error>) -> SignalProducer<Value, Error> {
+		return flatMapError { error in
+			return when(error).flatMap(strategy) {
+				return self.producer.retry(strategy, when: when)
+			}
+		}
+	}
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`. Any failure or interruption sent from `self` is
 	/// forwarded immediately, in which case `replacement` will not be started,

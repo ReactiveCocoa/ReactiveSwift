@@ -1771,6 +1771,77 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
+		describe("retry(_:when:)") {
+			it("should retry forever until `self` sends completed") {
+				let results: [Result<Int, TestError>] = [
+					.failure(.error1),
+					.failure(.error2),
+					.success(1)
+				]
+
+				var retryCount = 0
+
+				let original = SignalProducer.attemptWithResults(results)
+				let producer = original.retry(.merge) { error in
+					retryCount += 1
+					return .init(value: ())	// retry
+				}
+
+				let result = producer.single()
+
+				expect(result?.value) == 1
+				expect(retryCount) == 2
+			}
+
+			it("should retry until `when` sends error") {
+				let results: [Result<Int, TestError>] = [
+					.failure(.default),
+					.failure(.error1),
+					.failure(.error2),
+				]
+
+				var retryCount = 0
+
+				let original = SignalProducer.attemptWithResults(results)
+				let producer = original.retry(.merge) { error in
+					retryCount += 1
+
+					switch error {
+					case .error2:
+						return .init(error: .default)	// stop retry & forward error
+					default:
+						return .init(value: ())	// retry
+					}
+				}
+
+				let result = producer.single()
+
+				expect(result?.error) == TestError.default
+				expect(retryCount) == 3
+			}
+
+			it("should not retry upon completion") {
+				let results: [Result<Int, TestError>] = [
+					.success(1),
+					.success(2),
+					.success(3)
+				]
+
+				var retryCount = 0
+
+				let original = SignalProducer.attemptWithResults(results)
+				let producer = original.retry(.merge) { error in
+					retryCount += 1
+					return .init(value: ())
+				}
+
+				let result = producer.single()
+
+				expect(result?.value) == 1
+				expect(retryCount) == 0
+			}
+		}
+
 		describe("then") {
 			it("should start the subsequent producer after the completion of the original") {
 				let (original, observer) = SignalProducer<Int, NoError>.pipe()
