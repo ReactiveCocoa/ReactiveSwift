@@ -43,7 +43,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	private let updateLock: NSLock
 
 	/// Used to ensure that events are serialized during delivery to observers.
-	private let sendLock: NSLock
+	private let sendLock: NSRecursiveLock
 
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given observer.
@@ -59,7 +59,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		state = .alive(AliveState())
 		updateLock = NSLock()
 		updateLock.name = "org.reactivecocoa.ReactiveSwift.Signal.updateLock"
-		sendLock = NSLock()
+		sendLock = NSRecursiveLock()
 		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal.sendLock"
 
 		let observer = Observer { [weak self] event in

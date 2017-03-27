@@ -1776,21 +1776,24 @@ class SignalProducerSpec: QuickSpec {
 				let results: [Result<Int, TestError>] = [
 					.failure(.error1),
 					.failure(.error2),
+					.failure(.default),
 					.success(1)
 				]
 
 				var retryCount = 0
 
 				let original = SignalProducer.attemptWithResults(results)
-				let producer = original.retry(.merge) { error in
+				let producer = original.retry(.merge) { errors in
 					retryCount += 1
-					return .init(value: ())	// retry
+					return errors.flatMap(.merge) { _ in
+						return .init(value: ())	// retry
+					}
 				}
 
 				let result = producer.single()
 
 				expect(result?.value) == 1
-				expect(retryCount) == 2
+				expect(retryCount) == 1	// NOTE: retryCount will always be 1 due to original impl
 			}
 
 			it("should retry until `when` sends error") {
@@ -1803,21 +1806,23 @@ class SignalProducerSpec: QuickSpec {
 				var retryCount = 0
 
 				let original = SignalProducer.attemptWithResults(results)
-				let producer = original.retry(.merge) { error in
+				let producer = original.retry(.merge) { errors in
 					retryCount += 1
 
-					switch error {
-					case .error2:
-						return .init(error: .default)	// stop retry & forward error
-					default:
-						return .init(value: ())	// retry
+					return errors.flatMap(.merge) { error -> SignalProducer<(), TestError> in
+						switch error {
+						case .error2:
+							return .init(error: .default)	// stop retry & forward error
+						default:
+							return .init(value: ())	// retry
+						}
 					}
 				}
 
 				let result = producer.single()
 
 				expect(result?.error) == TestError.default
-				expect(retryCount) == 3
+				expect(retryCount) == 1 // NOTE: retryCount will always be 1 due to original impl
 			}
 
 			it("should not retry upon completion") {
@@ -1830,15 +1835,18 @@ class SignalProducerSpec: QuickSpec {
 				var retryCount = 0
 
 				let original = SignalProducer.attemptWithResults(results)
-				let producer = original.retry(.merge) { error in
+				let producer = original.retry(.merge) { errors in
 					retryCount += 1
-					return .init(value: ())
+
+					return errors.flatMap(.merge) { _ in
+						return .init(value: ())
+					}
 				}
 
 				let result = producer.single()
 
 				expect(result?.value) == 1
-				expect(retryCount) == 0
+				expect(retryCount) == 1 // NOTE: retryCount will always be 1 due to original impl
 			}
 		}
 
