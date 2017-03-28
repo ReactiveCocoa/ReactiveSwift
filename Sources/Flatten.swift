@@ -33,6 +33,8 @@ public enum FlattenStrategy: Equatable {
 	///
 	/// The resulting producer will complete only when all inputs have
 	/// completed.
+	///
+	/// - precondition: `limit > 0`.
 	case concurrent(limit: UInt)
 
 	/// Only the events from the latest input producer should be considered for
@@ -353,6 +355,8 @@ extension SignalProducerProtocol where Value: PropertyProtocol {
 
 extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Error {
 	fileprivate func concurrent(limit: UInt) -> Signal<Value.Value, Error> {
+		precondition(limit > 0, "The concurrent limit must be greater than zero.")
+
 		return Signal<Value.Value, Error> { relayObserver in
 			let disposable = CompositeDisposable()
 			let relayDisposable = CompositeDisposable()
@@ -430,6 +434,8 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 
 extension SignalProducerProtocol where Value: SignalProducerProtocol, Error == Value.Error {
 	fileprivate func concurrent(limit: UInt) -> SignalProducer<Value.Value, Error> {
+		precondition(limit > 0, "The concurrent limit must be greater than zero.")
+
 		return SignalProducer<Value.Value, Error> { relayObserver, disposable in
 			self.startWithSignal { signal, signalDisposable in
 				disposable += signalDisposable
