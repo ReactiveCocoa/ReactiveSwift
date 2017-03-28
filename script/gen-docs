@@ -58,7 +58,7 @@ touch ./reactiveswift/docs/.nojekyll
 git add ./reactiveswift/docs/.nojekyll
 
 # Update the `latest` symlink.
-ln -sfn ./{$TRAVIS_TAG} ./reactiveswift/docs/latest
+ln -sfn ./${TRAVIS_TAG} ./reactiveswift/docs/latest
 git add ./reactiveswift/docs/latest  
 
 # Commit and push to the fork.
