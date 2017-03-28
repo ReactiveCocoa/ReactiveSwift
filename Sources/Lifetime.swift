@@ -7,6 +7,8 @@ public final class Lifetime {
 	// MARK: Type properties and methods
 
 	/// Factory method for creating a `Lifetime` and its associated `Token`.
+	///
+	/// - returns: A `(lifetime, token)` tuple.
 	public static func make() -> (lifetime: Lifetime, token: Token) {
 		let token = Token()
 		return (Lifetime(token), token)
