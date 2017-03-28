@@ -8,9 +8,7 @@ custom_categories:
   - name: Signal
     children:
     - Event
-    - EventProtocol
     - Observer
-    - ObserverProtocol
     - Signal
     - SignalProtocol
     - FlattenStrategy
@@ -26,23 +24,24 @@ custom_categories:
     - PropertyProtocol
     - MutableProperty
     - MutablePropertyProtocol
+    - ValidatingProperty
   - name: Action
     children:
     - Action
     - ActionError
-    - ActionProtocol
   - name: Bindings
     children:
-    - BindingSourceProtocol
+    - BindingSource
     - BindingTarget
-    - BindingTargetProtocol
+    - BindingTargetProvider
     - <~(_:_:)
-  - name: Schedulers
+  - name: Scheduler Protocols
     children:
-    - DateSchedulerProtocol
+    - DateScheduler
+    - Scheduler
+  - name: Schedulers
     - ImmediateScheduler
     - QueueScheduler
-    - SchedulerProtocol
     - TestScheduler
     - UIScheduler
   - name: Reactive Extensions
@@ -62,17 +61,22 @@ custom_categories:
     - SerialDisposable
     - SimpleDisposable
     - +=(_:_:)
+  - name: Debugging
+    - EventLogger
+    - LoggingEvent
   - name: Utilities 
     children:
     - Atomic
-    - AtomicProtocol
     - Bag
     - BagIterator
     - RemovalToken
-    - EventLogger
-    - LoggingEvent
     - Optional
     - OptionalProtocol
+  - name: Deprecated
+    - AtomicProtocol
+    - ActionProtocol
+    - BindingTargetProtocol
+    - ObserverProtocol
 theme: fullwidth 
 skip_undocumented: true
 readme: README.md
