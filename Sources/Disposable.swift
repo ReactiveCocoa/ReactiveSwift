@@ -112,7 +112,10 @@ public final class CompositeDisposable: Disposable {
 	private var state: UnsafeAtomicState<DisposableState>
 
 	/// Represents a handle to a disposable previously added to a
-	/// CompositeDisposable.
+	/// `CompositeDisposable`.
+	///
+	/// - note: `add(_:)` method of `CompositeDisposable` creates instances of
+	///         `DisposableHandle`.
 	public final class DisposableHandle {
 		private var state: UnsafeAtomicState<DisposableState>
 		private var bagToken: RemovalToken?

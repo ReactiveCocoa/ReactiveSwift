@@ -536,7 +536,7 @@ extension SignalProducerProtocol {
 
 	/// Yield an array of values until it reaches a certain count.
 	///
-	/// - precondition: `count` should be greater than zero.
+	/// - precondition: `count` must be greater than zero.
 	///
 	/// - note: When the count is reached the array is sent and the signal
 	///         starts over yielding a new array of values.
@@ -1682,6 +1682,8 @@ extension SignalProducerProtocol {
 	/// - note: Repeating `0` times results in a producer that instantly
 	///         completes.
 	///
+	/// - precondition: `count` must be non-negative integer.
+	///
 	/// - parameters:
 	///   - count: Number of repetitions.
 	///
@@ -2137,7 +2139,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 /// - note: This timer will never complete naturally, so all invocations of
 ///         `start()` must be disposed to avoid leaks.
 ///
-/// - precondition: Interval must be non-negative number.
+/// - precondition: `interval` must be non-negative number.
 ///
 ///	- note: If you plan to specify an `interval` value greater than 200,000
 ///			seconds, use `timer(interval:on:leeway:)` instead
@@ -2160,9 +2162,9 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -
 /// - note: This timer will never complete naturally, so all invocations of
 ///         `start()` must be disposed to avoid leaks.
 ///
-/// - precondition: Interval must be non-negative number.
+/// - precondition: `interval` must be non-negative number.
 ///
-/// - precondition: Leeway must be non-negative number.
+/// - precondition: `leeway` must be non-negative number.
 ///
 /// - parameters:
 ///   - interval: An interval between invocations.

@@ -21,6 +21,7 @@ internal protocol AtomicStateProtocol {
 	///
 	/// - parameters:
 	///   - expected: The expected state.
+	///   - next: The state to transition to.
 	///
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
@@ -69,6 +70,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol 
 	///
 	/// - parameters:
 	///   - expected: The expected state.
+	///   - next: The state to transition to.
 	///
 	/// - returns:
 	///   `true` if the transition succeeds. `false` otherwise.
