@@ -369,15 +369,17 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 
 		func startNextIfNeeded() {
 			while let producer = state.modify({ $0.dequeue() }) {
-				var isStarting = true
+				let producerState = UnsafeAtomicState<ProducerState>(.starting)
+				let cleanup = ScopedDisposable(ActionDisposable(action: producerState.deinitialize))
 
 				producer.startWithSignal { signal, inner in
 					let handle = disposable.add(inner)
 
-					signal.observe { event in
+					signal.observe { [cleanup] event in
 						switch event {
 						case .completed, .interrupted:
 							handle.remove()
+							_ = cleanup
 
 							let shouldComplete: Bool = state.modify { state in
 								state.activeCount -= 1
@@ -386,7 +388,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 
 							if shouldComplete {
 								observer.sendCompleted()
-							} else if !isStarting {
+							} else if producerState.is(.started) {
 								startNextIfNeeded()
 							}
 
@@ -396,7 +398,7 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 					}
 				}
 
-				isStarting = false
+				producerState.setStarted()
 			}
 		}
 
@@ -497,6 +499,17 @@ private final class ConcurrentFlattenState<Value, Error: Swift.Error> {
 		} else {
 			return nil
 		}
+	}
+}
+
+private enum ProducerState: Int32 {
+	case starting
+	case started
+}
+
+extension AtomicStateProtocol where State == ProducerState {
+	fileprivate func setStarted() {
+		precondition(tryTransition(from: .starting, to: .started), "The transition is not supposed to fail.")
 	}
 }
 
