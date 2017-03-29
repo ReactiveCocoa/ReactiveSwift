@@ -376,34 +376,34 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 				let producerState = UnsafeAtomicState<ProducerState>(.starting)
 				let deinitializer = ScopedDisposable(ActionDisposable(action: producerState.deinitialize))
 
-				withExtendedLifetime(deinitializer) {
-					producer.startWithSignal { signal, inner in
-						let handle = disposable.add(inner)
+				producer.startWithSignal { signal, inner in
+					let handle = disposable.add(inner)
 
-						signal.observe { event in
-							switch event {
-							case .completed, .interrupted:
-								handle.remove()
+					signal.observe { event in
+						switch event {
+						case .completed, .interrupted:
+							handle.remove()
 
-								let shouldComplete: Bool = state.modify { state in
-									state.activeCount -= 1
-									return state.shouldComplete
-								}
-
-								withExtendedLifetime(deinitializer) {
-									if shouldComplete {
-										observer.sendCompleted()
-									} else if producerState.is(.started) {
-										startNextIfNeeded()
-									}
-								}
-
-							case .value, .failed:
-								observer.action(event)
+							let shouldComplete: Bool = state.modify { state in
+								state.activeCount -= 1
+								return state.shouldComplete
 							}
+
+							withExtendedLifetime(deinitializer) {
+								if shouldComplete {
+									observer.sendCompleted()
+								} else if producerState.is(.started) {
+									startNextIfNeeded()
+								}
+							}
+
+						case .value, .failed:
+							observer.action(event)
 						}
 					}
+				}
 
+				withExtendedLifetime(deinitializer) {
 					producerState.setStarted()
 				}
 			}
