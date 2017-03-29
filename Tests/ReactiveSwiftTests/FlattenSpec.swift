@@ -69,6 +69,7 @@ class FlattenSpec: QuickSpec {
 			describeSignalFlattenDisposal(.latest, name: "switchToLatest")
 			describeSignalFlattenDisposal(.merge, name: "merge")
 			describeSignalFlattenDisposal(.concat, name: "concat")
+			describeSignalFlattenDisposal(.concurrent(limit: 1024), name: "concurrent(limit: 1024)")
 		}
 
 		func describeSignalProducerFlattenDisposal(_ flattenStrategy: FlattenStrategy, name: String) {
@@ -94,6 +95,7 @@ class FlattenSpec: QuickSpec {
 			describeSignalProducerFlattenDisposal(.latest, name: "switchToLatest")
 			describeSignalProducerFlattenDisposal(.merge, name: "merge")
 			describeSignalProducerFlattenDisposal(.concat, name: "concat")
+			describeSignalProducerFlattenDisposal(.concurrent(limit: 1024), name: "concurrent(limit: 1024)")
 		}
 		
 		describe("Signal.flatten()") {
@@ -1007,6 +1009,54 @@ class FlattenSpec: QuickSpec {
 				
 				observer.sendCompleted()
 				expect(lastValue) == 4
+			}
+		}
+
+		describe("FlattenStrategy.concurrent") {
+			func run(_ modifier: (SignalProducer<UInt, NoError>) -> SignalProducer<UInt, NoError>) {
+				let concurrentLimit: UInt = 4
+				let extra: UInt = 100
+
+				let (outer, outerObserver) = Signal<SignalProducer<UInt, NoError>, NoError>.pipe()
+
+				var values: [UInt] = []
+				outer.flatten(.concurrent(limit: concurrentLimit)).observeValues { values.append($0) }
+
+				var started: [UInt] = []
+				var observers: [Observer<UInt, NoError>] = []
+
+				for i in 0 ..< (concurrentLimit + extra) {
+					let (signal, observer) = Signal<UInt, NoError>.pipe()
+					observers.append(observer)
+
+					let producer = modifier(SignalProducer(signal).prefix(value: i).on(started: { started.append(i) }))
+					outerObserver.send(value: producer)
+				}
+
+				expect(values) == Array(0 ..< concurrentLimit)
+				expect(started) == Array(0 ..< concurrentLimit)
+
+				for i in 0 ..< extra {
+					observers[Int(i)].sendCompleted()
+					expect(values).toEventually(equal(Array(0 ... (concurrentLimit + i))))
+					expect(started).toEventually(equal(Array(0 ... (concurrentLimit + i))))
+				}
+			}
+
+			it("should synchronously merge up to the stated limit, buffer any subsequent producers and dequeue them in the submission order") {
+				run { $0 }
+			}
+
+			it("should asynchronously merge up to the stated limit, buffer any subsequent producers and dequeue them in the submission order") {
+				let scheduler: QueueScheduler
+
+				if #available(macOS 10.10, *) {
+					scheduler = QueueScheduler()
+				} else {
+					scheduler = QueueScheduler(queue: DispatchQueue.global(priority: .default))
+				}
+
+				run { $0.start(on: scheduler) }
 			}
 		}
 	}
