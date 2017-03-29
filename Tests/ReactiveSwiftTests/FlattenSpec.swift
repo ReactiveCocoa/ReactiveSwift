@@ -10,6 +10,7 @@ import Result
 import Nimble
 import Quick
 import ReactiveSwift
+import Dispatch
 
 private extension SignalProtocol {
 	typealias Pipe = (output: Signal<Value, Error>, input: Observer<Value, Error>)
