@@ -374,35 +374,38 @@ extension SignalProtocol where Value: SignalProducerProtocol, Error == Value.Err
 		func startNextIfNeeded() {
 			while let producer = state.modify({ $0.dequeue() }) {
 				let producerState = UnsafeAtomicState<ProducerState>(.starting)
-				let cleanup = ScopedDisposable(ActionDisposable(action: producerState.deinitialize))
+				let deinitializer = ScopedDisposable(ActionDisposable(action: producerState.deinitialize))
 
-				producer.startWithSignal { signal, inner in
-					let handle = disposable.add(inner)
+				withExtendedLifetime(deinitializer) {
+					producer.startWithSignal { signal, inner in
+						let handle = disposable.add(inner)
 
-					signal.observe { [cleanup] event in
-						switch event {
-						case .completed, .interrupted:
-							handle.remove()
-							_ = cleanup
+						signal.observe { event in
+							switch event {
+							case .completed, .interrupted:
+								handle.remove()
 
-							let shouldComplete: Bool = state.modify { state in
-								state.activeCount -= 1
-								return state.shouldComplete
+								let shouldComplete: Bool = state.modify { state in
+									state.activeCount -= 1
+									return state.shouldComplete
+								}
+
+								withExtendedLifetime(deinitializer) {
+									if shouldComplete {
+										observer.sendCompleted()
+									} else if producerState.is(.started) {
+										startNextIfNeeded()
+									}
+								}
+
+							case .value, .failed:
+								observer.action(event)
 							}
-
-							if shouldComplete {
-								observer.sendCompleted()
-							} else if producerState.is(.started) {
-								startNextIfNeeded()
-							}
-
-						case .value, .failed:
-							observer.action(event)
 						}
 					}
-				}
 
-				producerState.setStarted()
+					producerState.setStarted()
+				}
 			}
 		}
 
