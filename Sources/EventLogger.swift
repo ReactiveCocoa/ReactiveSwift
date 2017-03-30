@@ -46,7 +46,7 @@ public typealias EventLogger = (
 	_ lineNumber: Int
 ) -> Void
 
-extension SignalProtocol {
+extension Signal {
 	/// Logs all events that the receiver sends. By default, it will print to 
 	/// the standard output.
 	///
@@ -78,7 +78,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProducerProtocol {
+extension SignalProducer {
 	/// Logs all events that the receiver sends. By default, it will print to 
 	/// the standard output.
 	///

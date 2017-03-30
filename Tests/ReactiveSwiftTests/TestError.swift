@@ -19,7 +19,7 @@ extension TestError: Error {
 }
 
 
-internal extension SignalProducerProtocol {
+internal extension SignalProducer {
 	/// Halts if an error is emitted in the receiver signal.
 	/// This is useful in tests to be able to just use `startWithNext`
 	/// in cases where we know that an error won't be emitted.
@@ -28,7 +28,7 @@ internal extension SignalProducerProtocol {
 	}
 }
 
-internal extension SignalProtocol {
+internal extension Signal {
 	/// Halts if an error is emitted in the receiver signal.
 	/// This is useful in tests to be able to just use `startWithNext`
 	/// in cases where we know that an error won't be emitted.

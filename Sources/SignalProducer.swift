@@ -29,7 +29,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - signal: A signal to observe after starting the producer.
-	public init<S: SignalProtocol>(_ signal: S) where S.Value == Value, S.Error == Error {
+	public init(_ signal: Signal<Value, Error>) {
 		self.init { observer, disposable in
 			disposable += signal.observe(observer)
 		}
@@ -210,7 +210,7 @@ extension SignalProducer: SignalProducerProtocol {
 	}
 }
 
-extension SignalProducerProtocol {
+extension SignalProducer {
 	/// Create a Signal from the producer, then attach the given observer to
 	/// the `Signal` as an observer.
 	///
@@ -329,7 +329,7 @@ extension SignalProducerProtocol {
 	}
 }
 
-extension SignalProducerProtocol where Error == NoError {
+extension SignalProducer where Error == NoError {
 	/// Create a Signal from the producer, then add exactly one observer to
 	/// the Signal, which will invoke the given callback when `value` events are
 	/// received.
@@ -346,7 +346,7 @@ extension SignalProducerProtocol where Error == NoError {
 	}
 }
 
-extension SignalProducerProtocol {
+extension SignalProducer {
 	/// Lift an unary Signal operator to operate upon SignalProducers instead.
 	///
 	/// In other words, this will create a new `SignalProducer` which will apply
@@ -359,7 +359,7 @@ extension SignalProducerProtocol {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer { observer, outerDisposable in
+		return SignalProducer<U, F> { observer, outerDisposable in
 			self.startWithSignal { signal, innerDisposable in
 				outerDisposable += innerDisposable
 
@@ -393,7 +393,7 @@ extension SignalProducerProtocol {
 	/// the operator to generate correct results.
 	private func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
-			return SignalProducer { observer, outerDisposable in
+			return SignalProducer<V, G> { observer, outerDisposable in
 				self.startWithSignal { signal, disposable in
 					outerDisposable.add(disposable)
 
@@ -413,7 +413,7 @@ extension SignalProducerProtocol {
 	/// the operator to generate correct results.
 	fileprivate func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
-			return SignalProducer { observer, outerDisposable in
+			return SignalProducer<V, G> { observer, outerDisposable in
 				otherProducer.startWithSignal { otherSignal, otherDisposable in
 					outerDisposable += otherDisposable
 					
@@ -442,7 +442,7 @@ extension SignalProducerProtocol {
 	///            `SignalProducer`.
 	public func lift<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (Signal<U, F>) -> SignalProducer<V, G> {
 		return { otherSignal in
-			return self.liftRight(transform)(SignalProducer(otherSignal))
+			return self.liftRight(transform)(SignalProducer<U, F>(otherSignal))
 		}
 	}
 
@@ -1199,7 +1199,7 @@ extension SignalProducerProtocol {
 	}
 }
 
-extension SignalProducerProtocol where Value: OptionalProtocol {
+extension SignalProducer where Value: OptionalProtocol {
 	/// Unwraps non-`nil` values and forwards them on the returned signal, `nil`
 	/// values are dropped.
 	///
@@ -1209,7 +1209,7 @@ extension SignalProducerProtocol where Value: OptionalProtocol {
 	}
 }
 
-extension SignalProducerProtocol where Value: EventProtocol, Error == NoError {
+extension SignalProducer where Value: EventProtocol, Error == NoError {
 	/// The inverse of materialize(), this will translate a producer of `Event`
 	/// _values_ into a producer of those events themselves.
 	///
@@ -1219,7 +1219,7 @@ extension SignalProducerProtocol where Value: EventProtocol, Error == NoError {
 	}
 }
 
-extension SignalProducerProtocol where Error == NoError {
+extension SignalProducer where Error == NoError {
 	/// Promote a producer that does not generate failures into one that can.
 	///
 	/// - note: This does not actually cause failers to be generated for the
@@ -1329,7 +1329,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducerProtocol where Error == AnyError {
+extension SignalProducer where Error == AnyError {
 	/// Create a `SignalProducer` that will attempt the given failable operation once for
 	/// each invocation of `start()`.
 	///
@@ -1378,7 +1378,7 @@ extension SignalProducerProtocol where Error == AnyError {
 	}
 }
 
-extension SignalProducerProtocol where Value: Equatable {
+extension SignalProducer where Value: Equatable {
 	/// Forward only those values from `self` which are not duplicates of the
 	/// immedately preceding value.
 	///
@@ -1390,7 +1390,7 @@ extension SignalProducerProtocol where Value: Equatable {
 	}
 }
 
-extension SignalProducerProtocol {
+extension SignalProducer {
 	/// Forward only those values from `self` that have unique identities across
 	/// the set of all values that have been seen.
 	///
@@ -1407,7 +1407,7 @@ extension SignalProducerProtocol {
 	}
 }
 
-extension SignalProducerProtocol where Value: Hashable {
+extension SignalProducer where Value: Hashable {
 	/// Forward only those values from `self` that are unique across the set of
 	/// all values that have been seen.
 	///
@@ -1421,7 +1421,7 @@ extension SignalProducerProtocol where Value: Hashable {
 	}
 }
 
-extension SignalProducerProtocol {
+extension SignalProducer {
 	/// Injects side effects to be performed upon the specified producer events.
 	///
 	/// - note: In a composed producer, `starting` is invoked in the reverse
@@ -1498,7 +1498,7 @@ extension SignalProducerProtocol {
 	}
 }
 
-extension SignalProducerProtocol {
+extension SignalProducer {
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
@@ -1672,7 +1672,7 @@ extension SignalProducerProtocol {
 	}
 }
 
-extension SignalProducerProtocol {
+extension SignalProducer {
 	/// Repeat `self` a total of `count` times. In other words, start producer
 	/// `count` number of times, each one after previously started producer
 	/// completes.
@@ -1951,7 +1951,7 @@ extension SignalProducerProtocol {
 	}
 }
 
-extension SignalProducerProtocol where Value == Bool {
+extension SignalProducer where Value == Bool {
 	/// Create a producer that computes a logical NOT in the latest values of `self`.
 	///
 	/// - returns: A producer that emits the logical NOT results.

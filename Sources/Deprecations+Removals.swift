@@ -15,14 +15,14 @@ public protocol BindingTargetProtocol {}
 public protocol AtomicProtocol {}
 
 // MARK: Depreciated types in ReactiveSwift 1.x.
-extension SignalProtocol where Value == Bool {
+extension Signal where Value == Bool {
 	@available(*, deprecated, renamed: "negate()")
 	public var negated: Signal<Bool, Error> {
 		return negate()
 	}
 }
 
-extension SignalProducerProtocol where Value == Bool {
+extension SignalProducer where Value == Bool {
 	@available(*, deprecated, renamed: "negate()")
 	public var negated: SignalProducer<Bool, Error> {
 		return negate()
@@ -223,7 +223,7 @@ extension Observer {
 	public func sendFailed(_ error: Error) { fatalError() }
 }
 
-extension SignalProtocol {
+extension Signal {
 	@available(*, unavailable, renamed:"take(first:)")
 	public func take(_ count: Int) -> Signal<Value, Error> { fatalError() }
 
@@ -264,24 +264,24 @@ extension SignalProtocol {
 	public func observeNext(_ next: (Value) -> Void) -> Disposable? { fatalError() }
 }
 
-extension SignalProtocol where Value: OptionalProtocol {
+extension Signal where Value: OptionalProtocol {
 	@available(*, unavailable, renamed:"skipNil()")
 	public func ignoreNil() -> SignalProducer<Value.Wrapped, Error> { fatalError() }
 }
 
-extension SignalProtocol where Error == NoError {
+extension Signal where Error == NoError {
 	@available(*, unavailable, renamed: "observeValues")
 	public func observeNext(_ next: (Value) -> Void) -> Disposable? { fatalError() }
 }
 
-extension SignalProtocol where Value: Sequence {
+extension Signal where Value: Sequence {
 	@available(*, deprecated, message: "Use flatten() instead")
 	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> {
 		return self.flatMap(strategy, transform: SignalProducer.init)
 	}
 }
 
-extension SignalProducerProtocol {
+extension SignalProducer {
 	@available(*, unavailable, renamed:"take(first:)")
 	public func take(_ count: Int) -> SignalProducer<Value, Error> { fatalError() }
 
@@ -346,20 +346,20 @@ extension SignalProducerProtocol {
 	public func times(_ count: Int) -> SignalProducer<Value, Error> { fatalError() }
 }
 
-extension SignalProducerProtocol where Value: OptionalProtocol {
+extension SignalProducer where Value: OptionalProtocol {
 	@available(*, unavailable, renamed:"skipNil()")
 	public func ignoreNil() -> SignalProducer<Value.Wrapped, Error> { fatalError() }
 }
 
-extension SignalProducerProtocol where Error == NoError {
+extension SignalProducer where Error == NoError {
 	@available(*, unavailable, renamed: "startWithValues")
 	public func startWithNext(_ value: @escaping (Value) -> Void) -> Disposable { fatalError() }
 }
 
-extension SignalProducerProtocol where Value: Sequence {
+extension SignalProducer where Value: Sequence {
 	@available(*, deprecated, message: "Use flatten() instead")
 	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Iterator.Element, Error> {
-		return self.flatMap(strategy, transform: SignalProducer.init)
+		return self.flatMap(strategy, transform: SignalProducer<Value.Iterator.Element, NoError>.init)
 	}
 }
 

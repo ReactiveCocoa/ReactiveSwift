@@ -430,7 +430,7 @@ extension Signal: SignalProtocol {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Convenience override for observe(_:) to allow trailing-closure style
 	/// invocations.
 	///
@@ -513,7 +513,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol where Error == NoError {
+extension Signal where Error == NoError {
 	/// Observe the Signal by invoking the given callback when `value` events are
 	/// received.
 	///
@@ -529,7 +529,7 @@ extension SignalProtocol where Error == NoError {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Map each value in the signal to a new value.
 	///
 	/// - parameters:
@@ -538,7 +538,7 @@ extension SignalProtocol {
 	///
 	/// - returns: A signal that will send new values.
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Signal<U, Error> {
-		return Signal { observer in
+		return Signal<U, Error> { observer in
 			return self.observe { event in
 				observer.action(event.map(transform))
 			}
@@ -553,7 +553,7 @@ extension SignalProtocol {
 	///
 	/// - returns: A signal that will send new type of errors.
 	public func mapError<F>(_ transform: @escaping (Error) -> F) -> Signal<Value, F> {
-		return Signal { observer in
+		return Signal<Value, F> { observer in
 			return self.observe { event in
 				observer.action(event.mapError(transform))
 			}
@@ -612,7 +612,7 @@ extension SignalProtocol {
 	///
 	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
 	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
-		return Signal { observer in
+		return Signal<U, Error> { observer in
 			return self.observe { (event: Event<Value, Error>) -> Void in
 				switch event {
 				case let .value(value):
@@ -631,7 +631,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol where Value: OptionalProtocol {
+extension Signal where Value: OptionalProtocol {
 	/// Unwrap non-`nil` values and forward them on the returned signal, `nil`
 	/// values are dropped.
 	///
@@ -641,7 +641,7 @@ extension SignalProtocol where Value: OptionalProtocol {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Take up to `n` values from the signal and then complete.
 	///
 	/// - precondition: `count` must be non-negative number.
@@ -712,7 +712,7 @@ private final class CollectState<Value> {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Collect all values sent by the signal then forward them as a single
 	/// array and complete.
 	///
@@ -783,7 +783,7 @@ extension SignalProtocol {
 	///            `self` completes, forwards them as a single array and
 	///            complets.
 	public func collect(_ predicate: @escaping (_ values: [Value]) -> Bool) -> Signal<[Value], Error> {
-		return Signal { observer in
+		return Signal<[Value], Error> { observer in
 			let state = CollectState<Value>()
 
 			return self.observe { event in
@@ -848,7 +848,7 @@ extension SignalProtocol {
 	///            predicate which matches the values collected and the next
 	///            value.
 	public func collect(_ predicate: @escaping (_ values: [Value], _ value: Value) -> Bool) -> Signal<[Value], Error> {
-		return Signal { observer in
+		return Signal<[Value], Error> { observer in
 			let state = CollectState<Value>()
 
 			return self.observe { event in
@@ -896,7 +896,7 @@ private final class CombineLatestState<Value> {
 	var isCompleted = false
 }
 
-extension SignalProtocol {
+extension Signal {
 	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: NSLock, _ observer: Signal<(), Error>.Observer) -> Disposable? {
 		return self.observe { event in
 			switch event {
@@ -947,7 +947,7 @@ extension SignalProtocol {
 	/// - returns: A signal that will yield a tuple containing values of `self`
 	///            and given signal.
 	public func combineLatest<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
-		return Signal { observer in
+		return Signal<(Value, U), Error> { observer in
 			let lock = NSLock()
 			lock.name = "org.reactivecocoa.ReactiveSwift.combineLatestWith"
 
@@ -1044,7 +1044,7 @@ extension SignalProtocol {
 	///
 	/// - returns: A signal that sends events as its values.
 	public func materialize() -> Signal<Event<Value, Error>, NoError> {
-		return Signal { observer in
+		return Signal<Event<Value, Error>, NoError> { observer in
 			return self.observe { event in
 				observer.send(value: event)
 
@@ -1063,7 +1063,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol where Value: EventProtocol, Error == NoError {
+extension Signal where Value: EventProtocol, Error == NoError {
 	/// Translate a signal of `Event` _values_ into a signal of those events
 	/// themselves.
 	///
@@ -1089,7 +1089,7 @@ extension SignalProtocol where Value: EventProtocol, Error == NoError {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Inject side effects to be performed upon the specified signal events.
 	///
 	/// - parameters:
@@ -1153,7 +1153,7 @@ private struct SampleState<Value> {
 	var isSamplerCompleted: Bool = false
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Forward the latest value from `self` with the value from `sampler` as a
 	/// tuple, only when`sampler` sends a `value` event.
 	///
@@ -1169,7 +1169,7 @@ extension SignalProtocol {
 	///            once both input signals have completed, or interrupt if
 	///            either input signal is interrupted.
 	public func sample<T>(with sampler: Signal<T, NoError>) -> Signal<(Value, T), Error> {
-		return Signal { observer in
+		return Signal<(Value, T), Error> { observer in
 			let state = Atomic(SampleState<Value>())
 			let disposable = CompositeDisposable()
 
@@ -1262,7 +1262,7 @@ extension SignalProtocol {
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
 	public func withLatest<U>(from samplee: Signal<U, NoError>) -> Signal<(Value, U), Error> {
-		return Signal { observer in
+		return Signal<(Value, U), Error> { observer in
 			let state = Atomic<U?>(nil)
 			let disposable = CompositeDisposable()
 
@@ -1305,7 +1305,7 @@ extension SignalProtocol {
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
 	public func withLatest<U>(from samplee: SignalProducer<U, NoError>) -> Signal<(Value, U), Error> {
-		return Signal { observer in
+		return Signal<(Value, U), Error> { observer in
 			let d = CompositeDisposable()
 			samplee.startWithSignal { signal, disposable in
 				d += disposable
@@ -1316,7 +1316,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Forwards events from `self` until `lifetime` ends, at which point the
 	/// returned signal will complete.
 	///
@@ -1326,7 +1326,7 @@ extension SignalProtocol {
 	///
 	/// - returns: A signal that will deliver events until `lifetime` ends.
 	public func take(during lifetime: Lifetime) -> Signal<Value, Error> {
-		return Signal { observer in
+		return Signal<Value, Error> { observer in
 			let disposable = CompositeDisposable()
 			disposable += self.observe(observer)
 			disposable += lifetime.observeEnded(observer.sendCompleted)
@@ -1344,7 +1344,7 @@ extension SignalProtocol {
 	/// - returns: A signal that will deliver events until `trigger` sends
 	///            `value` or `completed` events.
 	public func take(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
-		return Signal { observer in
+		return Signal<Value, Error> { observer in
 			let disposable = CompositeDisposable()
 			disposable += self.observe(observer)
 
@@ -1449,7 +1449,7 @@ extension SignalProtocol {
 	/// - returns: A signal that sends accumulated value each time `self` emits
 	///            own value.
 	public func scan<U>(_ initial: U, _ combine: @escaping (U, Value) -> U) -> Signal<U, Error> {
-		return Signal { observer in
+		return Signal<U, Error> { observer in
 			var accumulator = initial
 
 			return self.observe { event in
@@ -1462,7 +1462,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol where Value: Equatable {
+extension Signal where Value: Equatable {
 	/// Forward only those values from `self` which are not duplicates of the
 	/// immedately preceding value. 
 	///
@@ -1474,7 +1474,7 @@ extension SignalProtocol where Value: Equatable {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Forward only those values from `self` which do not pass `isRepeat` with
 	/// respect to the previous value. 
 	///
@@ -1635,7 +1635,7 @@ private struct ZipState<Left, Right> {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Zip elements of two signals into pairs. The elements of any Nth pair
 	/// are the Nth elements of the two input signals.
 	///
@@ -1644,7 +1644,7 @@ extension SignalProtocol {
 	///
 	/// - returns: A signal that sends tuples of `self` and `otherSignal`.
 	public func zip<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
-		return Signal { observer in
+		return Signal<(Value, U), Error> { observer in
 			let state = Atomic(ZipState<Value, U>())
 			let disposable = CompositeDisposable()
 			
@@ -1951,7 +1951,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Forward only those values from `self` that have unique identities across
 	/// the set of all values that have been seen.
 	///
@@ -1985,7 +1985,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol where Value: Hashable {
+extension Signal where Value: Hashable {
 	/// Forward only those values from `self` that are unique across the set of
 	/// all values that have been seen.
 	///
@@ -2019,7 +2019,7 @@ private enum ThrottleWhileState<Value> {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>) -> Signal<(Value, B), Error> {
@@ -2193,7 +2193,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Forward events from `self` until `interval`. Then if signal isn't 
 	/// completed yet, fails with `error` on `scheduler`.
 	///
@@ -2229,7 +2229,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol where Error == NoError {
+extension Signal where Error == NoError {
 	/// Promote a signal that does not generate failures into one that can.
 	///
 	/// - note: This does not actually cause failures to be generated for the
@@ -2242,7 +2242,7 @@ extension SignalProtocol where Error == NoError {
 	///
 	/// - returns: A signal that has an instantiatable `ErrorType`.
 	public func promoteErrors<F: Swift.Error>(_: F.Type) -> Signal<Value, F> {
-		return Signal { observer in
+		return Signal<Value, F> { observer in
 			return self.observe { event in
 				switch event {
 				case let .value(value):
@@ -2285,7 +2285,7 @@ extension SignalProtocol where Error == NoError {
 	}
 }
 
-extension SignalProtocol where Value == Bool {
+extension Signal where Value == Bool {
 	/// Create a signal that computes a logical NOT in the latest values of `self`.
 	///
 	/// - returns: A signal that emits the logical NOT results.
@@ -2316,7 +2316,7 @@ extension SignalProtocol where Value == Bool {
 	}
 }
 
-extension SignalProtocol {
+extension Signal {
 	/// Apply `operation` to values from `self` with `success`ful results
 	/// forwarded on the returned signal and `failure`s sent as failed events.
 	///
@@ -2343,7 +2343,7 @@ extension SignalProtocol {
 	/// - returns: A signal that sends mapped values from `self` if returned
 	///            `Result` is `success`ful, `failed` events otherwise.
 	public func attemptMap<U>(_ operation: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
-		return Signal { observer in
+		return Signal<U, Error> { observer in
 			self.observe { event in
 				switch event {
 				case let .value(value):
@@ -2363,7 +2363,7 @@ extension SignalProtocol {
 	}
 }
 
-extension SignalProtocol where Error == NoError {
+extension Signal where Error == NoError {
 	/// Apply a failable `operation` to values from `self` with successful
 	/// results forwarded on the returned signal and thrown errors sent as
 	/// failed events.
@@ -2396,7 +2396,7 @@ extension SignalProtocol where Error == NoError {
 	}
 }
 
-extension SignalProtocol where Error == AnyError {
+extension Signal where Error == AnyError {
 	/// Apply a failable `operation` to values from `self` with successful
 	/// results forwarded on the returned signal and thrown errors sent as
 	/// failed events.
