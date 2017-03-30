@@ -1259,22 +1259,6 @@ extension SignalProducer where Error == NoError {
 		return lift { $0.timeout(after: interval, raising: error, on: scheduler) }
 	}
 
-	/// Wait for completion of `self`, *then* forward all events from
-	/// `replacement`.
-	///
-	/// - note: All values sent from `self` are ignored.
-	///
-	/// - parameters:
-	///   - replacement: A producer to start when `self` completes.
-	///
-	/// - returns: A producer that sends events from `self` and then from
-	///            `replacement` when `self` completes.
-	public func then<U, NewError: Swift.Error>(_ replacement: SignalProducer<U, NewError>) -> SignalProducer<U, NewError> {
-		return self
-			.promoteErrors(NewError.self)
-			.then(replacement)
-	}
-
 	/// Apply a failable `operation` to values from `self` with successful
 	/// results forwarded on the returned producer and thrown errors sent as
 	/// failed events.
@@ -1317,8 +1301,8 @@ extension SignalProducer {
 	/// - returns: A `SignalProducer` that will forward `success`ful `result` as
 	///            `value` event and then complete or `failed` event if `result`
 	///            is a `failure`.
-	public static func attempt(_ operation: @escaping () -> Result<Value, Error>) -> SignalProducer {
-		return self.init { observer, disposable in
+	public static func attempt(_ operation: @escaping () -> Result<Value, Error>) -> SignalProducer<Value, Error> {
+		return SignalProducer<Value, Error> { observer, disposable in
 			operation().analysis(ifSuccess: { value in
 				observer.send(value: value)
 				observer.sendCompleted()
@@ -1329,7 +1313,13 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Error == AnyError {
+// FIXME: SWIFT_COMPILER_ISSUE
+//
+// One of the `SignalProducer.attempt` overloads is kept in the protocol to
+// mitigate an overloading issue. Moving them back to the concrete type would be
+// a binary-breaking, source-compatible change.
+
+extension SignalProducerProtocol where Error == AnyError {
 	/// Create a `SignalProducer` that will attempt the given failable operation once for
 	/// each invocation of `start()`.
 	///
@@ -1342,14 +1332,16 @@ extension SignalProducer where Error == AnyError {
 	///
 	/// - returns: A `SignalProducer` that will forward a success as a `value`
 	///            event and then complete or `failed` event if the closure throws.
-	public static func attempt(_ operation: @escaping () throws -> Value) -> SignalProducer<Value, Error> {
+	public static func attempt(_ operation: @escaping () throws -> Value) -> SignalProducer<Value, AnyError> {
 		return .attempt {
 			ReactiveSwift.materialize {
 				try operation()
 			}
 		}
 	}
+}
 
+extension SignalProducer where Error == AnyError {
 	/// Apply a failable `operation` to values from `self` with successful
 	/// results forwarded on the returned producer and thrown errors sent as
 	/// failed events.
@@ -1777,7 +1769,15 @@ extension SignalProducer {
 			}
 		}
 	}
+}
 
+// FIXME: SWIFT_COMPILER_ISSUE
+//
+// Two of the `SignalProducer.then(self:_:)` overloads are kept in the protocol
+// to mitigate an overloading issue. Moving them back to the concrete type would
+// be a binary-breaking, source-compatible change.
+
+extension SignalProducerProtocol {
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`. Any failure or interruption sent from `self` is
 	/// forwarded immediately, in which case `replacement` will not be started,
@@ -1791,9 +1791,30 @@ extension SignalProducer {
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
 	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, Error> {
-		return self.then(replacement.promoteErrors(Error.self))
+		return self.producer.then(replacement.promoteErrors(Error.self))
 	}
+}
 
+extension SignalProducerProtocol where Error == NoError {
+	/// Wait for completion of `self`, *then* forward all events from
+	/// `replacement`.
+	///
+	/// - note: All values sent from `self` are ignored.
+	///
+	/// - parameters:
+	///   - replacement: A producer to start when `self` completes.
+	///
+	/// - returns: A producer that sends events from `self` and then from
+	///            `replacement` when `self` completes.
+	public func then<U, NewError: Swift.Error>(_ replacement: SignalProducer<U, NewError>) -> SignalProducer<U, NewError> {
+		return self
+			.producer
+			.promoteErrors(NewError.self)
+			.then(replacement)
+	}
+}
+
+extension SignalProducer {
 	/// Start the producer, then block, waiting for the first value.
 	///
 	/// When a single value or error is sent, the returned `Result` will
