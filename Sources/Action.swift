@@ -270,7 +270,7 @@ extension Action: ActionProtocol {
 	}
 }
 
-extension ActionProtocol where Input == Void {
+extension Action where Input == Void {
 	/// Initializes an action that uses an `Optional` property for its input,
 	/// and is disabled whenever the input is `nil`. When executed, a `SignalProducer`
 	/// is created with the current value of the input.
@@ -281,7 +281,7 @@ extension ActionProtocol where Input == Void {
 	///            whenever the value is `nil`.
 	///   - execute: A closure to return a new `SignalProducer` based on the
 	///              current value of `input`.
-	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
 		self.init(state: input, enabledIf: { $0 != nil }) { input, _ in
 			execute(input!)
 		}
@@ -295,7 +295,7 @@ extension ActionProtocol where Input == Void {
 	///            whenever the action is executed.
 	///   - execute: A closure to return a new `SignalProducer` based on the
 	///              current value of `input`.
-	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
 		self.init(input: input.map(Optional.some), execute)
 	}
 }
