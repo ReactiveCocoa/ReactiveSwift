@@ -418,10 +418,6 @@ public protocol SignalProtocol {
 
 	/// Extracts a signal from the receiver.
 	var signal: Signal<Value, Error> { get }
-
-	/// Observes the Signal by sending any future events to the given observer.
-	@discardableResult
-	func observe(_ observer: Signal<Value, Error>.Observer) -> Disposable?
 }
 
 extension Signal: SignalProtocol {

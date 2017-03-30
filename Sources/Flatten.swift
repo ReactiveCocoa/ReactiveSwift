@@ -667,8 +667,8 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 
 		return self.observe { event in
 			switch event {
-			case let .value(innerProducer):
-				innerProducer.startWithSignal { innerSignal, innerDisposable in
+			case let .value(p):
+				p.producer.startWithSignal { innerSignal, innerDisposable in
 					state.modify {
 						// When we replace the disposable below, this prevents
 						// the generated Interrupted event from doing any work.

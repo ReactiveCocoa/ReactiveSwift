@@ -195,13 +195,6 @@ public protocol SignalProducerProtocol {
 
 	/// Extracts a signal producer from the receiver.
 	var producer: SignalProducer<Value, Error> { get }
-
-	/// Initialize a signal
-	init(_ startHandler: @escaping (Signal<Value, Error>.Observer, CompositeDisposable) -> Void)
-
-	/// Creates a Signal from the producer, passes it into the given closure,
-	/// then starts sending events on the Signal when the closure has returned.
-	func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interrupter: Disposable) -> Void)
 }
 
 extension SignalProducer: SignalProducerProtocol {
