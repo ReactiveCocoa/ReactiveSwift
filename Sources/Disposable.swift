@@ -28,7 +28,7 @@ private enum DisposableState: Int32 {
 	case disposed
 }
 
-extension AtomicStateProtocol where State == DisposableState {
+extension UnsafeAtomicState where State == DisposableState {
 	/// Try to transition from `active` to `disposed`.
 	///
 	/// - returns:
