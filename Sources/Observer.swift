@@ -6,25 +6,6 @@
 //  Copyright © 2015 GitHub. All rights reserved.
 //
 
-/// A protocol for type-constrained extensions of `Observer`.
-@available(*, deprecated, message: "The protocol will be removed in a future version of ReactiveSwift. Use Observer directly.")
-public protocol ObserverProtocol {
-	associatedtype Value
-	associatedtype Error: Swift.Error
-
-	/// Puts a `value` event into `self`.
-	func send(value: Value)
-
-	/// Puts a failed event into `self`.
-	func send(error: Error)
-
-	/// Puts a `completed` event into `self`.
-	func sendCompleted()
-
-	/// Puts an `interrupted` event into `self`.
-	func sendInterrupted()
-}
-
 /// An Observer is a simple wrapper around a function which can receive Events
 /// (typically from a Signal).
 public final class Observer<Value, Error: Swift.Error> {
@@ -101,5 +82,3 @@ public final class Observer<Value, Error: Swift.Error> {
 		action(.interrupted)
 	}
 }
-
-extension Observer: ObserverProtocol {}

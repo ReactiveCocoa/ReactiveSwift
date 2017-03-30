@@ -44,7 +44,7 @@ extension PropertyProtocol {
 }
 
 /// Represents an observable property that can be mutated directly.
-public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProvider, BindingTargetProtocol {
+public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProvider {
 	/// The current value of the property.
 	var value: Value { get set }
 

@@ -133,7 +133,7 @@ final class PosixThreadMutex: NSLocking {
 }
 
 /// An atomic variable.
-public final class Atomic<Value>: AtomicProtocol {
+public final class Atomic<Value> {
 	private let lock: PosixThreadMutex
 	private var _value: Value
 
@@ -204,7 +204,7 @@ public final class Atomic<Value>: AtomicProtocol {
 
 
 /// An atomic variable which uses a recursive lock.
-internal final class RecursiveAtomic<Value>: AtomicProtocol {
+internal final class RecursiveAtomic<Value> {
 	private let lock: NSRecursiveLock
 	private var _value: Value
 	private let didSetObserver: ((Value) -> Void)?
