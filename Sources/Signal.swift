@@ -40,10 +40,10 @@ public final class Signal<Value, Error: Swift.Error> {
 	private var state: SignalState<Value, Error>
 
 	/// Used to ensure that state updates are serialized.
-	private let updateLock: NSLock
+	private let updateLock: UnsafeUnfairLock
 
 	/// Used to ensure that events are serialized during delivery to observers.
-	private let sendLock: NSLock
+	private let sendLock: UnsafeUnfairLock
 
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given observer.
@@ -57,10 +57,8 @@ public final class Signal<Value, Error: Swift.Error> {
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
 		state = .alive(AliveState())
-		updateLock = NSLock()
-		updateLock.name = "org.reactivecocoa.ReactiveSwift.Signal.updateLock"
-		sendLock = NSLock()
-		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal.sendLock"
+		updateLock = UnsafeUnfairLock(label: "org.reactivecocoa.ReactiveSwift.Signal.updateLock")
+		sendLock = UnsafeUnfairLock(label: "org.reactivecocoa.ReactiveSwift.Signal.sendLock")
 
 		let observer = Observer { [weak self] event in
 			guard let signal = self else {
@@ -250,6 +248,9 @@ public final class Signal<Value, Error: Swift.Error> {
 		// A signal can deinitialize only when it is not retained and has no
 		// active observers. So `state` need not be swapped.
 		swapDisposable()?.dispose()
+
+		updateLock.destroy()
+		sendLock.destroy()
 	}
 
 	/// A Signal that never sends any events to its observers.
@@ -897,7 +898,7 @@ private final class CombineLatestState<Value> {
 }
 
 extension SignalProtocol {
-	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: NSLock, _ observer: Signal<(), Error>.Observer) -> Disposable? {
+	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: UnfairLock, _ observer: Signal<(), Error>.Observer) -> Disposable? {
 		return self.observe { event in
 			switch event {
 			case let .value(value):
@@ -948,8 +949,7 @@ extension SignalProtocol {
 	///            and given signal.
 	public func combineLatest<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal { observer in
-			let lock = NSLock()
-			lock.name = "org.reactivecocoa.ReactiveSwift.combineLatestWith"
+			let lock = UnfairLock()
 
 			let signalState = CombineLatestState<Value>()
 			let otherState = CombineLatestState<U>()
