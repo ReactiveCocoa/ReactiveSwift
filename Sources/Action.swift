@@ -20,19 +20,64 @@ import Result
 public final class Action<Input, Output, Error: Swift.Error> {
 	private struct ActionState<Value> {
 		var isEnabled: Bool {
-			return isUserEnabled && !isExecuting
+			return isUserEnabled && executingCount < queueCapacity
 		}
 
-		var isUserEnabled: Bool
-		var isExecuting: Bool
+		var isUserEnabled: Bool = true
+		var executingCount: UInt = 0
+		let queueCapacity: UInt
 		var value: Value
+
+		init(queueCapacity: UInt, value: Value) {
+			self.queueCapacity = queueCapacity
+			self.value = value
+		}
 	}
 
-	private let execute: (Action<Input, Output, Error>, Input) -> SignalProducer<Output, ActionError<Error>>
-	private let eventsObserver: Signal<Signal<Output, Error>.Event, NoError>.Observer
-	private let disabledErrorsObserver: Signal<(), NoError>.Observer
+	public enum ExecutionStrategy {
+		/// Only one worker is allowed to be executing at a time. Any further execution
+		/// attempt during the execution is rejected with `ActionError.disabled`.
+		case exclusive
 
-	private let deinitToken: Lifetime.Token
+		/// Only one worker is allowed to be executing at a time. Any further execution
+		/// attempt during the execution would succeed immediately, and interrupt the
+		/// previous worker (if any).
+		case latest
+
+		/// Only one worker is allowed to be executing at a time. Any further execution
+		/// attempt during the execution would be queued.
+		case concat
+
+		fileprivate var queueCapacity: UInt {
+			switch self {
+			case .exclusive:
+				return 1
+
+			case .concat, .latest:
+				return .max
+			}
+		}
+
+		fileprivate var flattenStrategy: FlattenStrategy {
+			switch self {
+			case .exclusive, .concat:
+				return .concat
+
+			case .latest:
+				return .latest
+			}
+		}
+	}
+
+	private enum Execution {
+		case disabled
+		case enqueued
+		case start(SerialDisposable?, SignalProducer<Output, Error>)
+		case replay(SignalProducer<Output, Error>)
+	}
+
+	private let workDispatcher: Signal<SignalProducer<Never, NoError>, NoError>.Observer
+	private let execute: (Action<Input, Output, Error>, Input) -> SignalProducer<Output, ActionError<Error>>
 
 	/// The lifetime of the `Action`.
 	public let lifetime: Lifetime
@@ -87,18 +132,17 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///         The various convenience initializers should cover most use cases.
 	///
 	/// - parameters:
+	///   - strategy: The execution strategy of the `Action`. See
+	///               `Action.ExecutionStrategy` for more information.
 	///   - state: A property to be the state of the `Action`.
 	///   - isEnabled: A predicate which determines the availability of the `Action`,
 	///                given the latest `Action` state.
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to be
 	///              executed by the `Action`.
-	public init<State: PropertyProtocol>(state: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
+	public init<State: PropertyProtocol>(strategy: ExecutionStrategy = .exclusive, state: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
 		let isUserEnabled = isEnabled
 
-		deinitToken = Lifetime.Token()
-		lifetime = Lifetime(deinitToken)
-
-		let actionState = MutableProperty(ActionState<State.Value>(isUserEnabled: true, isExecuting: false, value: state.value))
+		let actionState = MutableProperty(ActionState<State.Value>(queueCapacity: strategy.queueCapacity, value: state.value))
 		self.isEnabled = actionState.map { $0.isEnabled }
 
 		// `isExecuting` has its own backing so that when the observer of `isExecuting`
@@ -107,65 +151,108 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		let isExecuting = MutableProperty(false)
 		self.isExecuting = Property(capturing: isExecuting)
 
-		// `Action` retains its state property.
-		lifetime.observeEnded { _ = state }
+		let disposable = CompositeDisposable()
+		lifetime = Lifetime(disposable)
 
-		(events, eventsObserver) = Signal<Signal<Output, Error>.Event, NoError>.pipe()
-		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
+		let (events, eventsObserver) = Signal<Signal<Output, Error>.Event, NoError>.pipe()
+		let (disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
+
+		self.events = events
+		self.disabledErrors = disabledErrors
 
 		values = events.filterMap { $0.value }
 		errors = events.filterMap { $0.error }
 		completed = events.filterMap { $0.isCompleted ? () : nil }
 
-		let disposable = state.producer.startWithValues { value in
+		let stateDisposable = state.producer.startWithValues { value in
 			actionState.modify { state in
 				state.value = value
 				state.isUserEnabled = isUserEnabled(value)
 			}
 		}
 
-		lifetime.observeEnded(disposable.dispose)
+		disposable += stateDisposable
+		disposable += eventsObserver.sendCompleted
+		disposable += disabledErrorsObserver.sendCompleted
+
+		// An `Action` retains its state property until it deinitializes.
+		disposable += { _ = state }
+
+		let (workSignal, workDispatcher) = Signal<SignalProducer<Never, NoError>, NoError>.pipe()
+		self.workDispatcher = workDispatcher
+
+		// A signal of completables used to serialize the work.
+		workSignal
+			.flatten(strategy.flattenStrategy)
+			.observeCompleted(disposable.dispose)
 
 		self.execute = { action, input in
 			return SignalProducer { observer, lifetime in
 				var notifiesExecutionState = false
 
-				func didSet() {
+				func didSet() -> Void {
 					if notifiesExecutionState {
 						isExecuting.value = true
 					}
 				}
 
-				let latestState: State.Value? = actionState.modify(didSet: didSet) { state in
+				let appliedProducer: SignalProducer<Output, Error>? = actionState.modify(didSet: didSet) { state in
 					guard state.isEnabled else {
 						return nil
 					}
 
-					state.isExecuting = true
-					notifiesExecutionState = true
-					return state.value
+					// Increment the executing worker count.
+
+					if state.executingCount == 0 {
+						notifiesExecutionState = true
+					}
+
+					state.executingCount += 1
+
+					// Apply the latest state and the input to create a worker, and
+					// intercept the disposal of the worker.
+
+					return execute(state.value, input)
+						.on(disposed: {
+							var notifiesExecutionState = false
+
+							func didSet() {
+								if notifiesExecutionState {
+									isExecuting.value = false
+								}
+							}
+
+							actionState.modify(didSet: didSet) { state in
+								state.executingCount -= 1
+
+								if state.executingCount == 0 {
+									notifiesExecutionState = true
+								}
+							}
+						})
 				}
 
-				guard let state = latestState else {
+				guard let producer = appliedProducer else {
 					observer.send(error: .disabled)
-					action.disabledErrorsObserver.send(value: ())
+					disabledErrorsObserver.send(value: ())
 					return
 				}
 
-				let interruptHandle = execute(state, input).start { event in
-					observer.action(event.mapError(ActionError.producerFailed))
-					action.eventsObserver.send(value: event)
-				}
-
-				lifetime.observeEnded {
-					interruptHandle.dispose()
-
-					actionState.modify(didSet: { isExecuting.value = false }) { state in
-						state.isExecuting = false
+				workDispatcher.send(value: SignalProducer { workStatus, workLifetime in
+					let handle = producer.start { event in
+						observer.action(event.mapError(ActionError.producerFailed))
+						eventsObserver.send(value: event)
 					}
-				}
+
+					workLifetime.observeEnded(handle.dispose)
+					lifetime.observeEnded(workStatus.sendCompleted)
+				})
 			}
 		}
+	}
+
+	deinit {
+		workDispatcher.sendCompleted()
 	}
 
 	/// Initializes an `Action` that would be conditionally enabled.
@@ -195,11 +282,6 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///              executed by the `Action`.
 	public convenience init(execute: @escaping (Input) -> SignalProducer<Output, Error>) {
 		self.init(enabledIf: Property(value: true), execute: execute)
-	}
-
-	deinit {
-		eventsObserver.sendCompleted()
-		disabledErrorsObserver.sendCompleted()
 	}
 
 	/// Create a `SignalProducer` that would attempt to create and start a unit of work of
