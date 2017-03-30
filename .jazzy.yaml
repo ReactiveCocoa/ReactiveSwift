@@ -40,6 +40,7 @@ custom_categories:
     - DateScheduler
     - Scheduler
   - name: Schedulers
+    children:
     - ImmediateScheduler
     - QueueScheduler
     - TestScheduler
@@ -62,6 +63,7 @@ custom_categories:
     - SimpleDisposable
     - +=(_:_:)
   - name: Debugging
+    children:
     - EventLogger
     - LoggingEvent
   - name: Utilities 
@@ -73,6 +75,7 @@ custom_categories:
     - Optional
     - OptionalProtocol
   - name: Deprecated
+    children:
     - AtomicProtocol
     - ActionProtocol
     - BindingTargetProtocol
