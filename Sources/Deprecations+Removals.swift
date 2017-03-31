@@ -1,6 +1,19 @@
 import Foundation
 import enum Result.NoError
 
+// MARK: Obsolete types in ReactiveSwift 2.0.
+@available(*, unavailable, message: "This protocol has been removed. Constrain `Action` directly instead.")
+public protocol ActionProtocol {}
+
+@available(*, unavailable, message: "The protocol has been removed. Constrain `Observer` directly instead.")
+public protocol ObserverProtocol {}
+
+@available(*, unavailable, message:"The protocol has been replaced by `BindingTargetProvider`.")
+public protocol BindingTargetProtocol {}
+
+@available(*, unavailable, message:"The protocol has been removed. Constrain `Atomic` directly instead.")
+public protocol AtomicProtocol {}
+
 // MARK: Depreciated types in ReactiveSwift 1.x.
 extension SignalProtocol where Value == Bool {
 	@available(*, deprecated, renamed: "negate()")
@@ -31,90 +44,6 @@ public typealias DateSchedulerProtocol = DateScheduler
 
 @available(*, deprecated, renamed:"BindingSource")
 public typealias BindingSourceProtocol = BindingSource
-
-@available(*, deprecated, message:"The protocol has been replaced by `BindingTargetProvider`, and will be removed in a future version.")
-public protocol BindingTargetProtocol: class, BindingTargetProvider {
-	var lifetime: Lifetime { get }
-
-	func consume(_ value: Value)
-}
-
-extension BindingTargetProtocol {
-	public var bindingTarget: BindingTarget<Value> {
-		return BindingTarget(lifetime: lifetime) { [weak self] in self?.consume($0) }
-	}
-}
-
-extension MutablePropertyProtocol {
-	@available(*, deprecated, message:"Use the regular setter.")
-	public func consume(_ value: Value) {
-		self.value = value
-	}
-}
-
-extension Action: BindingTargetProtocol {
-	@available(*, deprecated, message:"Use the regular SignalProducer.")
-	public func consume(_ value: Input) {
-		self.apply(value).start()
-	}
-}
-
-extension BindingTarget {
-	@available(*, deprecated, renamed:"action")
-	public func consume(_ value: Value) {
-		action(value)
-	}
-
-	@available(*, deprecated, renamed:"init(lifetime:action:)")
-	public init(lifetime: Lifetime, setter: @escaping (Value) -> Void, _ void: Void? = nil) {
-		self.init(lifetime: lifetime, action: setter)
-	}
-
-	@available(*, deprecated, renamed:"init(on:lifetime:action:)")
-	public init(on scheduler: Scheduler, lifetime: Lifetime, setter: @escaping (Value) -> Void, _ void: Void? = nil) {
-		self.init(on: scheduler, lifetime: lifetime, action: setter)
-	}
-}
-
-/// A protocol used to constraint convenience `Atomic` methods and properties.
-@available(*, deprecated, message:"The protocol has been deprecated, and will be removed in a future version.")
-public protocol AtomicProtocol: class {
-	associatedtype Value
-
-	@discardableResult
-	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result
-
-	@discardableResult
-	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
-}
-
-extension AtomicProtocol {
-	/// Atomically get or set the value of the variable.
-	public var value: Value {
-		get {
-			return withValue { $0 }
-		}
-
-		set(newValue) {
-			swap(newValue)
-		}
-	}
-
-	/// Atomically replace the contents of the variable.
-	///
-	/// - parameters:
-	///   - newValue: A new value for the variable.
-	///
-	/// - returns: The old value.
-	@discardableResult
-	public func swap(_ newValue: Value) -> Value {
-		return modify { (value: inout Value) in
-			let oldValue = value
-			value = newValue
-			return oldValue
-		}
-	}
-}
 
 // MARK: Removed Types and APIs in ReactiveCocoa 5.0.
 
@@ -180,7 +109,7 @@ extension ScopedDisposable {
 	public var innerDisposable: Disposable { fatalError() }
 }
 
-extension ActionProtocol {
+extension Action {
 	@available(*, unavailable, renamed:"isEnabled")
 	public var enabled: Bool { fatalError() }
 
@@ -286,9 +215,7 @@ extension Observer {
 		completed: (() -> Void)? = nil,
 		interrupted: (() -> Void)? = nil
 		) { fatalError() }
-}
 
-extension ObserverProtocol {
 	@available(*, unavailable, renamed: "send(value:)")
 	public func sendNext(_ value: Value) { fatalError() }
 	

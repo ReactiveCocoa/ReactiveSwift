@@ -206,71 +206,13 @@ private struct ActionState {
 	}
 }
 
-/// A protocol used to constraint `Action` initializers.
-@available(swift, deprecated: 3.1, message: "This protocol is no longer necessary and will be removed in a future version of ReactiveSwift. Use Action directly instead.")
-public protocol ActionProtocol: BindingTargetProvider, BindingTargetProtocol {
-	/// The type of argument to apply the action to.
-	associatedtype Input
-	/// The type of values returned by the action.
-	associatedtype Output
-	/// The type of error when the action fails. If errors aren't possible then
-	/// `NoError` can be used.
-	associatedtype Error: Swift.Error
-
-	/// Initializes an action that will be conditionally enabled based on the
-	/// value of `state`. Creates a `SignalProducer` for each input and the
-	/// current value of `state`.
-	///
-	/// - note: `Action` guarantees that changes to `state` are observed in a
-	///         thread-safe way. Thus, the value passed to `isEnabled` will
-	///         always be identical to the value passed to `execute`, for each
-	///         application of the action.
-	///
-	/// - note: This initializer should only be used if you need to provide
-	///         custom input can also influence whether the action is enabled.
-	///         The various convenience initializers should cover most use cases.
-	///
-	/// - parameters:
-	///   - state: A property that provides the current state of the action
-	///            whenever `apply()` is called.
-	///   - enabledIf: A predicate that, given the current value of `state`,
-	///                returns whether the action should be enabled.
-	///   - execute: A closure that returns the `SignalProducer` returned by
-	///              calling `apply(Input)` on the action, optionally using
-	///              the current value of `state`.
-	init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>)
-
-	/// Whether the action is currently enabled.
-	var isEnabled: Property<Bool> { get }
-
-	/// Extracts an action from the receiver.
-	var action: Action<Input, Output, Error> { get }
-
-	/// Creates a SignalProducer that, when started, will execute the action
-	/// with the given input, then forward the results upon the produced Signal.
-	///
-	/// - note: If the action is disabled when the returned SignalProducer is
-	///         started, the produced signal will send `ActionError.disabled`,
-	///         and nothing will be sent upon `values` or `errors` for that
-	///         particular signal.
-	///
-	/// - parameters:
-	///   - input: A value that will be passed to the closure creating the signal
-	///            producer.
-	func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>>
-}
-
-extension Action: ActionProtocol {
-	public var action: Action {
-		return self
-	}
-
+extension Action: BindingTargetProvider {
 	public var bindingTarget: BindingTarget<Input> {
 		return BindingTarget(lifetime: lifetime) { [weak self] in self?.apply($0).start() }
 	}
 }
 
-extension ActionProtocol where Input == Void {
+extension Action where Input == Void {
 	/// Initializes an action that uses an `Optional` property for its input,
 	/// and is disabled whenever the input is `nil`. When executed, a `SignalProducer`
 	/// is created with the current value of the input.
@@ -281,7 +223,7 @@ extension ActionProtocol where Input == Void {
 	///            whenever the value is `nil`.
 	///   - execute: A closure to return a new `SignalProducer` based on the
 	///              current value of `input`.
-	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
 		self.init(state: input, enabledIf: { $0 != nil }) { input, _ in
 			execute(input!)
 		}
@@ -295,7 +237,7 @@ extension ActionProtocol where Input == Void {
 	///            whenever the action is executed.
 	///   - execute: A closure to return a new `SignalProducer` based on the
 	///              current value of `input`.
-	public init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
 		self.init(input: input.map(Optional.some), execute)
 	}
 }

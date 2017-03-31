@@ -11,27 +11,10 @@ import Foundation
 import MachO
 #endif
 
-/// Represents a finite state machine that can transit from one state to
-/// another.
-internal protocol AtomicStateProtocol {
-	associatedtype State: RawRepresentable
-
-	/// Try to transition from the expected current state to the specified next
-	/// state.
-	///
-	/// - parameters:
-	///   - expected: The expected state.
-	///   - next: The state to transition to.
-	///
-	/// - returns:
-	///   `true` if the transition succeeds. `false` otherwise.
-	func tryTransition(from expected: State, to next: State) -> Bool
-}
-
 /// A simple, generic lock-free finite state machine.
 ///
 /// - warning: `deinitialize` must be called to dispose of the consumed memory.
-internal struct UnsafeAtomicState<State: RawRepresentable>: AtomicStateProtocol where State.RawValue == Int32 {
+internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue == Int32 {
 	internal typealias Transition = (expected: State, next: State)
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 	private let value: UnsafeMutablePointer<Int32>
@@ -150,7 +133,7 @@ final class PosixThreadMutex: NSLocking {
 }
 
 /// An atomic variable.
-public final class Atomic<Value>: AtomicProtocol {
+public final class Atomic<Value> {
 	private let lock: PosixThreadMutex
 	private var _value: Value
 
@@ -221,7 +204,7 @@ public final class Atomic<Value>: AtomicProtocol {
 
 
 /// An atomic variable which uses a recursive lock.
-internal final class RecursiveAtomic<Value>: AtomicProtocol {
+internal final class RecursiveAtomic<Value> {
 	private let lock: NSRecursiveLock
 	private var _value: Value
 	private let didSetObserver: ((Value) -> Void)?
