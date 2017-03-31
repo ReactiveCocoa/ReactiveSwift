@@ -1420,6 +1420,113 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 
+			describe("FlattenStrategy.race") {
+				it("should forward values from the first inner producer to send an event") {
+					let (outer, outerObserver) = SignalProducer<SignalProducer<Int, TestError>, TestError>.pipe()
+					let (firstInner, firstInnerObserver) = SignalProducer<Int, TestError>.pipe()
+					let (secondInner, secondInnerObserver) = SignalProducer<Int, TestError>.pipe()
+
+					var receivedValues: [Int] = []
+					var errored = false
+					var completed = false
+
+					outer.flatten(.race).start { event in
+						switch event {
+						case let .value(value):
+							receivedValues.append(value)
+						case .completed:
+							completed = true
+						case .failed:
+							errored = true
+						case .interrupted:
+							break
+						}
+					}
+
+					outerObserver.send(value: firstInner)
+					outerObserver.send(value: secondInner)
+					firstInnerObserver.send(value: 1)
+					secondInnerObserver.send(value: 2)
+					outerObserver.sendCompleted()
+
+					expect(receivedValues) == [ 1 ]
+					expect(errored) == false
+					expect(completed) == false
+
+					secondInnerObserver.send(value: 3)
+					secondInnerObserver.sendCompleted()
+
+					expect(receivedValues) == [ 1 ]
+					expect(errored) == false
+					expect(completed) == false
+
+					firstInnerObserver.send(value: 4)
+					firstInnerObserver.sendCompleted()
+
+					expect(receivedValues) == [ 1, 4 ]
+					expect(errored) == false
+					expect(completed) == true
+				}
+
+				it("should forward an error from the first inner producer to send an error") {
+					let inner = SignalProducer<Int, TestError>(error: .default)
+					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>(value: inner)
+
+					let result = outer.flatten(.race).first()
+					expect(result?.error) == TestError.default
+				}
+
+				it("should forward an error from the outer producer") {
+					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>(error: .default)
+
+					let result = outer.flatten(.race).first()
+					expect(result?.error) == TestError.default
+				}
+
+				it("should complete when the 'outer producer' and 'first inner producer to send an event' have completed") {
+					let inner = SignalProducer<Int, TestError>.empty
+					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>(value: inner)
+
+					var completed = false
+					outer.flatten(.race).startWithCompleted {
+						completed = true
+					}
+
+					expect(completed) == true
+				}
+
+				it("should complete when the outer producer completes before sending any inner producers") {
+					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>.empty
+
+					var completed = false
+					outer.flatten(.race).startWithCompleted {
+						completed = true
+					}
+
+					expect(completed) == true
+				}
+
+				it("should not complete when the outer producer completes after sending an inner producer but it doesn't send an event") {
+					let inner = SignalProducer<Int, TestError>.never
+					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>(value: inner)
+
+					var completed = false
+					outer.flatten(.race).startWithCompleted {
+						completed = true
+					}
+
+					expect(completed) == false
+				}
+
+				it("should not deadlock") {
+					let producer = SignalProducer<Int, NoError>(value: 1)
+						.flatMap(.race) { _ in SignalProducer(value: 10) }
+
+					let result = producer.take(first: 1).last()
+					expect(result?.value) == 10
+				}
+			}
+
 			describe("interruption") {
 				var innerObserver: Signal<(), NoError>.Observer!
 				var outerObserver: Signal<SignalProducer<(), NoError>, NoError>.Observer!
