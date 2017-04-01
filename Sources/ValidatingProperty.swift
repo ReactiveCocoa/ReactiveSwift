@@ -9,7 +9,7 @@ import Result
 ///
 /// ```
 /// let root = MutableProperty("Valid")
-/// let outer = MutableValidatingProperty(root) {
+/// let outer = ValidatingProperty(root) {
 ///   $0 == "Valid" ? .valid : .invalid(.outerInvalid)
 /// }
 ///
