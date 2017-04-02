@@ -45,6 +45,16 @@ public enum FlattenStrategy: Equatable {
 	/// and the latest producer has completed.
 	case latest
 
+	/// Only the events from the "first input producer to send an event" (winning producer)
+	/// should be considered for the output.
+	/// Any other producers that already started (but not sending an event yet)
+	/// will be disposed.
+	///
+	/// The resulting producer will complete when:
+	/// 1. The producer-of-producers and the first "alive" producer has completed.
+	/// 2. The producer-of-producers has completed without inner producer being "alive".
+	case race
+
 	public static func ==(left: FlattenStrategy, right: FlattenStrategy) -> Bool {
 		switch (left, right) {
 		case (.latest, .latest):
@@ -78,6 +88,9 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 
 		case .latest:
 			return self.switchToLatest()
+
+		case .race:
+			return self.race()
 		}
 	}
 }
@@ -117,6 +130,9 @@ extension Signal where Value: SignalProducerProtocol, Error == NoError, Value.Er
 
 		case .latest:
 			return self.switchToLatest()
+
+		case .race:
+			return self.race()
 		}
 	}
 }
@@ -157,6 +173,9 @@ extension SignalProducer where Value: SignalProducerProtocol, Error == Value.Err
 
 		case .latest:
 			return self.switchToLatest()
+
+		case .race:
+			return self.race()
 		}
 	}
 }
@@ -196,6 +215,9 @@ extension SignalProducer where Value: SignalProducerProtocol, Error == NoError, 
 
 		case .latest:
 			return self.switchToLatest()
+
+		case .race:
+			return self.race()
 		}
 	}
 }
@@ -764,6 +786,128 @@ private struct LatestState<Value, Error: Swift.Error> {
 	var replacingInnerSignal: Bool = false
 }
 
+extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
+	/// Returns a signal that forwards values from the "first input signal to send an event"
+	/// (winning signal) that is sent on `self`, ignoring values sent from other inner signals.
+	///
+	/// An error sent on `self` or the winning inner signal will be sent on the
+	/// returned signal.
+	///
+	/// The returned signal completes when `self` and the winning inner signal have both completed.
+	fileprivate func race() -> Signal<Value.Value, Error> {
+		return Signal<Value.Value, Error> { observer in
+			let composite = CompositeDisposable()
+			let relayDisposable = CompositeDisposable()
+
+			composite += relayDisposable
+			composite += self.observeRace(observer, relayDisposable)
+
+			return composite
+		}
+	}
+
+	fileprivate func observeRace(_ observer: ReactiveSwift.Observer<Value.Value, Error>, _ relayDisposable: CompositeDisposable) -> Disposable? {
+		let state = Atomic(RaceState<Value.Value, Error>())
+
+		return self.observe { event in
+			switch event {
+			case let .value(innerProducer):
+				// Ignore consecutive `innerProducer`s if any `innerSignal` already sent an event.
+				guard !relayDisposable.isDisposed else {
+					return
+				}
+
+				innerProducer.producer.startWithSignal { innerSignal, innerDisposable in
+
+					state.modify {
+						$0.innerSignalComplete = false
+					}
+
+					let disposableHandle = relayDisposable.add(innerDisposable)
+
+					innerSignal.observe { [unowned innerSignal] event in
+
+						let isWinningSignal: Bool = state.modify { state in
+							if state.active == nil {
+								state.active = innerSignal
+							}
+							return state.active === innerSignal
+						}
+
+						// Ignore non-winning signals.
+						guard isWinningSignal else { return }
+
+						// Dispose all running innerSignals except winning one.
+						if !relayDisposable.isDisposed {
+							disposableHandle.remove()
+							relayDisposable.dispose()
+						}
+
+						switch event {
+						case .completed:
+							let shouldComplete: Bool = state.modify { state in
+								state.active = nil
+								state.innerSignalComplete = true
+								return state.outerSignalComplete
+							}
+
+							if shouldComplete {
+								observer.sendCompleted()
+							}
+
+						case .value, .failed, .interrupted:
+							observer.action(event)
+						}
+					}
+				}
+
+			case let .failed(error):
+				observer.send(error: error)
+
+			case .completed:
+				let shouldComplete: Bool = state.modify { state in
+					state.outerSignalComplete = true
+					return state.innerSignalComplete
+				}
+
+				if shouldComplete {
+					observer.sendCompleted()
+				}
+
+			case .interrupted:
+				observer.sendInterrupted()
+			}
+		}
+	}
+}
+
+extension SignalProducer where Value: SignalProducerProtocol, Error == Value.Error {
+	/// Returns a producer that forwards values from the "first input producer to send an event"
+	/// (winning producer) that is sent on `self`, ignoring values sent from other inner producers.
+	///
+	/// An error sent on `self` or the winning inner producer will be sent on the
+	/// returned producer.
+	///
+	/// The returned producer completes when `self` and the winning inner producer have both completed.
+	fileprivate func race() -> SignalProducer<Value.Value, Error> {
+		return SignalProducer<Value.Value, Error> { observer, disposable in
+			let relayDisposable = CompositeDisposable()
+			disposable += relayDisposable
+
+			self.startWithSignal { signal, signalDisposable in
+				disposable += signalDisposable
+				disposable += signal.observeRace(observer, relayDisposable)
+			}
+		}
+	}
+}
+
+private struct RaceState<Value, Error: Swift.Error> {
+	var outerSignalComplete: Bool = false
+	var innerSignalComplete: Bool = true
+
+	var active: Signal<Value, Error>? = nil
+}
 
 extension Signal {
 	/// Maps each event from `signal` to a new signal, then flattens the

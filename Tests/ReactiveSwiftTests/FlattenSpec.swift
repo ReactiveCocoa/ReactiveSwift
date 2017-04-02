@@ -71,6 +71,7 @@ class FlattenSpec: QuickSpec {
 			describeSignalFlattenDisposal(.merge, name: "merge")
 			describeSignalFlattenDisposal(.concat, name: "concat")
 			describeSignalFlattenDisposal(.concurrent(limit: 1024), name: "concurrent(limit: 1024)")
+			describeSignalFlattenDisposal(.race, name: "race")
 		}
 
 		func describeSignalProducerFlattenDisposal(_ flattenStrategy: FlattenStrategy, name: String) {
@@ -97,8 +98,9 @@ class FlattenSpec: QuickSpec {
 			describeSignalProducerFlattenDisposal(.merge, name: "merge")
 			describeSignalProducerFlattenDisposal(.concat, name: "concat")
 			describeSignalProducerFlattenDisposal(.concurrent(limit: 1024), name: "concurrent(limit: 1024)")
+			describeSignalProducerFlattenDisposal(.race, name: "race")
 		}
-		
+
 		describe("Signal.flatten()") {
 			it("works with TestError and a TestError Signal") {
 				typealias Inner = Signal<Int, TestError>
