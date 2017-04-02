@@ -827,26 +827,28 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 
 					innerSignal.observe { [unowned innerSignal] event in
 
-						let isWinningSignal: Bool = state.modify {
-							if $0.active == nil {
-								$0.active = innerSignal
+						let isWinningSignal: Bool = state.modify { state in
+							if state.active == nil {
+								state.active = innerSignal
 							}
-							return $0.active === innerSignal
+							return state.active === innerSignal
 						}
 
 						// Ignore non-winning signals.
 						guard isWinningSignal else { return }
 
 						// Dispose all running innerSignals except winning one.
-						disposableHandle.remove()
-						relayDisposable.dispose()
+						if !relayDisposable.isDisposed {
+							disposableHandle.remove()
+							relayDisposable.dispose()
+						}
 
 						switch event {
 						case .completed:
-							let shouldComplete: Bool = state.modify {
-								$0.active = nil
-								$0.innerSignalComplete = true
-								return $0.outerSignalComplete
+							let shouldComplete: Bool = state.modify { state in
+								state.active = nil
+								state.innerSignalComplete = true
+								return state.outerSignalComplete
 							}
 
 							if shouldComplete {
@@ -863,9 +865,9 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 				observer.send(error: error)
 
 			case .completed:
-				let shouldComplete: Bool = state.modify {
-					$0.outerSignalComplete = true
-					return $0.innerSignalComplete
+				let shouldComplete: Bool = state.modify { state in
+					state.outerSignalComplete = true
+					return state.innerSignalComplete
 				}
 
 				if shouldComplete {
