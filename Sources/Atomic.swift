@@ -39,9 +39,8 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	/// - parameters:
 	///   - expected: The expected state.
 	///
-	/// - returns:
-	///   `true` if the current state matches the expected state. `false`
-	///   otherwise.
+	/// - returns: `true` if the current state matches the expected state.
+	///            `false` otherwise.
 	internal func `is`(_ expected: State) -> Bool {
 		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
 		                                       expected.rawValue,
@@ -55,8 +54,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	///   - expected: The expected state.
 	///   - next: The state to transition to.
 	///
-	/// - returns:
-	///   `true` if the transition succeeds. `false` otherwise.
+	/// - returns: `true` if the transition succeeds. `false` otherwise.
 	internal func tryTransition(from expected: State, to next: State) -> Bool {
 		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
 		                                       next.rawValue,
@@ -81,9 +79,8 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	/// - parameters:
 	///   - expected: The expected state.
 	///
-	/// - returns:
-	///   `true` if the current state matches the expected state. `false`
-	///   otherwise.
+	/// - returns: `true` if the current state matches the expected state.
+	///            `false` otherwise.
 	internal func `is`(_ expected: State) -> Bool {
 		return value.modify { $0 == expected.rawValue }
 	}
@@ -94,8 +91,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	/// - parameters:
 	///   - expected: The expected state.
 	///
-	/// - returns:
-	///   `true` if the transition succeeds. `false` otherwise.
+	/// - returns: `true` if the transition succeeds. `false` otherwise.
 	internal func tryTransition(from expected: State, to next: State) -> Bool {
 		return value.modify { value in
 			if value == expected.rawValue {
@@ -149,7 +145,7 @@ public final class Atomic<Value> {
 	}
 
 	/// Initialize the variable with the given initial value.
-	/// 
+	///
 	/// - parameters:
 	///   - value: Initial value for `self`.
 	public init(_ value: Value) {
@@ -221,7 +217,7 @@ internal final class RecursiveAtomic<Value> {
 	}
 
 	/// Initialize the variable with the given initial value.
-	/// 
+	///
 	/// - parameters:
 	///   - value: Initial value for `self`.
 	///   - name: An optional name used to create the recursive lock.

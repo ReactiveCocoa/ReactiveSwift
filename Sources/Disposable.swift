@@ -31,8 +31,7 @@ private enum DisposableState: Int32 {
 extension UnsafeAtomicState where State == DisposableState {
 	/// Try to transition from `active` to `disposed`.
 	///
-	/// - returns:
-	///   `true` if the transition succeeds. `false` otherwise.
+	/// - returns: `true` if the transition succeeds. `false` otherwise.
 	@inline(__always)
 	fileprivate func tryDispose() -> Bool {
 		return tryTransition(from: .active, to: .disposed)
