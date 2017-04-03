@@ -236,8 +236,8 @@ public final class Signal<Value, Error: Swift.Error> {
 
 	/// Swap the generator disposable with `nil`.
 	///
-	/// - returns:
-	///   The generator disposable, or `nil` if it has been disposed of.
+	/// - returns: The generator disposable, or `nil` if it has been disposed
+	///            of.
 	private func swapDisposable() -> Disposable? {
 		if let d = generatorDisposable {
 			generatorDisposable = nil
