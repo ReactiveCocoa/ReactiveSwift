@@ -11,22 +11,6 @@ import Foundation
 import MachO
 #endif
 
-/// Represents a finite state machine that can transit from one state to
-/// another.
-internal protocol AtomicStateProtocol {
-	associatedtype State: RawRepresentable
-
-	/// Try to transition from the expected current state to the specified next
-	/// state.
-	///
-	/// - parameters:
-	///   - expected: The expected state.
-	///   - next: The state to transition to.
-	///
-	/// - returns: `true` if the transition succeeds. `false` otherwise.
-	func tryTransition(from expected: State, to next: State) -> Bool
-}
-
 /// A simple, generic lock-free finite state machine.
 ///
 /// - warning: `deinitialize` must be called to dispose of the consumed memory.
