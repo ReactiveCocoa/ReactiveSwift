@@ -1036,11 +1036,14 @@ class FlattenSpec: QuickSpec {
 					outerObserver.send(value: producer)
 				}
 
-				expect(values) == Array(0 ..< concurrentLimit)
-				expect(started) == Array(0 ..< concurrentLimit)
+				// The producers may be started asynchronously. So these
+				// expectations have to be asynchronous too.
+				expect(values).toEventually(equal(Array(0 ..< concurrentLimit)))
+				expect(started).toEventually(equal(Array(0 ..< concurrentLimit)))
 
 				for i in 0 ..< extra {
 					observers[Int(i)].sendCompleted()
+
 					expect(values).toEventually(equal(Array(0 ... (concurrentLimit + i))))
 					expect(started).toEventually(equal(Array(0 ... (concurrentLimit + i))))
 				}
