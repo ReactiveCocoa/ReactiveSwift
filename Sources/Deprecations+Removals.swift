@@ -2,6 +2,18 @@ import Foundation
 import enum Result.NoError
 
 // MARK: Obsolete types in ReactiveSwift 2.0.
+extension Action where Input == Void {
+	@available(*, deprecated, renamed:"init(state:_:)")
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
+		self.init(state: input, execute)
+	}
+
+	@available(*, deprecated, renamed:"init(state:_:)")
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
+		self.init(state: input, execute)
+	}
+}
+
 @available(*, unavailable, message: "This protocol has been removed. Constrain `Action` directly instead.")
 public protocol ActionProtocol {}
 
