@@ -37,7 +37,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// As `SignalState` is a packed object reference (a tagged pointer) that is
 	/// naturally aligned, reads to are guaranteed to be atomic on all supported
 	/// hardware architectures of Swift (ARM and x86).
-	private var state: SignalState<Value, Error>
+	private var state: State
 
 	/// Used to ensure that state updates are serialized.
 	private let updateLock: NSLock
@@ -338,72 +338,72 @@ public final class Signal<Value, Error: Swift.Error> {
 			return nil
 		}
 	}
-}
 
-/// The state of a `Signal`.
-///
-/// `SignalState` is guaranteed to be laid out as a tagged pointer by the Swift
-/// compiler in the support targets of the Swift 3.0.1 ABI.
-///
-/// The Swift compiler has also an optimization for enums with payloads that are
-/// all reference counted, and at most one no-payload case.
-private enum SignalState<Value, Error: Swift.Error> {
-	/// The `Signal` is alive.
-	case alive(AliveState<Value, Error>)
-
-	/// The `Signal` has received a termination event, and is about to be
-	/// terminated.
-	case terminating(TerminatingState<Value, Error>)
-
-	/// The `Signal` has terminated.
-	case terminated
-}
-
-// As the amount of state would definitely span over a cache line,
-// `AliveState` and `TerminatingState` is set to be a reference type so
-// that we can atomically update the reference instead.
-//
-// Note that in-place mutation should not be introduced to `AliveState` and
-// `TerminatingState`. Copy the states and create a new instance.
-
-/// The state of a `Signal` that is alive. It contains a bag of observers and
-/// an optional self-retaining reference.
-private final class AliveState<Value, Error: Swift.Error> {
-	/// The observers of the `Signal`.
-	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
-
-	/// A self-retaining reference. It is set when there are one or more active
-	/// observers.
-	fileprivate let retaining: Signal<Value, Error>?
-
-	/// Create an alive state.
+	/// The state of a `Signal`.
 	///
-	/// - parameters:
-	///   - observers: The latest bag of observers.
-	///   - retaining: The self-retaining reference of the `Signal`, if necessary.
-	init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil) {
-		self.observers = observers
-		self.retaining = retaining
+	/// `SignalState` is guaranteed to be laid out as a tagged pointer by the Swift
+	/// compiler in the support targets of the Swift 3.0.1 ABI.
+	///
+	/// The Swift compiler has also an optimization for enums with payloads that are
+	/// all reference counted, and at most one no-payload case.
+	private enum State {
+		/// The `Signal` is alive.
+		case alive(AliveState)
+
+		/// The `Signal` has received a termination event, and is about to be
+		/// terminated.
+		case terminating(TerminatingState)
+
+		/// The `Signal` has terminated.
+		case terminated
 	}
-}
 
-/// The state of a terminating `Signal`. It contains a bag of observers and the
-/// termination event.
-private final class TerminatingState<Value, Error: Swift.Error> {
-	/// The observers of the `Signal`.
-	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
+	// As the amount of state would definitely span over a cache line,
+	// `AliveState` and `TerminatingState` is set to be a reference type so
+	// that we can atomically update the reference instead.
+	//
+	// Note that in-place mutation should not be introduced to `AliveState` and
+	// `TerminatingState`. Copy the states and create a new instance.
 
-	///  The termination event.
-	fileprivate let event: Event<Value, Error>
+	/// The state of a `Signal` that is active. It contains a bag of observers and
+	/// an optional self-retaining reference.
+	private final class AliveState {
+		/// The observers of the `Signal`.
+		let observers: Bag<Signal<Value, Error>.Observer>
 
-	/// Create a terminating state.
-	///
-	/// - parameters:
-	///   - observers: The latest bag of observers.
-	///   - event: The termination event.
-	init(observers: Bag<Signal<Value, Error>.Observer>, event: Event<Value, Error>) {
-		self.observers = observers
-		self.event = event
+		/// A self-retaining reference. It is set when there are one or more active
+		/// observers.
+		let retaining: Signal<Value, Error>?
+
+		/// Create an alive state.
+		///
+		/// - parameters:
+		///   - observers: The latest bag of observers.
+		///   - retaining: The self-retaining reference of the `Signal`, if necessary.
+		init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil) {
+			self.observers = observers
+			self.retaining = retaining
+		}
+	}
+
+	/// The state of a terminating `Signal`. It contains a bag of observers and the
+	/// termination event.
+	private final class TerminatingState {
+		/// The observers of the `Signal`.
+		let observers: Bag<Signal<Value, Error>.Observer>
+
+		/// The termination event.
+		let event: Event<Value, Error>
+
+		/// Create a terminating state.
+		///
+		/// - parameters:
+		///   - observers: The latest bag of observers.
+		///   - event: The termination event.
+		init(observers: Bag<Signal<Value, Error>.Observer>, event: Event<Value, Error>) {
+			self.observers = observers
+			self.event = event
+		}
 	}
 }
 
@@ -676,38 +676,6 @@ extension Signal {
 	}
 }
 
-/// A reference type which wraps an array to auxiliate the collection of values
-/// for `collect` operator.
-private final class CollectState<Value> {
-	var values: [Value] = []
-
-	/// Collects a new value.
-	func append(_ value: Value) {
-		values.append(value)
-	}
-
-	/// Check if there are any items remaining.
-	///
-	/// - note: This method also checks if there weren't collected any values
-	///         and, in that case, it means an empty array should be sent as the
-	///         result of collect.
-	var isEmpty: Bool {
-		/// We use capacity being zero to determine if we haven't collected any
-		/// value since we're keeping the capacity of the array to avoid
-		/// unnecessary and expensive allocations). This also guarantees
-		/// retro-compatibility around the original `collect()` operator.
-		return values.isEmpty && values.capacity > 0
-	}
-
-	/// Removes all values previously collected if any.
-	func flush() {
-		// Minor optimization to avoid consecutive allocations. Can
-		// be useful for sequences of regular or similar size and to
-		// track if any value was ever collected.
-		values.removeAll(keepingCapacity: true)
-	}
-}
-
 extension Signal {
 	/// Collect all values sent by the signal then forward them as a single
 	/// array and complete.
@@ -780,7 +748,7 @@ extension Signal {
 	///            complets.
 	public func collect(_ predicate: @escaping (_ values: [Value]) -> Bool) -> Signal<[Value], Error> {
 		return Signal<[Value], Error> { observer in
-			let state = CollectState<Value>()
+			let state = CollectState()
 
 			return self.observe { event in
 				switch event {
@@ -845,7 +813,7 @@ extension Signal {
 	///            value.
 	public func collect(_ predicate: @escaping (_ values: [Value], _ value: Value) -> Bool) -> Signal<[Value], Error> {
 		return Signal<[Value], Error> { observer in
-			let state = CollectState<Value>()
+			let state = CollectState()
 
 			return self.observe { event in
 				switch event {
@@ -869,6 +837,38 @@ extension Signal {
 		}
 	}
 
+	/// A reference type which wraps an array to auxiliate the collection of values
+	/// for `collect` operator.
+	private final class CollectState {
+		var values: [Value] = []
+
+		/// Collects a new value.
+		func append(_ value: Value) {
+			values.append(value)
+		}
+
+		/// Check if there are any items remaining.
+		///
+		/// - note: This method also checks if there weren't collected any values
+		///         and, in that case, it means an empty array should be sent as the
+		///         result of collect.
+		var isEmpty: Bool {
+			/// We use capacity being zero to determine if we haven't collected any
+			/// value since we're keeping the capacity of the array to avoid
+			/// unnecessary and expensive allocations). This also guarantees
+			/// retro-compatibility around the original `collect()` operator.
+			return values.isEmpty && values.capacity > 0
+		}
+
+		/// Removes all values previously collected if any.
+		func flush() {
+			// Minor optimization to avoid consecutive allocations. Can
+			// be useful for sequences of regular or similar size and to
+			// track if any value was ever collected.
+			values.removeAll(keepingCapacity: true)
+		}
+	}
+
 	/// Forward all events onto the given scheduler, instead of whichever
 	/// scheduler they originally arrived upon.
 	///
@@ -887,13 +887,13 @@ extension Signal {
 	}
 }
 
-private final class CombineLatestState<Value> {
-	var latestValue: Value?
-	var isCompleted = false
-}
-
 extension Signal {
-	private func observeWithStates<U>(_ signalState: CombineLatestState<Value>, _ otherState: CombineLatestState<U>, _ lock: NSLock, _ observer: Signal<(), Error>.Observer) -> Disposable? {
+	private final class CombineLatestState {
+		var latestValue: Value?
+		var isCompleted = false
+	}
+
+	private func observeWithStates<U>(_ signalState: CombineLatestState, _ otherState: Signal<U, Error>.CombineLatestState, _ lock: NSLock, _ observer: Signal<(), Error>.Observer) -> Disposable? {
 		return self.observe { event in
 			switch event {
 			case let .value(value):
@@ -947,8 +947,8 @@ extension Signal {
 			let lock = NSLock()
 			lock.name = "org.reactivecocoa.ReactiveSwift.combineLatestWith"
 
-			let signalState = CombineLatestState<Value>()
-			let otherState = CombineLatestState<U>()
+			let signalState = CombineLatestState()
+			let otherState = Signal<U, Error>.CombineLatestState()
 
 			let onBothValue = {
 				observer.send(value: (signalState.latestValue!, otherState.latestValue!))
@@ -1143,13 +1143,13 @@ extension Signal {
 	}
 }
 
-private struct SampleState<Value> {
-	var latestValue: Value? = nil
-	var isSignalCompleted: Bool = false
-	var isSamplerCompleted: Bool = false
-}
-
 extension Signal {
+	private struct SampleState {
+		var latestValue: Value? = nil
+		var isSignalCompleted: Bool = false
+		var isSamplerCompleted: Bool = false
+	}
+
 	/// Forward the latest value from `self` with the value from `sampler` as a
 	/// tuple, only when`sampler` sends a `value` event.
 	///
@@ -1166,7 +1166,7 @@ extension Signal {
 	///            either input signal is interrupted.
 	public func sample<T>(with sampler: Signal<T, NoError>) -> Signal<(Value, T), Error> {
 		return Signal<(Value, T), Error> { observer in
-			let state = Atomic(SampleState<Value>())
+			let state = Atomic(SampleState())
 			let disposable = CompositeDisposable()
 
 			disposable += self.observe { event in
@@ -1622,16 +1622,16 @@ extension Signal {
 	}
 }
 
-private struct ZipState<Left, Right> {
-	var values: (left: [Left], right: [Right]) = ([], [])
-	var isCompleted: (left: Bool, right: Bool) = (false, false)
-
-	var isFinished: Bool {
-		return (isCompleted.left && values.left.isEmpty) || (isCompleted.right && values.right.isEmpty)
-	}
-}
-
 extension Signal {
+	private struct ZipState<U> {
+		var values: (left: [Value], right: [U]) = ([], [])
+		var isCompleted: (left: Bool, right: Bool) = (false, false)
+
+		var isFinished: Bool {
+			return (isCompleted.left && values.left.isEmpty) || (isCompleted.right && values.right.isEmpty)
+		}
+	}
+
 	/// Zip elements of two signals into pairs. The elements of any Nth pair
 	/// are the Nth elements of the two input signals.
 	///
@@ -1641,7 +1641,7 @@ extension Signal {
 	/// - returns: A signal that sends tuples of `self` and `otherSignal`.
 	public func zip<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal<(Value, U), Error> { observer in
-			let state = Atomic(ZipState<Value, U>())
+			let state = Atomic(ZipState<U>())
 			let disposable = CompositeDisposable()
 			
 			let flush = {
@@ -1717,6 +1717,26 @@ extension Signal {
 			return disposable
 		}
 	}
+
+	private struct ThrottleState {
+		var previousDate: Date? = nil
+		var pendingValue: Value? = nil
+	}
+
+	private enum ThrottleWhileState {
+		case resumed
+		case throttled(Value?)
+		case terminated
+
+		var isTerminated: Bool {
+			switch self {
+			case .terminated:
+				return true
+			case .resumed, .throttled:
+				return false
+			}
+		}
+	}
 	
 	/// Forward the latest value on `scheduler` after at least `interval`
 	/// seconds have passed since *the returned signal* last sent a value.
@@ -1751,7 +1771,7 @@ extension Signal {
 		precondition(interval >= 0)
 
 		return Signal { observer in
-			let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState())
+			let state: Atomic<ThrottleState> = Atomic(ThrottleState())
 			let schedulerDisposable = SerialDisposable()
 
 			let disposable = CompositeDisposable()
@@ -1833,7 +1853,7 @@ extension Signal {
 		where P.Value == Bool
 	{
 		return Signal { observer in
-			let initial: ThrottleWhileState<Value> = .resumed
+			let initial: ThrottleWhileState = .resumed
 			let state = Atomic(initial)
 			let schedulerDisposable = SerialDisposable()
 
@@ -1992,26 +2012,6 @@ extension Signal where Value: Hashable {
 	/// - returns: A signal that sends unique values during its lifetime.
 	public func uniqueValues() -> Signal<Value, Error> {
 		return uniqueValues { $0 }
-	}
-}
-
-private struct ThrottleState<Value> {
-	var previousDate: Date? = nil
-	var pendingValue: Value? = nil
-}
-
-private enum ThrottleWhileState<Value> {
-	case resumed
-	case throttled(Value?)
-	case terminated
-
-	var isTerminated: Bool {
-		switch self {
-		case .terminated:
-			return true
-		case .resumed, .throttled:
-			return false
-		}
 	}
 }
 
