@@ -1876,93 +1876,6 @@ extension SignalProducer {
 	public func wait() -> Result<(), Error> {
 		return then(SignalProducer<(), Error>(value: ())).last() ?? .success(())
 	}
-
-	/// Creates a new `SignalProducer` that will multicast values emitted by
-	/// the underlying producer, up to `capacity`.
-	/// This means that all clients of this `SignalProducer` will see the same
-	/// version of the emitted values/errors.
-	///
-	/// The underlying `SignalProducer` will not be started until `self` is
-	/// started for the first time. When subscribing to this producer, all
-	/// previous values (up to `capacity`) will be emitted, followed by any new
-	/// values.
-	///
-	/// If you find yourself needing *the current value* (the last buffered
-	/// value) you should consider using `PropertyType` instead, which, unlike
-	/// this operator, will guarantee at compile time that there's always a
-	/// buffered value. This operator is not recommended in most cases, as it
-	/// will introduce an implicit relationship between the original client and
-	/// the rest, so consider alternatives like `PropertyType`, or representing
-	/// your stream using a `Signal` instead.
-	///
-	/// This operator is only recommended when you absolutely need to introduce
-	/// a layer of caching in front of another `SignalProducer`.
-	///
-	/// - precondition: `capacity` must be non-negative integer.
-	///
-	/// - parameters:
-	///   - capacity: Number of values to hold.
-	///
-	/// - returns: A caching producer that will hold up to last `capacity`
-	///            values.
-	public func replayLazily(upTo capacity: Int) -> SignalProducer<Value, Error> {
-		precondition(capacity >= 0, "Invalid capacity: \(capacity)")
-
-		// This will go "out of scope" when the returned `SignalProducer` goes
-		// out of scope. This lets us know when we're supposed to dispose the
-		// underlying producer. This is necessary because `struct`s don't have
-		// `deinit`.
-		let lifetimeToken = Lifetime.Token()
-		let lifetime = Lifetime(lifetimeToken)
-
-		let state = Atomic(ReplayState<Value, Error>(upTo: capacity))
-
-		let start: Atomic<(() -> Void)?> = Atomic {
-			// Start the underlying producer.
-			self
-				.take(during: lifetime)
-				.start { event in
-					let observers: Bag<Signal<Value, Error>.Observer>? = state.modify { state in
-						defer { state.enqueue(event) }
-						return state.observers
-					}
-					observers?.forEach { $0.action(event) }
-				}
-		}
-
-		return SignalProducer { observer, disposable in
-			// Don't dispose of the original producer until all observers
-			// have terminated.
-			disposable += { _ = lifetimeToken }
-
-			while true {
-				var result: Result<RemovalToken?, ReplayError<Value>>!
-				state.modify {
-					result = $0.observe(observer)
-				}
-
-				switch result! {
-				case let .success(token):
-					if let token = token {
-						disposable += {
-							state.modify {
-								$0.removeObserver(using: token)
-							}
-						}
-					}
-
-					// Start the underlying producer if it has never been started.
-					start.swap(nil)?()
-
-					// Terminate the replay loop.
-					return
-
-				case let .failure(error):
-					error.values.forEach(observer.send(value:))
-				}
-			}
-		}
-	}
 }
 
 extension SignalProducer where Value == Bool {
@@ -2018,132 +1931,220 @@ extension SignalProducer where Value == Bool {
 	}
 }
 
-/// Represents a recoverable error of an observer not being ready for an
-/// attachment to a `ReplayState`, and the observer should replay the supplied
-/// values before attempting to observe again.
-private struct ReplayError<Value>: Error {
-	/// The values that should be replayed by the observer.
-	let values: [Value]
-}
-
-private struct ReplayState<Value, Error: Swift.Error> {
-	let capacity: Int
-
-	/// All cached values.
-	var values: [Value] = []
-
-	/// A termination event emitted by the underlying producer.
+extension SignalProducer {
+	/// Creates a new `SignalProducer` that will multicast values emitted by
+	/// the underlying producer, up to `capacity`.
+	/// This means that all clients of this `SignalProducer` will see the same
+	/// version of the emitted values/errors.
 	///
-	/// This will be nil if termination has not occurred.
-	var terminationEvent: Event<Value, Error>?
-
-	/// The observers currently attached to the caching producer, or `nil` if the
-	/// caching producer was terminated.
-	var observers: Bag<Signal<Value, Error>.Observer>? = Bag()
-
-	/// The set of in-flight replay buffers.
-	var replayBuffers: [ObjectIdentifier: [Value]] = [:]
-
-	/// Initialize the replay state.
+	/// The underlying `SignalProducer` will not be started until `self` is
+	/// started for the first time. When subscribing to this producer, all
+	/// previous values (up to `capacity`) will be emitted, followed by any new
+	/// values.
+	///
+	/// If you find yourself needing *the current value* (the last buffered
+	/// value) you should consider using `PropertyType` instead, which, unlike
+	/// this operator, will guarantee at compile time that there's always a
+	/// buffered value. This operator is not recommended in most cases, as it
+	/// will introduce an implicit relationship between the original client and
+	/// the rest, so consider alternatives like `PropertyType`, or representing
+	/// your stream using a `Signal` instead.
+	///
+	/// This operator is only recommended when you absolutely need to introduce
+	/// a layer of caching in front of another `SignalProducer`.
+	///
+	/// - precondition: `capacity` must be non-negative integer.
 	///
 	/// - parameters:
-	///   - capacity: The maximum amount of values which can be cached by the
-	///               replay state.
-	init(upTo capacity: Int) {
-		self.capacity = capacity
-	}
-
-	/// Attempt to observe the replay state.
+	///   - capacity: Number of values to hold.
 	///
-	/// - warning: Repeatedly observing the replay state with the same observer
-	///            should be avoided.
-	///
-	/// - parameters:
-	///   - observer: The observer to be registered.
-	///
-	/// - returns: If the observer is successfully attached, a `Result.success`
-	///            with the corresponding removal token would be returned.
-	///            Otherwise, a `Result.failure` with a `ReplayError` would be
-	///            returned.
-	mutating func observe(_ observer: Signal<Value, Error>.Observer) -> Result<RemovalToken?, ReplayError<Value>> {
-		// Since the only use case is `replayLazily`, which always creates a unique
-		// `Observer` for every produced signal, we can use the ObjectIdentifier of
-		// the `Observer` to track them directly.
-		let id = ObjectIdentifier(observer)
+	/// - returns: A caching producer that will hold up to last `capacity`
+	///            values.
+	public func replayLazily(upTo capacity: Int) -> SignalProducer<Value, Error> {
+		precondition(capacity >= 0, "Invalid capacity: \(capacity)")
 
-		switch replayBuffers[id] {
-		case .none where !values.isEmpty:
-			// No in-flight replay buffers was found, but the `ReplayState` has one or
-			// more cached values in the `ReplayState`. The observer should replay
-			// them before attempting to observe again.
-			replayBuffers[id] = []
-			return .failure(ReplayError(values: values))
+		// This will go "out of scope" when the returned `SignalProducer` goes
+		// out of scope. This lets us know when we're supposed to dispose the
+		// underlying producer. This is necessary because `struct`s don't have
+		// `deinit`.
+		let lifetimeToken = Lifetime.Token()
+		let lifetime = Lifetime(lifetimeToken)
 
-		case let .some(buffer) where !buffer.isEmpty:
-			// An in-flight replay buffer was found with one or more buffered values.
-			// The observer should replay them before attempting to observe again.
-			defer { replayBuffers[id] = [] }
-			return .failure(ReplayError(values: buffer))
+		let state = Atomic(ReplayState(upTo: capacity))
 
-		case let .some(buffer) where buffer.isEmpty:
-			// Since an in-flight but empty replay buffer was found, the observer is
-			// ready to be attached to the `ReplayState`.
-			replayBuffers.removeValue(forKey: id)
-
-		default:
-			// No values has to be replayed. The observer is ready to be attached to
-			// the `ReplayState`.
-			break
-		}
-
-		if let event = terminationEvent {
-			observer.action(event)
-		}
-
-		return .success(observers?.insert(observer))
-	}
-
-	/// Enqueue the supplied event to the replay state.
-	///
-	/// - parameter:
-	///   - event: The event to be cached.
-	mutating func enqueue(_ event: Event<Value, Error>) {
-		switch event {
-		case let .value(value):
-			for key in replayBuffers.keys {
-				replayBuffers[key]!.append(value)
+		let start: Atomic<(() -> Void)?> = Atomic {
+			// Start the underlying producer.
+			self
+				.take(during: lifetime)
+				.start { event in
+					let observers: Bag<Signal<Value, Error>.Observer>? = state.modify { state in
+						defer { state.enqueue(event) }
+						return state.observers
+					}
+					observers?.forEach { $0.action(event) }
 			}
+		}
 
-			switch capacity {
-			case 0:
-				// With a capacity of zero, `state.values` can never be filled.
-				break
+		return SignalProducer { observer, disposable in
+			// Don't dispose of the original producer until all observers
+			// have terminated.
+			disposable += { _ = lifetimeToken }
 
-			case 1:
-				values = [value]
+			while true {
+				let result = state.modify { $0.observe(observer) }
 
-			default:
-				values.append(value)
+				switch result {
+				case let .success(token):
+					if let token = token {
+						disposable += {
+							state.modify {
+								$0.removeObserver(using: token)
+							}
+						}
+					}
 
-				let overflow = values.count - capacity
-				if overflow > 0 {
-					values.removeFirst(overflow)
+					// Start the underlying producer if it has never been started.
+					start.swap(nil)?()
+
+					// Terminate the replay loop.
+					return
+
+				case let .failure(error):
+					error.values.forEach(observer.send(value:))
 				}
 			}
-
-		case .completed, .failed, .interrupted:
-			// Disconnect all observers and prevent future attachments.
-			terminationEvent = event
-			observers = nil
 		}
 	}
 
-	/// Remove the observer represented by the supplied token.
-	///
-	/// - parameters:
-	///   - token: The token of the observer to be removed.
-	mutating func removeObserver(using token: RemovalToken) {
-		observers?.remove(using: token)
+	private typealias ProducerError = Error
+
+	private struct ReplayState {
+		/// Represents a recoverable error of an observer not being ready for an
+		/// attachment to a `ReplayState`, and the observer should replay the supplied
+		/// values before attempting to observe again.
+		fileprivate struct Error: Swift.Error {
+			/// The values that should be replayed by the observer.
+			let values: [Value]
+		}
+
+		let capacity: Int
+
+		/// All cached values.
+		var values: [Value] = []
+
+		/// A termination event emitted by the underlying producer.
+		///
+		/// This will be nil if termination has not occurred.
+		var terminationEvent: Event<Value, ProducerError>?
+
+		/// The observers currently attached to the caching producer, or `nil` if the
+		/// caching producer was terminated.
+		var observers: Bag<Signal<Value, ProducerError>.Observer>? = Bag()
+
+		/// The set of in-flight replay buffers.
+		var replayBuffers: [ObjectIdentifier: [Value]] = [:]
+
+		/// Initialize the replay state.
+		///
+		/// - parameters:
+		///   - capacity: The maximum amount of values which can be cached by the
+		///               replay state.
+		init(upTo capacity: Int) {
+			self.capacity = capacity
+		}
+
+		/// Attempt to observe the replay state.
+		///
+		/// - warning: Repeatedly observing the replay state with the same observer
+		///            should be avoided.
+		///
+		/// - parameters:
+		///   - observer: The observer to be registered.
+		///
+		/// - returns: If the observer is successfully attached, a `Result.success`
+		///            with the corresponding removal token would be returned.
+		///            Otherwise, a `Result.failure` with a `ReplayError` would be
+		///            returned.
+		mutating func observe(_ observer: Signal<Value, ProducerError>.Observer) -> Result<RemovalToken?, Error> {
+			// Since the only use case is `replayLazily`, which always creates a unique
+			// `Observer` for every produced signal, we can use the ObjectIdentifier of
+			// the `Observer` to track them directly.
+			let id = ObjectIdentifier(observer)
+
+			switch replayBuffers[id] {
+			case .none where !values.isEmpty:
+				// No in-flight replay buffers was found, but the `ReplayState` has one or
+				// more cached values in the `ReplayState`. The observer should replay
+				// them before attempting to observe again.
+				replayBuffers[id] = []
+				return .failure(Error(values: values))
+
+			case let .some(buffer) where !buffer.isEmpty:
+				// An in-flight replay buffer was found with one or more buffered values.
+				// The observer should replay them before attempting to observe again.
+				defer { replayBuffers[id] = [] }
+				return .failure(Error(values: buffer))
+
+			case let .some(buffer) where buffer.isEmpty:
+				// Since an in-flight but empty replay buffer was found, the observer is
+				// ready to be attached to the `ReplayState`.
+				replayBuffers.removeValue(forKey: id)
+
+			default:
+				// No values has to be replayed. The observer is ready to be attached to
+				// the `ReplayState`.
+				break
+			}
+
+			if let event = terminationEvent {
+				observer.action(event)
+			}
+
+			return .success(observers?.insert(observer))
+		}
+
+		/// Enqueue the supplied event to the replay state.
+		///
+		/// - parameter:
+		///   - event: The event to be cached.
+		mutating func enqueue(_ event: Event<Value, ProducerError>) {
+			switch event {
+			case let .value(value):
+				for key in replayBuffers.keys {
+					replayBuffers[key]!.append(value)
+				}
+
+				switch capacity {
+				case 0:
+					// With a capacity of zero, `state.values` can never be filled.
+					break
+
+				case 1:
+					values = [value]
+
+				default:
+					values.append(value)
+
+					let overflow = values.count - capacity
+					if overflow > 0 {
+						values.removeFirst(overflow)
+					}
+				}
+
+			case .completed, .failed, .interrupted:
+				// Disconnect all observers and prevent future attachments.
+				terminationEvent = event
+				observers = nil
+			}
+		}
+
+		/// Remove the observer represented by the supplied token.
+		///
+		/// - parameters:
+		///   - token: The token of the observer to be removed.
+		mutating func removeObserver(using token: RemovalToken) {
+			observers?.remove(using: token)
+		}
 	}
 }
 
