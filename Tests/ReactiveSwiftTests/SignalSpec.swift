@@ -222,6 +222,65 @@ class SignalSpec: QuickSpec {
 					}
 				}
 			}
+
+			context("recursion") {
+				it("should not deadlock") {
+					let (signal, observer) = Signal<Int, NoError>.pipe(recursion: true)
+
+					var values: [Int] = []
+					var receivedValues: [Int] = []
+
+					signal
+						.on(value: { values.append($0) })
+						.observeValues { value in
+							receivedValues.append(value)
+
+							if value > 0 {
+								observer.send(value: value - 1)
+							}
+						}
+
+					expect(receivedValues) == []
+					expect(values) == []
+
+					observer.send(value: 5)
+					expect(receivedValues) == [5, 4, 3, 2, 1, 0]
+					expect(values) == [5, 4, 3, 2, 1, 0]
+				}
+
+				it("should maintain the serial order of events") {
+					let (signal, observer) = Signal<Int, NoError>.pipe(recursion: true)
+
+					var values: [Int] = []
+
+					for i in 0 ..< 3 {
+						switch i {
+						case 0:
+							signal.observeValues { value in
+								values.append(value)
+
+								if value > 0 {
+									observer.send(value: value - 1)
+								}
+							}
+
+						default:
+							signal.observeValues { value in
+								values.append(value)
+							}
+						}
+					}
+
+					expect(values) == []
+
+					// The recursively sent values would be drained only after the
+					// observer call-out for `.value(2)` has completed. This is where
+					// `pipe(recursive: true)` differs from the previous recursive locking
+					// implementation of signal recursion.
+					observer.send(value: 2)
+					expect(values) == [2, 2, 2, 1, 1, 1, 0, 0, 0]
+				}
+			}
 		}
 
 		describe("interruption") {

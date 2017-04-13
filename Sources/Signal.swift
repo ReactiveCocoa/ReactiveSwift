@@ -268,21 +268,56 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// Create a `Signal` that will be controlled by sending events to an
 	/// input observer.
 	///
+	/// If signal recursion is enabled, the `Signal` would use a queue-drain approach to
+	/// maintain the serial order of values. That is, all events received — concurrent or
+	/// recursive — during the delivery of a given event would be buffered, and drained
+	/// after the delivery is completed. If a terminal event is received while the queue
+	/// is not completely drained, the `Signal` would still terminate as soon as possible,
+	/// discarding all pending values.
+	///
 	/// - note: The `Signal` will remain alive until a terminating event is sent
 	///         to the input observer, or until it has no observers and there
 	///         are no strong references to it.
 	///
 	/// - parameters:
+	///   - recursion: Enable signal recusion. It is disabled by default.
 	///   - disposable: An optional disposable to associate with the signal, and
 	///                 to be disposed of when the signal terminates.
 	///
 	/// - returns: A tuple of `output: Signal`, the output end of the pipe,
 	///            and `input: Observer`, the input end of the pipe.
-	public static func pipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
+	public static func pipe(recursion: Bool = false, disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
 		var observer: Observer!
+
 		let signal = self.init { innerObserver in
 			observer = innerObserver
 			return disposable
+		}
+
+		if recursion {
+			let lock = PosixThreadMutex()
+			let queue: Atomic<[Value]> = Atomic([])
+			let realObserver = observer!
+
+			observer = Observer { event in
+				switch event {
+				case .value:
+					if lock.try() {
+						realObserver.action(event)
+
+						while let value: Value = queue.modify({ $0.isEmpty ? nil : $0.removeFirst() }) {
+							realObserver.send(value: value)
+						}
+
+						lock.unlock()
+					} else {
+						queue.modify { $0.append(event.value!) }
+					}
+
+				case .completed, .failed, .interrupted:
+					realObserver.action(event)
+				}
+			}
 		}
 
 		return (signal, observer)
