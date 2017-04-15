@@ -93,3 +93,4 @@ xcodebuild_arguments:
 author: ReactiveCocoa
 author_url: https://reactivecocoa.io/
 github_url: https://github.com/ReactiveCocoa/ReactiveSwift/
+dash_url: http://reactivecocoa.io/reactiveswift/docs/ReactiveSwift.xml
