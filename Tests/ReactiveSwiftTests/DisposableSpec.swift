@@ -74,8 +74,8 @@ class DisposableSpec: QuickSpec {
 				let handle = disposable += simpleDisposable
 
 				// We should be allowed to call this any number of times.
-				handle.remove()
-				handle.remove()
+				handle?.dispose()
+				handle?.dispose()
 				expect(simpleDisposable.isDisposed) == false
 
 				disposable.dispose()

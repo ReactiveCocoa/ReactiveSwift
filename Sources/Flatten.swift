@@ -452,7 +452,7 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 					signal.observe { event in
 						switch event {
 						case .completed, .interrupted:
-							handle.remove()
+							handle?.dispose()
 
 							let shouldComplete: Bool = state.modify { state in
 								state.activeCount -= 1
@@ -839,7 +839,7 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 
 						// Dispose all running innerSignals except winning one.
 						if !relayDisposable.isDisposed {
-							disposableHandle.remove()
+							disposableHandle?.dispose()
 							relayDisposable.dispose()
 						}
 
