@@ -14,7 +14,7 @@ import Foundation
 #endif
 
 /// Represents a serial queue of work items.
-public protocol Scheduler {
+public protocol Scheduler: class {
 	/// Enqueues an action on the scheduler.
 	///
 	/// When the work is executed depends on the scheduler in use.
