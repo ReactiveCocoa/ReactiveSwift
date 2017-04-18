@@ -2147,54 +2147,56 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	}
 }
 
-/// Create a repeating timer of the given interval, with a reasonable default
-/// leeway, sending updates on the given scheduler.
-///
-/// - note: This timer will never complete naturally, so all invocations of
-///         `start()` must be disposed to avoid leaks.
-///
-/// - precondition: `interval` must be non-negative number.
-///
-///	- note: If you plan to specify an `interval` value greater than 200,000
-///			seconds, use `timer(interval:on:leeway:)` instead
-///			and specify your own `leeway` value to avoid potential overflow.
-///
-/// - parameters:
-///   - interval: An interval between invocations.
-///   - scheduler: A scheduler to deliver events on.
-///
-/// - returns: A producer that sends `NSDate` values every `interval` seconds.
-public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -> SignalProducer<Date, NoError> {
-	// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
-	// at least 10% of the timer interval.
-	return timer(interval: interval, on: scheduler, leeway: interval * 0.1)
-}
+extension SignalProducer where Value == Date, Error == NoError {
+	/// Create a repeating timer of the given interval, with a reasonable default
+	/// leeway, sending updates on the given scheduler.
+	///
+	/// - note: This timer will never complete naturally, so all invocations of
+	///         `start()` must be disposed to avoid leaks.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	///	- note: If you plan to specify an `interval` value greater than 200,000
+	///			seconds, use `timer(interval:on:leeway:)` instead
+	///			and specify your own `leeway` value to avoid potential overflow.
+	///
+	/// - parameters:
+	///   - interval: An interval between invocations.
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A producer that sends `NSDate` values every `interval` seconds.
+	public static func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
+		// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
+		// at least 10% of the timer interval.
+		return timer(interval: interval, on: scheduler, leeway: interval * 0.1)
+	}
 
-/// Creates a repeating timer of the given interval, sending updates on the
-/// given scheduler.
-///
-/// - note: This timer will never complete naturally, so all invocations of
-///         `start()` must be disposed to avoid leaks.
-///
-/// - precondition: `interval` must be non-negative number.
-///
-/// - precondition: `leeway` must be non-negative number.
-///
-/// - parameters:
-///   - interval: An interval between invocations.
-///   - scheduler: A scheduler to deliver events on.
-///   - leeway: Interval leeway. Apple's "Power Efficiency Guide for Mac Apps"
-///             recommends a leeway of at least 10% of the timer interval.
-///
-/// - returns: A producer that sends `NSDate` values every `interval` seconds.
-public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> {
-	precondition(interval.timeInterval >= 0)
-	precondition(leeway.timeInterval >= 0)
+	/// Creates a repeating timer of the given interval, sending updates on the
+	/// given scheduler.
+	///
+	/// - note: This timer will never complete naturally, so all invocations of
+	///         `start()` must be disposed to avoid leaks.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	/// - precondition: `leeway` must be non-negative number.
+	///
+	/// - parameters:
+	///   - interval: An interval between invocations.
+	///   - scheduler: A scheduler to deliver events on.
+	///   - leeway: Interval leeway. Apple's "Power Efficiency Guide for Mac Apps"
+	///             recommends a leeway of at least 10% of the timer interval.
+	///
+	/// - returns: A producer that sends `NSDate` values every `interval` seconds.
+	public static func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Value, Error> {
+		precondition(interval.timeInterval >= 0)
+		precondition(leeway.timeInterval >= 0)
 
-	return SignalProducer { observer, compositeDisposable in
-		compositeDisposable += scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval),
-		                                          interval: interval,
-		                                          leeway: leeway,
-		                                          action: { observer.send(value: scheduler.currentDate) })
+		return SignalProducer { observer, compositeDisposable in
+			compositeDisposable += scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval),
+													  interval: interval,
+													  leeway: leeway,
+													  action: { observer.send(value: scheduler.currentDate) })
+		}
 	}
 }
