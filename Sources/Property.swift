@@ -69,7 +69,7 @@ public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
 	///   - action: A closure that accepts current property value.
 	///
 	/// - returns: the result of the action.
-	func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result
+	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result
 
 	/// Atomically modifies the variable.
 	///
@@ -701,7 +701,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	///
 	/// - returns: the result of the action.
 	@discardableResult
-	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result {
+	public func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
 		return try atomic.withValue(action)
 	}
 
