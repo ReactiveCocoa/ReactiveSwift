@@ -294,8 +294,8 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - observer: An observer to forward the events to.
 	///
-	/// - returns: A `Disposable` which can be used to disconnect the observer,
-	///            or `nil` if the signal has already terminated.
+	/// - returns: A disposable to detach `observer` from `self`. `nil` if `self` has
+	///            terminated.
 	@discardableResult
 	public func observe(_ observer: Observer) -> Disposable? {
 		var token: Bag<Observer>.Token?
@@ -425,101 +425,91 @@ extension Signal: SignalProtocol {
 }
 
 extension Signal {
-	/// Convenience override for observe(_:) to allow trailing-closure style
-	/// invocations.
+	/// Attach a closure as an observer to all events from `self`.
+	///
+	/// - note: If `self` has terminated, the closure would be invoked with an
+	///         `interrupted` event immediately.
 	///
 	/// - parameters:
-	///   - action: A closure that will accept an event of the signal
+	///   - action: A closure to be invoked with every event from `self`.
 	///
-	/// - returns: An optional `Disposable` which can be used to stop the
-	///            invocation of the callback. Disposing of the Disposable will
-	///            have no effect on the Signal itself.
+	/// - returns: A disposable to detach `action` from `self`. `nil` if `self` has
+	///            terminated.
 	@discardableResult
 	public func observe(_ action: @escaping Signal<Value, Error>.Observer.Action) -> Disposable? {
 		return observe(Observer(action))
 	}
 
-	/// Observe the `Signal` by invoking the given callback when `value` or
-	/// `failed` event are received.
+	/// Attach a closure as an observer to the `value` events and the `failed` event from
+	/// `self`.
 	///
 	/// - parameters:
-	///   - result: A closure that accepts instance of `Result<Value, Error>`
-	///             enum that contains either a `.success(Value)` or
-	///             `.failure<Error>` case.
+	///   - action: A closure to be invoked with values from `self`, or the propagated
+	///             error should any `failed` event is emitted.
 	///
-	/// - returns: An optional `Disposable` which can be used to stop the
-	///            invocation of the callback. Disposing of the Disposable will
-	///            have no effect on the Signal itself.
+	/// - returns: A disposable to detach `action` from `self`. `nil` if `self` has
+	///            terminated.
 	@discardableResult
-	public func observeResult(_ result: @escaping (Result<Value, Error>) -> Void) -> Disposable? {
+	public func observeResult(_ action: @escaping (Result<Value, Error>) -> Void) -> Disposable? {
 		return observe(
 			Observer(
-				value: { result(.success($0)) },
-				failed: { result(.failure($0)) }
+				value: { action(.success($0)) },
+				failed: { action(.failure($0)) }
 			)
 		)
 	}
 
-	/// Observe the `Signal` by invoking the given callback when a `completed`
-	/// event is received.
+	/// Attach a closure as an observer to the `completed` event from `self`.
 	///
 	/// - parameters:
-	///   - completed: A closure that is called when `completed` event is
-	///                received.
+	///   - action: A closure to be invoked when a `completed` event is emitted.
 	///
-	/// - returns: An optional `Disposable` which can be used to stop the
-	///            invocation of the callback. Disposing of the Disposable will
-	///            have no effect on the Signal itself.
+	/// - returns: A disposable to detach `action` from `self`. `nil` if `self` has
+	///            terminated.
 	@discardableResult
-	public func observeCompleted(_ completed: @escaping () -> Void) -> Disposable? {
-		return observe(Observer(completed: completed))
+	public func observeCompleted(_ action: @escaping () -> Void) -> Disposable? {
+		return observe(Observer(completed: action))
 	}
 	
-	/// Observe the `Signal` by invoking the given callback when a `failed` 
-	/// event is received.
+	/// Attach a closure as an observer to the `failed` event from `self`.
 	///
 	/// - parameters:
-	///   - error: A closure that is called when failed event is received. It
-	///            accepts an error parameter.
+	///   - action: A closure to be invoked with the propagated error, should any
+	///             `failed` event is emitted.
 	///
-	/// Returns a Disposable which can be used to stop the invocation of the
-	/// callback. Disposing of the Disposable will have no effect on the Signal
-	/// itself.
+	/// - returns: A disposable to detach `action` from `self`. `nil` if `self` has
+	///            terminated.
 	@discardableResult
-	public func observeFailed(_ error: @escaping (Error) -> Void) -> Disposable? {
-		return observe(Observer(failed: error))
+	public func observeFailed(_ action: @escaping (Error) -> Void) -> Disposable? {
+		return observe(Observer(failed: action))
 	}
 	
-	/// Observe the `Signal` by invoking the given callback when an 
-	/// `interrupted` event is received. If the Signal has already terminated, 
-	/// the callback will be invoked immediately.
+	/// Attach a closure as an observer to the `interrupted` event from `self`.
+	///
+	/// - note: If `self` has terminated, the closure would be invoked immediately.
 	///
 	/// - parameters:
-	///   - interrupted: A closure that is invoked when `interrupted` event is
-	///                  received
+	///   - action: A closure to be invoked when an `interrupted` event is emitted.
 	///
-	/// - returns: An optional `Disposable` which can be used to stop the
-	///            invocation of the callback. Disposing of the Disposable will
-	///            have no effect on the Signal itself.
+	/// - returns: A disposable to detach `action` from `self`. `nil` if `self` has
+	///            terminated.
 	@discardableResult
-	public func observeInterrupted(_ interrupted: @escaping () -> Void) -> Disposable? {
-		return observe(Observer(interrupted: interrupted))
+	public func observeInterrupted(_ action: @escaping () -> Void) -> Disposable? {
+		return observe(Observer(interrupted: action))
 	}
 }
 
 extension Signal where Error == NoError {
-	/// Observe the Signal by invoking the given callback when `value` events are
-	/// received.
+	/// Attach a closure as an observer to the `value` events from `self`.
 	///
 	/// - parameters:
-	///   - value: A closure that accepts a value when `value` event is received.
+	///   - action: A closure to be invoked with values from `self`.
 	///
-	/// - returns: An optional `Disposable` which can be used to stop the
-	///            invocation of the callback. Disposing of the Disposable will
-	///            have no effect on the Signal itself.
+	/// - returns: A disposable to detach `action` from `self`. `nil` if `self` has
+	///            terminated.
 	@discardableResult
-	public func observeValues(_ value: @escaping (Value) -> Void) -> Disposable? {
-		return observe(Observer(value: value))
+	public func observeValues(_ action: @escaping (Value) -> Void) -> Disposable? {
+		return observe(Observer(value: action))
 	}
 }
 
@@ -576,15 +566,14 @@ extension Signal {
 		}
 	}
 
-	/// Preserve only the values of the signal that pass the given predicate.
+	/// Preserve only values which pass the given closure.
 	///
 	/// - parameters:
-	///   - predicate: A closure that accepts value and returns `Bool` denoting
-	///                whether value has passed the test.
+	///   - isIncluded: A closure to determine whether a value from `self` should be
+	///                 included in the returned `Signal`.
 	///
-	/// - returns: A signal that will send only the values passing the given
-	///            predicate.
-	public func filter(_ predicate: @escaping (Value) -> Bool) -> Signal<Value, Error> {
+	/// - returns: A signal that forwards the values passing the given closure.
+	public func filter(_ isIncluded: @escaping (Value) -> Bool) -> Signal<Value, Error> {
 		return Signal { observer in
 			return self.observe { (event: Event<Value, Error>) -> Void in
 				guard let value = event.value else {
@@ -592,7 +581,7 @@ extension Signal {
 					return
 				}
 
-				if predicate(value) {
+				if isIncluded(value) {
 					observer.send(value: value)
 				}
 			}
@@ -736,12 +725,13 @@ extension Signal {
 		return collect { values in values.count == count }
 	}
 
-	/// Collect values that pass the given predicate then forward them as a
-	/// single array and complete.
+	/// Collect values from `self`, and emit them if the predicate passes.
 	///
-	/// - note: When `self` completes any remaining values will be sent, the
-	///         last array may not match `predicate`. Alternatively, if were not
-	///         collected any values will sent an empty array of values.
+	/// When `self` completes any remaining values will be sent, regardless of the
+	/// collected values matching `shouldEmit` or not.
+	///
+	/// If `self` completes without having emitted any value, an empty array would be
+	/// emitted, followed by the completion of the returned `Signal`.
 	///
 	/// ````
 	/// let (signal, observer) = Signal<Int, NoError>.pipe()
@@ -766,17 +756,13 @@ extension Signal {
 	/// ````
 	///
 	/// - parameters:
-	///   - predicate: Predicate to match when values should be sent (returning
-	///                `true`) or alternatively when they should be collected
-	///                (where it should return `false`). The most recent value
-	///                (`value`) is included in `values` and will be the end of
-	///                the current array of values if the predicate returns
-	///                `true`.
+	///   - shouldEmit: A closure to determine, when every time a new value is received,
+	///                 whether the collected values should be emitted. The new value
+	///                 is included in the collected values.
 	///
-	/// - returns: A signal that collects values passing the predicate and, when
-	///            `self` completes, forwards them as a single array and
-	///            complets.
-	public func collect(_ predicate: @escaping (_ values: [Value]) -> Bool) -> Signal<[Value], Error> {
+	/// - returns: A signal of arrays of values, as instructed by the `shouldEmit`
+	///            closure.
+	public func collect(_ shouldEmit: @escaping (_ collectedValues: [Value]) -> Bool) -> Signal<[Value], Error> {
 		return Signal<[Value], Error> { observer in
 			let state = CollectState<Value>()
 
@@ -784,7 +770,7 @@ extension Signal {
 				switch event {
 				case let .value(value):
 					state.append(value)
-					if predicate(state.values) {
+					if shouldEmit(state.values) {
 						observer.send(value: state.values)
 						state.flush()
 					}
@@ -802,12 +788,13 @@ extension Signal {
 		}
 	}
 
-	/// Repeatedly collect an array of values up to a matching `value` value.
-	/// Then forward them as single array and wait for value events.
+	/// Collect values from `self`, and emit them if the predicate passes.
 	///
-	/// - note: When `self` completes any remaining values will be sent, the
-	///         last array may not match `predicate`. Alternatively, if no
-	///         values were collected an empty array will be sent.
+	/// When `self` completes any remaining values will be sent, regardless of the
+	/// collected values matching `shouldEmit` or not.
+	///
+	/// If `self` completes without having emitted any value, an empty array would be
+	/// emitted, followed by the completion of the returned `Signal`.
 	///
 	/// ````
 	/// let (signal, observer) = Signal<Int, NoError>.pipe()
@@ -831,24 +818,21 @@ extension Signal {
 	/// ````
 	///
 	/// - parameters:
-	///   - predicate: Predicate to match when values should be sent (returning
-	///                `true`) or alternatively when they should be collected
-	///                (where it should return `false`). The most recent value
-	///                (`value`) is not included in `values` and will be the
-	///                start of the next array of values if the predicate
-	///                returns `true`.
+	///   - shouldEmit: A closure to determine, when every time a new value is received,
+	///                 whether the collected values should be emitted. The new value
+	///                 is **not** included in the collected values, and is included when
+	///                 the next value is received.
 	///
-	/// - returns: A signal that will yield an array of values based on a
-	///            predicate which matches the values collected and the next
-	///            value.
-	public func collect(_ predicate: @escaping (_ values: [Value], _ value: Value) -> Bool) -> Signal<[Value], Error> {
+	/// - returns: A signal of arrays of values, as instructed by the `shouldEmit`
+	///            closure.
+	public func collect(_ shouldEmit: @escaping (_ collected: [Value], _ latest: Value) -> Bool) -> Signal<[Value], Error> {
 		return Signal<[Value], Error> { observer in
 			let state = CollectState<Value>()
 
 			return self.observe { event in
 				switch event {
 				case let .value(value):
-					if predicate(state.values, value) {
+					if shouldEmit(state.values, value) {
 						observer.send(value: state.values)
 						state.flush()
 					}
@@ -1401,29 +1385,33 @@ extension Signal {
 	}
 
 
-	/// Send only the final value and then immediately completes.
+	/// Accumuate all values from `self`, and forward only the final accumuated result.
 	///
 	/// - parameters:
-	///   - initial: Initial value for the accumulator.
-	///   - combine: A closure that accepts accumulator and sent value of
-	///              `self`.
+	///   - initialResult: The value to use as the initial accumulating value.
+	///   - nextPartialResult: A closure that combines the accumulating value and the
+	///                        latest value from `self`. The result would be used in the
+	///                        next call of `nextPartialResult`, or emit to the returned
+	///                        `Signal` when `self` completes.
 	///
-	/// - returns: A signal that sends accumulated value after `self` completes.
-	public func reduce<U>(_ initial: U, _ combine: @escaping (U, Value) -> U) -> Signal<U, Error> {
-		return self.reduce(into: initial) { accumulator, value in
-			accumulator = combine(accumulator, value)
+	/// - returns: A signal that sends the accumulated result as `self` completes.
+	public func reduce<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Signal<U, Error> {
+		return self.reduce(into: initialResult) { accumulator, value in
+			accumulator = nextPartialResult(accumulator, value)
 		}
 	}
 
-	/// Send only the final value and then immediately completes.
+	/// Accumuate all values from `self`, and forward only the final accumuated result.
 	///
 	/// - parameters:
-	///   - initial: Initial value for the accumulator.
-	///   - combine: A closure that accepts accumulator and sent value of
-	///              `self`.
+	///   - initialResult: The value to use as the initial accumulating value.
+	///   - nextPartialResult: A closure that combines the accumulating value and the
+	///                        latest value from `self`. The result would be used in the
+	///                        next call of `nextPartialResult`, or emit to the returned
+	///                        `Signal` when `self` completes.
 	///
-	/// - returns: A signal that sends accumulated value after `self` completes.
-	public func reduce<U>(into initial: U, _ combine: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
+	/// - returns: A signal that sends the accumulated result as `self` completes.
+	public func reduce<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
 		// We need to handle the special case in which `signal` sends no values.
 		// We'll do that by sending `initial` on the output signal (before
 		// taking the last value).
@@ -1431,22 +1419,19 @@ extension Signal {
 		let outputSignal = scannedSignalWithInitialValue.take(last: 1)
 
 		// Now that we've got takeLast() listening to the piped signal, send
-		// that initial value.
-		outputSignalObserver.send(value: initial)
+
+        // that initial value.
+		outputSignalObserver.send(value: initialResult)
 
 		// Pipe the scanned input signal into the output signal.
-		self.scan(into: initial, combine)
+		self.scan(into: initialResult, nextPartialResult)
 			.observe(outputSignalObserver)
 
 		return outputSignal
 	}
 
-	/// Aggregate values into a single combined value. When `self` emits its
-	/// first value, `combine` is invoked with `initial` as the first argument
-	/// and that emitted value as the second argument. The result is emitted
-	/// from the signal returned from `scan`. That result is then passed to
-	/// `combine` as the first argument when the next value is emitted, and so
-	/// on.
+	/// Accumuate all values from `self`, and forward the partial results and the final
+	/// result.
 	///
 	/// - parameters:
 	///   - initial: Initial value for the accumulator.
@@ -1455,33 +1440,30 @@ extension Signal {
 	///
 	/// - returns: A signal that sends accumulated value each time `self` emits
 	///            own value.
-	public func scan<U>(_ initial: U, _ combine: @escaping (U, Value) -> U) -> Signal<U, Error> {
-		return self.scan(into: initial) { accumulator, value in
-			accumulator = combine(accumulator, value)
+	public func scan<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Signal<U, Error> {
+		return self.scan(into: initialResult) { accumulator, value in
+			accumulator = nextPartialResult(accumulator, value)
 		}
 	}
 
-	/// Aggregate values into a single combined value. When `self` emits its
-	/// first value, `combine` is invoked with `initial` as the first argument
-	/// and that emitted value as the second argument. The result is emitted
-	/// from the signal returned from `scan`. That result is then passed to
-	/// `combine` as the first argument when the next value is emitted, and so
-	/// on.
+	/// Accumuate all values from `self`, and forward the partial results and the final
+	/// result.
 	///
 	/// - parameters:
-	///   - initial: Initial value for the accumulator.
-	///   - combine: A closure that accepts accumulator and sent value of
-	///              `self`.
+	///   - initialResult: The value to use as the initial accumulating value.
+	///   - nextPartialResult: A closure that combines the accumulating value and the
+	///                        latest value from `self`. The result would be forwarded,
+	///                        and would be used in the next call of `nextPartialResult`.
 	///
-	/// - returns: A signal that sends accumulated value each time `self` emits
-	///            own value.
-	public func scan<U>(into initial: U, _ combine: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
+	/// - returns: A signal that sends the partial results of the accumuation, and the
+	///            final result as `self` completes.
+	public func scan<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
 		return Signal<U, Error> { observer in
-			var accumulator = initial
+			var accumulator = initialResult
 
 			return self.observe { event in
 				observer.action(event.map { value in
-					combine(&accumulator, value)
+					nextPartialResult(&accumulator, value)
 					return accumulator
 				})
 			}
@@ -1490,37 +1472,33 @@ extension Signal {
 }
 
 extension Signal where Value: Equatable {
-	/// Forward only those values from `self` which are not duplicates of the
-	/// immedately preceding value. 
+	/// Forward only values from `self` that are not equal to its consecutive predecessor.
 	///
 	/// - note: The first value is always forwarded.
 	///
-	/// - returns: A signal that does not send two equal values sequentially.
+	/// - returns: A signal which conditionally forwards values from `self`.
 	public func skipRepeats() -> Signal<Value, Error> {
 		return skipRepeats(==)
 	}
 }
 
 extension Signal {
-	/// Forward only those values from `self` which do not pass `isRepeat` with
-	/// respect to the previous value. 
+	/// Forward only values from `self` that are not considered equivalent to its
+	/// consecutive predecessor.
 	///
 	/// - note: The first value is always forwarded.
 	///
 	/// - parameters:
-	///   - isRepeate: A closure that accepts previous and current values of
-	///                `self` and returns `Bool` whether these values are
-	///                repeating.
+	///   - isEquivalent: A closure to determine whether two values are equivalent.
 	///
-	/// - returns: A signal that forwards only those values that fail given
-	///            `isRepeat` predicate.
-	public func skipRepeats(_ isRepeat: @escaping (Value, Value) -> Bool) -> Signal<Value, Error> {
+	/// - returns: A signal which conditionally forwards values from `self`.
+	public func skipRepeats(_ isEquivalent: @escaping (Value, Value) -> Bool) -> Signal<Value, Error> {
 		return self
 			.scan((nil, false)) { (accumulated: (Value?, Bool), next: Value) -> (value: Value?, repeated: Bool) in
 				switch accumulated.0 {
 				case nil:
 					return (next, false)
-				case let prev? where isRepeat(prev, next):
+				case let prev? where isEquivalent(prev, next):
 					return (prev, true)
 				case _?:
 					return (Optional(next), false)
@@ -1530,23 +1508,23 @@ extension Signal {
 			.filterMap { $0.value }
 	}
 
-	/// Do not forward any values from `self` until `predicate` returns false,
-	/// at which point the returned signal behaves exactly like `signal`.
+	/// Do not forward any value from `self` until `shouldContinue` returns `false`, at
+	/// which point the returned signal starts to forward values from `self`, including
+	/// the one leading to the toggling.
 	///
 	/// - parameters:
-	///   - predicate: A closure that accepts a value and returns whether `self`
-	///                should still not forward that value to a `signal`.
+	///   - shouldContinue: A closure to determine whether the skipping should continue.
 	///
-	/// - returns: A signal that sends only forwarded values from `self`.
-	public func skip(while predicate: @escaping (Value) -> Bool) -> Signal<Value, Error> {
+	/// - returns: A signal which conditionally forwards values from `self`.
+	public func skip(while shouldContinue: @escaping (Value) -> Bool) -> Signal<Value, Error> {
 		return Signal { observer in
-			var shouldSkip = true
+			var isSkipping = true
 
 			return self.observe { event in
 				switch event {
 				case let .value(value):
-					shouldSkip = shouldSkip && predicate(value)
-					if !shouldSkip {
+					isSkipping = isSkipping && shouldContinue(value)
+					if !isSkipping {
 						fallthrough
 					}
 
@@ -1630,20 +1608,18 @@ extension Signal {
 		}
 	}
 
-	/// Forward any values from `self` until `predicate` returns false, at which
-	/// point the returned signal will complete.
+	/// Forward any values from `self` until `shouldContinue` returns `false`, at which
+	/// point the returned signal would complete.
 	///
 	/// - parameters:
-	///   - predicate: A closure that accepts value and returns `Bool` value
-	///                whether `self` should forward it to `signal` and continue
-	///                sending other events.
+	///   - shouldContinue: A closure to determine whether the forwarding of values should
+	///                     continue.
 	///
-	/// - returns: A signal that sends events until the values sent by `self`
-	///            pass the given `predicate`.
-	public func take(while predicate: @escaping (Value) -> Bool) -> Signal<Value, Error> {
+	/// - returns: A signal which conditionally forwards values from `self`.
+	public func take(while shouldContinue: @escaping (Value) -> Bool) -> Signal<Value, Error> {
 		return Signal { observer in
 			return self.observe { event in
-				if let value = event.value, !predicate(value) {
+				if let value = event.value, !shouldContinue(value) {
 					observer.sendCompleted()
 				} else {
 					observer.action(event)
@@ -2344,37 +2320,38 @@ extension Signal where Value == Bool {
 }
 
 extension Signal {
-	/// Apply `operation` to values from `self` with `success`ful results
-	/// forwarded on the returned signal and `failure`s sent as failed events.
+	/// Invoke an action with every value from `self`, and forward the value if the action
+	/// succeeds. If the action fails with an error, the returned `Signal` would propagate
+	/// the failure and terminate.
 	///
 	/// - parameters:
-	///   - operation: A closure that accepts a value and returns a `Result`.
+	///   - action: An action which yields a `Result`.
 	///
-	/// - returns: A signal that receives `success`ful `Result` as `value` event
-	///            and `failure` as failed event.
-	public func attempt(_ operation: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
+	/// - returns: A signal which forwards the values from `self` until the given action
+	///            fails.
+	public func attempt(_ action: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
 		return attemptMap { value in
-			return operation(value).map {
+			return action(value).map {
 				return value
 			}
 		}
 	}
 
-	/// Apply `operation` to values from `self` with `success`ful results mapped
-	/// on the returned signal and `failure`s sent as failed events.
+	/// Invoke a transform with every value from `self`, and forward the transformed value
+	/// if the action succeeds. If the action fails with an error, the returned `Signal`
+	/// would propagate the failure and terminate.
 	///
 	/// - parameters:
-	///   - operation: A closure that accepts a value and returns a result of
-	///                a mapped value as `success`.
+	///   - action: A transform which yields a `Result` of the transformed value or the
+	///             error.
 	///
-	/// - returns: A signal that sends mapped values from `self` if returned
-	///            `Result` is `success`ful, `failed` events otherwise.
-	public func attemptMap<U>(_ operation: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
+	/// - returns: A signal which forwards the transformed values.
+	public func attemptMap<U>(_ transform: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
 		return Signal<U, Error> { observer in
 			self.observe { event in
 				switch event {
 				case let .value(value):
-					operation(value).analysis(
+					transform(value).analysis(
 						ifSuccess: observer.send(value:),
 						ifFailure: observer.send(error:)
 					)
@@ -2391,69 +2368,63 @@ extension Signal {
 }
 
 extension Signal where Error == NoError {
-	/// Apply a failable `operation` to values from `self` with successful
-	/// results forwarded on the returned signal and thrown errors sent as
-	/// failed events.
+	/// Invoke a throwable action with every value from `self`, and forward the values
+	/// if the action succeeds. If the action throws an error, the returned `Signal`
+	/// would propagate the failure and terminate.
 	///
 	/// - parameters:
-	///   - operation: A failable closure that accepts a value.
+	///   - action: A throwable closure to perform an arbitrary action on the value.
 	///
-	/// - returns: A signal that forwards successes as `value` events and thrown
-	///            errors as `failed` events.
-	public func attempt(_ operation: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
+	/// - returns: A signal which forwards the successful values of the given action.
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
 		return self
 			.promoteErrors(AnyError.self)
-			.attempt(operation)
+			.attempt(action)
 	}
 
-	/// Apply a failable `operation` to values from `self` with successful
-	/// results mapped on the returned signal and thrown errors sent as
-	/// failed events.
+	/// Invoke a throwable transform with the values from `self`, and forward the results
+	/// if the action succeeds. If the transform throws an error, the returned `Signal`
+	/// would propagate the failure and terminate.
 	///
 	/// - parameters:
-	///   - operation: A failable closure that accepts a value and attempts to
-	///                transform it.
+	///   - transform: A throwable transform.
 	///
-	/// - returns: A signal that sends successfully mapped values from `self`, or
-	///            thrown errors as `failed` events.
-	public func attemptMap<U>(_ operation: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+	/// - returns: A signal which forwards the successfully transformed values.
+	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
 		return self
 			.promoteErrors(AnyError.self)
-			.attemptMap(operation)
+			.attemptMap(transform)
 	}
 }
 
 extension Signal where Error == AnyError {
-	/// Apply a failable `operation` to values from `self` with successful
-	/// results forwarded on the returned signal and thrown errors sent as
-	/// failed events.
+	/// Invoke a throwable action with every value from `self`, and forward the values
+	/// if the action succeeds. If the action throws an error, the returned `Signal`
+	/// would propagate the failure and terminate.
 	///
 	/// - parameters:
-	///   - operation: A failable closure that accepts a value.
+	///   - action: A throwable closure to perform an arbitrary action on the value.
 	///
-	/// - returns: A signal that forwards successes as `value` events and thrown
-	///            errors as `failed` events.
-	public func attempt(_ operation: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
+	/// - returns: A signal which forwards the successful values of the given action.
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
 		return attemptMap { value in
-			try operation(value)
+			try action(value)
 			return value
 		}
 	}
 
-	/// Apply a failable `operation` to values from `self` with successful
-	/// results mapped on the returned signal and thrown errors sent as
-	/// failed events.
+	/// Invoke a throwable transform with the values from `self`, and forward the results
+	/// if the action succeeds. If the transform throws an error, the returned `Signal`
+	/// would propagate the failure and terminate.
 	///
 	/// - parameters:
-	///   - operation: A failable closure that accepts a value and attempts to
-	///                transform it.
+	///   - transform: A throwable transform.
 	///
-	/// - returns: A signal that sends successfully mapped values from `self`, or
-	///            thrown errors as `failed` events.
-	public func attemptMap<U>(_ operation: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+	/// - returns: A signal which forwards the successfully transformed values.
+	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
 		return attemptMap { value in
 			ReactiveSwift.materialize {
-				try operation(value)
+				try transform(value)
 			}
 		}
 	}
