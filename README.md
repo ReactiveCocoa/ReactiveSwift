@@ -132,6 +132,15 @@ For more details about the concepts and primitives in ReactiveSwift, check these
 1. **[Design Guidelines][]**
 
    Contracts of the ReactiveSwift primitives, Best Practices with ReactiveSwift, and Guidelines on implementing custom operators.
+   
+## Example: interactive form UI
+
+ReactiveSwift includes a [_UI Examples_ playground][], which demonstrates:
+
+1. how to build an interactive form UI with bindings, properties and `Action`s, with a live view in action.
+
+1. how to use reactive primitives to implement the Model-View-ViewModel architectural pattern, with the View Model being the source of truth for the View.
+
 
 ## Example: online search
 
@@ -491,3 +500,4 @@ ReactiveSwift 3.0 would focus on two main goals:
 [ReactiveX]: https://reactivex.io/
 [RxSwift]: https://github.com/ReactiveX/RxSwift/#readme
 [Swift API Guidelines]: https://swift.org/documentation/api-design-guidelines/
+[_UI Examples_ playground]: https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/ReactiveSwift-UIExamples.playground/Pages/ValidatingProperty.xcplaygroundpage/Contents.swift 
