@@ -104,33 +104,97 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 #endif
 }
 
-final class PosixThreadMutex: NSLocking {
-	private var mutex = pthread_mutex_t()
+/// `Lock` exposes `os_unfair_lock` on supported platforms, with pthread mutex as the
+// fallback.
+internal class Lock {
+	#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+	@available(iOS 10.0, *)
+	@available(macOS 10.12, *)
+	@available(tvOS 10.0, *)
+	@available(watchOS 3.0, *)
+	internal final class UnfairLock: Lock {
+		private var _lock: os_unfair_lock
 
-	init() {
-		let result = pthread_mutex_init(&mutex, nil)
-		precondition(result == 0, "Failed to initialize mutex with error \(result).")
+		override init() {
+			_lock = os_unfair_lock()
+			super.init()
+		}
+
+		override func lock() {
+			withUnsafeMutablePointer(to: &_lock, os_unfair_lock_lock)
+		}
+
+		override func unlock() {
+			withUnsafeMutablePointer(to: &_lock, os_unfair_lock_unlock)
+		}
+
+		override func `try`() -> Bool {
+			return withUnsafeMutablePointer(to: &_lock, os_unfair_lock_trylock)
+		}
+	}
+	#endif
+
+	internal final class PthreadLock: Lock {
+		private var _lock: pthread_mutex_t
+
+		override init() {
+			_lock = pthread_mutex_t()
+
+			let status = withUnsafeMutablePointer(to: &_lock) { pthread_mutex_init($0, nil) }
+			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
+
+			super.init()
+		}
+
+		override func lock() {
+			let status = withUnsafeMutablePointer(to: &_lock, pthread_mutex_lock)
+			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
+		}
+
+		override func unlock() {
+			let status = withUnsafeMutablePointer(to: &_lock, pthread_mutex_unlock)
+			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
+		}
+
+		override func `try`() -> Bool {
+			let status = withUnsafeMutablePointer(to: &_lock, pthread_mutex_trylock)
+			switch status {
+			case 0:
+				return true
+			case EBUSY:
+				return false
+			default:
+				assertionFailure("Unexpected pthread mutex error code: \(status)")
+				return false
+			}
+		}
+
+		deinit {
+			let status = withUnsafeMutablePointer(to: &_lock, pthread_mutex_destroy)
+			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
+		}
 	}
 
-	deinit {
-		let result = pthread_mutex_destroy(&mutex)
-		precondition(result == 0, "Failed to destroy mutex with error \(result).")
+	static func make() -> Lock {
+		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+		if #available(*, iOS 10.0, macOS 10.12, tvOS 10.0, watchOS 3.0) {
+			return UnfairLock()
+		}
+		#endif
+
+		return PthreadLock()
 	}
 
-	func lock() {
-		let result = pthread_mutex_lock(&mutex)
-		precondition(result == 0, "Failed to lock \(self) with error \(result).")
-	}
+	private init() {}
 
-	func unlock() {
-		let result = pthread_mutex_unlock(&mutex)
-		precondition(result == 0, "Failed to unlock \(self) with error \(result).")
-	}
+	func lock() { fatalError() }
+	func unlock() { fatalError() }
+	func `try`() -> Bool { fatalError() }
 }
 
 /// An atomic variable.
 public final class Atomic<Value> {
-	private let lock: PosixThreadMutex
+	private let lock: Lock
 	private var _value: Value
 
 	/// Atomically get or set the value of the variable.
@@ -150,7 +214,7 @@ public final class Atomic<Value> {
 	///   - value: Initial value for `self`.
 	public init(_ value: Value) {
 		_value = value
-		lock = PosixThreadMutex()
+		lock = Lock.make()
 	}
 
 	/// Atomically modifies the variable.
