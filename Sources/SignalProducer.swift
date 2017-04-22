@@ -1733,7 +1733,23 @@ extension SignalProducer {
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`. Any failure or interruption sent from `self` is
 	/// forwarded immediately, in which case `replacement` will not be started,
-	/// and none of its events will be be forwarded. 
+	/// and none of its events will be be forwarded.
+	///
+	/// - note: All values sent from `self` are ignored.
+	///
+	/// - parameters:
+	///   - replacement: A producer to start when `self` completes.
+	///
+	/// - returns: A producer that sends events from `self` and then from
+	///            `replacement` when `self` completes.
+	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, Error> {
+		return _then(replacement.promoteErrors(Error.self))
+	}
+
+	/// Wait for completion of `self`, *then* forward all events from
+	/// `replacement`. Any failure or interruption sent from `self` is
+	/// forwarded immediately, in which case `replacement` will not be started,
+	/// and none of its events will be be forwarded.
 	///
 	/// - note: All values sent from `self` are ignored.
 	///
@@ -1743,6 +1759,33 @@ extension SignalProducer {
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
 	public func then<U>(_ replacement: SignalProducer<U, Error>) -> SignalProducer<U, Error> {
+		return _then(replacement)
+	}
+
+	// NOTE: The overload below is added to disambiguate compile-time selection of
+	//       `then(_:)`.
+
+	/// Wait for completion of `self`, *then* forward all events from
+	/// `replacement`. Any failure or interruption sent from `self` is
+	/// forwarded immediately, in which case `replacement` will not be started,
+	/// and none of its events will be be forwarded.
+	///
+	/// - note: All values sent from `self` are ignored.
+	///
+	/// - parameters:
+	///   - replacement: A producer to start when `self` completes.
+	///
+	/// - returns: A producer that sends events from `self` and then from
+	///            `replacement` when `self` completes.
+	public func then(_ replacement: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return _then(replacement)
+	}
+
+	// NOTE: The method below is the shared implementation of `then(_:)`. The underscore
+	//       prefix is added to avoid self referencing in `then(_:)` overloads with
+	//       regard to the most specific rule of overload selection in Swift.
+
+	internal func _then<U>(_ replacement: SignalProducer<U, Error>) -> SignalProducer<U, Error> {
 		return SignalProducer<U, Error> { observer, observerDisposable in
 			self.startWithSignal { signal, signalDisposable in
 				observerDisposable += signalDisposable
@@ -1764,31 +1807,7 @@ extension SignalProducer {
 	}
 }
 
-// FIXME: SWIFT_COMPILER_ISSUE
-//
-// Two of the `SignalProducer.then(self:_:)` overloads are kept in the protocol
-// to mitigate an overloading issue. Moving them back to the concrete type would
-// be a binary-breaking, source-compatible change.
-
-extension SignalProducerProtocol {
-	/// Wait for completion of `self`, *then* forward all events from
-	/// `replacement`. Any failure or interruption sent from `self` is
-	/// forwarded immediately, in which case `replacement` will not be started,
-	/// and none of its events will be be forwarded.
-	///
-	/// - note: All values sent from `self` are ignored.
-	///
-	/// - parameters:
-	///   - replacement: A producer to start when `self` completes.
-	///
-	/// - returns: A producer that sends events from `self` and then from
-	///            `replacement` when `self` completes.
-	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, Error> {
-		return self.producer.then(replacement.promoteErrors(Error.self))
-	}
-}
-
-extension SignalProducerProtocol where Error == NoError {
+extension SignalProducer where Error == NoError {
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`.
 	///
@@ -1800,10 +1819,24 @@ extension SignalProducerProtocol where Error == NoError {
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
 	public func then<U, NewError: Swift.Error>(_ replacement: SignalProducer<U, NewError>) -> SignalProducer<U, NewError> {
-		return self
-			.producer
-			.promoteErrors(NewError.self)
-			.then(replacement)
+		return promoteErrors(NewError.self)._then(replacement)
+	}
+
+	// NOTE: The overload below is added to disambiguate compile-time selection of
+	//       `then(_:)`.
+
+	/// Wait for completion of `self`, *then* forward all events from
+	/// `replacement`.
+	///
+	/// - note: All values sent from `self` are ignored.
+	///
+	/// - parameters:
+	///   - replacement: A producer to start when `self` completes.
+	///
+	/// - returns: A producer that sends events from `self` and then from
+	///            `replacement` when `self` completes.
+	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, NoError> {
+		return _then(replacement)
 	}
 }
 

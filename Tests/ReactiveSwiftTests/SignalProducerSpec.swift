@@ -1968,6 +1968,32 @@ class SignalProducerSpec: QuickSpec {
 
 				_ = producer
 			}
+
+			it("should not be ambiguous") {
+				let a = SignalProducer<Int, NoError>.empty.then(SignalProducer<Int, NoError>.empty)
+				expect(type(of: a)) == SignalProducer<Int, NoError>.self
+
+				let b = SignalProducer<Int, NoError>.empty.then(SignalProducer<Double, NoError>.empty)
+				expect(type(of: b)) == SignalProducer<Double, NoError>.self
+
+				let c = SignalProducer<Int, NoError>.empty.then(SignalProducer<Int, TestError>.empty)
+				expect(type(of: c)) == SignalProducer<Int, TestError>.self
+
+				let d = SignalProducer<Int, NoError>.empty.then(SignalProducer<Double, TestError>.empty)
+				expect(type(of: d)) == SignalProducer<Double, TestError>.self
+
+				let e = SignalProducer<Int, TestError>.empty.then(SignalProducer<Int, TestError>.empty)
+				expect(type(of: e)) == SignalProducer<Int, TestError>.self
+
+				let f = SignalProducer<Int, TestError>.empty.then(SignalProducer<Int, NoError>.empty)
+				expect(type(of: f)) == SignalProducer<Int, TestError>.self
+
+				let g = SignalProducer<Int, TestError>.empty.then(SignalProducer<Double, TestError>.empty)
+				expect(type(of: g)) == SignalProducer<Double, TestError>.self
+
+				let h = SignalProducer<Int, TestError>.empty.then(SignalProducer<Double, NoError>.empty)
+				expect(type(of: h)) == SignalProducer<Double, TestError>.self
+			}
 		}
 
 		describe("first") {
@@ -2663,6 +2689,12 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 	}
+}
+
+private func == <T>(left: Expectation<T.Type>, right: Any.Type) {
+	left.to(NonNilMatcherFunc { expression, _ in
+		return try expression.evaluate()! == right
+	})
 }
 
 // MARK: - Helpers
