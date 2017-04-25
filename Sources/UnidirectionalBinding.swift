@@ -11,20 +11,13 @@ precedencegroup BindingPrecedence {
 
 infix operator <~ : BindingPrecedence
 
+// FIXME: Swift 4 - associated type arbitrary requirements
+// public protocol BindingSource: SignalProducerConvertible where Error == NoError {}
+
 /// Describes a source which can be bound.
-public protocol BindingSource {
-	associatedtype Value
-	associatedtype Error: Swift.Error
+public protocol BindingSource: SignalProducerConvertible {}
 
-	var producer: SignalProducer<Value, Error> { get }
-}
-
-extension Signal: BindingSource {
-	public var producer: SignalProducer<Value, Error> {
-		return SignalProducer(self)
-	}
-}
-
+extension Signal: BindingSource {}
 extension SignalProducer: BindingSource {}
 
 /// Describes an entity which be bond towards.

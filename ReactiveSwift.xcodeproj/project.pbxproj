@@ -416,17 +416,10 @@
 			name = Signals;
 			sourceTree = "<group>";
 		};
-		D03B4A3A19F4C26D009E02AC /* Internal Utilities */ = {
-			isa = PBXGroup;
-			children = (
-				4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */,
-			);
-			name = "Internal Utilities";
-			sourceTree = "<group>";
-		};
 		D03B4A3B19F4C281009E02AC /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */,
 				D03B4A3C19F4C39A009E02AC /* FoundationExtensions.swift */,
 			);
 			name = Extensions;
@@ -471,7 +464,6 @@
 				D0C312C819EF2A5800984962 /* Scheduler.swift */,
 				C79B647B1CD52E23003F2376 /* EventLogger.swift */,
 				D03B4A3919F4C25F009E02AC /* Signals */,
-				D03B4A3A19F4C26D009E02AC /* Internal Utilities */,
 				D03B4A3B19F4C281009E02AC /* Extensions */,
 				9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */,
 				D04725ED19E49ED7006002AA /* Supporting Files */,
