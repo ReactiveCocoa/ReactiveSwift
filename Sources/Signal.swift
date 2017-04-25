@@ -37,7 +37,23 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// As `SignalState` is a packed object reference (a tagged pointer) that is
 	/// naturally aligned, reads to are guaranteed to be atomic on all supported
 	/// hardware architectures of Swift (ARM and x86).
-	private var state: SignalState<Value, Error>
+	private var state: SignalState<Value, Error> {
+		get {
+			return _state.pointee
+		}
+		set {
+			_state.pointee = newValue
+		}
+	}
+
+	// The storage of the state.
+	//
+	// Since Swift stored property accesses do not guarantee atomicity due to possible
+	// compiler-generated conversions and reabstractions, a manual allocation via
+	// `UnsafeMutablePointer` is made to ensure C-like memory semantics.
+	//
+	// Related: https://lists.swift.org/pipermail/swift-users/Week-of-Mon-20161205/004147.html
+	private let _state: UnsafeMutablePointer<SignalState<Value, Error>>
 
 	/// Used to ensure that state updates are serialized.
 	private let updateLock: NSLock
@@ -56,7 +72,9 @@ public final class Signal<Value, Error: Swift.Error> {
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
 	public init(_ generator: (Observer) -> Disposable?) {
-		state = .alive(AliveState())
+		_state = .allocate(capacity: 1)
+		_state.initialize(to: .alive(AliveState()))
+
 		updateLock = NSLock()
 		updateLock.name = "org.reactivecocoa.ReactiveSwift.Signal.updateLock"
 		sendLock = NSLock()
@@ -250,6 +268,9 @@ public final class Signal<Value, Error: Swift.Error> {
 		// A signal can deinitialize only when it is not retained and has no
 		// active observers. So `state` need not be swapped.
 		swapDisposable()?.dispose()
+
+		_state.deinitialize()
+		_state.deallocate(capacity: 1)
 	}
 
 	/// A Signal that never sends any events to its observers.
