@@ -3,6 +3,11 @@ import Dispatch
 import enum Result.NoError
 
 // MARK: Unavailable methods in ReactiveSwift 2.0.
+extension ComposableMutablePropertyProtocol {
+	@available(*, unavailable, renamed:"withValue(_:)")
+	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result { fatalError() }
+}
+
 @available(*, unavailable, renamed:"SignalProducer.timer")
 public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -> SignalProducer<Date, NoError> { fatalError() }
 
