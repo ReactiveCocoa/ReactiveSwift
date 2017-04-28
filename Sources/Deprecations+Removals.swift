@@ -222,7 +222,7 @@ extension CompositeDisposable {
 
 extension Observer {
 	@available(*, unavailable, renamed: "init(value:failed:completed:interrupted:)")
-	public convenience init(
+	public init(
 		next: ((Value) -> Void)? = nil,
 		failed: ((Error) -> Void)? = nil,
 		completed: (() -> Void)? = nil,

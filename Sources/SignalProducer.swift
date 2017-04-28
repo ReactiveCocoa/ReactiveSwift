@@ -1968,10 +1968,12 @@ extension SignalProducer {
 			// have terminated.
 			disposable += { _ = lifetimeToken }
 
+			let token = ReplayState<Value, Error>.Token()
+
 			while true {
 				var result: Result<RemovalToken?, ReplayError<Value>>!
 				state.modify {
-					result = $0.observe(observer)
+					result = $0.observe(observer, with: token)
 				}
 
 				switch result! {
@@ -2060,6 +2062,8 @@ private struct ReplayError<Value>: Error {
 }
 
 private struct ReplayState<Value, Error: Swift.Error> {
+	fileprivate final class Token {}
+
 	let capacity: Int
 
 	/// All cached values.
@@ -2093,16 +2097,17 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - observer: The observer to be registered.
+	///   - token: The token to uniquely identify the observation.
 	///
 	/// - returns: If the observer is successfully attached, a `Result.success`
 	///            with the corresponding removal token would be returned.
 	///            Otherwise, a `Result.failure` with a `ReplayError` would be
 	///            returned.
-	mutating func observe(_ observer: Signal<Value, Error>.Observer) -> Result<RemovalToken?, ReplayError<Value>> {
+	mutating func observe(_ observer: Signal<Value, Error>.Observer, with token: Token) -> Result<RemovalToken?, ReplayError<Value>> {
 		// Since the only use case is `replayLazily`, which always creates a unique
 		// `Observer` for every produced signal, we can use the ObjectIdentifier of
 		// the `Observer` to track them directly.
-		let id = ObjectIdentifier(observer)
+		let id = ObjectIdentifier(token)
 
 		switch replayBuffers[id] {
 		case .none where !values.isEmpty:
