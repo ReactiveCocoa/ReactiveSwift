@@ -42,7 +42,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				expect(notif).to(beNil())
 			}
 
-			it("should be freed if it is not reachable and no observer is attached") {
+			it("should be disposed of if it is not reachable and no observer is attached") {
 				weak var signal: Signal<Notification, NoError>?
 				var isDisposed = false
 
@@ -55,7 +55,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				}()
 
 				expect(isDisposed) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
 
 				disposable?.dispose()
 
@@ -63,7 +63,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				expect(signal).to(beNil())
 			}
 
-			it("should be not freed if it still has one or more active observers") {
+			it("should be not disposed of if it still has one or more active observers") {
 				weak var signal: Signal<Notification, NoError>?
 				var isDisposed = false
 
@@ -77,12 +77,12 @@ class FoundationExtensionsSpec: QuickSpec {
 				}()
 
 				expect(isDisposed) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
 
 				disposable?.dispose()
 
 				expect(isDisposed) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
 			}
 		}
 

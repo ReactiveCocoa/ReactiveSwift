@@ -22,62 +22,71 @@ class SignalLifetimeSpec: QuickSpec {
 				testScheduler = TestScheduler()
 			}
 
-			it("should deallocate") {
-				weak var signal: Signal<AnyObject, NoError>? = Signal { _ in nil }
+			it("should be disposed of if it does not have any observers") {
+				var isDisposed = false
 
-				expect(signal).to(beNil())
-			}
-
-			it("should deallocate if it does not have any observers") {
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }
-					return signal
+					return signal.on(disposed: { isDisposed = true })
 				}()
 				expect(signal).to(beNil())
+				expect(isDisposed) == true
 			}
 
-			it("should deallocate if no one retains it") {
-				var signal: Signal<AnyObject, NoError>? = Signal { _ in nil }
+			it("should be disposed of if no one retains it") {
+				var isDisposed = false
+				var signal: Signal<AnyObject, NoError>? = Signal { _ in nil }.on(disposed: { isDisposed = true })
 				weak var weakSignal = signal
 
 				expect(weakSignal).toNot(beNil())
+				expect(isDisposed) == false
 
 				var reference = signal
 				signal = nil
 				expect(weakSignal).toNot(beNil())
+				expect(isDisposed) == false
 
 				reference = nil
 				expect(weakSignal).to(beNil())
+				expect(isDisposed) == true
 			}
 
-			it("should deallocate even if the generator observer is retained") {
+			it("should be disposed of when the signal shell has deinitialized with no active observer regardless of whether the generator observer is retained or not") {
 				var observer: Signal<AnyObject, NoError>.Observer?
+				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal: Signal<AnyObject, NoError> = Signal { innerObserver in
 						observer = innerObserver
 						return nil
 					}
-					return signal
+					return signal.on(disposed: { isDisposed = true })
 				}()
 				expect(observer).toNot(beNil())
 				expect(signal).to(beNil())
+				expect(isDisposed) == true
 			}
 
-			it("should not deallocate if it has at least one observer") {
+			it("should be disposed of when the generator observer has deinitialized even if it has an observer") {
+				var isDisposed = false
+
 				var disposable: Disposable? = nil
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }
-					disposable = signal.observe(Signal.Observer())
+					disposable = signal.on(disposed: { isDisposed = true }).observe(Signal.Observer())
 					return signal
 				}()
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
+				expect(isDisposed) == true
+
 				disposable?.dispose()
 				expect(signal).to(beNil())
+				expect(isDisposed) == true
 			}
 
 			it("should be alive until erroring if it has at least one observer, despite not being explicitly retained") {
 				var errored = false
+				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, TestError>? = {
 					let signal = Signal<AnyObject, TestError> { observer in
@@ -86,21 +95,24 @@ class SignalLifetimeSpec: QuickSpec {
 						}
 						return nil
 					}
-					signal.observeFailed { _ in errored = true }
+					signal.on(disposed: { isDisposed = true }).observeFailed { _ in errored = true }
 					return signal
 				}()
 
 				expect(errored) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
+				expect(isDisposed) == false
 
 				testScheduler.run()
 
 				expect(errored) == true
 				expect(signal).to(beNil())
+				expect(isDisposed) == true
 			}
 
 			it("should be alive until completion if it has at least one observer, despite not being explicitly retained") {
 				var completed = false
+				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal = Signal<AnyObject, NoError> { observer in
@@ -109,21 +121,24 @@ class SignalLifetimeSpec: QuickSpec {
 						}
 						return nil
 					}
-					signal.observeCompleted { completed = true }
+					signal.on(disposed: { isDisposed = true }).observeCompleted { completed = true }
 					return signal
 				}()
 
 				expect(completed) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
+				expect(isDisposed) == false
 
 				testScheduler.run()
 
 				expect(completed) == true
 				expect(signal).to(beNil())
+				expect(isDisposed) == true
 			}
 
 			it("should be alive until interruption if it has at least one observer, despite not being explicitly retained") {
 				var interrupted = false
+				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal = Signal<AnyObject, NoError> { observer in
@@ -133,17 +148,19 @@ class SignalLifetimeSpec: QuickSpec {
 
 						return nil
 					}
-					signal.observeInterrupted { interrupted = true }
+					signal.on(disposed: { isDisposed = true }).observeInterrupted { interrupted = true }
 					return signal
 				}()
 
 				expect(interrupted) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
+				expect(isDisposed) == false
 
 				testScheduler.run()
 
 				expect(interrupted) == true
 				expect(signal).to(beNil())
+				expect(isDisposed) == true
 			}
 		}
 
@@ -158,6 +175,7 @@ class SignalLifetimeSpec: QuickSpec {
 				let testScheduler = TestScheduler()
 				var errored = false
 				weak var weakSignal: Signal<(), TestError>?
+				var isDisposed = false
 
 				// Use an inner closure to help ARC deallocate things as we
 				// expect.
@@ -168,15 +186,18 @@ class SignalLifetimeSpec: QuickSpec {
 						// Note that the input observer has a weak reference to the signal.
 						observer.send(error: TestError.default)
 					}
-					signal.observeFailed { _ in errored = true }
+					signal.on(disposed: { isDisposed = true }).observeFailed { _ in errored = true }
 				}
 				test()
 
-				expect(weakSignal).toNot(beNil())
+				expect(weakSignal).to(beNil())
+				expect(isDisposed) == false
 				expect(errored) == false
 
 				testScheduler.run()
+
 				expect(weakSignal).to(beNil())
+				expect(isDisposed) == true
 				expect(errored) == true
 			}
 
@@ -184,6 +205,7 @@ class SignalLifetimeSpec: QuickSpec {
 				let testScheduler = TestScheduler()
 				var completed = false
 				weak var weakSignal: Signal<(), TestError>?
+				var isDisposed = false
 
 				// Use an inner closure to help ARC deallocate things as we
 				// expect.
@@ -194,15 +216,18 @@ class SignalLifetimeSpec: QuickSpec {
 						// Note that the input observer has a weak reference to the signal.
 						observer.sendCompleted()
 					}
-					signal.observeCompleted { completed = true }
+					signal.on(disposed: { isDisposed = true }).observeCompleted { completed = true }
 				}
 				test()
 
-				expect(weakSignal).toNot(beNil())
+				expect(weakSignal).to(beNil())
+				expect(isDisposed) == false
 				expect(completed) == false
 
 				testScheduler.run()
+
 				expect(weakSignal).to(beNil())
+				expect(isDisposed) == true
 				expect(completed) == true
 			}
 
@@ -210,6 +235,7 @@ class SignalLifetimeSpec: QuickSpec {
 				let testScheduler = TestScheduler()
 				var interrupted = false
 				weak var weakSignal: Signal<(), NoError>?
+				var isDisposed = false
 
 				let test = {
 					let (signal, observer) = Signal<(), NoError>.pipe()
@@ -220,45 +246,44 @@ class SignalLifetimeSpec: QuickSpec {
 						observer.sendInterrupted()
 					}
 
-					signal.observeInterrupted { interrupted = true }
+					signal.on(disposed: { isDisposed = true }).observeInterrupted { interrupted = true }
 				}
 
 				test()
-				expect(weakSignal).toNot(beNil())
+				expect(weakSignal).to(beNil())
+				expect(isDisposed) == false
 				expect(interrupted) == false
 
 				testScheduler.run()
+
 				expect(weakSignal).to(beNil())
+				expect(isDisposed) == true
 				expect(interrupted) == true
 			}
 		}
 
 		describe("testTransform") {
-			it("should deallocate") {
-				weak var signal: Signal<AnyObject, NoError>? = Signal { _ in nil }.testTransform()
+			it("should be disposed of") {
+				var isDisposed = false
+				weak var signal: Signal<AnyObject, NoError>? = Signal { _ in nil }
+					.testTransform()
+					.on(disposed: { isDisposed = true })
 
 				expect(signal).to(beNil())
+				expect(isDisposed) == true
 			}
 
-			it("should not deallocate if it has at least one observer, despite not being explicitly retained") {
-				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }.testTransform()
-					signal.observe(Signal.Observer())
-					return signal
-				}()
-				expect(signal).toNot(beNil())
-			}
-
-			it("should not deallocate if it has at least one observer, despite not being explicitly retained") {
+			it("should be disposed of if it is not explicitly retained and its generator observer is not retained") {
 				var disposable: Disposable? = nil
+				var isDisposed = false
+
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }.testTransform()
-					disposable = signal.observe(Signal.Observer())
+					disposable = signal.on(disposed: { isDisposed = true }).observe(Signal.Observer())
 					return signal
 				}()
-				expect(signal).toNot(beNil())
-				disposable?.dispose()
 				expect(signal).to(beNil())
+				expect(isDisposed) == true
 			}
 
 			it("should deallocate if it is unreachable and has no observer") {

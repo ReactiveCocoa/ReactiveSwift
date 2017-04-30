@@ -1615,9 +1615,13 @@ class PropertySpec: QuickSpec {
 				}
 
 				it("should tear down the binding when the property deallocates") {
+					var isDisposed = false
+
+					var outerObserver: Signal<String, NoError>.Observer!
 					var signal: Signal<String, NoError>? = {
-						let (signal, _) = Signal<String, NoError>.pipe()
-						return signal
+						let (signal, observer) = Signal<String, NoError>.pipe()
+						outerObserver = observer
+						return signal.on(disposed: { isDisposed = true })
 					}()
 					weak var weakSignal = signal
 
@@ -1627,14 +1631,16 @@ class PropertySpec: QuickSpec {
 					signal = nil
 
 					// The binding attached an observer to the signal, so it cannot
-					// deinitialize.
-					expect(weakSignal).toNot(beNil())
+					// be disposed of.
+					expect(weakSignal).to(beNil())
+					expect(isDisposed) == false
 
 					// The deinitialization should tear down the binding, which would
 					// remove the last observer from the signal, causing it to
 					// dispose of itself.
 					mutableProperty = nil
 					expect(weakSignal).to(beNil())
+					expect(isDisposed) == true
 				}
 			}
 
