@@ -157,6 +157,42 @@ class SignalSpec: QuickSpec {
 				expect(interrupted) == true
 				expect(disposable.isDisposed) == true
 			}
+
+			it("should dispose of the returned disposable if the signal has interrupted in the generator") {
+				let disposable = SimpleDisposable()
+
+				let signal: Signal<AnyObject, NoError> = Signal { observer in
+					observer.sendInterrupted()
+					expect(disposable.isDisposed) == false
+					return disposable
+				}
+
+				expect(disposable.isDisposed) == true
+			}
+
+			it("should dispose of the returned disposable if the signal has completed in the generator") {
+				let disposable = SimpleDisposable()
+
+				let signal: Signal<AnyObject, NoError> = Signal { observer in
+					observer.sendCompleted()
+					expect(disposable.isDisposed) == false
+					return disposable
+				}
+
+				expect(disposable.isDisposed) == true
+			}
+
+			it("should dispose of the returned disposable if the signal has failed in the generator") {
+				let disposable = SimpleDisposable()
+
+				let signal: Signal<AnyObject, TestError> = Signal { observer in
+					observer.send(error: .default)
+					expect(disposable.isDisposed) == false
+					return disposable
+				}
+
+				expect(disposable.isDisposed) == true
+			}
 		}
 
 		describe("Signal.empty") {
