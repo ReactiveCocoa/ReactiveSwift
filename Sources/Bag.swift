@@ -10,12 +10,14 @@
 public struct Bag<Element> {
 	/// A uniquely identifying token for removing a value that was inserted into a
 	/// Bag.
-	public typealias Token = UInt64
+	public struct Token {
+		fileprivate let value: UInt64
+	}
 
 	fileprivate var elements: ContiguousArray<Element> = []
-	fileprivate var tokens: ContiguousArray<Token> = []
+	fileprivate var tokens: ContiguousArray<UInt64> = []
 
-	private var identifier: UInt64 = 0
+	private var nextToken: Token = Token(value: 0)
 
 	public init() {}
 
@@ -26,14 +28,14 @@ public struct Bag<Element> {
 	///   - value: A value that will be inserted.
 	@discardableResult
 	public mutating func insert(_ value: Element) -> Token {
-		let token = Token(identifier)
+		let token = nextToken
 
 		// Practically speaking, this would overflow only if we have 101% uptime and we
 		// manage to call `insert(_:)` every 1 ns for 500+ years non-stop.
-		identifier += 1
+		nextToken = Token(value: token.value + 1)
 
 		elements.append(value)
-		tokens.append(token)
+		tokens.append(token.value)
 
 		return token
 	}
@@ -46,7 +48,7 @@ public struct Bag<Element> {
 	///   - token: A token returned from a call to `insert()`.
 	public mutating func remove(using token: Token) {
 		for i in (elements.startIndex ..< elements.endIndex).reversed() {
-			if tokens[i] == token {
+			if tokens[i] == token.value {
 				tokens.remove(at: i)
 				elements.remove(at: i)
 				return
