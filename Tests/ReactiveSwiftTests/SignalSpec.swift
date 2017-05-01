@@ -437,6 +437,127 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("stateless signals") {
+			func testOperator(_ signal: Signal<Int, NoError>, sink: @escaping (Int) -> Void) -> Signal<Int, NoError> {
+				return Signal(.stateless) { observer, channel in
+					return signal.observe(channel, Observer { event in
+						observer.action(event.map { value in
+							sink(value)
+							return value
+						})
+					})
+				}
+			}
+
+			it("should deactivate its side effects when it has no observers") {
+				var values: [Int] = []
+
+				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let transformed = testOperator(signal) { values.append($0) }
+
+				expect(values) == []
+
+				observer.send(value: 0)
+				expect(values) == []
+
+				let disposable1 = transformed.observe(Observer())
+				observer.send(value: 1)
+				expect(values) == [1]
+
+				disposable1?.dispose()
+				observer.send(value: 2)
+				expect(values) == [1]
+
+				let disposable2 = transformed.observe(Observer())
+				observer.send(value: 3)
+				expect(values) == [1, 3]
+
+				disposable2?.dispose()
+				observer.send(value: 4)
+				expect(values) == [1, 3]
+			}
+
+			it("should deactivate its side effects when it has no observers") {
+				var valuesA: [Int] = []
+				var valuesB: [Int] = []
+
+				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let a = testOperator(signal) { valuesA.append($0) }
+				let b = testOperator(a) { valuesB.append($0) }
+
+				expect(valuesA) == []
+				expect(valuesB) == []
+
+				observer.send(value: 0)
+				expect(valuesA) == []
+				expect(valuesB) == []
+
+				let disposable1 = b.observe(Observer())
+				observer.send(value: 1)
+				expect(valuesA) == [1]
+				expect(valuesB) == [1]
+
+				disposable1?.dispose()
+				observer.send(value: 2)
+				expect(valuesA) == [1]
+				expect(valuesB) == [1]
+
+				let disposable2 = b.observe(Observer())
+				observer.send(value: 3)
+				expect(valuesA) == [1, 3]
+				expect(valuesB) == [1, 3]
+
+				disposable2?.dispose()
+				observer.send(value: 4)
+				expect(valuesA) == [1, 3]
+				expect(valuesB) == [1, 3]
+			}
+
+			it("should not deactivate its side effects when it has no observers") {
+				var valuesA: [Int] = []
+				var valuesB1: [Int] = []
+				var valuesB2: [Int] = []
+
+				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let a = testOperator(signal) { valuesA.append($0) }
+				let b1 = testOperator(a) { valuesB1.append($0) }
+				let b2 = testOperator(a) { valuesB2.append($0) }
+
+				expect(valuesA) == []
+				expect(valuesB1) == []
+				expect(valuesB2) == []
+
+				observer.send(value: 0)
+				expect(valuesA) == []
+				expect(valuesB1) == []
+				expect(valuesB2) == []
+
+				let disposable1 = b1.observe(Observer())
+				observer.send(value: 1)
+				expect(valuesA) == [1]
+				expect(valuesB1) == [1]
+				expect(valuesB2) == []
+
+				let disposable2 = b2.observe(Observer())
+				observer.send(value: 2)
+				expect(valuesA) == [1, 2]
+				expect(valuesB1) == [1, 2]
+				expect(valuesB2) == [2]
+
+				disposable1?.dispose()
+				observer.send(value: 3)
+				expect(valuesA) == [1, 2, 3]
+				expect(valuesB1) == [1, 2]
+				expect(valuesB2) == [2, 3]
+
+				disposable2?.dispose()
+				observer.send(value: 4)
+				expect(valuesA) == [1, 2, 3]
+				expect(valuesB1) == [1, 2]
+				expect(valuesB2) == [2, 3]
+			}
+		}
+
 		describe("trailing closure") {
 			it("receives next values") {
 				var values = [Int]()

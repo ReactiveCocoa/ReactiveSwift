@@ -19,10 +19,13 @@ import Result
 ///    2. it has no active observers, and is not being retained.
 public final class Signal<Value, Error: Swift.Error> {
 	public typealias Observer = ReactiveSwift.Observer<Value, Error>
+	
+	/// The attributes the `Signal` created with.
+	let attributes: SignalAttributes
 
 	/// The disposable returned by the signal generator. It would be disposed of
 	/// when the signal terminates.
-	private var generatorDisposable: Disposable?
+	private let disposable = CompositeDisposable()
 
 	/// The state of the signal.
 	///
@@ -44,6 +47,8 @@ public final class Signal<Value, Error: Swift.Error> {
 
 	/// Used to ensure that events are serialized during delivery to observers.
 	private let sendLock: NSLock
+	
+	private let channel: SignalChannel
 
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given observer.
@@ -55,12 +60,31 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-	public init(_ generator: (Observer) -> Disposable?) {
+	public convenience init(_ attributes: SignalAttributes = .default, _ generator: (Observer) -> Disposable?) {
+		self.init(attributes, { observer, _ in generator(observer) })
+	}
+	
+	internal init(_ attributes: SignalAttributes, _ generator: (Observer, SignalChannel) -> Disposable?) {
+		self.attributes = attributes
+		
 		state = .alive(AliveState())
 		updateLock = NSLock()
 		updateLock.name = "org.reactivecocoa.ReactiveSwift.Signal.updateLock"
 		sendLock = NSLock()
 		sendLock.name = "org.reactivecocoa.ReactiveSwift.Signal.sendLock"
+		
+		channel = SignalChannel()
+		channel.activeObservations = { [unowned self] in
+			self.updateLock.lock()
+			defer { self.updateLock.unlock() }
+
+			switch self.state {
+			case let .alive(state):
+				return state.activeObservations
+			default:
+				return 0
+			}
+		}
 
 		let observer = Observer { [weak self] event in
 			guard let signal = self else {
@@ -124,8 +148,8 @@ public final class Signal<Value, Error: Swift.Error> {
 					signal.state = .terminated
 					signal.updateLock.unlock()
 
-					for observer in state.observers {
-						observer.action(state.event)
+					for observation in state.observations {
+						observation.observer.action(state.event)
 					}
 
 					return true
@@ -157,7 +181,7 @@ public final class Signal<Value, Error: Swift.Error> {
 				signal.updateLock.lock()
 
 				if case let .alive(state) = signal.state {
-					let newSnapshot = TerminatingState(observers: state.observers,
+					let newSnapshot = TerminatingState(observations: state.observations,
 					                                   event: event)
 					signal.state = .terminating(newSnapshot)
 					signal.updateLock.unlock()
@@ -169,7 +193,7 @@ public final class Signal<Value, Error: Swift.Error> {
 						signal.sendLock.unlock()
 
 						if shouldDispose {
-							signal.swapDisposable()?.dispose()
+							signal.disposable.dispose()
 						}
 					}
 				} else {
@@ -200,8 +224,10 @@ public final class Signal<Value, Error: Swift.Error> {
 				// Start of the main protected section.
 
 				if case let .alive(state) = signal.state {
-					for observer in state.observers {
-						observer.action(event)
+					for observation in state.observations {
+						if observation.isActive {
+							observation.observer.action(event)
+						}
 					}
 
 					// Check if the status has been bumped to `terminating` due to a
@@ -226,30 +252,18 @@ public final class Signal<Value, Error: Swift.Error> {
 				if shouldDispose {
 					// Dispose only after notifying observers, so disposal
 					// logic is consistently the last thing to run.
-					signal.swapDisposable()?.dispose()
+					signal.disposable.dispose()
 				}
 			}
 		}
 
-		generatorDisposable = generator(observer)
-	}
-
-	/// Swap the generator disposable with `nil`.
-	///
-	/// - returns: The generator disposable, or `nil` if it has been disposed
-	///            of.
-	private func swapDisposable() -> Disposable? {
-		if let d = generatorDisposable {
-			generatorDisposable = nil
-			return d
-		}
-		return nil
+		disposable += generator(observer, channel)
 	}
 
 	deinit {
 		// A signal can deinitialize only when it is not retained and has no
 		// active observers. So `state` need not be swapped.
-		swapDisposable()?.dispose()
+		disposable.dispose()
 	}
 
 	/// A Signal that never sends any events to its observers.
@@ -300,23 +314,129 @@ public final class Signal<Value, Error: Swift.Error> {
 	///            or `nil` if the signal has already terminated.
 	@discardableResult
 	public func observe(_ observer: Observer) -> Disposable? {
+		return observe(nil, observer)
+	}
+
+
+	/// Observe the Signal by sending any future events to the given observer.
+	///
+	/// - note: If the Signal has already terminated, the observer will
+	///         immediately receive an `interrupted` event.
+	///
+	/// - parameters:
+	///   - downstreamChannel: The optional `Signal` backward control channel.
+	///   - observer: An observer to forward the events to.
+	///
+	/// - returns: A `Disposable` which can be used to disconnect the observer,
+	///            or `nil` if the signal has already terminated.
+	@discardableResult
+	internal func observe(_ downstreamChannel: SignalChannel?, _ observer: Observer) -> Disposable? {
+		// # Signal availability
+		//
+		// If `self` is initialized as a stateless `Signal`, the activation and
+		// deactivation of `self` are notified through `self.channel`, generally
+		// to an upstream `Signal`. Otherwise, `self` should not advertise its
+		// availability at all.
+		//
+		// Meanwhile, given a `downstreamChannel` associated with `observer`,
+		// usually for the input side effect of a downstream `Signal`, it is
+		// observed to manipulate the activeness of `observer`.
+		//
+		// An example use case: the `map` operator.
+		//
+		// --------     ----------     --------------
+		// |      |     | `map`  |     |            |
+		// |      | === | side   | ==> |            |
+		// |      |     | effect |     | the mapped |
+		// | self |     ----------     | signal     |
+		// |      |                    |            |
+		// |      | <~~~ channel ~~~~~ |            |
+		// |      |       events       |            |
+		// --------                    --------------
+
 		var token: RemovalToken?
 		updateLock.lock()
+
 		if case let .alive(snapshot) = state {
-			var observers = snapshot.observers
-			token = observers.insert(observer)
-			state = .alive(AliveState(observers: observers, retaining: self))
+			var observations = snapshot.observations
+			let isActive = downstreamChannel.map { $0.activeObservations() > 0 } ?? true
+			let newActiveCount: UInt = snapshot.activeObservations + (isActive ? 1 : 0)
+
+			token = observations.insert(Observation(observer, isActive: isActive))
+			state = .alive(AliveState(observations: observations,
+			                          activeObservations: newActiveCount,
+			                          retaining: self))
+
+			if attributes.contains(.stateless) && newActiveCount == 1 {
+				channel.notify(.didActivate)
+			}
 		}
-		updateLock.unlock()
 
 		if let token = token {
+			let channelDisposable = downstreamChannel?.observe { [weak self] event in
+				if let s = self {
+					s.updateLock.lock()
+
+					if case let .alive(snapshot) = s.state {
+						switch event {
+						case .didActivate:
+							let index = snapshot.observations.index(of: token)!
+							var observations = snapshot.observations
+
+							if !observations[index].isActive {
+								observations[index].isActive = true
+
+								let newActiveCount: UInt = snapshot.activeObservations + 1
+
+								s.state = .alive(AliveState(observations: observations,
+								                            activeObservations: newActiveCount,
+								                            retaining: snapshot.retaining))
+
+								if s.attributes.contains(.stateless) && newActiveCount == 1 {
+									s.channel.notify(.didActivate)
+								}
+							}
+
+						case .didDeactivate:
+							let index = snapshot.observations.index(of: token)!
+							var observations = snapshot.observations
+
+							if observations[index].isActive {
+								observations[index].isActive = false
+
+								let newActiveCount: UInt = snapshot.activeObservations - 1
+
+								s.state = .alive(AliveState(observations: observations,
+								                            activeObservations: newActiveCount,
+								                            retaining: snapshot.retaining))
+
+								if s.attributes.contains(.stateless) && newActiveCount == 0 {
+									s.channel.notify(.didDeactivate)
+								}
+							}
+						}
+					}
+
+					s.updateLock.unlock()
+				}
+			}
+
+			let handle = disposable += channelDisposable
+			updateLock.unlock()
+
 			return ActionDisposable { [weak self] in
 				if let s = self {
 					s.updateLock.lock()
 
 					if case let .alive(snapshot) = s.state {
-						var observers = snapshot.observers
-						observers.remove(using: token)
+						var observations = snapshot.observations
+						let newActiveCount: UInt = snapshot.activeObservations - (observations[observations.index(of: token)!].isActive ? 1 : 0)
+						observations.remove(using: token)
+
+						if let d = channelDisposable {
+							d.dispose()
+							handle.remove()
+						}
 
 						// Ensure the old signal state snapshot does not deinitialize before
 						// `updateLock` is released. Otherwise, it might result in a
@@ -324,8 +444,14 @@ public final class Signal<Value, Error: Swift.Error> {
 						// events recursively as a result of the deinitialization of the
 						// snapshot.
 						withExtendedLifetime(snapshot) {
-							s.state = .alive(AliveState(observers: observers,
-							                            retaining: observers.isEmpty ? nil : self))
+							s.state = .alive(AliveState(observations: observations,
+							                            activeObservations: newActiveCount,
+							                            retaining: observations.isEmpty ? nil : self))
+
+							if s.attributes.contains(.stateless) && newActiveCount == 0 {
+								s.channel.notify(.didDeactivate)
+							}
+
 							s.updateLock.unlock()
 						}
 					} else {
@@ -334,8 +460,53 @@ public final class Signal<Value, Error: Swift.Error> {
 				}
 			}
 		} else {
+			updateLock.unlock()
 			observer.sendInterrupted()
 			return nil
+		}
+	}
+}
+
+public final class SignalChannel {
+	internal enum Event {
+		case didDeactivate
+		case didActivate
+	}
+
+	private struct Observer {
+		internal let action: (Event) -> Void
+
+		init(_ action: @escaping (Event) -> Void) {
+			self.action = action
+		}
+	}
+
+	internal var activeObservations: (() -> UInt)!
+	private let observers: Atomic<Bag<Observer>>
+
+	internal init() {
+		observers = Atomic(Bag())
+	}
+
+	internal func observe(_ action: @escaping (Event) -> Void) -> Disposable {
+		let token = observers.modify {
+			return $0.insert(Observer(action))
+		}
+
+		return ActionDisposable { [weak self] in
+			self?.observers.modify { $0.remove(using: token) }
+		}
+	}
+
+	internal func remove(using token: RemovalToken) {
+		observers.modify { $0.remove(using: token) }
+	}
+
+	internal func notify(_ event: Event) {
+		let observers = self.observers.value
+
+		for observer in observers {
+			observer.action(event)
 		}
 	}
 }
@@ -359,6 +530,16 @@ private enum SignalState<Value, Error: Swift.Error> {
 	case terminated
 }
 
+private struct Observation<Value, Error: Swift.Error> {
+	let observer: Signal<Value, Error>.Observer
+	var isActive: Bool
+
+	init(_ observer: Signal<Value, Error>.Observer, isActive: Bool) {
+		self.observer = observer
+		self.isActive = isActive
+	}
+}
+
 // As the amount of state would definitely span over a cache line,
 // `AliveState` and `TerminatingState` is set to be a reference type so
 // that we can atomically update the reference instead.
@@ -369,20 +550,24 @@ private enum SignalState<Value, Error: Swift.Error> {
 /// The state of a `Signal` that is alive. It contains a bag of observers and
 /// an optional self-retaining reference.
 private final class AliveState<Value, Error: Swift.Error> {
-	/// The observers of the `Signal`.
-	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
+	/// The observations to the `Signal`.
+	fileprivate let observations: Bag<Observation<Value, Error>>
 
 	/// A self-retaining reference. It is set when there are one or more active
 	/// observers.
 	fileprivate let retaining: Signal<Value, Error>?
 
+	/// Active observations.
+	fileprivate let activeObservations: UInt
+
 	/// Create an alive state.
 	///
 	/// - parameters:
-	///   - observers: The latest bag of observers.
+	///   - observations: The latest bag of observers.
 	///   - retaining: The self-retaining reference of the `Signal`, if necessary.
-	init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil) {
-		self.observers = observers
+	init(observations: Bag<Observation<Value, Error>> = Bag(), activeObservations: UInt = 0, retaining: Signal<Value, Error>? = nil) {
+		self.observations = observations
+		self.activeObservations = activeObservations
 		self.retaining = retaining
 	}
 }
@@ -390,8 +575,8 @@ private final class AliveState<Value, Error: Swift.Error> {
 /// The state of a terminating `Signal`. It contains a bag of observers and the
 /// termination event.
 private final class TerminatingState<Value, Error: Swift.Error> {
-	/// The observers of the `Signal`.
-	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
+	/// The observations to the `Signal`.
+	fileprivate let observations: Bag<Observation<Value, Error>>
 
 	///  The termination event.
 	fileprivate let event: Event<Value, Error>
@@ -399,11 +584,25 @@ private final class TerminatingState<Value, Error: Swift.Error> {
 	/// Create a terminating state.
 	///
 	/// - parameters:
-	///   - observers: The latest bag of observers.
+	///   - observations: The latest bag of observers.
 	///   - event: The termination event.
-	init(observers: Bag<Signal<Value, Error>.Observer>, event: Event<Value, Error>) {
-		self.observers = observers
+	init(observations: Bag<Observation<Value, Error>>, event: Event<Value, Error>) {
+		self.observations = observations
 		self.event = event
+	}
+}
+
+/// Describes how `Signal` should behave.
+public struct SignalAttributes: OptionSet {
+	public let rawValue: Int
+
+	public static let stateless = SignalAttributes(rawValue: 1 << 2)
+
+	/// The `Signal` is stateful, and should serialize all the received events.
+	public static let `default` = SignalAttributes(rawValue: 0)
+
+	public init(rawValue: Int) {
+		self.rawValue = rawValue
 	}
 }
 
@@ -534,10 +733,10 @@ extension Signal {
 	///
 	/// - returns: A signal that will send new values.
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Signal<U, Error> {
-		return Signal<U, Error> { observer in
-			return self.observe { event in
+		return Signal<U, Error>(.stateless) { observer, channel in
+			return self.observe(channel, Observer { event in
 				observer.action(event.map(transform))
-			}
+			})
 		}
 	}
 
@@ -549,10 +748,10 @@ extension Signal {
 	///
 	/// - returns: A signal that will send new type of errors.
 	public func mapError<F>(_ transform: @escaping (Error) -> F) -> Signal<Value, F> {
-		return Signal<Value, F> { observer in
-			return self.observe { event in
+		return Signal<Value, F>(.stateless) { observer, channel in
+			return self.observe(channel, Observer { event in
 				observer.action(event.mapError(transform))
-			}
+			})
 		}
 	}
 

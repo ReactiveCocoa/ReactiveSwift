@@ -46,9 +46,13 @@ public struct Bag<Element> {
 			}
 		}
 	}
+
+	public func index(of token: RemovalToken) -> Index? {
+		return elements.index(where: { $0.token === token })
+	}
 }
 
-extension Bag: Collection {
+extension Bag: MutableCollection {
 	public typealias Index = Array<Element>.Index
 
 	public var startIndex: Index {
@@ -60,7 +64,12 @@ extension Bag: Collection {
 	}
 
 	public subscript(index: Index) -> Element {
-		return elements[index].value
+		get {
+			return elements[index].value
+		}
+		set {
+			elements[index].value = newValue
+		}
 	}
 
 	public func index(after i: Index) -> Index {
@@ -73,7 +82,7 @@ extension Bag: Collection {
 }
 
 private struct BagElement<Value> {
-	let value: Value
+	var value: Value
 	let token: RemovalToken
 }
 
