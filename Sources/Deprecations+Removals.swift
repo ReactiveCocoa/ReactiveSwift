@@ -34,6 +34,9 @@ extension Action where Input == Void {
 	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T { fatalError() }
 }
 
+@available(*, unavailable, renamed:"Bag.Token")
+public typealias RemovalToken = Bag<Any>.Token
+
 @available(*, unavailable, message: "This protocol has been removed. Constrain `Action` directly instead.")
 public protocol ActionProtocol {}
 
@@ -231,7 +234,7 @@ extension LoggingEvent.SignalProducer {
 
 extension Bag {
 	@available(*, unavailable, renamed:"remove(using:)")
-	public func removeValueForToken(_ token: RemovalToken) { fatalError() }
+	public func removeValueForToken(_ token: Token) { fatalError() }
 }
 
 extension CompositeDisposable {

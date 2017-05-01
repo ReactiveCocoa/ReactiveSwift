@@ -1969,7 +1969,7 @@ extension SignalProducer {
 			disposable += { _ = lifetimeToken }
 
 			while true {
-				var result: Result<RemovalToken?, ReplayError<Value>>!
+				var result: Result<Bag<Signal<Value, Error>.Observer>.Token?, ReplayError<Value>>!
 				state.modify {
 					result = $0.observe(observer)
 				}
@@ -2098,7 +2098,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	///            with the corresponding removal token would be returned.
 	///            Otherwise, a `Result.failure` with a `ReplayError` would be
 	///            returned.
-	mutating func observe(_ observer: Signal<Value, Error>.Observer) -> Result<RemovalToken?, ReplayError<Value>> {
+	mutating func observe(_ observer: Signal<Value, Error>.Observer) -> Result<Bag<Signal<Value, Error>.Observer>.Token?, ReplayError<Value>> {
 		// Since the only use case is `replayLazily`, which always creates a unique
 		// `Observer` for every produced signal, we can use the ObjectIdentifier of
 		// the `Observer` to track them directly.
@@ -2175,7 +2175,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - token: The token of the observer to be removed.
-	mutating func removeObserver(using token: RemovalToken) {
+	mutating func removeObserver(using token: Bag<Signal<Value, Error>.Observer>.Token) {
 		observers?.remove(using: token)
 	}
 }
