@@ -2,14 +2,19 @@ import Dispatch
 import Foundation
 import Result
 
-/// `Action` represents a repeatable work with varying input and state. Each unit of the
-/// repreatable work may output zero or more values, and terminate with or without an
-/// error at some point.
+/// `Action` represents a repeatable work like `SignalProducer`. But on top of the
+/// isolation of produced `Signal`s from a `SignalProducer`, `Action` provides
+/// higher-order features like availability and mutual exclusion.
 ///
-/// The core of `Action` is the `workProducer` closure that is supplied to the
-/// initializer. For every execution attempt with a varying input, if the `Action` is
-/// enabled, it would invoke `workProducer` with the latest state and the input to obtain
-/// a customized unit of work — represented by a `SignalProducer`.
+/// Similar to a produced `Signal` from a `SignalProducer`, each unit of the repreatable
+/// work may output zero or more values, and terminate with or without an error at some
+/// point.
+///
+/// The core of `Action` is the `execute` closure it created with. For every execution
+/// attempt with a varying input, if the `Action` is enabled, it would request from the
+/// `execute` closure a customized unit of work — represented by a `SignalProducer`.
+/// Specifically, the `execute` closure would be supplied with the latest state of
+/// `Action` and the external input from `apply()`.
 ///
 /// `Action` enforces serial execution, and disables the `Action` during the execution.
 public final class Action<Input, Output, Error: Swift.Error> {
@@ -62,7 +67,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///
 	/// When the `Action` is asked to start the execution with an input value, a unit of
 	/// work — represented by a `SignalProducer` — would be created by invoking
-	/// `workProducer` with the latest state and the input value.
+	/// `execute` with the latest state and the input value.
 	///
 	/// - note: `Action` guarantees that changes to `state` are observed in a
 	///         thread-safe way. Thus, the value passed to `isEnabled` will
@@ -77,16 +82,16 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///   - state: A property to be the state of the `Action`.
 	///   - enabledIf: A predicate which determines the availability of the `Action`,
 	///                given the latest `Action` state.
-	///   - workProducer: A closure that produces a unit of work, as `SignalProducer`, to
-	///                   be executed by the `Action`.
-	public init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ workProducer: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to be
+	///              executed by the `Action`.
+	public init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
 		
 		// Retain the `property` for the created `Action`.
 		lifetime.observeEnded { _ = property }
 
-		executeClosure = { state, input in workProducer(state as! State.Value, input) }
+		executeClosure = { state, input in execute(state as! State.Value, input) }
 
 		(events, eventsObserver) = Signal<Event<Output, Error>, NoError>.pipe()
 		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
@@ -114,15 +119,15 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///
 	/// When the `Action` is asked to start the execution with an input value, a unit of
 	/// work — represented by a `SignalProducer` — would be created by invoking
-	/// `workProducer` with the input value.
+	/// `execute` with the input value.
 	///
 	/// - parameters:
 	///   - enabledIf: A property which determines the availability of the `Action`.
-	///   - workProducer: A closure that produces a unit of work, as `SignalProducer`, to
-	///                   be executed by the `Action`.
-	public convenience init<P: PropertyProtocol>(enabledIf property: P, _ workProducer: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to be
+	///              executed by the `Action`.
+	public convenience init<P: PropertyProtocol>(enabledIf property: P, execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
 		self.init(state: property, enabledIf: { $0 }) { _, input in
-			workProducer(input)
+			execute(input)
 		}
 	}
 
@@ -130,13 +135,13 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///
 	/// When the `Action` is asked to start the execution with an input value, a unit of
 	/// work — represented by a `SignalProducer` — would be created by invoking
-	/// `workProducer` with the input value.
+	/// `execute` with the input value.
 	///
 	/// - parameters:
-	///   - workProducer: A closure that produces a unit of work, as `SignalProducer`, to
-	///                   be executed by the `Action`.
-	public convenience init(_ workProducer: @escaping (Input) -> SignalProducer<Output, Error>) {
-		self.init(enabledIf: Property(value: true), workProducer)
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to be
+	///              executed by the `Action`.
+	public convenience init(execute: @escaping (Input) -> SignalProducer<Output, Error>) {
+		self.init(enabledIf: Property(value: true), execute: execute)
 	}
 
 	deinit {
@@ -226,34 +231,34 @@ extension Action where Input == Void {
 	/// Initializes an `Action` that uses a property of optional as its state.
 	///
 	/// When the `Action` is asked to start the execution, a unit of work — represented by
-	/// a `SignalProducer` — would be created by invoking `workProducer` with the latest
-	/// value of the state.
+	/// a `SignalProducer` — would be created by invoking `execute` with the latest value
+	/// of the state.
 	///
 	/// If the property holds a `nil`, the `Action` would be disabled until it is not
 	/// `nil`.
 	///
 	/// - parameters:
 	///   - state: A property of optional to be the state of the `Action`.
-	///   - workProducer: A closure that produces a unit of work, as `SignalProducer`, to
-	///                   be executed by the `Action`.
-	public convenience init<P: PropertyProtocol, T>(state: P, _ workProducer: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
+	///              be executed by the `Action`.
+	public convenience init<P: PropertyProtocol, T>(state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
 		self.init(state: state, enabledIf: { $0 != nil }) { state, _ in
-			workProducer(state!)
+			execute(state!)
 		}
 	}
 
 	/// Initializes an `Action` that uses a property as its state.
 	///
 	/// When the `Action` is asked to start the execution, a unit of work — represented by
-	/// a `SignalProducer` — would be created by invoking `workProducer` with the latest
-	/// value of the state.
+	/// a `SignalProducer` — would be created by invoking `execute` with the latest value
+	/// of the state.
 	///
 	/// - parameters:
 	///   - state: A property to be the state of the `Action`.
-	///   - workProducer: A closure that produces a unit of work, as `SignalProducer`, to
-	///                   be executed by the `Action`.
-	public convenience init<P: PropertyProtocol, T>(state: P, _ workProducer: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
-		self.init(state: state.map(Optional.some), workProducer)
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
+	///              be executed by the `Action`.
+	public convenience init<P: PropertyProtocol, T>(state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
+		self.init(state: state.map(Optional.some), execute: execute)
 	}
 }
 

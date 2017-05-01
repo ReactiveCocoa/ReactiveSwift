@@ -301,7 +301,7 @@ class ActionSpec: QuickSpec {
 
 			it("executes the action with the property's current value") {
 				let input = MutableProperty(0)
-				let action = Action(state: input, echo)
+				let action = Action(state: input, execute: echo)
 
 				var values: [Int] = []
 				action.values.observeValues { values.append($0) }
@@ -318,7 +318,7 @@ class ActionSpec: QuickSpec {
 
 			it("is disabled if the property is nil") {
 				let input = MutableProperty<Int?>(1)
-				let action = Action(state: input, echo)
+				let action = Action(state: input, execute: echo)
 
 				expect(action.isEnabled.value) == true
 				input.value = nil
