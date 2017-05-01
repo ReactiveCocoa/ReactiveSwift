@@ -15,6 +15,25 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -
 public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> { fatalError() }
 
 // MARK: Obsolete types in ReactiveSwift 2.0.
+extension Action {
+	@available(*, unavailable, renamed:"init(state:enabledIf:execute:)")
+	public convenience init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) { fatalError() }
+
+	@available(*, unavailable, renamed:"init(enabledIf:execute:)")
+	public convenience init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool { fatalError() }
+
+	@available(*, unavailable, renamed:"init(execute:)")
+	public convenience init(_ execute: @escaping (Input) -> SignalProducer<Output, Error>) { fatalError() }
+}
+
+extension Action where Input == Void {
+	@available(*, unavailable, renamed:"init(state:execute:)")
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? { fatalError() }
+
+	@available(*, unavailable, renamed:"init(state:execute:)")
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T { fatalError() }
+}
+
 @available(*, unavailable, message: "This protocol has been removed. Constrain `Action` directly instead.")
 public protocol ActionProtocol {}
 
