@@ -2017,7 +2017,7 @@ extension Signal {
 	}
 
 	private final class AggregateBuilder<Strategy: SignalAggregateStrategy> {
-		private var startHandlers: [(Int, CompositeDisposable, Atomic<Strategy>, @escaping (Event<Never, Error>) -> Void) -> Void]?
+		fileprivate var startHandlers: [(_ index: Int, _ strategy: Atomic<Strategy>, _ action: @escaping (Event<Never, Error>) -> Void) -> Disposable?]
 
 		init() {
 			self.startHandlers = []
@@ -2025,10 +2025,8 @@ extension Signal {
 
 		@discardableResult
 		func add<U>(_ signal: Signal<U, Error>) -> Self {
-			precondition(startHandlers != nil, "Signals cannot be registered after the state has started.")
-
-			startHandlers!.append { index, disposables, strategy, action in
-				disposables += signal.observe { event in
+			startHandlers.append { index, strategy, action in
+				return signal.observe { event in
 					switch event {
 					case let .value(value):
 						let shouldComplete = strategy.modify {
@@ -2059,201 +2057,192 @@ extension Signal {
 
 			return self
 		}
+	}
 
-		private func make<Composite>(count: Int, _ transform: @escaping (ContiguousArray<Any>) -> Composite) -> Signal<Composite, Error> {
-			precondition(startHandlers != nil, "Signals cannot be registered after the state has started.")
-			precondition(count == startHandlers!.count, "The number of registered signals does not match the composite value type.")
-
-			let disposable = SerialDisposable()
+	private convenience init<Strategy>(_ builder: AggregateBuilder<Strategy>, _ transform: @escaping (ContiguousArray<Any>) -> Value) where Strategy: SignalAggregateStrategy {
+		self.init { observer in
 			let disposables = CompositeDisposable()
-			let (signal, observer) = Signal<Composite, Error>.pipe(disposable: disposable)
+			let strategy = Atomic(Strategy(count: builder.startHandlers.count) { observer.send(value: transform($0)) })
 
-			let strategy = Atomic(Strategy(count: count) { observer.send(value: transform($0)) })
+			for (index, action) in builder.startHandlers.enumerated() where !disposables.isDisposed {
+				disposables += action(index, strategy) { observer.action($0.map { _ in fatalError() }) }
+			}
 
-			disposable.inner = ActionDisposable {
+			return ActionDisposable {
 				strategy.modify { _ in
 					disposables.dispose()
 				}
 			}
-
-			let actions = startHandlers!
-			startHandlers = nil
-
-			for (index, action) in actions.enumerated() where !disposable.isDisposed {
-				action(index, disposables, strategy) { observer.action($0.map { _ in fatalError() }) }
-			}
-
-			return signal
 		}
+	}
 
+	private convenience init<Strategy, U, S: Sequence>(_ strategy: Strategy.Type, _ signals: S) where Value == [U], Strategy: SignalAggregateStrategy, S.Iterator.Element == Signal<U, Error> {
+		self.init(signals.reduce(AggregateBuilder<Strategy>()) { $0.add($1) }) { $0.map { $0 as! U } }
+	}
 
-		func make<Value>() -> Signal<[Value], Error> {
-			precondition(startHandlers != nil, "Signals cannot be registered after the state has started.")
-			return make(count: startHandlers!.count) { $0.map { $0 as! Value } }
+	private convenience init<Strategy, A, B>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>) where Value == (A, B), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b)) {
+			return ($0[0] as! A, $0[1] as! B)
 		}
+	}
 
-		func make<A, B>() -> Signal<(A, B), Error> {
-			return make(count: 2) { ($0[0] as! A, $0[1] as! B) }
+	private convenience init<Strategy, A, B, C>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>) where Value == (A, B, C), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c)) {
+			return ($0[0] as! A, $0[1] as! B, $0[2] as! C)
 		}
+	}
 
-		func make<A, B, C>() -> Signal<(A, B, C), Error> {
-			return make(count: 3) { ($0[0] as! A, $0[1] as! B, $0[2] as! C) }
+	private convenience init<Strategy, A, B, C, D>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>) where Value == (A, B, C, D), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d)) {
+			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D)
 		}
+	}
 
-		func make<A, B, C, D>() -> Signal<(A, B, C, D), Error> {
-			return make(count: 4) { ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D) }
+	private convenience init<Strategy, A, B, C, D, E>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>) where Value == (A, B, C, D, E), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e)) {
+			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E)
 		}
+	}
 
-		func make<A, B, C, D, E>() -> Signal<(A, B, C, D, E), Error> {
-			return make(count: 5) { ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E) }
+	private convenience init<Strategy, A, B, C, D, E, F>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>) where Value == (A, B, C, D, E, F), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f)) {
+			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F)
 		}
+	}
 
-		func make<A, B, C, D, E, F>() -> Signal<(A, B, C, D, E, F), Error> {
-			return make(count: 6) { ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F) }
+	private convenience init<Strategy, A, B, C, D, E, F, G>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>) where Value == (A, B, C, D, E, F, G), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g)) {
+			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G)
 		}
+	}
 
-		func make<A, B, C, D, E, F, G>() -> Signal<(A, B, C, D, E, F, G), Error> {
-			return make(count: 7) { ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G) }
+	private convenience init<Strategy, A, B, C, D, E, F, G, H>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>) where Value == (A, B, C, D, E, F, G, H), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h)) {
+			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H)
 		}
+	}
 
-		func make<A, B, C, D, E, F, G, H>() -> Signal<(A, B, C, D, E, F, G, H), Error> {
-			return make(count: 8) { ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H) }
+	private convenience init<Strategy, A, B, C, D, E, F, G, H, I>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>) where Value == (A, B, C, D, E, F, G, H, I), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i)) {
+			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H, $0[8] as! I)
 		}
+	}
 
-		func make<A, B, C, D, E, F, G, H, I>() -> Signal<(A, B, C, D, E, F, G, H, I), Error> {
-			return make(count: 9) { ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H, $0[8] as! I) }
-		}
-
-		func make<A, B, C, D, E, F, G, H, I, J>() -> Signal<(A, B, C, D, E, F, G, H, I, J), Error> {
-			return make(count: 10) { ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H, $0[8] as! I, $0[9] as! J) }
+	private convenience init<Strategy, A, B, C, D, E, F, G, H, I, J>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>) where Value == (A, B, C, D, E, F, G, H, I, J), Strategy: SignalAggregateStrategy {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i).add(j)) {
+			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H, $0[8] as! I, $0[9] as! J)
 		}
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>) -> Signal<(Value, B), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).make()
+		return .init(CombineLatestStrategy.self, a, b)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>) -> Signal<(Value, B, C), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).add(c).make()
+		return .init(CombineLatestStrategy.self, a, b, c)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>) -> Signal<(Value, B, C, D), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).add(c).add(d).make()
+		return .init(CombineLatestStrategy.self, a, b, c, d)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>) -> Signal<(Value, B, C, D, E), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).add(c).add(d).add(e).make()
+		return .init(CombineLatestStrategy.self, a, b, c, d, e)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>) -> Signal<(Value, B, C, D, E, F), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).make()
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>) -> Signal<(Value, B, C, D, E, F, G), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).make()
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>) -> Signal<(Value, B, C, D, E, F, G, H), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).make()
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g, h)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>) -> Signal<(Value, B, C, D, E, F, G, H, I), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i).make()
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g, h, i)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>) -> Signal<(Value, B, C, D, E, F, G, H, I, J), Error> {
-			return AggregateBuilder<CombineLatestStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i).add(j).make()
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g, h, i, j)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
 	/// `combineLatest(with:)`. No events will be sent if the sequence is empty.
 	public static func combineLatest<S: Sequence>(_ signals: S) -> Signal<[Value], Error> where S.Iterator.Element == Signal<Value, Error> {
-		let builder = AggregateBuilder<CombineLatestStrategy>()
-
-		var count = 0
-		for signal in signals {
-			builder.add(signal)
-			count += 1
-		}
-
-		return builder.make()
+		return .init(CombineLatestStrategy.self, signals)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>) -> Signal<(Value, B), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).make()
+		return .init(ZipStrategy.self, a, b)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B, C>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>) -> Signal<(Value, B, C), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).add(c).make()
+		return .init(ZipStrategy.self, a, b, c)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B, C, D>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>) -> Signal<(Value, B, C, D), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).add(c).add(d).make()
+		return .init(ZipStrategy.self, a, b, c, d)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B, C, D, E>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>) -> Signal<(Value, B, C, D, E), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).add(c).add(d).add(e).make()
+		return .init(ZipStrategy.self, a, b, c, d, e)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B, C, D, E, F>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>) -> Signal<(Value, B, C, D, E, F), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).make()
+		return .init(ZipStrategy.self, a, b, c, d, e, f)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B, C, D, E, F, G>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>) -> Signal<(Value, B, C, D, E, F, G), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).make()
+		return .init(ZipStrategy.self, a, b, c, d, e, f, g)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>) -> Signal<(Value, B, C, D, E, F, G, H), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).make()
+		return .init(ZipStrategy.self, a, b, c, d, e, f, g, h)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H, I>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>) -> Signal<(Value, B, C, D, E, F, G, H, I), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i).make()
+		return .init(ZipStrategy.self, a, b, c, d, e, f, g, h, i)
 	}
 
 	/// Zip the values of all the given signals, in the manner described by `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H, I, J>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>) -> Signal<(Value, B, C, D, E, F, G, H, I, J), Error> {
-			return AggregateBuilder<ZipStrategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i).add(j).make()
+		return .init(ZipStrategy.self, a, b, c, d, e, f, g, h, i, j)
 	}
 
 	/// Zips the values of all the given signals, in the manner described by
 	/// `zip(with:)`. No events will be sent if the sequence is empty.
 	public static func zip<S: Sequence>(_ signals: S) -> Signal<[Value], Error> where S.Iterator.Element == Signal<Value, Error> {
-		let builder = AggregateBuilder<ZipStrategy>()
-
-		var count = 0
-		for signal in signals {
-			builder.add(signal)
-			count += 1
-		}
-
-		return builder.make()
+		return .init(ZipStrategy.self, signals)
 	}
 }
 
