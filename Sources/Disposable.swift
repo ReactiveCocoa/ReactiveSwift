@@ -117,7 +117,7 @@ public final class CompositeDisposable: Disposable {
 	///         `DisposableHandle`.
 	public final class DisposableHandle {
 		private var state: UnsafeAtomicState<DisposableState>
-		private var bagToken: RemovalToken?
+		private var bagToken: Bag<Disposable>.Token?
 		private weak var disposable: CompositeDisposable?
 
 		fileprivate static let empty = DisposableHandle()
@@ -131,7 +131,7 @@ public final class CompositeDisposable: Disposable {
 			state.deinitialize()
 		}
 
-		fileprivate init(bagToken: RemovalToken, disposable: CompositeDisposable) {
+		fileprivate init(bagToken: Bag<Disposable>.Token, disposable: CompositeDisposable) {
 			self.state = UnsafeAtomicState(.active)
 			self.bagToken = bagToken
 			self.disposable = disposable
