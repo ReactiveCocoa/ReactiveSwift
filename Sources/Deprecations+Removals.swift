@@ -3,6 +3,73 @@ import Dispatch
 import enum Result.NoError
 
 // MARK: Unavailable methods in ReactiveSwift 2.0.
+extension PropertyProtocol {
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<P: PropertyProtocol>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> P) -> Property<P.Value> { fatalError() }
+}
+
+extension Signal {
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> SignalProducer<U, Error>) -> Signal<U, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> SignalProducer<U, NoError>) -> Signal<U, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, Error>) -> Signal<U, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, NoError>) -> Signal<U, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<P: PropertyProtocol>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> P) -> Signal<P.Value, Error> { fatalError() }
+}
+
+extension Signal where Error == NoError {
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U, E>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> SignalProducer<U, E>) -> Signal<U, E> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> SignalProducer<U, NoError>) -> Signal<U, NoError> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U, E>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, E>) -> Signal<U, E> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, NoError>) -> Signal<U, NoError> { fatalError() }
+}
+
+extension SignalProducer {
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> SignalProducer<U, Error>) -> SignalProducer<U, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> SignalProducer<U, NoError>) -> SignalProducer<U, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, Error>) -> SignalProducer<U, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, NoError>) -> SignalProducer<U, Error> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<P: PropertyProtocol>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> P) -> SignalProducer<P.Value, Error> { fatalError() }
+}
+
+extension SignalProducer where Error == NoError {
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U, E>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> SignalProducer<U, E>) -> SignalProducer<U, E> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> SignalProducer<U, NoError>) -> SignalProducer<U, NoError> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U, E>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, E>) -> SignalProducer<U, E> { fatalError() }
+
+	@available(*, unavailable, renamed:"flatMap(_:_:)")
+	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, NoError>) -> SignalProducer<U, NoError> { fatalError() }
+}
+
 extension ComposableMutablePropertyProtocol {
 	@available(*, unavailable, renamed:"withValue(_:)")
 	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result { fatalError() }
@@ -312,7 +379,7 @@ extension Signal where Error == NoError {
 extension Signal where Value: Sequence {
 	@available(*, deprecated, message: "Use flatten() instead")
 	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Iterator.Element, Error> {
-		return self.flatMap(strategy, transform: SignalProducer.init)
+		return self.flatMap(strategy, SignalProducer.init)
 	}
 }
 
@@ -394,7 +461,7 @@ extension SignalProducer where Error == NoError {
 extension SignalProducer where Value: Sequence {
 	@available(*, deprecated, message: "Use flatten() instead")
 	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Iterator.Element, Error> {
-		return self.flatMap(strategy, transform: SignalProducer<Value.Iterator.Element, NoError>.init)
+		return self.flatMap(strategy, SignalProducer<Value.Iterator.Element, NoError>.init)
 	}
 }
 
