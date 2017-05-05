@@ -16,9 +16,9 @@ final class ViewModel {
 	let emailConfirmation: ValidatingProperty<String, FormError>
 	let termsAccepted: MutableProperty<Bool>
 
-	let reasons: Signal<String, NoError>
-
 	let submit: Action<(), (), FormError>
+
+	let reasons: Signal<String, NoError>
 
 	init(userService: UserService) {
 		email = ValidatingProperty<String, FormError>("") { input in
@@ -31,30 +31,37 @@ final class ViewModel {
 
 		termsAccepted = MutableProperty(false)
 
-		// Aggregate latest failure contexts as a stream of strings.
-		reasons = Property.combineLatest(email.result, emailConfirmation.result)
-			.signal
-			.debounce(0.1, on: QueueScheduler.main)
-			.map { [$0, $1].flatMap { $0.error?.reason }.joined(separator: "\n") }
-
-		// A `Property` of the validated username.
+		// `validatedEmail` is a property which holds the validated email address if
+		//  the entire form is valid, or it holds `nil` otherwise.
 		//
-		// It outputs the valid username for the `Action` to work on, or `nil` if the form
-		// is invalid and the `Action` would be disabled consequently.
-		let validatedEmail = Property.combineLatest(email.result,
-		                                            emailConfirmation.result,
-		                                            termsAccepted)
-			.map { e, ec, t in e.value.flatMap { !ec.isInvalid && t ? $0 : nil } }
+		// The condition used in the `map` transform is:
+		// 1. `emailConfirmation` passes validation: `!email.isInvalid`; and
+		// 2. `termsAccepted` is asserted: `accepted`.
+		let validatedEmail: Property<String?> = Property.combineLatest(emailConfirmation.result,
+		                                                               termsAccepted)
+			.map { (email: ValidationResult<String, FormError>, accepted: Bool) -> String? in
+			      return !email.isInvalid && accepted ? email.value! : nil
+			}
 
 		// The action to be invoked when the submit button is pressed.
-		// It enables only if all the controls have passed their validations.
-		submit = Action(input: validatedEmail) { (email: String) in
+		//
+		// Recall that `submit` is an `Action` with no input, i.e. `Input == ()`.
+		// `Action` provides a special initializer in this case: `init(state:)`.
+		// It takes a property of optionals — in our case, `validatedEmail` — and
+		// would disable whenever the property holds `nil`.
+		submit = Action(state: validatedEmail) { (email: String) in
 			let username = email.stripSuffix("@reactivecocoa.io")!
 
 			return userService.canUseUsername(username)
 				.promoteErrors(FormError.self)
 				.attemptMap { Result<(), FormError>($0 ? () : nil, failWith: .usernameUnavailable) }
 		}
+
+		// `reason` is an aggregate of latest validation error for the UI to display.
+		reasons = Property.combineLatest(email.result, emailConfirmation.result)
+			.signal
+			.debounce(0.1, on: QueueScheduler.main)
+			.map { [$0, $1].flatMap { $0.error?.reason }.joined(separator: "\n") }
 	}
 }
 

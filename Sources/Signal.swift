@@ -300,7 +300,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	///            or `nil` if the signal has already terminated.
 	@discardableResult
 	public func observe(_ observer: Observer) -> Disposable? {
-		var token: RemovalToken?
+		var token: Bag<Observer>.Token?
 		updateLock.lock()
 		if case let .alive(snapshot) = state {
 			var observers = snapshot.observers

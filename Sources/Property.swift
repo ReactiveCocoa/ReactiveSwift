@@ -30,19 +30,6 @@ public protocol PropertyProtocol: class, BindingSource {
 	var signal: Signal<Value, NoError> { get }
 }
 
-extension PropertyProtocol {
-	/// Observe the property by sending all of future value changes to the
-	/// given `observer` during the given `lifetime`.
-	///
-	/// - parameters:
-	///   - observer: An observer to send the events to.
-	///   - lifetime: A lifetime of the observing object.
-	@discardableResult
-	public func observe(_ observer: Observer<Value, NoError>, during lifetime: Lifetime) -> Disposable? {
-		return producer.observe(observer, during: lifetime)
-	}
-}
-
 /// Represents an observable property that can be mutated directly.
 public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProvider {
 	/// The current value of the property.
@@ -69,7 +56,7 @@ public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
 	///   - action: A closure that accepts current property value.
 	///
 	/// - returns: the result of the action.
-	func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result
+	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result
 
 	/// Atomically modifies the variable.
 	///
@@ -701,7 +688,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	///
 	/// - returns: the result of the action.
 	@discardableResult
-	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result {
+	public func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
 		return try atomic.withValue(action)
 	}
 

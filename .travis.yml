@@ -27,12 +27,12 @@ matrix:
       env:
         - XCODE_SDK=iphonesimulator
         - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s,OS=10.1"
+        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
     - xcode_scheme: ReactiveSwift-iOS
       env:
         - XCODE_SDK=iphonesimulator
         - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 5,OS=10.1"
+        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 5"
     - xcode_scheme: ReactiveSwift-tvOS
       env:
         - XCODE_SDK=appletvsimulator

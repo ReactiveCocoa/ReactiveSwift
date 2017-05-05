@@ -70,6 +70,11 @@ extension SignalProducer where Error == NoError {
 	public func flatMap<U>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> Signal<U, NoError>) -> SignalProducer<U, NoError> { fatalError() }
 }
 
+extension ComposableMutablePropertyProtocol {
+	@available(*, unavailable, renamed:"withValue(_:)")
+	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result { fatalError() }
+}
+
 @available(*, unavailable, renamed:"SignalProducer.timer")
 public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -> SignalProducer<Date, NoError> { fatalError() }
 
@@ -77,6 +82,28 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -
 public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> { fatalError() }
 
 // MARK: Obsolete types in ReactiveSwift 2.0.
+extension Action {
+	@available(*, unavailable, renamed:"init(state:enabledIf:execute:)")
+	public convenience init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) { fatalError() }
+
+	@available(*, unavailable, renamed:"init(enabledIf:execute:)")
+	public convenience init<P: PropertyProtocol>(enabledIf property: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool { fatalError() }
+
+	@available(*, unavailable, renamed:"init(execute:)")
+	public convenience init(_ execute: @escaping (Input) -> SignalProducer<Output, Error>) { fatalError() }
+}
+
+extension Action where Input == Void {
+	@available(*, unavailable, renamed:"init(state:execute:)")
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? { fatalError() }
+
+	@available(*, unavailable, renamed:"init(state:execute:)")
+	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T { fatalError() }
+}
+
+@available(*, unavailable, renamed:"Bag.Token")
+public typealias RemovalToken = Bag<Any>.Token
+
 @available(*, unavailable, message: "This protocol has been removed. Constrain `Action` directly instead.")
 public protocol ActionProtocol {}
 
@@ -274,7 +301,7 @@ extension LoggingEvent.SignalProducer {
 
 extension Bag {
 	@available(*, unavailable, renamed:"remove(using:)")
-	public func removeValueForToken(_ token: RemovalToken) { fatalError() }
+	public func removeValueForToken(_ token: Token) { fatalError() }
 }
 
 extension CompositeDisposable {

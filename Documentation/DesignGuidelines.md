@@ -543,26 +543,26 @@ This guideline can be safely ignored when the purpose of an operator is to
 synchronously retrieve one or more values from a stream, like `single()` or
 `wait()`.
 
-[CompositeDisposable]: ../ReactiveCocoa/Swift/Disposable.swift
+[CompositeDisposable]: ../Sources/Disposable.swift
 [Disposables]: FrameworkOverview.md#disposables
 [Events]: FrameworkOverview.md#events
 [Framework Overview]: FrameworkOverview.md
-[NoError]: ../ReactiveCocoa/Swift/Errors.swift
+[NoError]: ../Sources/Errors.swift
 [Observers]: FrameworkOverview.md#observers
 [Operators]: BasicOperators.md
 [Properties]: FrameworkOverview.md#properties
 [Schedulers]: FrameworkOverview.md#schedulers
 [Signal Producers]: FrameworkOverview.md#signal-producers
-[Signal.init]: ../ReactiveCocoa/Swift/Signal.swift
-[Signal.pipe]: ../ReactiveCocoa/Swift/Signal.swift
-[SignalProducer.init]: ../ReactiveCocoa/Swift/SignalProducer.swift
+[Signal.init]: ../Sources/Signal.swift
+[Signal.pipe]: ../Sources/Signal.swift
+[SignalProducer.init]: ../Sources/SignalProducer.swift
 [Signals]: FrameworkOverview.md#signals
-[delay]: ../ReactiveCocoa/Swift/Signal.swift
+[delay]: ../Sources/Signal.swift
 [flatten]: BasicOperators.md#flattening-producers
-[lift]: ../ReactiveCocoa/Swift/SignalProducer.swift
-[observe]: ../ReactiveCocoa/Swift/Signal.swift
-[observeOn]: ../ReactiveCocoa/Swift/Signal.swift
-[start]: ../ReactiveCocoa/Swift/SignalProducer.swift
-[startWithSignal]: ../ReactiveCocoa/Swift/SignalProducer.swift
-[take]: ../ReactiveCocoa/Swift/Signal.swift
-[takeUntil]: ../ReactiveCocoa/Swift/Signal.swift
+[lift]: ../Sources/SignalProducer.swift
+[observe]: ../Sources/Signal.swift
+[observeOn]: ../Sources/Signal.swift
+[start]: ../Sources/SignalProducer.swift
+[startWithSignal]: ../Sources/SignalProducer.swift
+[take]: ../Sources/Signal.swift
+[takeUntil]: ../Sources/Signal.swift
