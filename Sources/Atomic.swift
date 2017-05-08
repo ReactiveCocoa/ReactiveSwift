@@ -126,6 +126,18 @@ final class PosixThreadMutex: NSLocking {
 		let result = pthread_mutex_unlock(&mutex)
 		precondition(result == 0, "Failed to unlock \(self) with error \(result).")
 	}
+
+	func `try`() -> Bool {
+		let result = pthread_mutex_trylock(&mutex)
+		switch result {
+		case 0:
+			return true
+		case EBUSY:
+			return false
+		default:
+			preconditionFailure("Failed to unlock \(self) with error \(result).")
+		}
+	}
 }
 
 /// An atomic variable.
