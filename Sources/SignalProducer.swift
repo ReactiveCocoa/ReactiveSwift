@@ -934,6 +934,19 @@ extension SignalProducer {
 		return lift { $0.reduce(initial, combine) }
 	}
 
+	/// Send only the final value and then immediately completes.
+	///
+	/// - parameters:
+	///   - initial: Initial value for the accumulator.
+	///   - combine: A closure that accepts accumulator and sent value of
+	///              `self`.
+	///
+	/// - returns: A producer that sends accumulated value after `self`
+	///             completes.
+	public func reduce<U>(into initial: U, _ combine: @escaping (inout U, Value) -> Void) -> SignalProducer<U, Error> {
+		return lift { $0.reduce(into: initial, combine) }
+	}
+
 	/// Aggregate `self`'s values into a single combined value. When `self`
 	/// emits its first value, `combine` is invoked with `initial` as the first
 	/// argument and that emitted value as the second argument. The result is
@@ -950,6 +963,24 @@ extension SignalProducer {
 	///            emits own value.
 	public func scan<U>(_ initial: U, _ combine: @escaping (U, Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.scan(initial, combine) }
+	}
+
+	/// Aggregate `self`'s values into a single combined value. When `self`
+	/// emits its first value, `combine` is invoked with `initial` as the first
+	/// argument and that emitted value as the second argument. The result is
+	/// emitted from the producer returned from `scan`. That result is then
+	/// passed to `combine` as the first argument when the next value is
+	/// emitted, and so on.
+	///
+	/// - parameters:
+	///   - initial: Initial value for the accumulator.
+	///   - combine: A closure that accepts accumulator and sent value of
+	///              `self`.
+	///
+	/// - returns: A producer that sends accumulated value each time `self`
+	///            emits own value.
+	public func scan<U>(into initial: U, _ combine: @escaping (inout U, Value) -> Void) -> SignalProducer<U, Error> {
+		return lift { $0.scan(into: initial, combine) }
 	}
 
 	/// Forward only those values from `self` which do not pass `isRepeat` with

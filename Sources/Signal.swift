@@ -1413,6 +1413,20 @@ extension Signal {
 	///
 	/// - returns: A signal that sends accumulated value after `self` completes.
 	public func reduce<U>(_ initial: U, _ combine: @escaping (U, Value) -> U) -> Signal<U, Error> {
+		return self.reduce(into: initial) { accumulator, value in
+			accumulator = combine(accumulator, value)
+		}
+	}
+
+	/// Send only the final value and then immediately completes.
+	///
+	/// - parameters:
+	///   - initial: Initial value for the accumulator.
+	///   - combine: A closure that accepts accumulator and sent value of
+	///              `self`.
+	///
+	/// - returns: A signal that sends accumulated value after `self` completes.
+	public func reduce<U>(into initial: U, _ combine: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
 		// We need to handle the special case in which `signal` sends no values.
 		// We'll do that by sending `initial` on the output signal (before
 		// taking the last value).
@@ -1420,11 +1434,11 @@ extension Signal {
 		let outputSignal = scannedSignalWithInitialValue.take(last: 1)
 
 		// Now that we've got takeLast() listening to the piped signal, send
-        // that initial value.
+		// that initial value.
 		outputSignalObserver.send(value: initial)
 
 		// Pipe the scanned input signal into the output signal.
-		self.scan(initial, combine)
+		self.scan(into: initial, combine)
 			.observe(outputSignalObserver)
 
 		return outputSignal
@@ -1445,12 +1459,32 @@ extension Signal {
 	/// - returns: A signal that sends accumulated value each time `self` emits
 	///            own value.
 	public func scan<U>(_ initial: U, _ combine: @escaping (U, Value) -> U) -> Signal<U, Error> {
+		return self.scan(into: initial) { accumulator, value in
+			accumulator = combine(accumulator, value)
+		}
+	}
+
+	/// Aggregate values into a single combined value. When `self` emits its
+	/// first value, `combine` is invoked with `initial` as the first argument
+	/// and that emitted value as the second argument. The result is emitted
+	/// from the signal returned from `scan`. That result is then passed to
+	/// `combine` as the first argument when the next value is emitted, and so
+	/// on.
+	///
+	/// - parameters:
+	///   - initial: Initial value for the accumulator.
+	///   - combine: A closure that accepts accumulator and sent value of
+	///              `self`.
+	///
+	/// - returns: A signal that sends accumulated value each time `self` emits
+	///            own value.
+	public func scan<U>(into initial: U, _ combine: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
 		return Signal<U, Error> { observer in
 			var accumulator = initial
 
 			return self.observe { event in
 				observer.action(event.map { value in
-					accumulator = combine(accumulator, value)
+					combine(&accumulator, value)
 					return accumulator
 				})
 			}

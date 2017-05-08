@@ -360,7 +360,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 		}
 
-		describe("scan") {
+		describe("scan(_:_:)") {
 			it("should incrementally accumulate a value") {
 				let (baseProducer, observer) = SignalProducer<String, NoError>.pipe()
 				let producer = baseProducer.scan("", +)
@@ -379,7 +379,26 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 		}
 
-		describe("reduce") {
+		describe("scan(into:_:)") {
+			it("should incrementally accumulate a value") {
+				let (baseProducer, observer) = SignalProducer<String, NoError>.pipe()
+				let producer = baseProducer.scan(into: "") { $0 += $1 }
+
+				var lastValue: String?
+
+				producer.startWithValues { lastValue = $0 }
+
+				expect(lastValue).to(beNil())
+
+				observer.send(value: "a")
+				expect(lastValue) == "a"
+
+				observer.send(value: "bb")
+				expect(lastValue) == "abb"
+			}
+		}
+
+		describe("reduce(_:_:)") {
 			it("should accumulate one value") {
 				let (baseProducer, observer) = SignalProducer<Int, NoError>.pipe()
 				let producer = baseProducer.reduce(1, +)
@@ -416,6 +435,68 @@ class SignalProducerLiftingSpec: QuickSpec {
 			it("should send the initial value if none are received") {
 				let (baseProducer, observer) = SignalProducer<Int, NoError>.pipe()
 				let producer = baseProducer.reduce(1, +)
+
+				var lastValue: Int?
+				var completed = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						lastValue = value
+					case .completed:
+						completed = true
+					case .failed, .interrupted:
+						break
+					}
+				}
+
+				expect(lastValue).to(beNil())
+				expect(completed) == false
+
+				observer.sendCompleted()
+
+				expect(lastValue) == 1
+				expect(completed) == true
+			}
+		}
+
+		describe("reduce(into:_:)") {
+			it("should accumulate one value") {
+				let (baseProducer, observer) = SignalProducer<Int, NoError>.pipe()
+				let producer = baseProducer.reduce(into: 1) { $0 += $1 }
+
+				var lastValue: Int?
+				var completed = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						lastValue = value
+					case .completed:
+						completed = true
+					case .failed, .interrupted:
+						break
+					}
+				}
+
+				expect(lastValue).to(beNil())
+
+				observer.send(value: 1)
+				expect(lastValue).to(beNil())
+
+				observer.send(value: 2)
+				expect(lastValue).to(beNil())
+
+				expect(completed) == false
+				observer.sendCompleted()
+				expect(completed) == true
+
+				expect(lastValue) == 4
+			}
+
+			it("should send the initial value if none are received") {
+				let (baseProducer, observer) = SignalProducer<Int, NoError>.pipe()
+				let producer = baseProducer.reduce(into: 1) { $0 += $1 }
 
 				var lastValue: Int?
 				var completed = false
