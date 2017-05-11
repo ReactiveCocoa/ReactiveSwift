@@ -75,6 +75,16 @@ extension ComposableMutablePropertyProtocol {
 	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result { fatalError() }
 }
 
+extension CompositeDisposable {
+	@available(*, deprecated, message:"Use `Disposable?` instead. The typealias would be removed in a future release.")
+	public typealias DisposableHandle = Disposable?
+}
+
+extension Optional where Wrapped == Disposable {
+	@available(*, unavailable, renamed:"dispose")
+	public func remove() { fatalError() }
+}
+
 @available(*, unavailable, renamed:"SignalProducer.timer")
 public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -> SignalProducer<Date, NoError> { fatalError() }
 
@@ -306,7 +316,7 @@ extension Bag {
 
 extension CompositeDisposable {
 	@available(*, unavailable, renamed:"add(_:)")
-	public func addDisposable(_ d: Disposable) -> DisposableHandle { fatalError() }
+	public func addDisposable(_ d: Disposable) -> Disposable? { fatalError() }
 }
 
 extension Observer {
