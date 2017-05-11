@@ -170,18 +170,18 @@ public final class CompositeDisposable: Disposable {
 	///            `disposable` is `nil`.
 	@discardableResult
 	public func add(_ disposable: Disposable?) -> Disposable? {
-		if isDisposed {
+		guard let d = disposable, !d.isDisposed, !isDisposed else {
 			disposable?.dispose()
 			return nil
 		}
 
-		return disposable.flatMap { disposable in
-			return disposables.modify { disposables in
-				let token = disposables!.insert(disposable)
-				return ActionDisposable { [weak self] in
-					self?.disposables.modify {
-						$0?.remove(using: token)
-					}
+		return disposables.modify { disposables in
+			guard disposables != nil else { return nil }
+
+			let token = disposables!.insert(d)
+			return ActionDisposable { [weak self] in
+				self?.disposables.modify {
+					$0?.remove(using: token)
 				}
 			}
 		}
