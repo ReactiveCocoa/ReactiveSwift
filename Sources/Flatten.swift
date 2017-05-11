@@ -443,8 +443,7 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 
 		func startNextIfNeeded() {
 			while let producer = state.modify({ $0.dequeue() }) {
-				let producerState = UnsafeAtomicState<ProducerState>(.starting)
-				let deinitializer = ScopedDisposable(ActionDisposable(action: producerState.deinitialize))
+				var producerState = AtomicState<ProducerState>(.starting)
 
 				producer.startWithSignal { signal, inner in
 					let handle = disposable.add(inner)
@@ -459,12 +458,10 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 								return state.shouldComplete
 							}
 
-							withExtendedLifetime(deinitializer) {
-								if shouldComplete {
-									observer.sendCompleted()
-								} else if producerState.is(.started) {
-									startNextIfNeeded()
-								}
+							if shouldComplete {
+								observer.sendCompleted()
+							} else if producerState.is(.started) {
+								startNextIfNeeded()
 							}
 
 						case .value, .failed:
@@ -473,9 +470,7 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 					}
 				}
 
-				withExtendedLifetime(deinitializer) {
-					producerState.setStarted()
-				}
+				producerState.setStarted()
 			}
 		}
 
@@ -608,8 +603,8 @@ private enum ProducerState: Int32 {
 	case started
 }
 
-extension UnsafeAtomicState where State == ProducerState {
-	fileprivate func setStarted() {
+extension AtomicState where State == ProducerState {
+	fileprivate mutating func setStarted() {
 		precondition(tryTransition(from: .starting, to: .started), "The transition is not supposed to fail.")
 	}
 }

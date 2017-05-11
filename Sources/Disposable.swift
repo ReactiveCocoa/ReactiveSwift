@@ -28,12 +28,12 @@ private enum DisposableState: Int32 {
 	case disposed
 }
 
-extension UnsafeAtomicState where State == DisposableState {
+extension AtomicState where State == DisposableState {
 	/// Try to transition from `active` to `disposed`.
 	///
 	/// - returns: `true` if the transition succeeds. `false` otherwise.
 	@inline(__always)
-	fileprivate func tryDispose() -> Bool {
+	fileprivate mutating func tryDispose() -> Bool {
 		return tryTransition(from: .active, to: .disposed)
 	}
 }
@@ -58,7 +58,7 @@ public final class AnyDisposable: Disposable {
 /// A disposable that only flips `isDisposed` upon disposal, and performs no other
 /// work.
 public final class SimpleDisposable: Disposable {
-	private var state = UnsafeAtomicState(DisposableState.active)
+	private var state = AtomicState(DisposableState.active)
 
 	public var isDisposed: Bool {
 		return state.is(.disposed)
@@ -69,16 +69,12 @@ public final class SimpleDisposable: Disposable {
 	public func dispose() {
 		_ = state.tryDispose()
 	}
-
-	deinit {
-		state.deinitialize()
-	}
 }
 
 /// A disposable that will run an action upon disposal.
 public final class ActionDisposable: Disposable {
 	private var action: (() -> Void)?
-	private var state: UnsafeAtomicState<DisposableState>
+	private var state: AtomicState<DisposableState>
 
 	public var isDisposed: Bool {
 		return state.is(.disposed)
@@ -90,7 +86,7 @@ public final class ActionDisposable: Disposable {
 	///   - action: A closure to run when calling `dispose()`.
 	public init(action: @escaping () -> Void) {
 		self.action = action
-		self.state = UnsafeAtomicState(DisposableState.active)
+		self.state = AtomicState(DisposableState.active)
 	}
 
 	public func dispose() {
@@ -99,16 +95,12 @@ public final class ActionDisposable: Disposable {
 			action = nil
 		}
 	}
-
-	deinit {
-		state.deinitialize()
-	}
 }
 
 /// A disposable that will dispose of any number of other disposables.
 public final class CompositeDisposable: Disposable {
 	private let disposables: Atomic<Bag<Disposable>?>
-	private var state: UnsafeAtomicState<DisposableState>
+	private var state: AtomicState<DisposableState>
 
 	public var isDisposed: Bool {
 		return state.is(.disposed)
@@ -130,7 +122,7 @@ public final class CompositeDisposable: Disposable {
 		}
 
 		self.disposables = Atomic(bag)
-		self.state = UnsafeAtomicState(DisposableState.active)
+		self.state = AtomicState(DisposableState.active)
 	}
 	
 	/// Initialize a `CompositeDisposable` containing the given sequence of
@@ -199,10 +191,6 @@ public final class CompositeDisposable: Disposable {
 	public func add(_ action: @escaping () -> Void) -> Disposable? {
 		return add(ActionDisposable(action: action))
 	}
-
-	deinit {
-		state.deinitialize()
-	}
 }
 
 /// A disposable that, upon deinitialization, will automatically dispose of
@@ -250,7 +238,7 @@ extension ScopedDisposable where Inner: AnyDisposable {
 /// wrapped disposable to be replaced.
 public final class SerialDisposable: Disposable {
 	private let _inner: Atomic<Disposable?>
-	private var state: UnsafeAtomicState<DisposableState>
+	private var state: AtomicState<DisposableState>
 
 	public var isDisposed: Bool {
 		return state.is(.disposed)
@@ -280,17 +268,13 @@ public final class SerialDisposable: Disposable {
 	///   - disposable: Optional disposable.
 	public init(_ disposable: Disposable? = nil) {
 		self._inner = Atomic(disposable)
-		self.state = UnsafeAtomicState(DisposableState.active)
+		self.state = AtomicState(DisposableState.active)
 	}
 
 	public func dispose() {
 		if state.tryDispose() {
 			_inner.swap(nil)?.dispose()
 		}
-	}
-
-	deinit {
-		state.deinitialize()
 	}
 }
 
