@@ -202,7 +202,7 @@ extension SignalProducer: SignalProducerProtocol {
 }
 
 extension SignalProducer {
-	/// Create a `Signal` from `self`, and attach the given observer to the `Signal`.
+	/// Create a `Signal` from `self`, and observe it with the given observer.
 	///
 	/// - parameters:
 	///   - observer: An observer to attach to the produced `Signal`.
@@ -220,8 +220,8 @@ extension SignalProducer {
 		return disposable
 	}
 
-	/// Create a `Signal` from `self`, and attach a closure as an observer to all events
-	/// from the `Signal`.
+	/// Create a `Signal` from `self`, and observe the `Signal` for all events
+	/// being emitted.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked with every event from `self`.
@@ -232,8 +232,8 @@ extension SignalProducer {
 		return start(Observer(action))
 	}
 
-	/// Create a `Signal` from `self`, and attach a closure as an observer to the `value`
-	/// and `failed` events from the `Signal`.
+	/// Create a `Signal` from `self`, and observe the `Signal` for all values being
+	/// emitted, and if any, its failure.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked with values from `self`, or the propagated
@@ -250,8 +250,7 @@ extension SignalProducer {
 		)
 	}
 
-	/// Create a `Signal` from `self`, and attach a closure as an observer to the
-	/// `completed` event from the `Signal`.
+	/// Create a `Signal` from `self`, and observe its completion.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked when a `completed` event is emitted.
@@ -262,8 +261,7 @@ extension SignalProducer {
 		return start(Observer(completed: action))
 	}
 	
-	/// Create a `Signal` from `self`, and attach a closure as an observer to the
-	/// `failed` event from the `Signal`.
+	/// Create a `Signal` from `self`, and observe its failure.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked with the propagated error, should any
@@ -275,8 +273,7 @@ extension SignalProducer {
 		return start(Observer(failed: action))
 	}
 	
-	/// Create a `Signal` from `self`, and attach a closure as an observer to the
-	/// `interrupted` event from the `Signal`.
+	/// Create a `Signal` from `self`, and observe its interruption.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked when an `interrupted` event is emitted.
@@ -305,8 +302,8 @@ extension SignalProducer {
 }
 
 extension SignalProducer where Error == NoError {
-	/// Create a `Signal` from `self`, and attach a closure as an observer to the `value`
-	/// events from the `Signal`.
+	/// Create a `Signal` from `self`, and observe the `Signal` for all values being
+	/// emitted.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked with values from the produced `Signal`.
@@ -894,7 +891,10 @@ extension SignalProducer {
 		return lift { $0.combinePrevious(initial) }
 	}
 
-	/// Accumuate all values from `self`, and forward the final result.
+	/// Combine all values from `self`, and forward the final result.
+	///
+	/// See `scan(_:_:)` if the resulting producer needs to forward also the partial
+	/// results.
 	///
 	/// - parameters:
 	///   - initialResult: The value to use as the initial accumulating value.
@@ -903,12 +903,15 @@ extension SignalProducer {
 	///                        next call of `nextPartialResult`, or emit to the returned
 	///                        `Signal` when `self` completes.
 	///
-	/// - returns: A producer that sends the accumulated value as `self` completes.
+	/// - returns: A producer that sends the final result as `self` completes.
 	public func reduce<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.reduce(initialResult, nextPartialResult) }
 	}
 
-	/// Accumuate all values from `self`, and forward the final result.
+	/// Combine all values from `self`, and forward the final result.
+	///
+	/// See `scan(into:_:)` if the resulting producer needs to forward also the partial
+	/// results.
 	///
 	/// - parameters:
 	///   - initialResult: The value to use as the initial accumulating value.
@@ -917,12 +920,15 @@ extension SignalProducer {
 	///                        next call of `nextPartialResult`, or emit to the returned
 	///                        `Signal` when `self` completes.
 	///
-	/// - returns: A producer that sends the accumulated value as `self` completes.
+	/// - returns: A producer that sends the final value as `self` completes.
 	public func reduce<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> SignalProducer<U, Error> {
 		return lift { $0.reduce(into: initialResult, nextPartialResult) }
 	}
 
-	/// Accumuate all values from `self`, and forward the partial results and the final
+	/// Combine all values from `self`, and forward the partial results and the final
+	/// result.
+	///
+	/// See `reduce(_:_:)` if the resulting producer needs to forward only the final
 	/// result.
 	///
 	/// - parameters:
@@ -937,7 +943,10 @@ extension SignalProducer {
 		return lift { $0.scan(initialResult, nextPartialResult) }
 	}
 
-	/// Accumuate all values from `self`, and forward the partial results and the final
+	/// Combine all values from `self`, and forward the partial results and the final
+	/// result.
+	///
+	/// See `reduce(into:_:)` if the resulting producer needs to forward only the final
 	/// result.
 	///
 	/// - parameters:
@@ -953,7 +962,7 @@ extension SignalProducer {
 	}
 
 	/// Forward only values from `self` that are not considered equivalent to its
-	/// consecutive predecessor.
+	/// immediately preceding value.
 	///
 	/// - note: The first value is always forwarded.
 	///
@@ -1055,7 +1064,7 @@ extension SignalProducer {
 		return lift(Signal.zip(with:))(other)
 	}
 
-	/// Invoke an action with every value from `self`, and forward the value if the action
+	/// Apply an action to every value from `self`, and forward the value if the action
 	/// succeeds. If the action fails with an error, the produced `Signal` would propagate
 	/// the failure and terminate.
 	///
@@ -1068,7 +1077,7 @@ extension SignalProducer {
 		return lift { $0.attempt(action) }
 	}
 
-	/// Invoke a transform with every value from `self`, and forward the transformed value
+	/// Apply a transform to every value from `self`, and forward the transformed value
 	/// if the action succeeds. If the action fails with an error, the produced `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -1253,7 +1262,7 @@ extension SignalProducer where Error == NoError {
 		return lift { $0.timeout(after: interval, raising: error, on: scheduler) }
 	}
 
-	/// Invoke a throwable action with every value from `self`, and forward the values
+	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the produced `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -1265,7 +1274,7 @@ extension SignalProducer where Error == NoError {
 		return lift { $0.attempt(action) }
 	}
 
-	/// Invoke a throwable action with every value from `self`, and forward the results
+	/// Apply a throwable action to every value from `self`, and forward the results
 	/// if the action succeeds. If the action throws an error, the produced `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -1332,7 +1341,7 @@ extension SignalProducerProtocol where Error == AnyError {
 }
 
 extension SignalProducer where Error == AnyError {
-	/// Invoke a throwable action with every value from `self`, and forward the values
+	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the produced `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -1344,7 +1353,7 @@ extension SignalProducer where Error == AnyError {
 		return lift { $0.attempt(action) }
 	}
 
-	/// Invoke a throwable transform with the values from `self`, and forward the results
+	/// Apply a throwable transform to every value from `self`, and forward the results
 	/// if the action succeeds. If the transform throws an error, the produced `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -1358,7 +1367,8 @@ extension SignalProducer where Error == AnyError {
 }
 
 extension SignalProducer where Value: Equatable {
-	/// Forward only values from `self` that are not equal to its consecutive predecessor.
+	/// Forward only values from `self` that are not equal to its immediately preceding
+	/// value.
 	///
 	/// - note: The first value is always forwarded.
 	///

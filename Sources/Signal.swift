@@ -425,7 +425,7 @@ extension Signal: SignalProtocol {
 }
 
 extension Signal {
-	/// Attach a closure as an observer to all events from `self`.
+	/// Observe `self` for all events being emitted.
 	///
 	/// - note: If `self` has terminated, the closure would be invoked with an
 	///         `interrupted` event immediately.
@@ -440,8 +440,7 @@ extension Signal {
 		return observe(Observer(action))
 	}
 
-	/// Attach a closure as an observer to the `value` events and the `failed` event from
-	/// `self`.
+	/// Observe `self` for all values being emitted, and if any, the failure.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked with values from `self`, or the propagated
@@ -459,7 +458,7 @@ extension Signal {
 		)
 	}
 
-	/// Attach a closure as an observer to the `completed` event from `self`.
+	/// Observe `self` for its completion.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked when a `completed` event is emitted.
@@ -471,7 +470,7 @@ extension Signal {
 		return observe(Observer(completed: action))
 	}
 	
-	/// Attach a closure as an observer to the `failed` event from `self`.
+	/// Observe `self` for its failure.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked with the propagated error, should any
@@ -484,7 +483,7 @@ extension Signal {
 		return observe(Observer(failed: action))
 	}
 	
-	/// Attach a closure as an observer to the `interrupted` event from `self`.
+	/// Observe `self` for its interruption.
 	///
 	/// - note: If `self` has terminated, the closure would be invoked immediately.
 	///
@@ -500,7 +499,7 @@ extension Signal {
 }
 
 extension Signal where Error == NoError {
-	/// Attach a closure as an observer to the `value` events from `self`.
+	/// Observe `self` for all values being emitted.
 	///
 	/// - parameters:
 	///   - action: A closure to be invoked with values from `self`.
@@ -1385,7 +1384,10 @@ extension Signal {
 	}
 
 
-	/// Accumuate all values from `self`, and forward only the final accumuated result.
+	/// Combine all values from `self`, and forward only the final accumuated result.
+	///
+	/// See `scan(_:_:)` if the resulting producer needs to forward also the partial
+	/// results.
 	///
 	/// - parameters:
 	///   - initialResult: The value to use as the initial accumulating value.
@@ -1394,14 +1396,17 @@ extension Signal {
 	///                        next call of `nextPartialResult`, or emit to the returned
 	///                        `Signal` when `self` completes.
 	///
-	/// - returns: A signal that sends the accumulated result as `self` completes.
+	/// - returns: A signal that sends the final result as `self` completes.
 	public func reduce<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Signal<U, Error> {
 		return self.reduce(into: initialResult) { accumulator, value in
 			accumulator = nextPartialResult(accumulator, value)
 		}
 	}
 
-	/// Accumuate all values from `self`, and forward only the final accumuated result.
+	/// Combine all values from `self`, and forward only the final accumuated result.
+	///
+	/// See `scan(into:_:)` if the resulting producer needs to forward also the partial
+	/// results.
 	///
 	/// - parameters:
 	///   - initialResult: The value to use as the initial accumulating value.
@@ -1410,7 +1415,7 @@ extension Signal {
 	///                        next call of `nextPartialResult`, or emit to the returned
 	///                        `Signal` when `self` completes.
 	///
-	/// - returns: A signal that sends the accumulated result as `self` completes.
+	/// - returns: A signal that sends the final result as `self` completes.
 	public func reduce<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
 		// We need to handle the special case in which `signal` sends no values.
 		// We'll do that by sending `initial` on the output signal (before
@@ -1430,23 +1435,30 @@ extension Signal {
 		return outputSignal
 	}
 
-	/// Accumuate all values from `self`, and forward the partial results and the final
+	/// Combine all values from `self`, and forward the partial results and the final
+	/// result.
+	///
+	/// See `reduce(_:_:)` if the resulting producer needs to forward only the final
 	/// result.
 	///
 	/// - parameters:
-	///   - initial: Initial value for the accumulator.
-	///   - combine: A closure that accepts accumulator and sent value of
-	///              `self`.
+	///   - initialResult: The value to use as the initial accumulating value.
+	///   - nextPartialResult: A closure that combines the accumulating value and the
+	///                        latest value from `self`. The result would be forwarded,
+	///                        and would be used in the next call of `nextPartialResult`.
 	///
-	/// - returns: A signal that sends accumulated value each time `self` emits
-	///            own value.
+	/// - returns: A signal that sends the partial results of the accumuation, and the
+	///            final result as `self` completes.
 	public func scan<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Signal<U, Error> {
 		return self.scan(into: initialResult) { accumulator, value in
 			accumulator = nextPartialResult(accumulator, value)
 		}
 	}
 
-	/// Accumuate all values from `self`, and forward the partial results and the final
+	/// Combine all values from `self`, and forward the partial results and the final
+	/// result.
+	///
+	/// See `reduce(into:_:)` if the resulting producer needs to forward only the final
 	/// result.
 	///
 	/// - parameters:
@@ -1472,7 +1484,8 @@ extension Signal {
 }
 
 extension Signal where Value: Equatable {
-	/// Forward only values from `self` that are not equal to its consecutive predecessor.
+	/// Forward only values from `self` that are not equal to its immediately preceding
+	/// value.
 	///
 	/// - note: The first value is always forwarded.
 	///
@@ -1484,7 +1497,7 @@ extension Signal where Value: Equatable {
 
 extension Signal {
 	/// Forward only values from `self` that are not considered equivalent to its
-	/// consecutive predecessor.
+	/// immediately preceding value.
 	///
 	/// - note: The first value is always forwarded.
 	///
@@ -2320,7 +2333,7 @@ extension Signal where Value == Bool {
 }
 
 extension Signal {
-	/// Invoke an action with every value from `self`, and forward the value if the action
+	/// Apply an action to every value from `self`, and forward the value if the action
 	/// succeeds. If the action fails with an error, the returned `Signal` would propagate
 	/// the failure and terminate.
 	///
@@ -2337,7 +2350,7 @@ extension Signal {
 		}
 	}
 
-	/// Invoke a transform with every value from `self`, and forward the transformed value
+	/// Apply a transform to every value from `self`, and forward the transformed value
 	/// if the action succeeds. If the action fails with an error, the returned `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -2368,7 +2381,7 @@ extension Signal {
 }
 
 extension Signal where Error == NoError {
-	/// Invoke a throwable action with every value from `self`, and forward the values
+	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -2382,7 +2395,7 @@ extension Signal where Error == NoError {
 			.attempt(action)
 	}
 
-	/// Invoke a throwable transform with the values from `self`, and forward the results
+	/// Apply a throwable transform to every value from `self`, and forward the results
 	/// if the action succeeds. If the transform throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -2398,7 +2411,7 @@ extension Signal where Error == NoError {
 }
 
 extension Signal where Error == AnyError {
-	/// Invoke a throwable action with every value from `self`, and forward the values
+	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.
 	///
@@ -2413,7 +2426,7 @@ extension Signal where Error == AnyError {
 		}
 	}
 
-	/// Invoke a throwable transform with the values from `self`, and forward the results
+	/// Apply a throwable transform to every value from `self`, and forward the results
 	/// if the action succeeds. If the transform throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.
 	///
