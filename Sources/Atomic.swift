@@ -143,11 +143,34 @@ internal class Lock {
 	internal final class PthreadLock: Lock {
 		private let _lock: UnsafeMutablePointer<pthread_mutex_t>
 
-		override init() {
+		init(recursive: Bool = false) {
 			_lock = .allocate(capacity: 1)
 			_lock.initialize(to: pthread_mutex_t())
 
-			let status = pthread_mutex_init(_lock, nil)
+			let attr = UnsafeMutablePointer<pthread_mutexattr_t>.allocate(capacity: 1)
+			attr.initialize(to: pthread_mutexattr_t())
+			pthread_mutexattr_init(attr)
+
+			defer {
+				pthread_mutexattr_destroy(attr)
+				attr.deinitialize()
+				attr.deallocate(capacity: 1)
+			}
+
+			#if DEBUG
+			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_ERRORCHECK))
+			#else
+			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL))
+			#endif
+
+			#if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
+				// The pthread mutex implementation of Darwin guarantees fairness by
+				// default. Since fairness is not a concern of our reactive primitives
+				// anyway, it can be disabled.
+				pthread_mutexattr_setpolicy_np(attr, _PTHREAD_MUTEX_POLICY_FIRSTFIT)
+			#endif
+
+			let status = pthread_mutex_init(_lock, attr)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 
 			super.init()

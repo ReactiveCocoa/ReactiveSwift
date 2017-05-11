@@ -1,4 +1,8 @@
-import Foundation
+#if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
+import Darwin.POSIX.pthread
+#else
+import Glibc
+#endif
 import enum Result.NoError
 
 /// Represents a property that allows observation of its changes.
@@ -663,16 +667,18 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 /// The requirement of a `Value?` storage from composed properties prevents further
 /// implementation sharing with `MutableProperty`.
 private final class PropertyBox<Value> {
-	private let lock = NSRecursiveLock()
+	private let lock: Lock.PthreadLock
 	private var _value: Value
 	var value: Value { return modify { $0 } }
 
 	init(_ value: Value) {
-		self._value = value
+		_value = value
+		lock = Lock.PthreadLock(recursive: true)
 	}
 
 	func modify<Result>(didSet: (Value) -> Void = { _ in }, _ action: (inout Value) throws -> Result) rethrows -> Result {
-		lock.lock(); defer { didSet(_value); lock.unlock() }
+		lock.lock()
+		defer { didSet(_value); lock.unlock() }
 		return try action(&_value)
 	}
 }
