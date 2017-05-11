@@ -536,27 +536,26 @@ public final class Property<Value>: PropertyProtocol {
 					return observer.action(event)
 				}
 
-				box.lock.sync {
-					if let value = event.value {
-						box.value = value
+				box.modify(didSet: { _ in observer.action(event) }) { value in
+					if let newValue = event.value {
+						value = newValue
 					}
-					observer.action(event)
 				}
 			}
 		}
 
 		// Verify that an initial is sent. This is friendlier than deadlocking
 		// in the event that one isn't.
-		guard box.lock.sync({ box.value != nil }) else {
+		guard box.value != nil else {
 			fatalError("The producer promised to send at least one value. Received none.")
 		}
 
-		_value = { box.lock.sync { box.value! } }
+		_value = { box.value! }
 		signal = relay
 
 		producer = SignalProducer { [box, signal = relay!] observer, disposable in
-			box.lock.sync {
-				observer.send(value: box.value!)
+			box.modify { value in
+				observer.send(value: value!)
 				disposable += signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
 			}
 		}
@@ -576,7 +575,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// Setting this to a new value will notify all observers of `signal`, or
 	/// signals created using `producer`.
 	public var value: Value {
-		get { return box.lock.sync { box.value } }
+		get { return box.modify { $0 } }
 		set { modify { $0 = newValue } }
 	}
 
@@ -591,10 +590,10 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// followed by all changes over time, then complete when the property has
 	/// deinitialized.
 	public var producer: SignalProducer<Value, NoError> {
-		return SignalProducer { [box, signal] observer, disposable in
-			box.lock.sync {
-				observer.send(value: box.value)
-				disposable += signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
+		return SignalProducer { [box, signal] producerObserver, producerDisposable in
+			box.modify { value in
+				producerObserver.send(value: value)
+				producerDisposable += signal.observe(Signal.Observer(mappingInterruptedToCompleted: producerObserver))
 			}
 		}
 	}
@@ -637,9 +636,8 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - returns: The result of the action.
 	@discardableResult
 	public func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
-		return try box.lock.sync {
-			defer { observer.send(value: box.value) }
-			return try action(&box.value)
+		return try box.modify(didSet: { self.observer.send(value: $0) }) { value in
+			return try action(&value)
 		}
 	}
 
@@ -652,7 +650,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - returns: the result of the action.
 	@discardableResult
 	public func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
-		return try box.lock.sync { try action(box.value) }
+		return try box.modify { try action($0) }
 	}
 
 	deinit {
@@ -665,17 +663,16 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 /// The requirement of a `Value?` storage from composed properties prevents further
 /// implementation sharing with `MutableProperty`.
 private final class PropertyBox<Value> {
-	let lock = NSRecursiveLock()
-	var value: Value
+	private let lock = NSRecursiveLock()
+	private var _value: Value
+	var value: Value { return modify { $0 } }
 
 	init(_ value: Value) {
-		self.value = value
+		self._value = value
 	}
-}
 
-extension NSRecursiveLock {
-	fileprivate func sync<Result>(_ action: () throws -> Result) rethrows -> Result {
-		lock(); defer { unlock() }
-		return try action()
+	func modify<Result>(didSet: (Value) -> Void = { _ in }, _ action: (inout Value) throws -> Result) rethrows -> Result {
+		lock.lock(); defer { didSet(_value); lock.unlock() }
+		return try action(&_value)
 	}
 }
