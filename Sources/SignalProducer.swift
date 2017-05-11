@@ -320,6 +320,19 @@ extension SignalProducer {
 		
 		return result
 	}
+
+	/// Create a `Signal` from `self` in the manner described by `startWithSignal`, and
+	/// put the interrupt handle into the given `CompositeDisposable`.
+	///
+	/// - parameters:
+	///   - disposable: The `CompositeDisposable` the interrupt handle to be added to.
+	///   - setup: A closure that accepts the produced `Signal`.
+	fileprivate func startWithSignal(interruptingBy disposable: CompositeDisposable, setup: (Signal<Value, Error>) -> Void) {
+		startWithSignal { signal, interruptHandle in
+			disposable += interruptHandle
+			setup(signal)
+		}
+	}
 }
 
 extension SignalProducer where Error == NoError {
@@ -384,7 +397,7 @@ extension SignalProducer {
 	/// That is, the argument producer will be started before the receiver. When
 	/// both producers are synchronous this order can be important depending on
 	/// the operator to generate correct results.
-	private func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	fileprivate func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
 			return SignalProducer<V, G> { observer, outerDisposable in
 				self.startWithSignal { signal, disposable in
@@ -438,7 +451,117 @@ extension SignalProducer {
 			return self.liftRight(transform)(SignalProducer<U, F>(otherSignal))
 		}
 	}
+}
 
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>) -> Void) {
+	b.startWithSignal(interruptingBy: disposable) { b in
+		a.startWithSignal(interruptingBy: disposable) { setup($0, b) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>) -> Void) {
+	c.startWithSignal(interruptingBy: disposable) { c in
+		flattenStart(disposable, a, b) { setup($0, $1, c) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>) -> Void) {
+	d.startWithSignal(interruptingBy: disposable) { d in
+		flattenStart(disposable, a, b, c) { setup($0, $1, $2, d) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>) -> Void) {
+	e.startWithSignal(interruptingBy: disposable) { e in
+		flattenStart(disposable, a, b, c, d) { setup($0, $1, $2, $3, e) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>) -> Void) {
+	f.startWithSignal(interruptingBy: disposable) { f in
+		flattenStart(disposable, a, b, c, d, e) { setup($0, $1, $2, $3, $4, f) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, G, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>) -> Void) {
+	g.startWithSignal(interruptingBy: disposable) { g in
+		flattenStart(disposable, a, b, c, d, e, f) { setup($0, $1, $2, $3, $4, $5, g) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, G, H, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>) -> Void) {
+	h.startWithSignal(interruptingBy: disposable) { h in
+		flattenStart(disposable, a, b, c, d, e, f, g) { setup($0, $1, $2, $3, $4, $5, $6, h) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, G, H, I, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>) -> Void) {
+	i.startWithSignal(interruptingBy: disposable) { i in
+		flattenStart(disposable, a, b, c, d, e, f, g, h) { setup($0, $1, $2, $3, $4, $5, $6, $7, i) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, G, H, I, J, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>, Signal<J, Error>) -> Void) {
+	j.startWithSignal(interruptingBy: disposable) { j in
+		flattenStart(disposable, a, b, c, d, e, f, g, h, i) { setup($0, $1, $2, $3, $4, $5, $6, $7, $8, j) }
+	}
+}
+
+extension SignalProducer {
 	/// Map each value in the producer to a new value.
 	///
 	/// - parameters:
@@ -2274,68 +2397,5 @@ extension SignalProducer where Value == Date, Error == NoError {
 													  leeway: leeway,
 													  action: { observer.send(value: scheduler.currentDate) })
 		}
-	}
-}
-
-extension SignalProducer {
-	fileprivate func startWithSignal(interruptingBy disposable: CompositeDisposable, setup: (Signal<Value, Error>) -> Void) {
-		startWithSignal { signal, interruptHandle in
-			disposable += interruptHandle
-			setup(signal)
-		}
-	}
-}
-
-private func flattenStart<A, B, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ start: (Signal<A, Error>, Signal<B, Error>) -> Void) {
-	b.startWithSignal(interruptingBy: disposable) { b in
-		a.startWithSignal(interruptingBy: disposable) { start($0, b) }
-	}
-}
-
-private func flattenStart<A, B, C, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ start: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>) -> Void) {
-	c.startWithSignal(interruptingBy: disposable) { c in
-		flattenStart(disposable, a, b) { start($0, $1, c) }
-	}
-}
-
-private func flattenStart<A, B, C, D, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ start: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>) -> Void) {
-	d.startWithSignal(interruptingBy: disposable) { d in
-		flattenStart(disposable, a, b, c) { start($0, $1, $2, d) }
-	}
-}
-
-private func flattenStart<A, B, C, D, E, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ start: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>) -> Void) {
-	e.startWithSignal(interruptingBy: disposable) { e in
-		flattenStart(disposable, a, b, c, d) { start($0, $1, $2, $3, e) }
-	}
-}
-
-private func flattenStart<A, B, C, D, E, F, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ start: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>) -> Void) {
-	f.startWithSignal(interruptingBy: disposable) { f in
-		flattenStart(disposable, a, b, c, d, e) { start($0, $1, $2, $3, $4, f) }
-	}
-}
-
-private func flattenStart<A, B, C, D, E, F, G, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ start: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>) -> Void) {
-	g.startWithSignal(interruptingBy: disposable) { g in
-		flattenStart(disposable, a, b, c, d, e, f) { start($0, $1, $2, $3, $4, $5, g) }
-	}
-}
-
-private func flattenStart<A, B, C, D, E, F, G, H, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ start: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>) -> Void) {
-	h.startWithSignal(interruptingBy: disposable) { h in
-		flattenStart(disposable, a, b, c, d, e, f, g) { start($0, $1, $2, $3, $4, $5, $6, h) }
-	}
-}
-
-private func flattenStart<A, B, C, D, E, F, G, H, I, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ start: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>) -> Void) {
-	i.startWithSignal(interruptingBy: disposable) { i in
-		flattenStart(disposable, a, b, c, d, e, f, g, h) { start($0, $1, $2, $3, $4, $5, $6, $7, i) }
-	}
-}
-
-private func flattenStart<A, B, C, D, E, F, G, H, I, J, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>, _ start: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>, Signal<J, Error>) -> Void) {
-	j.startWithSignal(interruptingBy: disposable) { j in
-		flattenStart(disposable, a, b, c, d, e, f, g, h, i) { start($0, $1, $2, $3, $4, $5, $6, $7, $8, j) }
 	}
 }

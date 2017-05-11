@@ -1941,22 +1941,22 @@ extension Signal {
 		private var completionCount: Int
 		private let action: (ContiguousArray<Any>) -> Void
 
-		private var _hasAllSentInitial: Bool
-		private var hasAllSentInitial: Bool {
+		private var _haveAllSentInitial: Bool
+		private var haveAllSentInitial: Bool {
 			mutating get {
-				if _hasAllSentInitial {
+				if _haveAllSentInitial {
 					return true
 				}
 
-				_hasAllSentInitial = values.reduce(true) { $0 && !($1 is Placeholder) }
-				return _hasAllSentInitial
+				_haveAllSentInitial = values.reduce(true) { $0 && !($1 is Placeholder) }
+				return _haveAllSentInitial
 			}
 		}
 
 		mutating func update(_ value: Any, at position: Int) -> Bool {
 			values[position] = value
 
-			if hasAllSentInitial {
+			if haveAllSentInitial {
 				action(values)
 			}
 
@@ -1971,7 +1971,7 @@ extension Signal {
 		init(count: Int, action: @escaping (ContiguousArray<Any>) -> Void) {
 			values = ContiguousArray(repeating: Placeholder.none, count: count)
 			completionCount = 0
-			_hasAllSentInitial = false
+			_haveAllSentInitial = false
 			self.action = action
 		}
 	}
@@ -1981,9 +1981,17 @@ extension Signal {
 		private var isCompleted: ContiguousArray<Bool>
 		private let action: (ContiguousArray<Any>) -> Void
 
-		private var hasCompletedAndEmptiedSignal: Bool { return Swift.zip(values, isCompleted).contains(where: { $0.isEmpty && $1 }) }
-		private var canEmit: Bool { return values.reduce(true) { $0 && !$1.isEmpty } }
-		private var isAllCompleted: Bool { return isCompleted.reduce(true) { $0 && $1 } }
+		private var hasCompletedAndEmptiedSignal: Bool {
+			return Swift.zip(values, isCompleted).contains(where: { $0.isEmpty && $1 })
+		}
+
+		private var canEmit: Bool {
+			return values.reduce(true) { $0 && !$1.isEmpty }
+		}
+
+		private var areAllCompleted: Bool {
+			return isCompleted.reduce(true) { $0 && $1 }
+		}
 
 		mutating func update(_ value: Any, at position: Int) -> Bool {
 			values[position].append(value)
@@ -2011,7 +2019,7 @@ extension Signal {
 
 			// `zip` completes when all signals has completed, or any of the signals
 			// has completed without any buffered value.
-			return hasCompletedAndEmptiedSignal || isAllCompleted
+			return hasCompletedAndEmptiedSignal || areAllCompleted
 		}
 
 		init(count: Int, action: @escaping (ContiguousArray<Any>) -> Void) {
