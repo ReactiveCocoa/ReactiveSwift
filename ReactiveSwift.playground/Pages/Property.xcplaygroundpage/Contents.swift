@@ -21,7 +21,7 @@ import Foundation
  stores a value and notifies observers about future changes to that value.
  
  - The current value of a property can be obtained from the `value` getter.
- - The `producer` getter returns a [signal producer](SignalProductr) that will send the property’s current value, followed by all changes over time.
+ - The `producer` getter returns a [signal producer](SignalProducer) that will send the property’s current value, followed by all changes over time.
  - The `signal` getter returns a [signal](Signal) that will send all changes over time, but not the initial value.
  
  */
@@ -33,7 +33,7 @@ scopedExample("Creation") {
     // The properties value can be observed via its `producer` or `signal attribute`
     // Note, how the `producer` immediately sends the initial value, but the `signal` only sends new values
     mutableProperty.producer.startWithValues {
-        print("mutableProperty.producer receied \($0)")
+        print("mutableProperty.producer received \($0)")
     }
     mutableProperty.signal.observeValues {
         print("mutableProperty.signal received \($0)")
