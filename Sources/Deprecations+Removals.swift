@@ -1,6 +1,6 @@
 import Foundation
 import Dispatch
-import enum Result.NoError
+import Result
 
 // MARK: Unavailable methods in ReactiveSwift 2.0.
 extension PropertyProtocol {
@@ -73,6 +73,11 @@ extension SignalProducer where Error == NoError {
 extension ComposableMutablePropertyProtocol {
 	@available(*, unavailable, renamed:"withValue(_:)")
 	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result { fatalError() }
+}
+
+extension SignalProducer {
+	@available(*, unavailable, renamed:"attempt(_:)")
+	public func attempt(action: @escaping (Value) -> Result<(), Error>) -> SignalProducer<Value, Error> { fatalError() }
 }
 
 extension CompositeDisposable {

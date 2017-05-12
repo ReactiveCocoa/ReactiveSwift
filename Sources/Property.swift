@@ -137,25 +137,26 @@ extension PropertyProtocol {
 		return lift { $0.combinePrevious(initial) }
 	}
 
-	/// Forward only those values from `self` which do not pass `isRepeat` with
-	/// respect to the previous value.
+	/// Forward only values from `self` that are not considered equivalent to its
+	/// consecutive predecessor.
+	///
+	/// - note: The first value is always forwarded.
 	///
 	/// - parameters:
-	///   - isRepeat: A predicate to determine if the two given values are equal.
+	///   - isEquivalent: A closure to determine whether two values are equivalent.
 	///
-	/// - returns: A property that does not emit events for two equal values
-	///            sequentially.
-	public func skipRepeats(_ isRepeat: @escaping (Value, Value) -> Bool) -> Property<Value> {
-		return lift { $0.skipRepeats(isRepeat) }
+	/// - returns: A property which conditionally forwards values from `self`.
+	public func skipRepeats(_ isEquivalent: @escaping (Value, Value) -> Bool) -> Property<Value> {
+		return lift { $0.skipRepeats(isEquivalent) }
 	}
 }
 
 extension PropertyProtocol where Value: Equatable {
-	/// Forward only those values from `self` which do not pass `isRepeat` with
-	/// respect to the previous value.
+	/// Forward only values from `self` that are not equal to its consecutive predecessor.
 	///
-	/// - returns: A property that does not emit events for two equal values
-	///            sequentially.
+	/// - note: The first value is always forwarded.
+	///
+	/// - returns: A property which conditionally forwards values from `self`.
 	public func skipRepeats() -> Property<Value> {
 		return lift { $0.skipRepeats() }
 	}
