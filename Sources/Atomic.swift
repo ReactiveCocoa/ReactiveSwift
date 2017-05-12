@@ -113,51 +113,58 @@ internal class Lock {
 	@available(tvOS 10.0, *)
 	@available(watchOS 3.0, *)
 	internal final class UnfairLock: Lock {
-		private var _lock: os_unfair_lock
+		private let _lock: os_unfair_lock_t
 
 		override init() {
-			_lock = os_unfair_lock()
+			_lock = .allocate(capacity: 1)
+			_lock.initialize(to: os_unfair_lock())
 			super.init()
 		}
 
 		override func lock() {
-			withUnsafeMutablePointer(to: &_lock, os_unfair_lock_lock)
+			os_unfair_lock_lock(_lock)
 		}
 
 		override func unlock() {
-			withUnsafeMutablePointer(to: &_lock, os_unfair_lock_unlock)
+			os_unfair_lock_unlock(_lock)
 		}
 
 		override func `try`() -> Bool {
-			return withUnsafeMutablePointer(to: &_lock, os_unfair_lock_trylock)
+			return os_unfair_lock_trylock(_lock)
+		}
+
+		deinit {
+			_lock.deinitialize()
+			_lock.deallocate(capacity: 1)
 		}
 	}
 	#endif
 
 	internal final class PthreadLock: Lock {
-		private var _lock: pthread_mutex_t
+		private let _lock: UnsafeMutablePointer<pthread_mutex_t>
 
 		override init() {
-			_lock = pthread_mutex_t()
+			_lock = .allocate(capacity: 1)
+			_lock.initialize(to: pthread_mutex_t())
 
-			let status = withUnsafeMutablePointer(to: &_lock) { pthread_mutex_init($0, nil) }
+			let status = pthread_mutex_init(_lock, nil)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 
 			super.init()
 		}
 
 		override func lock() {
-			let status = withUnsafeMutablePointer(to: &_lock, pthread_mutex_lock)
+			let status = pthread_mutex_lock(_lock)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 		}
 
 		override func unlock() {
-			let status = withUnsafeMutablePointer(to: &_lock, pthread_mutex_unlock)
+			let status = pthread_mutex_unlock(_lock)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 		}
 
 		override func `try`() -> Bool {
-			let status = withUnsafeMutablePointer(to: &_lock, pthread_mutex_trylock)
+			let status = pthread_mutex_trylock(_lock)
 			switch status {
 			case 0:
 				return true
@@ -170,8 +177,11 @@ internal class Lock {
 		}
 
 		deinit {
-			let status = withUnsafeMutablePointer(to: &_lock, pthread_mutex_destroy)
+			let status = pthread_mutex_destroy(_lock)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
+
+			_lock.deinitialize()
+			_lock.deallocate(capacity: 1)
 		}
 	}
 
