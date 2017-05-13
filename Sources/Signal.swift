@@ -37,7 +37,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// As `SignalState` is a packed object reference (a tagged pointer) that is
 	/// naturally aligned, reads to are guaranteed to be atomic on all supported
 	/// hardware architectures of Swift (ARM and x86).
-	private var state: SignalState<Value, Error>
+	private var state: State
 
 	/// Used to ensure that state updates are serialized.
 	private let updateLock: Lock
@@ -336,72 +336,72 @@ public final class Signal<Value, Error: Swift.Error> {
 			return nil
 		}
 	}
-}
 
-/// The state of a `Signal`.
-///
-/// `SignalState` is guaranteed to be laid out as a tagged pointer by the Swift
-/// compiler in the support targets of the Swift 3.0.1 ABI.
-///
-/// The Swift compiler has also an optimization for enums with payloads that are
-/// all reference counted, and at most one no-payload case.
-private enum SignalState<Value, Error: Swift.Error> {
-	/// The `Signal` is alive.
-	case alive(AliveState<Value, Error>)
-
-	/// The `Signal` has received a termination event, and is about to be
-	/// terminated.
-	case terminating(TerminatingState<Value, Error>)
-
-	/// The `Signal` has terminated.
-	case terminated
-}
-
-// As the amount of state would definitely span over a cache line,
-// `AliveState` and `TerminatingState` is set to be a reference type so
-// that we can atomically update the reference instead.
-//
-// Note that in-place mutation should not be introduced to `AliveState` and
-// `TerminatingState`. Copy the states and create a new instance.
-
-/// The state of a `Signal` that is alive. It contains a bag of observers and
-/// an optional self-retaining reference.
-private final class AliveState<Value, Error: Swift.Error> {
-	/// The observers of the `Signal`.
-	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
-
-	/// A self-retaining reference. It is set when there are one or more active
-	/// observers.
-	fileprivate let retaining: Signal<Value, Error>?
-
-	/// Create an alive state.
+	/// The state of a `Signal`.
 	///
-	/// - parameters:
-	///   - observers: The latest bag of observers.
-	///   - retaining: The self-retaining reference of the `Signal`, if necessary.
-	init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil) {
-		self.observers = observers
-		self.retaining = retaining
+	/// `SignalState` is guaranteed to be laid out as a tagged pointer by the Swift
+	/// compiler in the support targets of the Swift 3.0.1 ABI.
+	///
+	/// The Swift compiler has also an optimization for enums with payloads that are
+	/// all reference counted, and at most one no-payload case.
+	private enum State {
+		/// The `Signal` is alive.
+		case alive(AliveState)
+
+		/// The `Signal` has received a termination event, and is about to be
+		/// terminated.
+		case terminating(TerminatingState)
+
+		/// The `Signal` has terminated.
+		case terminated
 	}
-}
 
-/// The state of a terminating `Signal`. It contains a bag of observers and the
-/// termination event.
-private final class TerminatingState<Value, Error: Swift.Error> {
-	/// The observers of the `Signal`.
-	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
+	// As the amount of state would definitely span over a cache line,
+	// `AliveState` and `TerminatingState` is set to be a reference type so
+	// that we can atomically update the reference instead.
+	//
+	// Note that in-place mutation should not be introduced to `AliveState` and
+	// `TerminatingState`. Copy the states and create a new instance.
 
-	///  The termination event.
-	fileprivate let event: Signal<Value, Error>.Event
+	/// The state of a `Signal` that is alive. It contains a bag of observers and
+	/// an optional self-retaining reference.
+	private final class AliveState {
+		/// The observers of the `Signal`.
+		fileprivate let observers: Bag<Signal<Value, Error>.Observer>
 
-	/// Create a terminating state.
-	///
-	/// - parameters:
-	///   - observers: The latest bag of observers.
-	///   - event: The termination event.
-	init(observers: Bag<Signal<Value, Error>.Observer>, event: Signal<Value, Error>.Event) {
-		self.observers = observers
-		self.event = event
+		/// A self-retaining reference. It is set when there are one or more active
+		/// observers.
+		fileprivate let retaining: Signal<Value, Error>?
+
+		/// Create an alive state.
+		///
+		/// - parameters:
+		///   - observers: The latest bag of observers.
+		///   - retaining: The self-retaining reference of the `Signal`, if necessary.
+		init(observers: Bag<Signal<Value, Error>.Observer> = Bag(), retaining: Signal<Value, Error>? = nil) {
+			self.observers = observers
+			self.retaining = retaining
+		}
+	}
+
+	/// The state of a terminating `Signal`. It contains a bag of observers and the
+	/// termination event.
+	private final class TerminatingState {
+		/// The observers of the `Signal`.
+		fileprivate let observers: Bag<Signal<Value, Error>.Observer>
+
+		///  The termination event.
+	  fileprivate let event: Event
+
+		/// Create a terminating state.
+		///
+		/// - parameters:
+		///   - observers: The latest bag of observers.
+		///   - event: The termination event.
+		init(observers: Bag<Signal<Value, Error>.Observer>, event: Event) {
+			self.observers = observers
+			self.event = event
+		}
 	}
 }
 
