@@ -391,7 +391,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		fileprivate let observers: Bag<Signal<Value, Error>.Observer>
 
 		///  The termination event.
-	  fileprivate let event: Event
+		fileprivate let event: Event
 
 		/// Create a terminating state.
 		///
