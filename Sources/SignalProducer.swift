@@ -229,7 +229,7 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func start(_ action: @escaping Signal<Value, Error>.Observer.Action) -> Disposable {
-		return start(Observer(action))
+		return start(Signal.Observer(action))
 	}
 
 	/// Create a `Signal` from `self`, and observe the `Signal` for all values being
@@ -243,7 +243,7 @@ extension SignalProducer {
 	@discardableResult
 	public func startWithResult(_ action: @escaping (Result<Value, Error>) -> Void) -> Disposable {
 		return start(
-			Observer(
+			Signal.Observer(
 				value: { action(.success($0)) },
 				failed: { action(.failure($0)) }
 			)
@@ -258,7 +258,7 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func startWithCompleted(_ action: @escaping () -> Void) -> Disposable {
-		return start(Observer(completed: action))
+		return start(Signal.Observer(completed: action))
 	}
 	
 	/// Create a `Signal` from `self`, and observe its failure.
@@ -270,7 +270,7 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func startWithFailed(_ action: @escaping (Error) -> Void) -> Disposable {
-		return start(Observer(failed: action))
+		return start(Signal.Observer(failed: action))
 	}
 	
 	/// Create a `Signal` from `self`, and observe its interruption.
@@ -281,7 +281,7 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func startWithInterrupted(_ action: @escaping () -> Void) -> Disposable {
-		return start(Observer(interrupted: action))
+		return start(Signal.Observer(interrupted: action))
 	}
 	
 	/// Creates a `Signal` from the producer.
@@ -311,7 +311,7 @@ extension SignalProducer where Error == NoError {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func startWithValues(_ action: @escaping (Value) -> Void) -> Disposable {
-		return start(Observer(value: action))
+		return start(Signal.Observer(value: action))
 	}
 }
 

@@ -57,8 +57,8 @@ scopedExample("Subscription") {
 		observer.send(value: 2)
 	}
 
-	let subscriber1 = Observer<Int, NoError>(value: { print("Subscriber 1 received \($0)") })
-	let subscriber2 = Observer<Int, NoError>(value: { print("Subscriber 2 received \($0)") })
+	let subscriber1 = Signal<Int, NoError>.Observer(value: { print("Subscriber 1 received \($0)") })
+	let subscriber2 = Signal<Int, NoError>.Observer(value: { print("Subscriber 2 received \($0)") })
 
 	print("Subscriber 1 subscribes to producer")
 	producer.start(subscriber1)
@@ -76,7 +76,7 @@ any values.
 scopedExample("`empty`") {
 	let emptyProducer = SignalProducer<Int, NoError>.empty
 
-	let observer = Observer<Int, NoError>(
+	let observer = Signal<Int, NoError>.Observer(
 		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed called") }
@@ -92,7 +92,7 @@ A producer for a Signal that never sends any events to its observers.
 scopedExample("`never`") {
 	let neverProducer = SignalProducer<Int, NoError>.never
 
-	let observer = Observer<Int, NoError>(
+	let observer = Signal<Int, NoError>.Observer(
 		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed not called") }

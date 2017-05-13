@@ -100,6 +100,9 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, l
 @available(*, unavailable, renamed:"Signal.Event")
 public typealias Event<Value, Error: Swift.Error> = Signal<Value, Error>.Event
 
+@available(*, unavailable, renamed:"Signal.Observer")
+public typealias Observer<Value, Error: Swift.Error> = Signal<Value, Error>.Observer
+
 extension Action {
 	@available(*, unavailable, renamed:"init(state:enabledIf:execute:)")
 	public convenience init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) { fatalError() }
