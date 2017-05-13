@@ -475,9 +475,10 @@ public final class Property<Value>: PropertyProtocol {
 	///   - values: A producer that will start immediately and send values to
 	///             the property.
 	public convenience init(initial: Value, then values: SignalProducer<Value, NoError>) {
-		self.init(unsafeProducer: SignalProducer { observer, disposables in
+		self.init(unsafeProducer: SignalProducer { observer, lifetime in
 			observer.send(value: initial)
-			disposables += values.start(Signal.Observer(mappingInterruptedToCompleted: observer))
+			let disposable = values.start(Signal.Observer(mappingInterruptedToCompleted: observer))
+			lifetime.observeEnded(disposable.dispose)
 		})
 	}
 
@@ -557,10 +558,12 @@ public final class Property<Value>: PropertyProtocol {
 		_value = { box.value! }
 		signal = relay
 
-		producer = SignalProducer { [box, signal = relay!] observer, disposable in
+		producer = SignalProducer { [box, signal = relay!] observer, lifetime in
 			box.modify { value in
 				observer.send(value: value!)
-				disposable += signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
+				if let d = signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer)) {
+					lifetime.observeEnded(d.dispose)
+				}
 			}
 		}
 	}
@@ -594,10 +597,12 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// followed by all changes over time, then complete when the property has
 	/// deinitialized.
 	public var producer: SignalProducer<Value, NoError> {
-		return SignalProducer { [box, signal] producerObserver, producerDisposable in
+		return SignalProducer { [box, signal] observer, lifetime in
 			box.modify { value in
-				producerObserver.send(value: value)
-				producerDisposable += signal.observe(Signal.Observer(mappingInterruptedToCompleted: producerObserver))
+				observer.send(value: value)
+				if let d = signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer)) {
+					lifetime.observeEnded(d.dispose)
+				}
 			}
 		}
 	}

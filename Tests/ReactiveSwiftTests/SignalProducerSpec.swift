@@ -19,7 +19,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("init") {
 			it("should run the handler once per start()") {
 				var handlerCalledTimes = 0
-				let signalProducer = SignalProducer<String, NSError>() { observer, disposable in
+				let signalProducer = SignalProducer<String, NSError>() { observer, lifetime in
 					handlerCalledTimes += 1
 
 					return
@@ -31,13 +31,13 @@ class SignalProducerSpec: QuickSpec {
 				expect(handlerCalledTimes) == 2
 			}
 
-			it("should not release signal observers when given disposable is disposed") {
-				var disposable: Disposable!
+			it("should release signal observers when given disposable is disposed") {
+				var lifetime: Lifetime!
 
-				let producer = SignalProducer<Int, NoError> { observer, innerDisposable in
-					disposable = innerDisposable
+				let producer = SignalProducer<Int, NoError> { observer, innerLifetime in
+					lifetime = innerLifetime
 
-					innerDisposable += {
+					innerLifetime.observeEnded {
 						// This is necessary to keep the observer long enough to
 						// even test the memory management.
 						observer.send(value: 0)
@@ -45,7 +45,11 @@ class SignalProducerSpec: QuickSpec {
 				}
 
 				weak var objectRetainedByObserver: NSObject?
-				producer.startWithSignal { signal, _ in
+
+				var disposable: Disposable!
+				producer.startWithSignal { signal, interruptHandle in
+					disposable = interruptHandle
+
 					let object = NSObject()
 					objectRetainedByObserver = object
 					signal.observeValues { _ in _ = object }
@@ -54,23 +58,15 @@ class SignalProducerSpec: QuickSpec {
 				expect(objectRetainedByObserver).toNot(beNil())
 
 				disposable.dispose()
-
-				// https://github.com/ReactiveCocoa/ReactiveCocoa/pull/2959
-				//
-				// Before #2959, this would be `nil` as the input observer is not
-				// retained, and observers would not retain the signal.
-				//
-				// After #2959, the object is still retained, since the observation
-				// keeps the signal alive.
-				expect(objectRetainedByObserver).toNot(beNil())
+				expect(objectRetainedByObserver).to(beNil())
 			}
 
 			it("should dispose of added disposables upon completion") {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<(), NoError>.Observer!
 
-				let producer = SignalProducer<(), NoError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<(), NoError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -85,8 +81,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<(), TestError>.Observer!
 
-				let producer = SignalProducer<(), TestError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<(), TestError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -101,8 +97,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<(), NoError>.Observer!
 
-				let producer = SignalProducer<(), NoError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<(), NoError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -116,8 +112,8 @@ class SignalProducerSpec: QuickSpec {
 			it("should dispose of added disposables upon start() disposal") {
 				let addedDisposable = SimpleDisposable()
 
-				let producer = SignalProducer<(), TestError>() { _, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<(), TestError>() { _, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					return
 				}
 
@@ -401,8 +397,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var disposable: Disposable!
 
-				let producer = SignalProducer<Int, NoError>() { _, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<Int, NoError>() { _, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					return
 				}
 
@@ -497,8 +493,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<Int, TestError>.Observer!
 
-				let producer = SignalProducer<Int, TestError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<Int, TestError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -513,8 +509,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<Int, TestError>.Observer!
 
-				let producer = SignalProducer<Int, TestError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<Int, TestError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -528,8 +524,8 @@ class SignalProducerSpec: QuickSpec {
 			it("should dispose of the added disposable if the signal is unretained and unobserved upon exiting the scope") {
 				let addedDisposable = SimpleDisposable()
 
-				let producer = SignalProducer<Int, TestError> { _, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<Int, TestError> { _, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 				}
 
 				var started = false
@@ -794,7 +790,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should start signal producers in order as defined") {
 				var ids = [Int]()
 				let createProducer = { (id: Int) -> SignalProducer<Int, NoError> in
-					return SignalProducer { observer, disposable in
+					return SignalProducer { observer, lifetime in
 						ids.append(id)
 
 						observer.send(value: id)
@@ -831,7 +827,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should start signal producers in order as defined") {
 				var ids = [Int]()
 				let createProducer = { (id: Int) -> SignalProducer<Int, NoError> in
-					return SignalProducer { observer, disposable in
+					return SignalProducer { observer, lifetime in
 						ids.append(id)
 
 						observer.send(value: id)
@@ -1112,8 +1108,8 @@ class SignalProducerSpec: QuickSpec {
 				var (disposed, interrupted) = (false, false)
 				let disposable = baseProducer
 					.flatMapError { (error: TestError) -> SignalProducer<Int, TestError> in
-						return SignalProducer<Int, TestError> { _, disposable in
-							disposable += ActionDisposable { disposed = true }
+						return SignalProducer<Int, TestError> { _, lifetime in
+							lifetime.observeEnded { disposed = true }
 						}
 					}
 					.startWithInterrupted { interrupted = true }
@@ -1656,7 +1652,7 @@ class SignalProducerSpec: QuickSpec {
 						innerDisposable = SimpleDisposable()
 						isInnerInterrupted = false
 						isInnerDisposed = false
-						let innerProducer = SignalProducer<Int, NoError> { $1.add(innerDisposable) }
+						let innerProducer = SignalProducer<Int, NoError> { $1.observeEnded(innerDisposable.dispose) }
 							.on(interrupted: { isInnerInterrupted = true }, disposed: { isInnerDisposed = true })
 						
 						interrupted = false
@@ -2213,9 +2209,9 @@ class SignalProducerSpec: QuickSpec {
 
 		describe("observeOn") {
 			it("should immediately cancel upstream producer's work when disposed") {
-				var upstreamDisposable: Disposable!
-				let producer = SignalProducer<(), NoError>{ _, innerDisposable in
-					upstreamDisposable = innerDisposable
+				var upstreamLifetime: Lifetime!
+				let producer = SignalProducer<(), NoError>{ _, innerLifetime in
+					upstreamLifetime = innerLifetime
 				}
 
 				var downstreamDisposable: Disposable!
@@ -2226,10 +2222,10 @@ class SignalProducerSpec: QuickSpec {
 						downstreamDisposable = innerDisposable
 					}
 				
-				expect(upstreamDisposable.isDisposed) == false
+				expect(upstreamLifetime.hasEnded) == false
 				
 				downstreamDisposable.dispose()
-				expect(upstreamDisposable.isDisposed) == true
+				expect(upstreamLifetime.hasEnded) == true
 			}
 		}
 

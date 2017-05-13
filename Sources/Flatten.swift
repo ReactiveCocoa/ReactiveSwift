@@ -509,11 +509,13 @@ extension SignalProducer where Value: SignalProducerProtocol, Error == Value.Err
 	fileprivate func concurrent(limit: UInt) -> SignalProducer<Value.Value, Error> {
 		precondition(limit > 0, "The concurrent limit must be greater than zero.")
 
-		return SignalProducer<Value.Value, Error> { relayObserver, disposable in
+		return SignalProducer<Value.Value, Error> { relayObserver, lifetime in
 			self.startWithSignal { signal, signalDisposable in
-				disposable += signalDisposable
+				let disposables = CompositeDisposable()
+				lifetime.observeEnded(signalDisposable.dispose)
+				lifetime.observeEnded(disposables.dispose)
 
-				_ = signal.observeConcurrent(relayObserver, limit, disposable)
+				_ = signal.observeConcurrent(relayObserver, limit, disposables)
 			}
 		}
 	}
@@ -767,13 +769,16 @@ extension SignalProducer where Value: SignalProducerProtocol, Error == Value.Err
 	/// - returns: A signal that forwards values from the latest signal sent on
 	///            `signal`, ignoring values sent on previous inner signal.
 	fileprivate func switchToLatest() -> SignalProducer<Value.Value, Error> {
-		return SignalProducer<Value.Value, Error> { observer, disposable in
+		return SignalProducer<Value.Value, Error> { observer, lifetime in
 			let latestInnerDisposable = SerialDisposable()
-			disposable += latestInnerDisposable
+			lifetime.observeEnded(latestInnerDisposable.dispose)
 
 			self.startWithSignal { signal, signalDisposable in
-				disposable += signalDisposable
-				disposable += signal.observeSwitchToLatest(observer, latestInnerDisposable)
+				lifetime.observeEnded(signalDisposable.dispose)
+
+				if let disposable = signal.observeSwitchToLatest(observer, latestInnerDisposable) {
+					lifetime.observeEnded(disposable.dispose)
+				}
 			}
 		}
 	}
@@ -891,13 +896,16 @@ extension SignalProducer where Value: SignalProducerProtocol, Error == Value.Err
 	///
 	/// The returned producer completes when `self` and the winning inner producer have both completed.
 	fileprivate func race() -> SignalProducer<Value.Value, Error> {
-		return SignalProducer<Value.Value, Error> { observer, disposable in
+		return SignalProducer<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
-			disposable += relayDisposable
+			lifetime.observeEnded(relayDisposable.dispose)
 
 			self.startWithSignal { signal, signalDisposable in
-				disposable += signalDisposable
-				disposable += signal.observeRace(observer, relayDisposable)
+				lifetime.observeEnded(signalDisposable.dispose)
+
+				if let disposable = signal.observeRace(observer, relayDisposable) {
+					lifetime.observeEnded(disposable.dispose)
+				}
 			}
 		}
 	}
@@ -1216,9 +1224,9 @@ extension SignalProducer {
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
 	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> SignalProducer<Value, F> {
-		return SignalProducer<Value, F> { observer, disposable in
+		return SignalProducer<Value, F> { observer, lifetime in
 			let serialDisposable = SerialDisposable()
-			disposable += serialDisposable
+			lifetime.observeEnded(serialDisposable.dispose)
 
 			self.startWithSignal { signal, signalDisposable in
 				serialDisposable.inner = signalDisposable
