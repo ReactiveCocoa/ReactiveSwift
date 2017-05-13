@@ -38,6 +38,7 @@ extension PropertyProtocol {
 	///   - observer: An observer to send the events to.
 	///   - lifetime: A lifetime of the observing object.
 	@discardableResult
+	@available(*, deprecated, message:"Use `take(during:)` and `start` on the property producer instead. `observe(_:during:)` would be removed in ReactiveSwift 2.0.")
 	public func observe(_ observer: Observer<Value, NoError>, during lifetime: Lifetime) -> Disposable? {
 		return producer.observe(observer, during: lifetime)
 	}

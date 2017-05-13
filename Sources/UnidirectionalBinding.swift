@@ -23,6 +23,7 @@ public protocol BindingSource {
 
 extension Signal: BindingSource {
 	@discardableResult
+	@available(*, deprecated, message:"Use `take(during:)` and `observe` instead. `observe(_:during:)` would be removed in ReactiveSwift 2.0.")
 	public func observe(_ observer: Observer, during lifetime: Lifetime) -> Disposable? {
 		return self.take(during: lifetime).observe(observer)
 	}
@@ -30,6 +31,7 @@ extension Signal: BindingSource {
 
 extension SignalProducer: BindingSource {
 	@discardableResult
+	@available(*, deprecated, message:"Use `take(during:)` and `start` instead. `observe(_:during:)` would be removed in ReactiveSwift 2.0.")
 	public func observe(_ observer: ProducedSignal.Observer, during lifetime: Lifetime) -> Disposable? {
 		var disposable: Disposable!
 
