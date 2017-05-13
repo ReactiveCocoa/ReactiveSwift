@@ -385,7 +385,7 @@ class SignalSpec: QuickSpec {
 				
 				expect(runCount) == 1
 				
-				signal.observe(Observer<(), NoError>())
+				signal.observe(Signal<(), NoError>.Observer())
 				expect(runCount) == 1
 			}
 

@@ -521,7 +521,7 @@ public final class Property<Value>: PropertyProtocol {
 	public convenience init(initial: Value, then values: SignalProducer<Value, NoError>) {
 		self.init(unsafeProducer: SignalProducer { observer, disposables in
 			observer.send(value: initial)
-			disposables += values.start(Observer(mappingInterruptedToCompleted: observer))
+			disposables += values.start(Signal.Observer(mappingInterruptedToCompleted: observer))
 		})
 	}
 
@@ -634,7 +634,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 		return SignalProducer { [atomic, signal] producerObserver, producerDisposable in
 			atomic.withValue { value in
 				producerObserver.send(value: value)
-				producerDisposable += signal.observe(Observer(mappingInterruptedToCompleted: producerObserver))
+				producerDisposable += signal.observe(Signal.Observer(mappingInterruptedToCompleted: producerObserver))
 			}
 		}
 	}
@@ -693,18 +693,5 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 
 	deinit {
 		observer.sendCompleted()
-	}
-}
-
-private extension Observer {
-	convenience init(mappingInterruptedToCompleted observer: Observer<Value, Error>) {
-		self.init { event in
-			switch event {
-			case .value, .completed, .failed:
-				observer.action(event)
-			case .interrupted:
-				observer.sendCompleted()
-			}
-		}
 	}
 }

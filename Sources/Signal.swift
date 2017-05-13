@@ -18,8 +18,6 @@ import Result
 ///    1. its input observer receives a terminating event; or
 ///    2. it has no active observers, and is not being retained.
 public final class Signal<Value, Error: Swift.Error> {
-	public typealias Observer = ReactiveSwift.Observer<Value, Error>
-
 	/// The disposable returned by the signal generator. It would be disposed of
 	/// when the signal terminates.
 	private var generatorDisposable: Disposable?

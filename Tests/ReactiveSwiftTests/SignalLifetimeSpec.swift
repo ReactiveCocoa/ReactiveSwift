@@ -68,7 +68,7 @@ class SignalLifetimeSpec: QuickSpec {
 				var disposable: Disposable? = nil
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }
-					disposable = signal.observe(Observer())
+					disposable = signal.observe(Signal.Observer())
 					return signal
 				}()
 				expect(signal).toNot(beNil())
@@ -243,7 +243,7 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should not deallocate if it has at least one observer, despite not being explicitly retained") {
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }.testTransform()
-					signal.observe(Observer())
+					signal.observe(Signal.Observer())
 					return signal
 				}()
 				expect(signal).toNot(beNil())
@@ -253,7 +253,7 @@ class SignalLifetimeSpec: QuickSpec {
 				var disposable: Disposable? = nil
 				weak var signal: Signal<AnyObject, NoError>? = {
 					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }.testTransform()
-					disposable = signal.observe(Observer())
+					disposable = signal.observe(Signal.Observer())
 					return signal
 				}()
 				expect(signal).toNot(beNil())
