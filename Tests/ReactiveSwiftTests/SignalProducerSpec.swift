@@ -1805,7 +1805,7 @@ class SignalProducerSpec: QuickSpec {
 					.single()
 				let result = events?.value
 
-				let expectedEvents: [Event<Int, TestError>] = [
+				let expectedEvents: [Signal<Int, TestError>.Event] = [
 					.value(1),
 					.value(2),
 					.failed(.default)
@@ -1816,7 +1816,7 @@ class SignalProducerSpec: QuickSpec {
 					fail("Invalid result: \(result)")
 				} else {
 					// Can't test for equality because Array<T> is not Equatable,
-					// and neither is Event<Value, Error>.
+					// and neither is Signal<Value, Error>.Event.
 					expect(result![0] == expectedEvents[0]) == true
 					expect(result![1] == expectedEvents[1]) == true
 					expect(result![2] == expectedEvents[2]) == true
