@@ -81,7 +81,7 @@ extension SignalProducer {
 }
 
 extension CompositeDisposable {
-	@available(*, deprecated, message:"Use `Disposable?` instead. The typealias would be removed in a future release.")
+	@available(*, unavailable, message:"Use `Disposable?` instead.")
 	public typealias DisposableHandle = Disposable?
 }
 
@@ -97,7 +97,7 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -
 public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> { fatalError() }
 
 // MARK: Obsolete types in ReactiveSwift 2.0.
-@available(*, deprecated, renamed:"Signal.Event")
+@available(*, unavailable, renamed:"Signal.Event")
 public typealias Event<Value, Error: Swift.Error> = Signal<Value, Error>.Event
 
 extension Action {
@@ -136,31 +136,31 @@ public protocol AtomicProtocol {}
 
 // MARK: Deprecated types in ReactiveSwift 1.x.
 extension Signal where Value == Bool {
-	@available(*, deprecated, renamed: "negate()")
+	@available(*, unavailable, renamed: "negate()")
 	public var negated: Signal<Bool, Error> {
 		return negate()
 	}
 }
 
 extension SignalProducer where Value == Bool {
-	@available(*, deprecated, renamed: "negate()")
+	@available(*, unavailable, renamed: "negate()")
 	public var negated: SignalProducer<Bool, Error> {
 		return negate()
 	}
 }
 
 extension PropertyProtocol where Value == Bool {
-	@available(*, deprecated, renamed: "negate()")
+	@available(*, unavailable, renamed: "negate()")
 	public var negated: Property<Bool> {
 		return negate()
 	}
 }
 
-@available(*, deprecated, renamed:"Scheduler")
+@available(*, unavailable, renamed:"Scheduler")
 public typealias SchedulerProtocol = Scheduler
 
-@available(*, deprecated, renamed:"DateScheduler")
+@available(*, unavailable, renamed:"DateScheduler")
 public typealias DateSchedulerProtocol = DateScheduler
 
-@available(*, deprecated, renamed:"BindingSource")
+@available(*, unavailable, renamed:"BindingSource")
 public typealias BindingSourceProtocol = BindingSource
