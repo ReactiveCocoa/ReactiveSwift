@@ -9,7 +9,7 @@
 /// An Observer is a simple wrapper around a function which can receive Events
 /// (typically from a Signal).
 public final class Observer<Value, Error: Swift.Error> {
-	public typealias Action = (Event<Value, Error>) -> Void
+	public typealias Action = (Signal<Value, Error>.Event) -> Void
 
 	/// An action that will be performed upon arrival of the event.
 	public let action: Action

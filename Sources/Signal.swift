@@ -392,14 +392,14 @@ private final class TerminatingState<Value, Error: Swift.Error> {
 	fileprivate let observers: Bag<Signal<Value, Error>.Observer>
 
 	///  The termination event.
-	fileprivate let event: Event<Value, Error>
+	fileprivate let event: Signal<Value, Error>.Event
 
 	/// Create a terminating state.
 	///
 	/// - parameters:
 	///   - observers: The latest bag of observers.
 	///   - event: The termination event.
-	init(observers: Bag<Signal<Value, Error>.Observer>, event: Event<Value, Error>) {
+	init(observers: Bag<Signal<Value, Error>.Observer>, event: Signal<Value, Error>.Event) {
 		self.observers = observers
 		self.event = event
 	}
@@ -574,7 +574,7 @@ extension Signal {
 	/// - returns: A signal that forwards the values passing the given closure.
 	public func filter(_ isIncluded: @escaping (Value) -> Bool) -> Signal<Value, Error> {
 		return Signal { observer in
-			return self.observe { (event: Event<Value, Error>) -> Void in
+			return self.observe { (event: Event) -> Void in
 				guard let value = event.value else {
 					observer.action(event)
 					return
@@ -595,7 +595,7 @@ extension Signal {
 	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
 	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
 		return Signal<U, Error> { observer in
-			return self.observe { (event: Event<Value, Error>) -> Void in
+			return self.observe { (event: Event) -> Void in
 				switch event {
 				case let .value(value):
 					if let mapped = transform(value) {
@@ -1019,8 +1019,8 @@ extension Signal {
 	///         the Event itself and then interrupt.
 	///
 	/// - returns: A signal that sends events as its values.
-	public func materialize() -> Signal<Event<Value, Error>, NoError> {
-		return Signal<Event<Value, Error>, NoError> { observer in
+	public func materialize() -> Signal<Event, NoError> {
+		return Signal<Event, NoError> { observer in
 			return self.observe { event in
 				observer.send(value: event)
 
@@ -1081,7 +1081,7 @@ extension Signal {
 	///
 	/// - returns: A signal with attached side-effects for given event cases.
 	public func on(
-		event: ((Event<Value, Error>) -> Void)? = nil,
+		event: ((Event) -> Void)? = nil,
 		failed: ((Error) -> Void)? = nil,
 		completed: (() -> Void)? = nil,
 		interrupted: (() -> Void)? = nil,
@@ -1887,7 +1887,7 @@ extension Signal {
 				}
 
 			disposable += self.observe { event in
-				let eventToSend = state.modify { state -> Event<Value, Error>? in
+				let eventToSend = state.modify { state -> Event? in
 					switch event {
 					case let .value(value):
 						switch state {

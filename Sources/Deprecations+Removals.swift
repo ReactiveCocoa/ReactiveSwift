@@ -97,6 +97,9 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -
 public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> { fatalError() }
 
 // MARK: Obsolete types in ReactiveSwift 2.0.
+@available(*, deprecated, renamed:"Signal.Event")
+public typealias Event<Value, Error: Swift.Error> = Signal<Value, Error>.Event
+
 extension Action {
 	@available(*, unavailable, renamed:"init(state:enabledIf:execute:)")
 	public convenience init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, _ execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) { fatalError() }
@@ -235,21 +238,6 @@ extension Action {
 }
 
 // Renamed Enum cases
-
-extension Event {
-	@available(*, unavailable, renamed:"value")
-	public static var Next: Event<Value, Error> { fatalError() }
-
-	@available(*, unavailable, renamed:"failed")
-	public static var Failed: Event<Value, Error> { fatalError() }
-
-	@available(*, unavailable, renamed:"completed")
-	public static var Completed: Event<Value, Error> { fatalError() }
-
-	@available(*, unavailable, renamed:"interrupted")
-	public static var Interrupted: Event<Value, Error> { fatalError() }
-}
-
 extension ActionError {
 	@available(*, unavailable, renamed:"producerFailed")
 	public static var ProducerError: ActionError { fatalError() }

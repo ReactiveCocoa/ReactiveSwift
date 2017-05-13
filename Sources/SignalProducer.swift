@@ -695,7 +695,7 @@ extension SignalProducer {
 	///         send the `Event` itself and then interrupt.
 	///
 	/// - returns: A producer that sends events as its values.
-	public func materialize() -> SignalProducer<Event<Value, Error>, NoError> {
+	public func materialize() -> SignalProducer<ProducedSignal.Event, NoError> {
 		return lift { $0.materialize() }
 	}
 
@@ -1432,7 +1432,7 @@ extension SignalProducer {
 	public func on(
 		starting: (() -> Void)? = nil,
 		started: (() -> Void)? = nil,
-		event: ((Event<Value, Error>) -> Void)? = nil,
+		event: ((ProducedSignal.Event) -> Void)? = nil,
 		failed: ((Error) -> Void)? = nil,
 		completed: (() -> Void)? = nil,
 		interrupted: (() -> Void)? = nil,
@@ -2071,7 +2071,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	/// A termination event emitted by the underlying producer.
 	///
 	/// This will be nil if termination has not occurred.
-	var terminationEvent: Event<Value, Error>?
+	var terminationEvent: Signal<Value, Error>.Event?
 
 	/// The observers currently attached to the caching producer, or `nil` if the
 	/// caching producer was terminated.
@@ -2143,7 +2143,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	///
 	/// - parameter:
 	///   - event: The event to be cached.
-	mutating func enqueue(_ event: Event<Value, Error>) {
+	mutating func enqueue(_ event: Signal<Value, Error>.Event) {
 		switch event {
 		case let .value(value):
 			for key in replayBuffers.keys {
