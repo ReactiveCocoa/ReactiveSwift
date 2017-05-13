@@ -123,22 +123,24 @@ extension Signal {
 	}
 }
 
-public func == <Value: Equatable, Error: Equatable> (lhs: Signal<Value, Error>.Event, rhs: Signal<Value, Error>.Event) -> Bool {
-	switch (lhs, rhs) {
-	case let (.value(left), .value(right)):
-		return left == right
+extension Signal.Event where Value: Equatable, Error: Equatable {
+	public static func == (lhs: Signal<Value, Error>.Event, rhs: Signal<Value, Error>.Event) -> Bool {
+		switch (lhs, rhs) {
+		case let (.value(left), .value(right)):
+			return left == right
 
-	case let (.failed(left), .failed(right)):
-		return left == right
+		case let (.failed(left), .failed(right)):
+			return left == right
 
-	case (.completed, .completed):
-		return true
+		case (.completed, .completed):
+			return true
 
-	case (.interrupted, .interrupted):
-		return true
+		case (.interrupted, .interrupted):
+			return true
 
-	default:
-		return false
+		default:
+			return false
+		}
 	}
 }
 

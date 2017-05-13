@@ -272,15 +272,17 @@ public enum ActionError<Error: Swift.Error>: Swift.Error {
 	case producerFailed(Error)
 }
 
-public func == <Error: Equatable>(lhs: ActionError<Error>, rhs: ActionError<Error>) -> Bool {
-	switch (lhs, rhs) {
-	case (.disabled, .disabled):
-		return true
+extension ActionError where Error: Equatable {
+	public static func == (lhs: ActionError<Error>, rhs: ActionError<Error>) -> Bool {
+		switch (lhs, rhs) {
+		case (.disabled, .disabled):
+			return true
 
-	case let (.producerFailed(left), .producerFailed(right)):
-		return left == right
+		case let (.producerFailed(left), .producerFailed(right)):
+			return left == right
 
-	default:
-		return false
+		default:
+			return false
+		}
 	}
 }
