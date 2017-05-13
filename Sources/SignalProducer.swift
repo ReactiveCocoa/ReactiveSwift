@@ -299,6 +299,19 @@ extension SignalProducer {
 		
 		return result
 	}
+
+	/// Create a `Signal` from `self` in the manner described by `startWithSignal`, and
+	/// put the interrupt handle into the given `CompositeDisposable`.
+	///
+	/// - parameters:
+	///   - disposable: The `CompositeDisposable` the interrupt handle to be added to.
+	///   - setup: A closure that accepts the produced `Signal`.
+	fileprivate func startWithSignal(interruptingBy disposable: CompositeDisposable, setup: (Signal<Value, Error>) -> Void) {
+		startWithSignal { signal, interruptHandle in
+			disposable += interruptHandle
+			setup(signal)
+		}
+	}
 }
 
 extension SignalProducer where Error == NoError {
@@ -360,7 +373,7 @@ extension SignalProducer {
 	/// That is, the argument producer will be started before the receiver. When
 	/// both producers are synchronous this order can be important depending on
 	/// the operator to generate correct results.
-	private func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	fileprivate func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
 			return SignalProducer<V, G> { observer, outerDisposable in
 				self.startWithSignal { signal, disposable in
@@ -414,7 +427,117 @@ extension SignalProducer {
 			return self.liftRight(transform)(SignalProducer<U, F>(otherSignal))
 		}
 	}
+}
 
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>) -> Void) {
+	b.startWithSignal(interruptingBy: disposable) { b in
+		a.startWithSignal(interruptingBy: disposable) { setup($0, b) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>) -> Void) {
+	c.startWithSignal(interruptingBy: disposable) { c in
+		flattenStart(disposable, a, b) { setup($0, $1, c) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>) -> Void) {
+	d.startWithSignal(interruptingBy: disposable) { d in
+		flattenStart(disposable, a, b, c) { setup($0, $1, $2, d) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>) -> Void) {
+	e.startWithSignal(interruptingBy: disposable) { e in
+		flattenStart(disposable, a, b, c, d) { setup($0, $1, $2, $3, e) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>) -> Void) {
+	f.startWithSignal(interruptingBy: disposable) { f in
+		flattenStart(disposable, a, b, c, d, e) { setup($0, $1, $2, $3, $4, f) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, G, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>) -> Void) {
+	g.startWithSignal(interruptingBy: disposable) { g in
+		flattenStart(disposable, a, b, c, d, e, f) { setup($0, $1, $2, $3, $4, $5, g) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, G, H, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>) -> Void) {
+	h.startWithSignal(interruptingBy: disposable) { h in
+		flattenStart(disposable, a, b, c, d, e, f, g) { setup($0, $1, $2, $3, $4, $5, $6, h) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, G, H, I, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>) -> Void) {
+	i.startWithSignal(interruptingBy: disposable) { i in
+		flattenStart(disposable, a, b, c, d, e, f, g, h) { setup($0, $1, $2, $3, $4, $5, $6, $7, i) }
+	}
+}
+
+/// Start the producers in the argument order.
+///
+/// - parameters:
+///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
+///                 produced `Signal`s.
+///   - setup: The closure to accept all produced `Signal`s at once.
+private func flattenStart<A, B, C, D, E, F, G, H, I, J, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>, Signal<J, Error>) -> Void) {
+	j.startWithSignal(interruptingBy: disposable) { j in
+		flattenStart(disposable, a, b, c, d, e, f, g, h, i) { setup($0, $1, $2, $3, $4, $5, $6, $7, $8, j) }
+	}
+}
+
+extension SignalProducer {
 	/// Map each value in the producer to a new value.
 	///
 	/// - parameters:
@@ -633,7 +756,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, will yield a tuple containing
 	///            values of `self` and given producer.
 	public func combineLatest<U>(with other: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
-		return liftLeft(Signal.combineLatest)(other)
+		return SignalProducer.combineLatest(self, other)
 	}
 
 	/// Combine the latest value of the receiver with the latest value from
@@ -654,7 +777,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, will yield a tuple containing
 	///            values of `self` and given signal.
 	public func combineLatest<U>(with other: Signal<U, Error>) -> SignalProducer<(Value, U), Error> {
-		return lift(Signal.combineLatest(with:))(other)
+		return SignalProducer.combineLatest(self, SignalProducer<U, Error>(other))
 	}
 
 	/// Delay `value` and `completed` events by the given interval, forwarding
@@ -1050,7 +1173,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that sends tuples of `self` and `otherProducer`.
 	public func zip<U>(with other: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
-		return liftLeft(Signal.zip(with:))(other)
+		return SignalProducer.zip(self, other)
 	}
 
 	/// Zip elements of this producer and a signal into pairs. The elements of
@@ -1061,7 +1184,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that sends tuples of `self` and `otherSignal`.
 	public func zip<U>(with other: Signal<U, Error>) -> SignalProducer<(Value, U), Error> {
-		return lift(Signal.zip(with:))(other)
+		return SignalProducer.zip(self, SignalProducer<U, Error>(other))
 	}
 
 	/// Apply an action to every value from `self`, and forward the value if the action
@@ -1490,173 +1613,185 @@ extension SignalProducer {
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
-		return a.combineLatest(with: b)
+		return SignalProducer<(Value, B), Error> { observer, disposable in
+			flattenStart(disposable, a, b) { Signal.combineLatest($0, $1).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(Value, B, C), Error> {
-		return combineLatest(a, b)
-			.combineLatest(with: c)
-			.map(repack)
+		return SignalProducer<(Value, B, C), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c) { Signal.combineLatest($0, $1, $2).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(Value, B, C, D), Error> {
-		return combineLatest(a, b, c)
-			.combineLatest(with: d)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d) { Signal.combineLatest($0, $1, $2, $3).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(Value, B, C, D, E), Error> {
-		return combineLatest(a, b, c, d)
-			.combineLatest(with: e)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e) { Signal.combineLatest($0, $1, $2, $3, $4).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(Value, B, C, D, E, F), Error> {
-		return combineLatest(a, b, c, d, e)
-			.combineLatest(with: f)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f) { Signal.combineLatest($0, $1, $2, $3, $4, $5).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(Value, B, C, D, E, F, G), Error> {
-		return combineLatest(a, b, c, d, e, f)
-			.combineLatest(with: g)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F, G), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f, g) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H), Error> {
-		return combineLatest(a, b, c, d, e, f, g)
-			.combineLatest(with: h)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F, G, H), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f, g, h) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> {
-		return combineLatest(a, b, c, d, e, f, g, h)
-			.combineLatest(with: i)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f, g, h, i) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> {
-		return combineLatest(a, b, c, d, e, f, g, h, i)
-			.combineLatest(with: j)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f, g, h, i, j) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
+		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`. Will return an empty `SignalProducer` if the sequence is empty.
-	public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error>
-		where S.Iterator.Element == SignalProducer<Value, Error>
-	{
-		var generator = producers.makeIterator()
-		if let first = generator.next() {
-			let initial = first.map { [$0] }
-			return IteratorSequence(generator).reduce(initial) { producer, next in
-				producer.combineLatest(with: next).map { $0.0 + [$0.1] }
-			}
-		}
-		
-		return .empty
+	public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
+		return start(producers, Signal.combineLatest)
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
-		return a.zip(with: b)
+		return SignalProducer<(Value, B), Error> { observer, disposable in
+			flattenStart(disposable, a, b) { Signal.zip($0, $1).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B, C>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(Value, B, C), Error> {
-		return zip(a, b)
-			.zip(with: c)
-			.map(repack)
+		return SignalProducer<(Value, B, C), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c) { Signal.zip($0, $1, $2).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B, C, D>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(Value, B, C, D), Error> {
-		return zip(a, b, c)
-			.zip(with: d)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d) { Signal.zip($0, $1, $2, $3).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B, C, D, E>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(Value, B, C, D, E), Error> {
-		return zip(a, b, c, d)
-			.zip(with: e)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e) { Signal.zip($0, $1, $2, $3, $4).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(Value, B, C, D, E, F), Error> {
-		return zip(a, b, c, d, e)
-			.zip(with: f)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f) { Signal.zip($0, $1, $2, $3, $4, $5).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F, G>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(Value, B, C, D, E, F, G), Error> {
-		return zip(a, b, c, d, e, f)
-			.zip(with: g)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F, G), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f, g) { Signal.zip($0, $1, $2, $3, $4, $5, $6).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H), Error> {
-		return zip(a, b, c, d, e, f, g)
-			.zip(with: h)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F, G, H), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f, g, h) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H, I>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> {
-		return zip(a, b, c, d, e, f, g, h)
-			.zip(with: i)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f, g, h, i) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
-	/// `zipWith`.
+	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H, I, J>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> {
-		return zip(a, b, c, d, e, f, g, h, i)
-			.zip(with: j)
-			.map(repack)
+		return SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> { observer, disposable in
+			flattenStart(disposable, a, b, c, d, e, f, g, h, i, j) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
+		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zipWith`. Will return an empty `SignalProducer` if the sequence is empty.
-	public static func zip<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error>
-		where S.Iterator.Element == SignalProducer<Value, Error>
-	{
-		var generator = producers.makeIterator()
-		if let first = generator.next() {
-			let initial = first.map { [$0] }
-			return IteratorSequence(generator).reduce(initial) { producer, next in
-				producer.zip(with: next).map { $0.0 + [$0.1] }
-			}
-		}
+	public static func zip<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
+		return start(producers, Signal.zip)
+	}
 
-		return .empty
+	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping (ReversedRandomAccessCollection<[Signal<Value, Error>]>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
+		return SignalProducer<[Value], Error> { observer, disposable in
+			var producers = Array(producers)
+			var signals: [Signal<Value, Error>] = []
+
+			guard !producers.isEmpty else {
+				observer.sendCompleted()
+				return
+			}
+
+			func start() {
+				guard !producers.isEmpty else {
+					transform(signals.reversed()).observe(observer)
+					return
+				}
+
+				producers.removeLast().startWithSignal { signal, interruptHandle in
+					disposable += interruptHandle
+					signals.append(signal)
+
+					start()
+				}
+			}
+
+			start()
+		}
 	}
 }
 
