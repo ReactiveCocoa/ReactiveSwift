@@ -251,10 +251,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		02D260291C1D6DAF003ACC61 /* SignalLifetimeSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalLifetimeSpec.swift; sourceTree = "<group>"; };
-		4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReactiveExtensionsSpec.swift; sourceTree = "<group>"; };
+		02D260291C1D6DAF003ACC61 /* SignalLifetimeSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SignalLifetimeSpec.swift; path = Tests/ReactiveSwiftTests/SignalLifetimeSpec.swift; sourceTree = "<group>"; };
+		4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ReactiveExtensionsSpec.swift; path = ../Tests/ReactiveSwiftTests/ReactiveExtensionsSpec.swift; sourceTree = "<group>"; };
 		4A0E10FE1D2A92720065D310 /* Lifetime.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Lifetime.swift; path = Sources/Lifetime.swift; sourceTree = "<group>"; };
-		4A0E11031D2A95200065D310 /* LifetimeSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifetimeSpec.swift; sourceTree = "<group>"; };
+		4A0E11031D2A95200065D310 /* LifetimeSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LifetimeSpec.swift; path = Tests/ReactiveSwiftTests/LifetimeSpec.swift; sourceTree = "<group>"; };
 		4AC73ECA1DF273570004EC4F /* ResultExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ResultExtensions.swift; sourceTree = "<group>"; };
 		57A4D2411BA13D7A00F7D4B1 /* ReactiveSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ReactiveSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		57A4D2441BA13F9700F7D4B1 /* tvOS-Application.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Application.xcconfig"; sourceTree = "<group>"; };
@@ -262,8 +262,8 @@
 		57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Framework.xcconfig"; sourceTree = "<group>"; };
 		57A4D2471BA13F9700F7D4B1 /* tvOS-StaticLibrary.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-StaticLibrary.xcconfig"; sourceTree = "<group>"; };
 		7DFBED031CDB8C9500EE435B /* ReactiveSwiftTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReactiveSwiftTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		9A090C131DA0309E00EE97CA /* Reactive.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Reactive.swift; path = Sources/Reactive.swift; sourceTree = "<group>"; };
-		9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingPropertySpec.swift; sourceTree = "<group>"; };
+		9A090C131DA0309E00EE97CA /* Reactive.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Reactive.swift; sourceTree = "<group>"; };
+		9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ValidatingPropertySpec.swift; path = Tests/ReactiveSwiftTests/ValidatingPropertySpec.swift; sourceTree = "<group>"; };
 		9A1B256D1EC85C110018E541 /* Signal+Operators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Signal+Operators.swift"; path = "Sources/Signal+Operators.swift"; sourceTree = "<group>"; };
 		9A1B25731EC85E4C0018E541 /* SignalProducer+LiftedOperators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "SignalProducer+LiftedOperators.swift"; path = "Sources/SignalProducer+LiftedOperators.swift"; sourceTree = "<group>"; };
 		9A1B25781EC85F2D0018E541 /* SignalProducer+Operators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "SignalProducer+Operators.swift"; path = "Sources/SignalProducer+Operators.swift"; sourceTree = "<group>"; };
@@ -271,8 +271,8 @@
 		9A1B25871EC866030018E541 /* SignalProducer+FlattenOperators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "SignalProducer+FlattenOperators.swift"; path = "Sources/SignalProducer+FlattenOperators.swift"; sourceTree = "<group>"; };
 		9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Signal+CombiningOperators.swift"; path = "Sources/Signal+CombiningOperators.swift"; sourceTree = "<group>"; };
 		9A1B25911EC86B950018E541 /* Signal+AsyncOperators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Signal+AsyncOperators.swift"; path = "Sources/Signal+AsyncOperators.swift"; sourceTree = "<group>"; };
-		9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnidirectionalBindingSpec.swift; sourceTree = "<group>"; };
-		9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeprecationSpec.swift; sourceTree = "<group>"; };
+		9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = UnidirectionalBindingSpec.swift; path = Tests/ReactiveSwiftTests/UnidirectionalBindingSpec.swift; sourceTree = "<group>"; };
+		9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DeprecationSpec.swift; path = Tests/ReactiveSwiftTests/DeprecationSpec.swift; sourceTree = "<group>"; };
 		9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ValidatingProperty.swift; path = Sources/ValidatingProperty.swift; sourceTree = "<group>"; };
 		9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Deprecations+Removals.swift"; path = "Sources/Deprecations+Removals.swift"; sourceTree = "<group>"; };
 		A97451331B3A935E00F48E55 /* watchOS-Application.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Application.xcconfig"; sourceTree = "<group>"; };
@@ -284,10 +284,10 @@
 		BE9CF3941D751B6B003AE479 /* UnidirectionalBinding.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = UnidirectionalBinding.swift; path = Sources/UnidirectionalBinding.swift; sourceTree = "<group>"; };
 		BFA6B94A1A76044800C846D1 /* SignalProducerNimbleMatchers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalProducerNimbleMatchers.swift; sourceTree = "<group>"; };
 		C79B64731CD38B2B003F2376 /* TestLogger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestLogger.swift; sourceTree = "<group>"; };
-		C79B647B1CD52E23003F2376 /* EventLogger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = EventLogger.swift; path = Sources/EventLogger.swift; sourceTree = "<group>"; };
-		CA6F284F1C52626B001879D2 /* FlattenSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FlattenSpec.swift; sourceTree = "<group>"; };
+		C79B647B1CD52E23003F2376 /* EventLogger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventLogger.swift; sourceTree = "<group>"; };
+		CA6F284F1C52626B001879D2 /* FlattenSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = FlattenSpec.swift; path = Tests/ReactiveSwiftTests/FlattenSpec.swift; sourceTree = "<group>"; };
 		CDC42E2E1AE7AB8B00965373 /* Result.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Result.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		D021671C1A6CD50500987861 /* ActionSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = ActionSpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
+		D021671C1A6CD50500987861 /* ActionSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; name = ActionSpec.swift; path = Tests/ReactiveSwiftTests/ActionSpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		D037672B19EDA75D00A782A9 /* Quick.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Quick.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D03B4A3C19F4C39A009E02AC /* FoundationExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FoundationExtensions.swift; sourceTree = "<group>"; };
 		D04725EA19E49ED7006002AA /* ReactiveSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ReactiveSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -320,19 +320,19 @@
 		D08C54B01A69A2AC00AD8286 /* Property.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Property.swift; path = Sources/Property.swift; sourceTree = "<group>"; };
 		D08C54B11A69A2AC00AD8286 /* Signal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Signal.swift; path = Sources/Signal.swift; sourceTree = "<group>"; };
 		D08C54B21A69A2AC00AD8286 /* SignalProducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SignalProducer.swift; path = Sources/SignalProducer.swift; sourceTree = "<group>"; };
-		D0A226071A72E0E900D33B74 /* SignalSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = SignalSpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
-		D0A2260A1A72E6C500D33B74 /* SignalProducerSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = SignalProducerSpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
-		D0A2260D1A72F16D00D33B74 /* PropertySpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = PropertySpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
+		D0A226071A72E0E900D33B74 /* SignalSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; name = SignalSpec.swift; path = Tests/ReactiveSwiftTests/SignalSpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
+		D0A2260A1A72E6C500D33B74 /* SignalProducerSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; name = SignalProducerSpec.swift; path = Tests/ReactiveSwiftTests/SignalProducerSpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
+		D0A2260D1A72F16D00D33B74 /* PropertySpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; name = PropertySpec.swift; path = Tests/ReactiveSwiftTests/PropertySpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		D0C312BB19EF2A5800984962 /* Atomic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Atomic.swift; sourceTree = "<group>"; };
 		D0C312BC19EF2A5800984962 /* Bag.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bag.swift; sourceTree = "<group>"; };
 		D0C312BE19EF2A5800984962 /* Disposable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Disposable.swift; path = Sources/Disposable.swift; sourceTree = "<group>"; };
 		D0C312C819EF2A5800984962 /* Scheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Scheduler.swift; path = Sources/Scheduler.swift; sourceTree = "<group>"; };
-		D0C312EE19EF2A7700984962 /* AtomicSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AtomicSpec.swift; sourceTree = "<group>"; };
-		D0C312EF19EF2A7700984962 /* BagSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BagSpec.swift; sourceTree = "<group>"; };
-		D0C312F019EF2A7700984962 /* DisposableSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DisposableSpec.swift; sourceTree = "<group>"; };
-		D0C312F219EF2A7700984962 /* SchedulerSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SchedulerSpec.swift; sourceTree = "<group>"; };
-		D8024DB11B2E1BB0005E6B9A /* SignalProducerLiftingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = SignalProducerLiftingSpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
-		D8170FC01B100EBC004192AD /* FoundationExtensionsSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FoundationExtensionsSpec.swift; sourceTree = "<group>"; };
+		D0C312EE19EF2A7700984962 /* AtomicSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AtomicSpec.swift; path = ../Tests/ReactiveSwiftTests/AtomicSpec.swift; sourceTree = "<group>"; };
+		D0C312EF19EF2A7700984962 /* BagSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = BagSpec.swift; path = ../Tests/ReactiveSwiftTests/BagSpec.swift; sourceTree = "<group>"; };
+		D0C312F019EF2A7700984962 /* DisposableSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DisposableSpec.swift; path = Tests/ReactiveSwiftTests/DisposableSpec.swift; sourceTree = "<group>"; };
+		D0C312F219EF2A7700984962 /* SchedulerSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SchedulerSpec.swift; path = Tests/ReactiveSwiftTests/SchedulerSpec.swift; sourceTree = "<group>"; };
+		D8024DB11B2E1BB0005E6B9A /* SignalProducerLiftingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; name = SignalProducerLiftingSpec.swift; path = Tests/ReactiveSwiftTests/SignalProducerLiftingSpec.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
+		D8170FC01B100EBC004192AD /* FoundationExtensionsSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = FoundationExtensionsSpec.swift; path = ../Tests/ReactiveSwiftTests/FoundationExtensionsSpec.swift; sourceTree = "<group>"; };
 		D85C65291C0D84C7005A77AD /* Signal+FlattenOperators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Signal+FlattenOperators.swift"; path = "Sources/Signal+FlattenOperators.swift"; sourceTree = "<group>"; };
 		D871D69E1B3B29A40070F16C /* Optional.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Optional.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -419,11 +419,108 @@
 			isa = PBXGroup;
 			children = (
 				D0C312BB19EF2A5800984962 /* Atomic.swift */,
+				D0C312EE19EF2A7700984962 /* AtomicSpec.swift */,
 				D0C312BC19EF2A5800984962 /* Bag.swift */,
+				D0C312EF19EF2A7700984962 /* BagSpec.swift */,
+				C79B647B1CD52E23003F2376 /* EventLogger.swift */,
 				D871D69E1B3B29A40070F16C /* Optional.swift */,
 			);
 			name = Utilities;
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		9A1B25961EC86D5F0018E541 /* Action */ = {
+			isa = PBXGroup;
+			children = (
+				D08C54AF1A69A2AC00AD8286 /* Action.swift */,
+				D021671C1A6CD50500987861 /* ActionSpec.swift */,
+			);
+			name = Action;
+			sourceTree = "<group>";
+		};
+		9A1B25971EC86D830018E541 /* Bindings */ = {
+			isa = PBXGroup;
+			children = (
+				BE9CF3941D751B6B003AE479 /* UnidirectionalBinding.swift */,
+				9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */,
+			);
+			name = Bindings;
+			sourceTree = "<group>";
+		};
+		9A1B25981EC86D900018E541 /* Properties */ = {
+			isa = PBXGroup;
+			children = (
+				D08C54B01A69A2AC00AD8286 /* Property.swift */,
+				9A1B257D1EC85F6A0018E541 /* Property+LiftedOperators.swift */,
+				D0A2260D1A72F16D00D33B74 /* PropertySpec.swift */,
+				9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */,
+				9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */,
+			);
+			name = Properties;
+			sourceTree = "<group>";
+		};
+		9A1B25991EC86DB70018E541 /* Disposables */ = {
+			isa = PBXGroup;
+			children = (
+				D0C312BE19EF2A5800984962 /* Disposable.swift */,
+				D0C312F019EF2A7700984962 /* DisposableSpec.swift */,
+			);
+			name = Disposables;
+			sourceTree = "<group>";
+		};
+		9A1B259A1EC86DC70018E541 /* Schedulers */ = {
+			isa = PBXGroup;
+			children = (
+				D0C312C819EF2A5800984962 /* Scheduler.swift */,
+				D0C312F219EF2A7700984962 /* SchedulerSpec.swift */,
+			);
+			name = Schedulers;
+			sourceTree = "<group>";
+		};
+		9A1B259B1EC86DDC0018E541 /* Signal */ = {
+			isa = PBXGroup;
+			children = (
+				D08C54B11A69A2AC00AD8286 /* Signal.swift */,
+				9A1B25911EC86B950018E541 /* Signal+AsyncOperators.swift */,
+				9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */,
+				D85C65291C0D84C7005A77AD /* Signal+FlattenOperators.swift */,
+				9A1B256D1EC85C110018E541 /* Signal+Operators.swift */,
+				D0A226071A72E0E900D33B74 /* SignalSpec.swift */,
+				02D260291C1D6DAF003ACC61 /* SignalLifetimeSpec.swift */,
+				CA6F284F1C52626B001879D2 /* FlattenSpec.swift */,
+			);
+			name = Signal;
+			sourceTree = "<group>";
+		};
+		9A1B259C1EC86DEF0018E541 /* SignalProducer */ = {
+			isa = PBXGroup;
+			children = (
+				D08C54B21A69A2AC00AD8286 /* SignalProducer.swift */,
+				9A1B25871EC866030018E541 /* SignalProducer+FlattenOperators.swift */,
+				9A1B25781EC85F2D0018E541 /* SignalProducer+Operators.swift */,
+				9A1B25731EC85E4C0018E541 /* SignalProducer+LiftedOperators.swift */,
+				D8024DB11B2E1BB0005E6B9A /* SignalProducerLiftingSpec.swift */,
+				D0A2260A1A72E6C500D33B74 /* SignalProducerSpec.swift */,
+			);
+			name = SignalProducer;
+			sourceTree = "<group>";
+		};
+		9A1B259D1EC86E020018E541 /* Lifetime */ = {
+			isa = PBXGroup;
+			children = (
+				4A0E10FE1D2A92720065D310 /* Lifetime.swift */,
+				4A0E11031D2A95200065D310 /* LifetimeSpec.swift */,
+			);
+			name = Lifetime;
+			sourceTree = "<group>";
+		};
+		9A1B259E1EC86E440018E541 /* Deprecations */ = {
+			isa = PBXGroup;
+			children = (
+				9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */,
+				9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */,
+			);
+			name = Deprecations;
 			sourceTree = "<group>";
 		};
 		A97451321B3A935E00F48E55 /* watchOS */ = {
@@ -450,6 +547,9 @@
 			isa = PBXGroup;
 			children = (
 				D03B4A3C19F4C39A009E02AC /* FoundationExtensions.swift */,
+				D8170FC01B100EBC004192AD /* FoundationExtensionsSpec.swift */,
+				9A090C131DA0309E00EE97CA /* Reactive.swift */,
+				4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */,
 			);
 			name = Extensions;
 			path = Sources;
@@ -458,30 +558,19 @@
 		D04725E019E49ED7006002AA = {
 			isa = PBXGroup;
 			children = (
-				D08C54AF1A69A2AC00AD8286 /* Action.swift */,
-				9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */,
-				D0C312BE19EF2A5800984962 /* Disposable.swift */,
-				C79B647B1CD52E23003F2376 /* EventLogger.swift */,
-				4A0E10FE1D2A92720065D310 /* Lifetime.swift */,
-				D08C54B01A69A2AC00AD8286 /* Property.swift */,
-				9A1B257D1EC85F6A0018E541 /* Property+LiftedOperators.swift */,
-				9A090C131DA0309E00EE97CA /* Reactive.swift */,
-				D0C312C819EF2A5800984962 /* Scheduler.swift */,
-				D08C54B11A69A2AC00AD8286 /* Signal.swift */,
-				9A1B25911EC86B950018E541 /* Signal+AsyncOperators.swift */,
-				9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */,
-				D85C65291C0D84C7005A77AD /* Signal+FlattenOperators.swift */,
-				9A1B256D1EC85C110018E541 /* Signal+Operators.swift */,
-				D08C54B21A69A2AC00AD8286 /* SignalProducer.swift */,
-				9A1B25871EC866030018E541 /* SignalProducer+FlattenOperators.swift */,
-				9A1B25781EC85F2D0018E541 /* SignalProducer+Operators.swift */,
-				9A1B25731EC85E4C0018E541 /* SignalProducer+LiftedOperators.swift */,
-				BE9CF3941D751B6B003AE479 /* UnidirectionalBinding.swift */,
-				9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */,
+				9A1B25961EC86D5F0018E541 /* Action */,
+				9A1B25971EC86D830018E541 /* Bindings */,
+				9A1B25991EC86DB70018E541 /* Disposables */,
 				D03B4A3B19F4C281009E02AC /* Extensions */,
+				9A1B259D1EC86E020018E541 /* Lifetime */,
+				9A1B25981EC86D900018E541 /* Properties */,
+				9A1B259A1EC86DC70018E541 /* Schedulers */,
+				9A1B259B1EC86DDC0018E541 /* Signal */,
+				9A1B259C1EC86DEF0018E541 /* SignalProducer */,
 				9A1B25721EC85DA60018E541 /* Utilities */,
+				9A1B259E1EC86E440018E541 /* Deprecations */,
 				D03B4A3A19F4C26D009E02AC /* Internal Utilities */,
-				D04725F919E49ED7006002AA /* Tests */,
+				D04725F919E49ED7006002AA /* Test Utilities */,
 				D04725ED19E49ED7006002AA /* Supporting Files */,
 				D047262519E49FE8006002AA /* Configuration */,
 				D04725EB19E49ED7006002AA /* Products */,
@@ -514,43 +603,18 @@
 			path = Sources;
 			sourceTree = "<group>";
 		};
-		D04725F919E49ED7006002AA /* Tests */ = {
+		D04725F919E49ED7006002AA /* Test Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				D021671C1A6CD50500987861 /* ActionSpec.swift */,
-				D0C312EE19EF2A7700984962 /* AtomicSpec.swift */,
-				D0C312EF19EF2A7700984962 /* BagSpec.swift */,
-				D0C312F019EF2A7700984962 /* DisposableSpec.swift */,
-				CA6F284F1C52626B001879D2 /* FlattenSpec.swift */,
-				D8170FC01B100EBC004192AD /* FoundationExtensionsSpec.swift */,
-				4A0E11031D2A95200065D310 /* LifetimeSpec.swift */,
-				D0A2260D1A72F16D00D33B74 /* PropertySpec.swift */,
-				4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */,
-				D0C312F219EF2A7700984962 /* SchedulerSpec.swift */,
-				02D260291C1D6DAF003ACC61 /* SignalLifetimeSpec.swift */,
-				D8024DB11B2E1BB0005E6B9A /* SignalProducerLiftingSpec.swift */,
-				D0A2260A1A72E6C500D33B74 /* SignalProducerSpec.swift */,
-				D0A226071A72E0E900D33B74 /* SignalSpec.swift */,
 				B696FB801A7640C00075236D /* TestError.swift */,
 				C79B64731CD38B2B003F2376 /* TestLogger.swift */,
-				9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */,
-				9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */,
-				9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */,
-				D04725FA19E49ED7006002AA /* Supporting Files */,
-			);
-			name = Tests;
-			path = Tests/ReactiveSwiftTests;
-			sourceTree = "<group>";
-		};
-		D04725FA19E49ED7006002AA /* Supporting Files */ = {
-			isa = PBXGroup;
-			children = (
 				D05E662419EDD82000904ACA /* Nimble.framework */,
 				D037672B19EDA75D00A782A9 /* Quick.framework */,
 				BFA6B94A1A76044800C846D1 /* SignalProducerNimbleMatchers.swift */,
 				D04725FB19E49ED7006002AA /* Info.plist */,
 			);
-			name = "Supporting Files";
+			name = "Test Utilities";
+			path = Tests/ReactiveSwiftTests;
 			sourceTree = "<group>";
 		};
 		D047262519E49FE8006002AA /* Configuration */ = {
