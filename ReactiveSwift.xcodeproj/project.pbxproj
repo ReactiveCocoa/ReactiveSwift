@@ -84,6 +84,10 @@
 		9A1B25891EC866030018E541 /* SignalProducer+FlattenOperators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B25871EC866030018E541 /* SignalProducer+FlattenOperators.swift */; };
 		9A1B258A1EC866030018E541 /* SignalProducer+FlattenOperators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B25871EC866030018E541 /* SignalProducer+FlattenOperators.swift */; };
 		9A1B258B1EC866030018E541 /* SignalProducer+FlattenOperators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B25871EC866030018E541 /* SignalProducer+FlattenOperators.swift */; };
+		9A1B258D1EC8688C0018E541 /* Signal+CombiningOperators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */; };
+		9A1B258E1EC8688C0018E541 /* Signal+CombiningOperators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */; };
+		9A1B258F1EC8688C0018E541 /* Signal+CombiningOperators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */; };
+		9A1B25901EC8688C0018E541 /* Signal+CombiningOperators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */; };
 		9A1D067D1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
 		9A1D067E1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
 		9A1D067F1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
@@ -261,6 +265,7 @@
 		9A1B25781EC85F2D0018E541 /* SignalProducer+Operators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "SignalProducer+Operators.swift"; path = "Sources/SignalProducer+Operators.swift"; sourceTree = "<group>"; };
 		9A1B257D1EC85F6A0018E541 /* Property+LiftedOperators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Property+LiftedOperators.swift"; path = "Sources/Property+LiftedOperators.swift"; sourceTree = "<group>"; };
 		9A1B25871EC866030018E541 /* SignalProducer+FlattenOperators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "SignalProducer+FlattenOperators.swift"; path = "Sources/SignalProducer+FlattenOperators.swift"; sourceTree = "<group>"; };
+		9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Signal+CombiningOperators.swift"; path = "Sources/Signal+CombiningOperators.swift"; sourceTree = "<group>"; };
 		9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnidirectionalBindingSpec.swift; sourceTree = "<group>"; };
 		9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeprecationSpec.swift; sourceTree = "<group>"; };
 		9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ValidatingProperty.swift; path = Sources/ValidatingProperty.swift; sourceTree = "<group>"; };
@@ -458,6 +463,7 @@
 				9A090C131DA0309E00EE97CA /* Reactive.swift */,
 				D0C312C819EF2A5800984962 /* Scheduler.swift */,
 				D08C54B11A69A2AC00AD8286 /* Signal.swift */,
+				9A1B258C1EC8688C0018E541 /* Signal+CombiningOperators.swift */,
 				D85C65291C0D84C7005A77AD /* Signal+FlattenOperators.swift */,
 				9A1B256D1EC85C110018E541 /* Signal+Operators.swift */,
 				D08C54B21A69A2AC00AD8286 /* SignalProducer.swift */,
@@ -895,6 +901,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				57A4D1B11BA13D7A00F7D4B1 /* Optional.swift in Sources */,
+				9A1B25901EC8688C0018E541 /* Signal+CombiningOperators.swift in Sources */,
 				9A1B258B1EC866030018E541 /* SignalProducer+FlattenOperators.swift in Sources */,
 				57A4D1B41BA13D7A00F7D4B1 /* Disposable.swift in Sources */,
 				57A4D1B81BA13D7A00F7D4B1 /* Scheduler.swift in Sources */,
@@ -952,6 +959,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A9F793341B60D0140026BCBA /* Optional.swift in Sources */,
+				9A1B258F1EC8688C0018E541 /* Signal+CombiningOperators.swift in Sources */,
 				9A1B258A1EC866030018E541 /* SignalProducer+FlattenOperators.swift in Sources */,
 				A9B315BC1B3940810001CB9C /* Disposable.swift in Sources */,
 				A9B315C01B3940810001CB9C /* Scheduler.swift in Sources */,
@@ -982,6 +990,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D871D69F1B3B29A40070F16C /* Optional.swift in Sources */,
+				9A1B258D1EC8688C0018E541 /* Signal+CombiningOperators.swift in Sources */,
 				9A1B25881EC866030018E541 /* SignalProducer+FlattenOperators.swift in Sources */,
 				D0C312D319EF2A5800984962 /* Disposable.swift in Sources */,
 				4AC73ECB1DF273570004EC4F /* ResultExtensions.swift in Sources */,
@@ -1039,6 +1048,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D08C54B41A69A2AF00AD8286 /* Signal.swift in Sources */,
+				9A1B258E1EC8688C0018E541 /* Signal+CombiningOperators.swift in Sources */,
 				9A1B25891EC866030018E541 /* SignalProducer+FlattenOperators.swift in Sources */,
 				D8E84A671B3B32FB00C3E831 /* Optional.swift in Sources */,
 				D0C312D419EF2A5800984962 /* Disposable.swift in Sources */,
