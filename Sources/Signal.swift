@@ -2017,7 +2017,7 @@ extension Signal {
 	}
 
 	private final class AggregateBuilder<Strategy: SignalAggregateStrategy> {
-		fileprivate var startHandlers: [(_ index: Int, _ strategy: Atomic<Strategy>, _ action: @escaping (Event<Never, Error>) -> Void) -> Disposable?]
+		fileprivate var startHandlers: [(_ index: Int, _ strategy: Atomic<Strategy>, _ action: @escaping (Signal<Never, Error>.Event) -> Void) -> Disposable?]
 
 		init() {
 			self.startHandlers = []
