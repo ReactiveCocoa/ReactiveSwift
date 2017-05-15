@@ -1,5 +1,116 @@
 import enum Result.NoError
 
+extension Signal {
+	/// Do not forward any values from `self` until `trigger` sends a `value` or
+	/// `completed` event, at which point the returned signal behaves exactly
+	/// like `signal`.
+	///
+	/// - parameters:
+	///   - trigger: A signal whose `value` or `completed` events will start the
+	///              deliver of events on `self`.
+	///
+	/// - returns: A signal that will deliver events once the `trigger` sends
+	///            `value` or `completed` events.
+	public func skip(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
+		return Signal { observer in
+			let disposable = SerialDisposable()
+
+			disposable.inner = trigger.observe { event in
+				switch event {
+				case .value, .completed:
+					disposable.inner = self.observe(observer)
+
+				case .failed, .interrupted:
+					break
+				}
+			}
+
+			return disposable
+		}
+	}
+
+	/// Forward events from `self` until `trigger` sends a `value` or
+	/// `completed` event, at which point the returned signal will complete.
+	///
+	/// - parameters:
+	///   - trigger: A signal whose `value` or `completed` events will stop the
+	///              delivery of `value` events from `self`.
+	///
+	/// - returns: A signal that will deliver events until `trigger` sends
+	///            `value` or `completed` events.
+	public func take(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
+		return Signal<Value, Error> { observer in
+			let disposable = CompositeDisposable()
+			disposable += self.observe(observer)
+
+			disposable += trigger.observe { event in
+				switch event {
+				case .value, .completed:
+					observer.sendCompleted()
+
+				case .failed, .interrupted:
+					break
+				}
+			}
+
+			return disposable
+		}
+	}
+
+	/// Forwards events from `self` until `lifetime` ends, at which point the
+	/// returned signal will complete.
+	///
+	/// - parameters:
+	///   - lifetime: A lifetime whose `ended` signal will cause the returned
+	///               signal to complete.
+	///
+	/// - returns: A signal that will deliver events until `lifetime` ends.
+	public func take(during lifetime: Lifetime) -> Signal<Value, Error> {
+		return Signal<Value, Error> { observer in
+			let disposable = CompositeDisposable()
+			disposable += self.observe(observer)
+			disposable += lifetime.observeEnded(observer.sendCompleted)
+			return disposable
+		}
+	}
+
+	/// Forward events from `self` until `replacement` begins sending events.
+	///
+	/// - parameters:
+	///   - replacement: A signal to wait to wait for values from and start
+	///                  sending them as a replacement to `self`'s values.
+	///
+	/// - returns: A signal which passes through `value`, failed, and
+	///            `interrupted` events from `self` until `replacement` sends
+	///            an event, at which point the returned signal will send that
+	///            event and switch to passing through events from `replacement`
+	///            instead, regardless of whether `self` has sent events
+	///            already.
+	public func take(untilReplacement signal: Signal<Value, Error>) -> Signal<Value, Error> {
+		return Signal { observer in
+			let disposable = CompositeDisposable()
+
+			let signalDisposable = self.observe { event in
+				switch event {
+				case .completed:
+					break
+
+				case .value, .failed, .interrupted:
+					observer.action(event)
+				}
+			}
+
+			disposable += signalDisposable
+			disposable += signal.observe { event in
+				signalDisposable?.dispose()
+				observer.action(event)
+			}
+
+			return disposable
+		}
+	}
+}
+
 private struct SampleState<Value> {
 	var latestValue: Value? = nil
 	var isSignalCompleted: Bool = false
@@ -110,6 +221,25 @@ extension Signal {
 			
 			return disposable
 		}
+	}
+
+	/// Forward the latest value from `self` whenever `sampler` sends a `value`
+	/// event.
+	///
+	/// - note: If `sampler` fires before a value has been observed on `self`,
+	///         nothing happens.
+	///
+	/// - parameters:
+	///   - sampler: A signal that will trigger the delivery of `value` event
+	///              from `self`.
+	///
+	/// - returns: A signal that will send values from `self`, sampled (possibly
+	///            multiple times) by `sampler`, then complete once both input
+	///            signals have completed, or interrupt if either input signal
+	///            is interrupted.
+	public func sample(on sampler: Signal<(), NoError>) -> Signal<Value, Error> {
+		return sample(with: sampler)
+			.map { $0.0 }
 	}
 
 	/// Forward the latest value from `samplee` with the value from `self` as a
@@ -530,5 +660,29 @@ extension Signal {
 	/// `zip(with:)`. No events will be sent if the sequence is empty.
 	public static func zip<S: Sequence>(_ signals: S) -> Signal<[Value], Error> where S.Iterator.Element == Signal<Value, Error> {
 		return .init(ZipStrategy.self, signals)
+	}
+}
+
+extension Signal where Value == Bool {
+	/// Create a signal that computes a logical AND between the latest values of `self`
+	/// and `signal`.
+	///
+	/// - parameters:
+	///   - signal: Signal to be combined with `self`.
+	///
+	/// - returns: A signal that emits the logical AND results.
+	public func and(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
+		return self.combineLatest(with: signal).map { $0 && $1 }
+	}
+
+	/// Create a signal that computes a logical OR between the latest values of `self`
+	/// and `signal`.
+	///
+	/// - parameters:
+	///   - signal: Signal to be combined with `self`.
+	///
+	/// - returns: A signal that emits the logical OR results.
+	public func or(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
+		return self.combineLatest(with: signal).map { $0 || $1 }
 	}
 }
