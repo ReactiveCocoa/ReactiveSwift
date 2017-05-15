@@ -2491,7 +2491,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("timeoutWithError") {
+		describe("timeout(after:raising:on:)") {
 			var testScheduler: TestScheduler!
 			var signal: Signal<Int, TestError>!
 			var observer: Signal<Int, TestError>.Observer!
@@ -2558,6 +2558,78 @@ class SignalSpec: QuickSpec {
 			it("should be available for NoError") {
 				let signal: Signal<Int, TestError> = Signal<Int, NoError>.never
 					.timeout(after: 2, raising: TestError.default, on: testScheduler)
+
+				_ = signal
+			}
+		}
+
+		describe("timeout(after:sending:on:)") {
+			var testScheduler: TestScheduler!
+			var signal: Signal<Int, TestError>!
+			var observer: Signal<Int, TestError>.Observer!
+
+			beforeEach {
+				testScheduler = TestScheduler()
+				let (baseSignal, incomingObserver) = Signal<Int, TestError>.pipe()
+				signal = baseSignal.timeout(after: 2, sending: .value(-1), on: testScheduler)
+				observer = incomingObserver
+			}
+
+			it("should complete if within the interval") {
+				var completed = false
+				var errored = false
+				signal.observe { event in
+					switch event {
+					case .completed:
+						completed = true
+					case .failed:
+						errored = true
+					default:
+						break
+					}
+				}
+
+				testScheduler.schedule(after: .seconds(1)) {
+					observer.sendCompleted()
+				}
+
+				expect(completed) == false
+				expect(errored) == false
+
+				testScheduler.run()
+				expect(completed) == true
+				expect(errored) == false
+			}
+
+			it("should send the value and complete if not completed before the interval has elapsed") {
+				var completed = false
+				var sentValue: Int?
+				signal.observe { event in
+					switch event {
+					case .completed:
+						completed = true
+					case let .value(value):
+						sentValue = value
+					default:
+						break
+					}
+				}
+
+				testScheduler.schedule(after: .seconds(3)) {
+					observer.sendCompleted()
+				}
+
+				expect(completed) == false
+				expect(sentValue).to(beNil())
+
+				testScheduler.run()
+				expect(completed) == true
+				expect(sentValue) == -1
+			}
+
+			it("should be available for NoError") {
+				let signal: Signal<Int, TestError> = Signal<Int, NoError>.never
+					.timeout(after: 2, sending: .value(-1), on: testScheduler)
 
 				_ = signal
 			}

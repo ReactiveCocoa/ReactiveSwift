@@ -2363,10 +2363,10 @@ extension Signal {
 }
 
 extension Signal {
-	/// Forward events from `self` until `interval`. Then if signal isn't 
+	/// Forward events from `self` until `interval`. Then if signal isn't
 	/// completed yet, fails with `error` on `scheduler`.
 	///
-	/// - note: If the interval is 0, the timeout will be scheduled immediately. 
+	/// - note: If the interval is 0, the timeout will be scheduled immediately.
 	///         The signal must complete synchronously (or on a faster
 	///         scheduler) to avoid the timeout.
 	///
@@ -2376,23 +2376,55 @@ extension Signal {
 	///   - error: Error to send with failed event if `self` is not completed
 	///            when `interval` passes.
 	///   - interval: Number of seconds to wait for `self` to complete.
-	///   - scheudler: A scheduler to deliver error on.
+	///   - scheduler: A scheduler to deliver error on.
 	///
 	/// - returns: A signal that sends events for at most `interval` seconds,
 	///            then, if not `completed` - sends `error` with failed event
 	///            on `scheduler`.
 	public func timeout(after interval: TimeInterval, raising error: Error, on scheduler: DateScheduler) -> Signal<Value, Error> {
+		return timeout(after: interval, sending: .failed(error), on: scheduler)
+	}
+
+	/// Forward events from `self` until `interval`. Then if signal isn't
+	/// completed yet, sends `event` and terminates.
+	///
+	/// - note: If `event` is a value, the returned signal will automatically
+	///         complete after sending it.
+	///
+	/// - note: If the interval is 0, the timeout will be scheduled immediately.
+	///         The signal must complete synchronously (or on a faster
+	///         scheduler) to avoid the timeout.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	/// - parameters:
+	///   - event: An event to terminate with if `self` is not completed
+	///            when `interval` passes.
+	///   - interval: Number of seconds to wait for `self` to complete.
+	///   - scheduler: A scheduler to deliver error on.
+	///
+	/// - returns: A signal that sends events for at most `interval` seconds,
+	///            then, if not `completed` - sends `error` with failed event
+	///            on `scheduler`.
+	public func timeout(after interval: TimeInterval, sending event: Event, on scheduler: DateScheduler) -> Signal<Value, Error> {
 		precondition(interval >= 0)
 
 		return Signal { observer in
 			let disposable = CompositeDisposable()
 			let date = scheduler.currentDate.addingTimeInterval(interval)
+			var signalDisposable: Disposable?
 
 			disposable += scheduler.schedule(after: date) {
-				observer.send(error: error)
+				signalDisposable?.dispose()
+				observer.action(event)
+
+				if !event.isTerminating {
+					observer.sendCompleted()
+				}
 			}
 
-			disposable += self.observe(observer)
+			signalDisposable = self.observe(observer)
+			disposable += signalDisposable
 			return disposable
 		}
 	}
@@ -2451,6 +2483,37 @@ extension Signal where Error == NoError {
 		return self
 			.promoteError(NewError.self)
 			.timeout(after: interval, raising: error, on: scheduler)
+	}
+
+	/// Forward events from `self` until `interval`. Then if signal isn't
+	/// completed yet, sends `event` and terminates.
+	///
+	/// - note: If `event` is a value, the returned signal will automatically
+	///         complete after sending it.
+	///
+	/// - note: If the interval is 0, the timeout will be scheduled immediately.
+	///         The signal must complete synchronously (or on a faster
+	///         scheduler) to avoid the timeout.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	/// - parameters:
+	///   - event: An event to terminate with if `self` is not completed
+	///            when `interval` passes.
+	///   - interval: Number of seconds to wait for `self` to complete.
+	///   - scheduler: A scheduler to deliver error on.
+	///
+	/// - returns: A signal that sends events for at most `interval` seconds,
+	///            then, if not `completed` - sends `error` with failed event
+	///            on `scheduler`.
+	public func timeout<NewError: Swift.Error>(
+		after interval: TimeInterval,
+		sending event: Signal<Value, NewError>.Event,
+		on scheduler: DateScheduler
+	) -> Signal<Value, NewError> {
+		return self
+			.promoteError(NewError.self)
+			.timeout(after: interval, sending: event, on: scheduler)
 	}
 }
 
