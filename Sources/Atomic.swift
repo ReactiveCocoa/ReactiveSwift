@@ -163,13 +163,6 @@ internal class Lock {
 			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL))
 			#endif
 
-			#if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
-				// The pthread mutex implementation of Darwin guarantees fairness by
-				// default. Since fairness is not a concern of our reactive primitives
-				// anyway, it can be disabled.
-				pthread_mutexattr_setpolicy_np(attr, _PTHREAD_MUTEX_POLICY_FIRSTFIT)
-			#endif
-
 			let status = pthread_mutex_init(_lock, attr)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 
