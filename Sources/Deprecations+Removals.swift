@@ -3,6 +3,16 @@ import Dispatch
 import Result
 
 // MARK: Unavailable methods in ReactiveSwift 2.0.
+extension SignalProducerProtocol {
+	@available(*, unavailable, renamed:"init(_:)")
+	public static func attempt(_ operation: @escaping () -> Result<Value, Error>) -> SignalProducer<Value, Error> { fatalError() }
+}
+
+extension SignalProducerProtocol where Error == AnyError {
+	@available(*, unavailable, renamed:"init(_:)")
+	public static func attempt(_ operation: @escaping () throws -> Value) -> SignalProducer<Value, Error> { fatalError() }
+}
+
 extension PropertyProtocol {
 	@available(*, unavailable, renamed:"flatMap(_:_:)")
 	public func flatMap<P: PropertyProtocol>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> P) -> Property<P.Value> { fatalError() }

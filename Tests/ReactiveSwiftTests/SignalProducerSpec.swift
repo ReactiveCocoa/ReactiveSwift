@@ -204,7 +204,27 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
-		describe("init(_ block:)") {
+		describe("init closure overloading") {
+			it("should be inferred and overloaded without ambiguity") {
+				let action: () -> String = { "" }
+				let throwableAction: () throws -> String = { "" }
+				let resultAction1: () -> Result<String, NoError> = { .success("") }
+				let resultAction2: () -> Result<String, AnyError> = { .success("") }
+				let throwableResultAction: () throws -> Result<String, NoError> = { .success("") }
+
+				expect(type(of: SignalProducer(action))) == SignalProducer<String, AnyError>.self
+				expect(type(of: SignalProducer<String, NoError>(action))) == SignalProducer<String, NoError>.self
+				expect(type(of: SignalProducer<String, TestError>(action))) == SignalProducer<String, TestError>.self
+
+				expect(type(of: SignalProducer(resultAction1))) == SignalProducer<String, NoError>.self
+				expect(type(of: SignalProducer(resultAction2))) == SignalProducer<String, AnyError>.self
+
+				expect(type(of: SignalProducer(throwableAction))) == SignalProducer<String, AnyError>.self
+				expect(type(of: SignalProducer(throwableResultAction))) == SignalProducer<Result<String, NoError>, AnyError>.self
+			}
+		}
+
+		describe("init(_:) lazy value") {
 			it("should not evaluate the supplied closure until started") {
 				var evaluated: Bool = false
 				func lazyGetter() -> String {
@@ -287,7 +307,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
-		describe("SignalProducer.attempt") {
+		describe("init(_:) lazy result") {
 			it("should run the operation once per start()") {
 				var operationRunTimes = 0
 				let operation: () -> Result<String, NSError> = {
@@ -296,8 +316,8 @@ class SignalProducerSpec: QuickSpec {
 					return .success("OperationValue")
 				}
 
-				SignalProducer.attempt(operation).start()
-				SignalProducer.attempt(operation).start()
+				SignalProducer(operation).start()
+				SignalProducer(operation).start()
 
 				expect(operationRunTimes) == 2
 			}
@@ -308,7 +328,7 @@ class SignalProducerSpec: QuickSpec {
 					return .success(operationReturnValue)
 				}
 
-				let signalProducer = SignalProducer.attempt(operation)
+				let signalProducer = SignalProducer(operation)
 
 				expect(signalProducer).to(sendValue(operationReturnValue, sendError: nil, complete: true))
 			}
@@ -319,20 +339,19 @@ class SignalProducerSpec: QuickSpec {
 					return .failure(operationError)
 				}
 
-				let signalProducer = SignalProducer.attempt(operation)
+				let signalProducer = SignalProducer(operation)
 
 				expect(signalProducer).to(sendValue(nil, sendError: operationError, complete: false))
 			}
 		}
 
-		describe("SignalProducer.attempt throws") {
+		describe("init(_:) throwable lazy value") {
 			it("should send a successful value then complete") {
 				let operationReturnValue = "OperationValue"
 
-				let signalProducer = SignalProducer
-					.attempt { () throws -> String in
-						operationReturnValue
-					}
+				let signalProducer = SignalProducer { () throws -> String in
+					operationReturnValue
+				}
 
 				var error: Error?
 				signalProducer.startWithFailed {
@@ -345,10 +364,9 @@ class SignalProducerSpec: QuickSpec {
 			it("should send the error") {
 				let operationError = TestError.default
 
-				let signalProducer = SignalProducer
-					.attempt { () throws -> String in
-						throw operationError
-					}
+				let signalProducer = SignalProducer { () throws -> String in
+					throw operationError
+				}
 
 				var error: TestError?
 				signalProducer.startWithFailed {
@@ -2691,13 +2709,13 @@ class SignalProducerSpec: QuickSpec {
 	}
 }
 
+// MARK: - Helpers
+
 private func == <T>(left: Expectation<T.Type>, right: Any.Type) {
 	left.to(NonNilMatcherFunc { expression, _ in
 		return try expression.evaluate()! == right
 	})
 }
-
-// MARK: - Helpers
 
 extension SignalProducer {
 	internal static func pipe() -> (SignalProducer, ProducedSignal.Observer) {
@@ -2728,6 +2746,6 @@ extension SignalProducer {
 			}
 		}
 
-		return SignalProducer.attempt(operation)
+		return SignalProducer(operation)
 	}
 }
