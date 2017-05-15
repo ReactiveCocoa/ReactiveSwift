@@ -807,7 +807,7 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 	}
 
 	fileprivate func observeRace(_ observer: Signal<Value.Value, Error>.Observer, _ relayDisposable: CompositeDisposable) -> Disposable? {
-		let state = Atomic(RaceState<Value.Value, Error>())
+		let state = Atomic(RaceState())
 
 		return self.observe { event in
 			switch event {
@@ -818,27 +818,29 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 				}
 
 				innerProducer.producer.startWithSignal { innerSignal, innerDisposable in
-
 					state.modify {
 						$0.innerSignalComplete = false
 					}
 
 					let disposableHandle = relayDisposable.add(innerDisposable)
+					var isWinningSignal = false
 
-					innerSignal.observe { [unowned innerSignal] event in
+					innerSignal.observe { event in
+						if !isWinningSignal {
+							isWinningSignal = state.modify { state in
+								guard !state.isActivated else {
+									return false
+								}
 
-						let isWinningSignal: Bool = state.modify { state in
-							if state.active == nil {
-								state.active = innerSignal
+								state.isActivated = true
+								return true
 							}
-							return state.active === innerSignal
-						}
 
-						// Ignore non-winning signals.
-						guard isWinningSignal else { return }
+							// Ignore non-winning signals.
+							guard isWinningSignal else { return }
 
-						// Dispose all running innerSignals except winning one.
-						if !relayDisposable.isDisposed {
+							// The disposals would be run exactly once immediately after
+							// the winning signal flips `state.isActivated`.
 							disposableHandle?.dispose()
 							relayDisposable.dispose()
 						}
@@ -846,7 +848,6 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 						switch event {
 						case .completed:
 							let shouldComplete: Bool = state.modify { state in
-								state.active = nil
 								state.innerSignalComplete = true
 								return state.outerSignalComplete
 							}
@@ -902,11 +903,10 @@ extension SignalProducer where Value: SignalProducerProtocol, Error == Value.Err
 	}
 }
 
-private struct RaceState<Value, Error: Swift.Error> {
-	var outerSignalComplete: Bool = false
-	var innerSignalComplete: Bool = true
-
-	var active: Signal<Value, Error>? = nil
+private struct RaceState {
+	var outerSignalComplete = false
+	var innerSignalComplete = true
+	var isActivated = false
 }
 
 extension Signal {
