@@ -1,7 +1,7 @@
 <p align="center">
 	<a href="https://github.com/ReactiveCocoa/ReactiveSwift/"><img src="Logo/PNG/logo-Swift.png" alt="ReactiveSwift" /></a><br /><br />
 	Streams of values over time. Tailored for Swift.<br /><br />
-	<a href="http://reactivecocoa.io/reactiveswift/docs/latest/"><img src="Logo/PNG/Docs.png" alt="Latest ReactiveSwift Documentation" width="143" height="40" /></a> <a href="http://reactivecocoa.io/slack/"><img src="Logo/PNG/JoinSlack.png" alt="Join the ReactiveSwift Slack community." width="143" height="40" /></a>
+	<a href="http://cocoadocs.org/docsets/ReactiveSwift/"><img src="Logo/PNG/Docs.png" alt="Latest ReactiveSwift Documentation" width="143" height="40" /></a> <a href="http://reactivecocoa.io/slack/"><img src="Logo/PNG/JoinSlack.png" alt="Join the ReactiveSwift Slack community." width="143" height="40" /></a>
 </p>
 <br />
 
