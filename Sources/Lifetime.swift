@@ -25,7 +25,7 @@ public final class Lifetime {
 	///
 	/// - note: Consider using `Lifetime.observeEnded` if only a closure observer
 	///         is to be attached.
- 	public let ended: Signal<(), NoError>
+ 	public let ended: Signal<Never, NoError>
 
 	// MARK: Initializers
 
@@ -33,7 +33,7 @@ public final class Lifetime {
 	///
 	/// - parameters:
 	///   - signal: The ended signal.
-	private init(ended signal: Signal<(), NoError>) {
+	private init(ended signal: Signal<Never, NoError>) {
 		ended = signal
 	}
 
@@ -78,9 +78,9 @@ public final class Lifetime {
 	/// ```
 	public final class Token {
 		/// A signal that sends a Completed event when the lifetime ends.
-		fileprivate let ended: Signal<(), NoError>
+		fileprivate let ended: Signal<Never, NoError>
 
-		private let endedObserver: Signal<(), NoError>.Observer
+		private let endedObserver: Signal<Never, NoError>.Observer
 
 		public init() {
 			(ended, endedObserver) = Signal.pipe()
