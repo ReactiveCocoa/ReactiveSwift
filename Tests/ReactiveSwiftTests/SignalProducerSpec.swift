@@ -1813,7 +1813,7 @@ class SignalProducerSpec: QuickSpec {
 
 				// TODO: if let result = result where result.count == expectedEvents.count
 				if result?.count != expectedEvents.count {
-					fail("Invalid result: \(result)")
+					fail("Invalid result: \(String(describing: result))")
 				} else {
 					// Can't test for equality because Array<T> is not Equatable,
 					// and neither is Signal<Value, Error>.Event.
