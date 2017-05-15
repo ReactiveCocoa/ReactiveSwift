@@ -7,8 +7,6 @@ custom_categories:
     - DesignGuidelines
   - name: Signal
     children:
-    - Event
-    - Observer
     - Signal
     - SignalProtocol
     - FlattenStrategy
@@ -16,8 +14,6 @@ custom_categories:
     children:
     - SignalProducer
     - SignalProducerProtocol
-    - timer(interval:on:)
-    - timer(interval:on:leeway:)
   - name: Property
     children:
     - Property
@@ -34,7 +30,6 @@ custom_categories:
     - BindingSource
     - BindingTarget
     - BindingTargetProvider
-    - <~(_:_:)
   - name: Scheduler Protocols
     children:
     - DateScheduler
@@ -70,16 +65,8 @@ custom_categories:
     children:
     - Atomic
     - Bag
-    - BagIterator
-    - RemovalToken
     - Optional
     - OptionalProtocol
-  - name: Deprecated
-    children:
-    - AtomicProtocol
-    - ActionProtocol
-    - BindingTargetProtocol
-    - ObserverProtocol
 theme: fullwidth 
 skip_undocumented: true
 readme: README.md
