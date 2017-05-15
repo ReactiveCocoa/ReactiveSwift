@@ -1,10 +1,14 @@
 custom_categories:
   - name: Getting Started 
     children:
+    - ReactivePrimitives
     - BasicOperators
-    - FrameworkOverview
+    - Example.OnlineSearch
+    - RxComparison
+  - name: Advanced Topics
+    children:
+    - APIContracts
     - DebuggingTechniques
-    - DesignGuidelines
   - name: Signal
     children:
     - Signal

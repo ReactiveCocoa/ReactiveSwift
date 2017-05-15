@@ -4,7 +4,7 @@ This document explains some of the most common operators used in ReactiveCocoa,
 and includes examples demonstrating their use.
 
 Note that “operators”, in this context, refers to functions that transform
-[signals][] and [signal producers][], _not_ custom Swift operators. In other
+[`Signal`s][Signal] and [`SignalProducer`s][SignalProducer], _not_ custom Swift operators. In other
 words, these are composable primitives provided by ReactiveCocoa for working
 with event streams.
 
@@ -513,7 +513,7 @@ because some operators to [combine streams](#combining-event-streams) require
 the inputs to have matching error types.
 
 
-[Signals]: FrameworkOverview.md#signals
-[Signal Producers]: FrameworkOverview.md#signal-producers
+[Signal]: Documentation/ReactivePrimitives.md#signal-a-unidirectional-stream-of-events
+[SignalProducer]: Documentation/ReactivePrimitives.md#signalproducer-deferred-work-that-creates-a-stream-of-values
 [Observation]: FrameworkOverview.md#observation
 
