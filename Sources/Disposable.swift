@@ -234,7 +234,7 @@ public final class ScopedDisposable<Inner: Disposable>: Disposable {
 	}
 }
 
-extension ScopedDisposable where Inner: AnyDisposable {
+extension ScopedDisposable where Inner == AnyDisposable {
 	/// Initialize the receiver to dispose of the argument upon
 	/// deinitialization.
 	///
