@@ -15,6 +15,8 @@ before_script:
 script:
   - script/build
 xcode_workspace: ReactiveSwift.xcworkspace
+cache:
+  directories: Carthage/Build
 jobs:
   include:
     - xcode_scheme: ReactiveSwift-macOS
@@ -44,22 +46,6 @@ jobs:
         - XCODE_ACTION=build
         - XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
     - script:
-        - carthage build --no-skip-current --platform mac
-      env:
-        - JOB=CARTHAGE-macOS
-    - script:
-        - carthage build --no-skip-current --platform iOS
-      env:
-        - JOB=CARTHAGE-iOS
-    - script:
-        - carthage build --no-skip-current --platform tvOS
-      env:
-        - JOB=CARTHAGE-tvOS
-    - script:
-        - carthage build --no-skip-current --platform watchOS
-      env:
-        - JOB=CARTHAGE-watchOS
-    - script:
       - pod repo update --silent
       - pod lib lint ReactiveSwift.podspec
       env:
@@ -79,6 +65,25 @@ jobs:
         - swift build
         - SWIFTPM_TEST_ReactiveSwift=YES swift test
       env: JOB=SWIFTPM_LINUX
+    - stage: prepare carthage cache
+      script: carthage build --cache-builds
+    - stage: carthage
+      script:
+        - carthage build --cache-builds --no-skip-current --platform mac
+      env:
+        - JOB=CARTHAGE-macOS
+    - script:
+        - carthage build --cache-builds --no-skip-current --platform iOS
+      env:
+        - JOB=CARTHAGE-iOS
+    - script:
+        - carthage build --cache-builds --no-skip-current --platform tvOS
+      env:
+        - JOB=CARTHAGE-tvOS
+    - script:
+        - carthage build --cache-builds --no-skip-current --platform watchOS
+      env:
+        - JOB=CARTHAGE-watchOS
     - stage: deploy
       script: skip
       deploy: 
