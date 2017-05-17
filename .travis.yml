@@ -1,6 +1,8 @@
 language: objective-c
 osx_image: xcode8.3
-before_install: true
+before_install: 
+  - brew uninstall carthage
+  - HOMEBREW_NO_AUTO_UPDATE=1 brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/6ae4f69a652fb0ecb102b0c9216378679a4f1b92/Formula/carthage.rb # 0.22.0
 install: true
 branches:
   only:
@@ -85,6 +87,7 @@ jobs:
       env:
         - JOB=CARTHAGE-watchOS
     - stage: deploy
+      before_install: true
       script: skip
       deploy: 
         provider: script
