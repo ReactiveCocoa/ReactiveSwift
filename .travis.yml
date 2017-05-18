@@ -72,20 +72,12 @@ jobs:
     - stage: carthage
       script:
         - carthage build --cache-builds --no-skip-current --platform mac
-      env:
-        - JOB=CARTHAGE-macOS
     - script:
         - carthage build --cache-builds --no-skip-current --platform iOS
-      env:
-        - JOB=CARTHAGE-iOS
     - script:
         - carthage build --cache-builds --no-skip-current --platform tvOS
-      env:
-        - JOB=CARTHAGE-tvOS
     - script:
         - carthage build --cache-builds --no-skip-current --platform watchOS
-      env:
-        - JOB=CARTHAGE-watchOS
     - stage: deploy
       before_install: true
       script: skip
