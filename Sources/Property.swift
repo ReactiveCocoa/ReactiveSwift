@@ -566,6 +566,29 @@ public final class Property<Value>: PropertyProtocol {
 	}
 }
 
+extension Property where Value: OptionalProtocol {
+	/// Initializes a composed property that first takes on `initial`, then each
+	/// value sent on a signal created by `producer`.
+	///
+	/// - parameters:
+	///   - initial: Starting value for the property.
+	///   - values: A producer that will start immediately and send values to
+	///             the property.
+	public convenience init(initial: Value, then values: SignalProducer<Value.Wrapped, NoError>) {
+		self.init(initial: initial, then: values.map(Value.init(reconstructing:)))
+	}
+
+	/// Initialize a composed property that first takes on `initial`, then each
+	/// value sent on `signal`.
+	///
+	/// - parameters:
+	///   - initialValue: Starting value for the property.
+	///   - values: A signal that will send values to the property.
+	public convenience init(initial: Value, then values: Signal<Value.Wrapped, NoError>) {
+		self.init(initial: initial, then: SignalProducer(values))
+	}
+}
+
 /// A mutable property of type `Value` that allows observation of its changes.
 ///
 /// Instances of this class are thread-safe.
