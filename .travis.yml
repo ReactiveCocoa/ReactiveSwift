@@ -1,21 +1,21 @@
 language: objective-c
 osx_image: xcode8.3
-before_install: true
+before_install: 
+  - brew uninstall carthage
+  - HOMEBREW_NO_AUTO_UPDATE=1 brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/6ae4f69a652fb0ecb102b0c9216378679a4f1b92/Formula/carthage.rb # 0.22.0
 install: true
-git:
-  submodules: false
 branches:
   only:
     - master
     # Credit: @Omnikron13, https://github.com/mojombo/semver/issues/32
     - /^(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
     - /^hotfix-(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/ 
-before_script:
-  - git submodule update --init --recursive
 script:
   - script/build
 xcode_workspace: ReactiveSwift.xcworkspace
-matrix:
+cache:
+  directories: Carthage/Build
+jobs:
   include:
     - xcode_scheme: ReactiveSwift-macOS
       env:
@@ -44,22 +44,6 @@ matrix:
         - XCODE_ACTION=build
         - XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
     - script:
-        - carthage build --no-skip-current --platform mac
-      env:
-        - JOB=CARTHAGE-macOS
-    - script:
-        - carthage build --no-skip-current --platform iOS
-      env:
-        - JOB=CARTHAGE-iOS
-    - script:
-        - carthage build --no-skip-current --platform tvOS
-      env:
-        - JOB=CARTHAGE-tvOS
-    - script:
-        - carthage build --no-skip-current --platform watchOS
-      env:
-        - JOB=CARTHAGE-watchOS
-    - script:
       - pod repo update --silent
       - pod lib lint ReactiveSwift.podspec
       env:
@@ -67,6 +51,8 @@ matrix:
     - script:
         - swift build
         - SWIFTPM_TEST_ReactiveSwift=YES swift test
+      git:
+        submodules: false
       env:
         - JOB=SWIFTPM_DARWIN
     - os: linux
@@ -78,9 +64,29 @@ matrix:
       script:
         - swift build
         - SWIFTPM_TEST_ReactiveSwift=YES swift test
+      git:
+        submodules: false
       env: JOB=SWIFTPM_LINUX
+    - stage: prepare carthage cache
+      script: carthage build --cache-builds
+    - stage: carthage
+      script:
+        - carthage build --cache-builds --no-skip-current --platform mac
     - script:
-        - script/gen-docs
+        - carthage build --cache-builds --no-skip-current --platform iOS
+    - script:
+        - carthage build --cache-builds --no-skip-current --platform tvOS
+    - script:
+        - carthage build --cache-builds --no-skip-current --platform watchOS
+    - stage: deploy
+      before_install: true
+      script: skip
+      deploy: 
+        provider: script
+        script: script/gen-docs
+        on:
+          repo: ReactiveCocoa/ReactiveSwift
+          tags: true
       env:
         - JOB=JAZZY_DOCS_GEN
         - secure: "FZmWA8jEF1nNYEeolK+bDT/n+AJtQGa9/s5SXYg05Zs4GWReDimqo41y2UBJxdeaeixHab4N14sR5OL6R2pf4ZE0LVq4Ln17nsIPTRvMQeH74apJ/+d8y9pzQuyw8MsPeV9VwWAbhie+fjOKFEoqwo98junGJFFqNVKhZX3AdDgB50jNffEqzG7qedwHX5oM+Me8T7oq0UWblGe4CppCXEvDshIKPXxIC1foiVyJoK31WRLIX7c1m99ECFjfqqopal5EUtvgCabZkRBilsYB8rAngrpTg5NpHSPxV3VAiheCmXs12txHek8fPUNIjPf8dhP5QfwK3VUUCS4VcSOJSoTP3HzAn1OirYOhpnmrymLw2TCo4kzPGhpF+58cQQcjbO7TxA1KgLvTtLfSc2MSQTUniPC0jOzl42q5PVttxkE2wDcGBiraxVa++uGWGbjyfJBXVXNz2KnvmVmxn9YMNw2kGbptZrBQw73tHuA0w8cfK+AqckpuY2XDZEzjcumTb5Tr1AC2KWNP3sjsVVlE0yShQDyqVrHE2XP2UPKux04ZgaEciVnBisAN9c4Tm5RjbDw7EOqpy583bxtIvWkAY1rkf4+SXyfNWcHqGWkANGcgeSe9k7C6hwEWb9v90iMrD/D7hzvhioUBfgRhlrbvnAtA9K3fH2VvKGIkTj/blcY="
