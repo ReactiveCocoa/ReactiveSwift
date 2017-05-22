@@ -17,6 +17,7 @@ fi
 
 echo "Documentation builder. The tag is \`${TRAVIS_TAG}\`."
 
+rvm use 2.3
 gem install jazzy
 jazzy
 
