@@ -325,10 +325,8 @@ class SignalSpec: QuickSpec {
 				group.wait()
 
 				expect(events.count) == 2
-
-				if events.count >= 2 {
-					expect(events[1].isTerminating) == true
-				}
+				expect(events.first?.value).toNot(beNil())
+				expect(events.last?.isTerminating) == true
 			}
 
 			it("should interrupt concurrently") {
