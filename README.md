@@ -127,27 +127,28 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 ## Release Roadmap
 **Current Stable Release:**<br />[![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveSwift.svg)](https://github.com/ReactiveCocoa/ReactiveSwift/releases)
 
-### Plan of Record
+### In Development
 #### ReactiveSwift 2.0
-It targets Swift 3.1.x. The estimated schedule is Spring 2017.
+It targets Swift 3.1. The estimated schedule is WWDC 2017.
 
-The release contains breaking changes. But they are not expected to affect the general mass of users, but only a few specific use cases.
+The primary goal of ReactiveSwift 2.0 is to take advantage of **concrete same-type requirements** introduced in Swift 3.1. As a result:
 
-The primary goal of ReactiveSwift 2.0 is to adopt **concrete same-type requirements**, and remove as many single-implementation protocols as possible.
+1. A few single-implementation protocols were removed; and
+2. `Signal` and `SignalProducer` operators were moved from the protocols to the concrete types.
 
-ReactiveSwift 2.0 may include other proposed breaking changes.
+These changes are source breaking, but are automatically or trivially migratable.
 
-As Swift 4.0 introduces library evolution and resilience, it is important for us to have a clean and steady API to start with. The expectation is to **have the API cleanup and the reviewing to be concluded in ReactiveSwift 2.0**, before we move on to ReactiveSwift 3.0 and Swift 4.0. Any contribution to help realising this goal is welcomed.
+ReactiveSwift 2.0 have also continued the work in cleaning up its APIs, preparing for the eventual API freeze for library resilience.
 
+### Plan of Record
 #### ReactiveSwift 3.0
-It targets Swift 4.0.x. The estimated schedule is late 2017.
+It targets Swift 4.0. The estimated schedule is late 2017.
 
-The release may contain breaking changes, depending on what features are being delivered by Swift 4.0.
+The release is expected to be source breaking. For the moment, ReactiveSwift 3.0 is expected to:
 
-ReactiveSwift 3.0 would focus on two main goals:
-
-1. Swift 4.0 Library Evolution and Resilience
-2. Adapt to new features introduced in Swift 4.0 Phase 2.
+1. Adpot new Swift 4 language features;
+1. Complete annontation of the Swift memory ownership model; and
+1. Complete annotation of the Swift library evolution model.
 
 [Core Reactive Primitives]: Documentation/ReactivePrimitives.md
 [Basic Operators]: Documentation/BasicOperators.md

@@ -19,7 +19,7 @@ import Result
 public struct SignalProducer<Value, Error: Swift.Error> {
 	public typealias ProducedSignal = Signal<Value, Error>
 
-	private let startHandler: (Signal<Value, Error>.Observer, CompositeDisposable) -> Void
+	private let startHandler: (Signal<Value, Error>.Observer, Lifetime) -> Void
 
 	/// Initializes a `SignalProducer` that will emit the same events as the
 	/// given signal.
@@ -30,8 +30,10 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - signal: A signal to observe after starting the producer.
 	public init(_ signal: Signal<Value, Error>) {
-		self.init { observer, disposable in
-			disposable += signal.observe(observer)
+		self.init { observer, lifetime in
+			if let disposable = signal.observe(observer) {
+				lifetime.observeEnded(disposable.dispose)
+			}
 		}
 	}
 
@@ -48,7 +50,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - startHandler: A closure that accepts observer and a disposable.
-	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, CompositeDisposable) -> Void) {
+	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
 		self.startHandler = startHandler
 	}
 
@@ -59,7 +61,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - value: A value that should be sent by the `Signal` in a `value`
 	///            event.
 	public init(value: Value) {
-		self.init { observer, disposable in
+		self.init { observer, lifetime in
 			observer.send(value: value)
 			observer.sendCompleted()
 		}
@@ -76,9 +78,29 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - action: A action that yields a value to be sent by the `Signal` as
 	///             a `value` event.
 	public init(_ action: @escaping () -> Value) {
-		self.init { observer, disposable in
+		self.init { observer, lifetime in
 			observer.send(value: action())
 			observer.sendCompleted()
+		}
+	}
+
+	/// Create a `SignalProducer` that will attempt the given operation once for
+	/// each invocation of `start()`.
+	///
+	/// Upon success, the started signal will send the resulting value then
+	/// complete. Upon failure, the started signal will fail with the error that
+	/// occurred.
+	///
+	/// - parameters:
+	///   - action: A closure that returns instance of `Result`.
+	public init(_ action: @escaping () -> Result<Value, Error>) {
+		self.init { observer, disposable in
+			action().analysis(ifSuccess: { value in
+				observer.send(value: value)
+				observer.sendCompleted()
+			}, ifFailure: { error in
+				observer.send(error: error)
+			})
 		}
 	}
 
@@ -89,7 +111,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - error: An error that should be sent by the `Signal` in a `failed`
 	///            event.
 	public init(error: Error) {
-		self.init { observer, disposable in
+		self.init { observer, lifetime in
 			observer.send(error: error)
 		}
 	}
@@ -118,11 +140,11 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
 	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
-		self.init { observer, disposable in
+		self.init { observer, lifetime in
 			for value in values {
 				observer.send(value: value)
 
-				if disposable.isDisposed {
+				if lifetime.hasEnded {
 					break
 				}
 			}
@@ -145,7 +167,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// A producer for a Signal that will immediately complete without sending
 	/// any values.
 	public static var empty: SignalProducer {
-		return self.init { observer, disposable in
+		return self.init { observer, lifetime in
 			observer.sendCompleted()
 		}
 	}
@@ -179,7 +201,26 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			return
 		}
 
-		startHandler(observer, producerDisposable)
+		startHandler(observer, Lifetime(producerDisposable))
+	}
+}
+
+extension SignalProducer where Error == AnyError {
+	/// Create a `SignalProducer` that will attempt the given failable operation once for
+	/// each invocation of `start()`.
+	///
+	/// Upon success, the started producer will send the resulting value then
+	/// complete. Upon failure, the started signal will fail with the error that
+	/// occurred.
+	///
+	/// - parameters:
+	///   - operation: A failable closure.
+	public init(_ action: @escaping () throws -> Value) {
+		self.init {
+			return ReactiveSwift.materialize {
+				return try action()
+			}
+		}
 	}
 }
 
@@ -304,11 +345,11 @@ extension SignalProducer {
 	/// put the interrupt handle into the given `CompositeDisposable`.
 	///
 	/// - parameters:
-	///   - disposable: The `CompositeDisposable` the interrupt handle to be added to.
+	///   - lifetime: The `Lifetime` the interrupt handle to be added to.
 	///   - setup: A closure that accepts the produced `Signal`.
-	fileprivate func startWithSignal(interruptingBy disposable: CompositeDisposable, setup: (Signal<Value, Error>) -> Void) {
+	fileprivate func startWithSignal(during lifetime: Lifetime, setup: (Signal<Value, Error>) -> Void) {
 		startWithSignal { signal, interruptHandle in
-			disposable += interruptHandle
+			lifetime.observeEnded(interruptHandle.dispose)
 			setup(signal)
 		}
 	}
@@ -341,10 +382,9 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer<U, F> { observer, outerDisposable in
+		return SignalProducer<U, F> { observer, lifetime in
 			self.startWithSignal { signal, innerDisposable in
-				outerDisposable += innerDisposable
-
+				lifetime.observeEnded(innerDisposable.dispose)
 				transform(signal).observe(observer)
 			}
 		}
@@ -375,12 +415,12 @@ extension SignalProducer {
 	/// the operator to generate correct results.
 	fileprivate func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
-			return SignalProducer<V, G> { observer, outerDisposable in
+			return SignalProducer<V, G> { observer, lifetime in
 				self.startWithSignal { signal, disposable in
-					outerDisposable.add(disposable)
+					lifetime.observeEnded(disposable.dispose)
 
 					otherProducer.startWithSignal { otherSignal, otherDisposable in
-						outerDisposable += otherDisposable
+						lifetime.observeEnded(otherDisposable.dispose)
 
 						transform(signal)(otherSignal).observe(observer)
 					}
@@ -395,12 +435,12 @@ extension SignalProducer {
 	/// the operator to generate correct results.
 	fileprivate func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
-			return SignalProducer<V, G> { observer, outerDisposable in
+			return SignalProducer<V, G> { observer, lifetime in
 				otherProducer.startWithSignal { otherSignal, otherDisposable in
-					outerDisposable += otherDisposable
+					lifetime.observeEnded(otherDisposable.dispose)
 					
 					self.startWithSignal { signal, disposable in
-						outerDisposable.add(disposable)
+						lifetime.observeEnded(disposable.dispose)
 
 						transform(signal)(otherSignal).observe(observer)
 					}
@@ -435,9 +475,9 @@ extension SignalProducer {
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>) -> Void) {
-	b.startWithSignal(interruptingBy: disposable) { b in
-		a.startWithSignal(interruptingBy: disposable) { setup($0, b) }
+private func flattenStart<A, B, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>) -> Void) {
+	b.startWithSignal(during: lifetime) { b in
+		a.startWithSignal(during: lifetime) { setup($0, b) }
 	}
 }
 
@@ -447,9 +487,9 @@ private func flattenStart<A, B, Error>(_ disposable: CompositeDisposable, _ a: S
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, C, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>) -> Void) {
-	c.startWithSignal(interruptingBy: disposable) { c in
-		flattenStart(disposable, a, b) { setup($0, $1, c) }
+private func flattenStart<A, B, C, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>) -> Void) {
+	c.startWithSignal(during: lifetime) { c in
+		flattenStart(lifetime, a, b) { setup($0, $1, c) }
 	}
 }
 
@@ -459,9 +499,9 @@ private func flattenStart<A, B, C, Error>(_ disposable: CompositeDisposable, _ a
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, C, D, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>) -> Void) {
-	d.startWithSignal(interruptingBy: disposable) { d in
-		flattenStart(disposable, a, b, c) { setup($0, $1, $2, d) }
+private func flattenStart<A, B, C, D, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>) -> Void) {
+	d.startWithSignal(during: lifetime) { d in
+		flattenStart(lifetime, a, b, c) { setup($0, $1, $2, d) }
 	}
 }
 
@@ -471,9 +511,9 @@ private func flattenStart<A, B, C, D, Error>(_ disposable: CompositeDisposable, 
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, C, D, E, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>) -> Void) {
-	e.startWithSignal(interruptingBy: disposable) { e in
-		flattenStart(disposable, a, b, c, d) { setup($0, $1, $2, $3, e) }
+private func flattenStart<A, B, C, D, E, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>) -> Void) {
+	e.startWithSignal(during: lifetime) { e in
+		flattenStart(lifetime, a, b, c, d) { setup($0, $1, $2, $3, e) }
 	}
 }
 
@@ -483,9 +523,9 @@ private func flattenStart<A, B, C, D, E, Error>(_ disposable: CompositeDisposabl
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, C, D, E, F, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>) -> Void) {
-	f.startWithSignal(interruptingBy: disposable) { f in
-		flattenStart(disposable, a, b, c, d, e) { setup($0, $1, $2, $3, $4, f) }
+private func flattenStart<A, B, C, D, E, F, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>) -> Void) {
+	f.startWithSignal(during: lifetime) { f in
+		flattenStart(lifetime, a, b, c, d, e) { setup($0, $1, $2, $3, $4, f) }
 	}
 }
 
@@ -495,9 +535,9 @@ private func flattenStart<A, B, C, D, E, F, Error>(_ disposable: CompositeDispos
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, C, D, E, F, G, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>) -> Void) {
-	g.startWithSignal(interruptingBy: disposable) { g in
-		flattenStart(disposable, a, b, c, d, e, f) { setup($0, $1, $2, $3, $4, $5, g) }
+private func flattenStart<A, B, C, D, E, F, G, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>) -> Void) {
+	g.startWithSignal(during: lifetime) { g in
+		flattenStart(lifetime, a, b, c, d, e, f) { setup($0, $1, $2, $3, $4, $5, g) }
 	}
 }
 
@@ -507,9 +547,9 @@ private func flattenStart<A, B, C, D, E, F, G, Error>(_ disposable: CompositeDis
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, C, D, E, F, G, H, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>) -> Void) {
-	h.startWithSignal(interruptingBy: disposable) { h in
-		flattenStart(disposable, a, b, c, d, e, f, g) { setup($0, $1, $2, $3, $4, $5, $6, h) }
+private func flattenStart<A, B, C, D, E, F, G, H, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>) -> Void) {
+	h.startWithSignal(during: lifetime) { h in
+		flattenStart(lifetime, a, b, c, d, e, f, g) { setup($0, $1, $2, $3, $4, $5, $6, h) }
 	}
 }
 
@@ -519,9 +559,9 @@ private func flattenStart<A, B, C, D, E, F, G, H, Error>(_ disposable: Composite
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, C, D, E, F, G, H, I, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>) -> Void) {
-	i.startWithSignal(interruptingBy: disposable) { i in
-		flattenStart(disposable, a, b, c, d, e, f, g, h) { setup($0, $1, $2, $3, $4, $5, $6, $7, i) }
+private func flattenStart<A, B, C, D, E, F, G, H, I, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>) -> Void) {
+	i.startWithSignal(during: lifetime) { i in
+		flattenStart(lifetime, a, b, c, d, e, f, g, h) { setup($0, $1, $2, $3, $4, $5, $6, $7, i) }
 	}
 }
 
@@ -531,9 +571,9 @@ private func flattenStart<A, B, C, D, E, F, G, H, I, Error>(_ disposable: Compos
 ///   - disposable: The `CompositeDisposable` to collect the interrupt handles of all
 ///                 produced `Signal`s.
 ///   - setup: The closure to accept all produced `Signal`s at once.
-private func flattenStart<A, B, C, D, E, F, G, H, I, J, Error>(_ disposable: CompositeDisposable, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>, Signal<J, Error>) -> Void) {
-	j.startWithSignal(interruptingBy: disposable) { j in
-		flattenStart(disposable, a, b, c, d, e, f, g, h, i) { setup($0, $1, $2, $3, $4, $5, $6, $7, $8, j) }
+private func flattenStart<A, B, C, D, E, F, G, H, I, J, Error>(_ lifetime: Lifetime, _ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>, _ setup: (Signal<A, Error>, Signal<B, Error>, Signal<C, Error>, Signal<D, Error>, Signal<E, Error>, Signal<F, Error>, Signal<G, Error>, Signal<H, Error>, Signal<I, Error>, Signal<J, Error>) -> Void) {
+	j.startWithSignal(during: lifetime) { j in
+		flattenStart(lifetime, a, b, c, d, e, f, g, h, i) { setup($0, $1, $2, $3, $4, $5, $6, $7, $8, j) }
 	}
 }
 
@@ -1411,58 +1451,6 @@ extension SignalProducer where Error == NoError {
 	}
 }
 
-extension SignalProducer {
-	/// Create a `SignalProducer` that will attempt the given operation once for
-	/// each invocation of `start()`.
-	///
-	/// Upon success, the started signal will send the resulting value then
-	/// complete. Upon failure, the started signal will fail with the error that
-	/// occurred.
-	///
-	/// - parameters:
-	///   - operation: A closure that returns instance of `Result`.
-	///
-	/// - returns: A `SignalProducer` that will forward `success`ful `result` as
-	///            `value` event and then complete or `failed` event if `result`
-	///            is a `failure`.
-	public static func attempt(_ operation: @escaping () -> Result<Value, Error>) -> SignalProducer<Value, Error> {
-		return SignalProducer<Value, Error> { observer, disposable in
-			operation().analysis(ifSuccess: { value in
-				observer.send(value: value)
-				observer.sendCompleted()
-				}, ifFailure: { error in
-					observer.send(error: error)
-			})
-		}
-	}
-}
-
-// FIXME: SWIFT_COMPILER_ISSUE
-//
-// One of the `SignalProducer.attempt` overloads is kept in the protocol to
-// mitigate an overloading issue. Moving them back to the concrete type would be
-// a binary-breaking, source-compatible change.
-
-extension SignalProducerProtocol where Error == AnyError {
-	/// Create a `SignalProducer` that, when start, would invoke a throwable action.
-	///
-	/// The produced `Signal` would forward the result and complete if the action
-	/// succeeds. Otherwise, the produced signal would propagate the thrown error and
-	/// terminate.
-	///
-	/// - parameters:
-	///   - action: A throwable closure which yields a value.
-	///
-	/// - returns: A producer that yields the result or the error of the given action.
-	public static func attempt(_ action: @escaping () throws -> Value) -> SignalProducer<Value, AnyError> {
-		return .attempt {
-			ReactiveSwift.materialize {
-				try action()
-			}
-		}
-	}
-}
-
 extension SignalProducer where Error == AnyError {
 	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the produced `Signal`
@@ -1563,12 +1551,12 @@ extension SignalProducer {
 		disposed: (() -> Void)? = nil,
 		value: ((Value) -> Void)? = nil
 	) -> SignalProducer<Value, Error> {
-		return SignalProducer { observer, compositeDisposable in
+		return SignalProducer { observer, lifetime in
 			starting?()
 			defer { started?() }
 
 			self.startWithSignal { signal, disposable in
-				compositeDisposable += disposable
+				lifetime.observeEnded(disposable.dispose)
 				signal
 					.on(
 						event: event,
@@ -1598,13 +1586,15 @@ extension SignalProducer {
 	/// - returns: A producer that will deliver events on given `scheduler` when
 	///            started.
 	public func start(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
-		return SignalProducer { observer, compositeDisposable in
-			compositeDisposable += scheduler.schedule {
+		return SignalProducer { observer, lifetime in
+			let disposable = scheduler.schedule {
 				self.startWithSignal { signal, signalDisposable in
-					compositeDisposable += signalDisposable
+					lifetime.observeEnded(signalDisposable.dispose)
 					signal.observe(observer)
 				}
 			}
+
+			if let d = disposable { lifetime.observeEnded(d.dispose) }
 		}
 	}
 }
@@ -1613,72 +1603,72 @@ extension SignalProducer {
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
-		return SignalProducer<(Value, B), Error> { observer, disposable in
-			flattenStart(disposable, a, b) { Signal.combineLatest($0, $1).observe(observer) }
+		return SignalProducer<(Value, B), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b) { Signal.combineLatest($0, $1).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(Value, B, C), Error> {
-		return SignalProducer<(Value, B, C), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c) { Signal.combineLatest($0, $1, $2).observe(observer) }
+		return SignalProducer<(Value, B, C), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c) { Signal.combineLatest($0, $1, $2).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(Value, B, C, D), Error> {
-		return SignalProducer<(Value, B, C, D), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d) { Signal.combineLatest($0, $1, $2, $3).observe(observer) }
+		return SignalProducer<(Value, B, C, D), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d) { Signal.combineLatest($0, $1, $2, $3).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(Value, B, C, D, E), Error> {
-		return SignalProducer<(Value, B, C, D, E), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e) { Signal.combineLatest($0, $1, $2, $3, $4).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e) { Signal.combineLatest($0, $1, $2, $3, $4).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(Value, B, C, D, E, F), Error> {
-		return SignalProducer<(Value, B, C, D, E, F), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f) { Signal.combineLatest($0, $1, $2, $3, $4, $5).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f) { Signal.combineLatest($0, $1, $2, $3, $4, $5).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(Value, B, C, D, E, F, G), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f, g) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F, G), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f, g) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f, g, h) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F, G, H), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f, g, h) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f, g, h, i) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f, g, h, i) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f, g, h, i, j) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f, g, h, i, j) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
 		}
 	}
 
@@ -1691,72 +1681,72 @@ extension SignalProducer {
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
-		return SignalProducer<(Value, B), Error> { observer, disposable in
-			flattenStart(disposable, a, b) { Signal.zip($0, $1).observe(observer) }
+		return SignalProducer<(Value, B), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b) { Signal.zip($0, $1).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B, C>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(Value, B, C), Error> {
-		return SignalProducer<(Value, B, C), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c) { Signal.zip($0, $1, $2).observe(observer) }
+		return SignalProducer<(Value, B, C), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c) { Signal.zip($0, $1, $2).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B, C, D>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(Value, B, C, D), Error> {
-		return SignalProducer<(Value, B, C, D), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d) { Signal.zip($0, $1, $2, $3).observe(observer) }
+		return SignalProducer<(Value, B, C, D), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d) { Signal.zip($0, $1, $2, $3).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B, C, D, E>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(Value, B, C, D, E), Error> {
-		return SignalProducer<(Value, B, C, D, E), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e) { Signal.zip($0, $1, $2, $3, $4).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e) { Signal.zip($0, $1, $2, $3, $4).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(Value, B, C, D, E, F), Error> {
-		return SignalProducer<(Value, B, C, D, E, F), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f) { Signal.zip($0, $1, $2, $3, $4, $5).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f) { Signal.zip($0, $1, $2, $3, $4, $5).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F, G>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(Value, B, C, D, E, F, G), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f, g) { Signal.zip($0, $1, $2, $3, $4, $5, $6).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F, G), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f, g) { Signal.zip($0, $1, $2, $3, $4, $5, $6).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f, g, h) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F, G, H), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f, g, h) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H, I>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f, g, h, i) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f, g, h, i) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
 	public static func zip<B, C, D, E, F, G, H, I, J>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> { observer, disposable in
-			flattenStart(disposable, a, b, c, d, e, f, g, h, i, j) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
+		return SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> { observer, lifetime in
+			flattenStart(lifetime, a, b, c, d, e, f, g, h, i, j) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
 		}
 	}
 
@@ -1767,7 +1757,7 @@ extension SignalProducer {
 	}
 
 	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping (ReversedRandomAccessCollection<[Signal<Value, Error>]>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
-		return SignalProducer<[Value], Error> { observer, disposable in
+		return SignalProducer<[Value], Error> { observer, lifetime in
 			var producers = Array(producers)
 			var signals: [Signal<Value, Error>] = []
 
@@ -1783,7 +1773,7 @@ extension SignalProducer {
 				}
 
 				producers.removeLast().startWithSignal { signal, interruptHandle in
-					disposable += interruptHandle
+					lifetime.observeEnded(interruptHandle.dispose)
 					signals.append(signal)
 
 					start()
@@ -1821,9 +1811,9 @@ extension SignalProducer {
 			return producer
 		}
 
-		return SignalProducer { observer, disposable in
+		return SignalProducer { observer, lifetime in
 			let serialDisposable = SerialDisposable()
-			disposable += serialDisposable
+			lifetime.observeEnded(serialDisposable.dispose)
 
 			func iterate(_ current: Int) {
 				self.startWithSignal { signal, signalDisposable in
@@ -1924,16 +1914,17 @@ extension SignalProducer {
 	//       regard to the most specific rule of overload selection in Swift.
 
 	internal func _then<U>(_ replacement: SignalProducer<U, Error>) -> SignalProducer<U, Error> {
-		return SignalProducer<U, Error> { observer, observerDisposable in
+		return SignalProducer<U, Error> { observer, lifetime in
 			self.startWithSignal { signal, signalDisposable in
-				observerDisposable += signalDisposable
+				lifetime.observeEnded(signalDisposable.dispose)
 
 				signal.observe { event in
 					switch event {
 					case let .failed(error):
 						observer.send(error: error)
 					case .completed:
-						observerDisposable += replacement.start(observer)
+						let interruptHandle = replacement.start(observer)
+						lifetime.observeEnded(interruptHandle.dispose)
 					case .interrupted:
 						observer.sendInterrupted()
 					case .value:
@@ -2101,10 +2092,10 @@ extension SignalProducer {
 				}
 		}
 
-		return SignalProducer { observer, disposable in
+		return SignalProducer { observer, lifetime in
 			// Don't dispose of the original producer until all observers
 			// have terminated.
-			disposable += { _ = lifetimeToken }
+			lifetime.observeEnded { _ = lifetimeToken }
 
 			while true {
 				var result: Result<Bag<Signal<Value, Error>.Observer>.Token?, ReplayError<Value>>!
@@ -2115,7 +2106,7 @@ extension SignalProducer {
 				switch result! {
 				case let .success(token):
 					if let token = token {
-						disposable += {
+						lifetime.observeEnded {
 							state.modify {
 								$0.removeObserver(using: token)
 							}
@@ -2363,11 +2354,12 @@ extension SignalProducer where Value == Date, Error == NoError {
 		precondition(interval.timeInterval >= 0)
 		precondition(leeway.timeInterval >= 0)
 
-		return SignalProducer { observer, compositeDisposable in
-			compositeDisposable += scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval),
-													  interval: interval,
-													  leeway: leeway,
-													  action: { observer.send(value: scheduler.currentDate) })
+		return SignalProducer { observer, lifetime in
+			let disposable = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval),
+			                                    interval: interval,
+			                                    leeway: leeway,
+			                                    action: { observer.send(value: scheduler.currentDate) })
+			if let d = disposable { lifetime.observeEnded(d.dispose)}
 		}
 	}
 }

@@ -143,11 +143,27 @@ internal class Lock {
 	internal final class PthreadLock: Lock {
 		private let _lock: UnsafeMutablePointer<pthread_mutex_t>
 
-		override init() {
+		init(recursive: Bool = false) {
 			_lock = .allocate(capacity: 1)
 			_lock.initialize(to: pthread_mutex_t())
 
-			let status = pthread_mutex_init(_lock, nil)
+			let attr = UnsafeMutablePointer<pthread_mutexattr_t>.allocate(capacity: 1)
+			attr.initialize(to: pthread_mutexattr_t())
+			pthread_mutexattr_init(attr)
+
+			defer {
+				pthread_mutexattr_destroy(attr)
+				attr.deinitialize()
+				attr.deallocate(capacity: 1)
+			}
+
+			#if DEBUG
+			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_ERRORCHECK))
+			#else
+			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL))
+			#endif
+
+			let status = pthread_mutex_init(_lock, attr)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 
 			super.init()
@@ -250,86 +266,6 @@ public final class Atomic<Value> {
 	/// - returns: The result of the action.
 	@discardableResult
 	public func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
-		lock.lock()
-		defer { lock.unlock() }
-
-		return try action(_value)
-	}
-
-	/// Atomically replace the contents of the variable.
-	///
-	/// - parameters:
-	///   - newValue: A new value for the variable.
-	///
-	/// - returns: The old value.
-	@discardableResult
-	public func swap(_ newValue: Value) -> Value {
-		return modify { (value: inout Value) in
-			let oldValue = value
-			value = newValue
-			return oldValue
-		}
-	}
-}
-
-
-/// An atomic variable which uses a recursive lock.
-internal final class RecursiveAtomic<Value> {
-	private let lock: NSRecursiveLock
-	private var _value: Value
-	private let didSetObserver: ((Value) -> Void)?
-
-	/// Atomically get or set the value of the variable.
-	public var value: Value {
-		get {
-			return withValue { $0 }
-		}
-
-		set(newValue) {
-			swap(newValue)
-		}
-	}
-
-	/// Initialize the variable with the given initial value.
-	///
-	/// - parameters:
-	///   - value: Initial value for `self`.
-	///   - name: An optional name used to create the recursive lock.
-	///   - action: An optional closure which would be invoked every time the
-	///             value of `self` is mutated.
-	internal init(_ value: Value, name: StaticString? = nil, didSet action: ((Value) -> Void)? = nil) {
-		_value = value
-		lock = NSRecursiveLock()
-		lock.name = name.map(String.init(describing:))
-		didSetObserver = action
-	}
-
-	/// Atomically modifies the variable.
-	///
-	/// - parameters:
-	///   - action: A closure that takes the current value.
-	///
-	/// - returns: The result of the action.
-	@discardableResult
-	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
-		lock.lock()
-		defer {
-			didSetObserver?(_value)
-			lock.unlock()
-		}
-
-		return try action(&_value)
-	}
-	
-	/// Atomically perform an arbitrary action using the current value of the
-	/// variable.
-	///
-	/// - parameters:
-	///   - action: A closure that takes the current value.
-	///
-	/// - returns: The result of the action.
-	@discardableResult
-	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
 		lock.lock()
 		defer { lock.unlock() }
 

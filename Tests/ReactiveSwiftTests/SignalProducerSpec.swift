@@ -19,7 +19,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("init") {
 			it("should run the handler once per start()") {
 				var handlerCalledTimes = 0
-				let signalProducer = SignalProducer<String, NSError>() { observer, disposable in
+				let signalProducer = SignalProducer<String, NSError>() { observer, lifetime in
 					handlerCalledTimes += 1
 
 					return
@@ -32,49 +32,41 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should not release signal observers when given disposable is disposed") {
-				var disposable: Disposable!
-				var observer: Signal<Int, NoError>.Observer!
+				var lifetime: Lifetime!
 
-				let producer = SignalProducer<Int, NoError> { innerObserver, innerDisposable in
-					observer = innerObserver
-					disposable = innerDisposable
+				let producer = SignalProducer<Int, NoError> { observer, innerLifetime in
+					lifetime = innerLifetime
 
-					innerDisposable += {
+					innerLifetime.observeEnded {
 						// This is necessary to keep the observer long enough to
 						// even test the memory management.
 						observer.send(value: 0)
 					}
 				}
 
-				withExtendedLifetime(observer) {
-					weak var objectRetainedByObserver: NSObject?
-					producer.startWithSignal { signal, _ in
-						let object = NSObject()
-						objectRetainedByObserver = object
-						signal.observeValues { _ in _ = object }
-					}
+				weak var objectRetainedByObserver: NSObject?
 
-					expect(objectRetainedByObserver).toNot(beNil())
+				var disposable: Disposable!
+				producer.startWithSignal { signal, interruptHandle in
+					disposable = interruptHandle
 
-					disposable.dispose()
-
-					// https://github.com/ReactiveCocoa/ReactiveCocoa/pull/2959
-					//
-					// Before #2959, this would be `nil` as the input observer is not
-					// retained, and observers would not retain the signal.
-					//
-					// After #2959, the object is still retained, since the observation
-					// keeps the signal alive.
-					expect(objectRetainedByObserver).toNot(beNil())
+					let object = NSObject()
+					objectRetainedByObserver = object
+					signal.observeValues { _ in _ = object }
 				}
+
+				expect(objectRetainedByObserver).toNot(beNil())
+
+				disposable.dispose()
+				expect(objectRetainedByObserver).to(beNil())
 			}
 
 			it("should dispose of added disposables upon completion") {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<(), NoError>.Observer!
 
-				let producer = SignalProducer<(), NoError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<(), NoError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -89,8 +81,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<(), TestError>.Observer!
 
-				let producer = SignalProducer<(), TestError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<(), TestError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -105,8 +97,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<(), NoError>.Observer!
 
-				let producer = SignalProducer<(), NoError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<(), NoError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -120,8 +112,8 @@ class SignalProducerSpec: QuickSpec {
 			it("should dispose of added disposables upon start() disposal") {
 				let addedDisposable = SimpleDisposable()
 
-				let producer = SignalProducer<(), TestError>() { _, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<(), TestError>() { _, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					return
 				}
 
@@ -208,7 +200,27 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
-		describe("init(_ block:)") {
+		describe("init closure overloading") {
+			it("should be inferred and overloaded without ambiguity") {
+				let action: () -> String = { "" }
+				let throwableAction: () throws -> String = { "" }
+				let resultAction1: () -> Result<String, NoError> = { .success("") }
+				let resultAction2: () -> Result<String, AnyError> = { .success("") }
+				let throwableResultAction: () throws -> Result<String, NoError> = { .success("") }
+
+				expect(type(of: SignalProducer(action))) == SignalProducer<String, AnyError>.self
+				expect(type(of: SignalProducer<String, NoError>(action))) == SignalProducer<String, NoError>.self
+				expect(type(of: SignalProducer<String, TestError>(action))) == SignalProducer<String, TestError>.self
+
+				expect(type(of: SignalProducer(resultAction1))) == SignalProducer<String, NoError>.self
+				expect(type(of: SignalProducer(resultAction2))) == SignalProducer<String, AnyError>.self
+
+				expect(type(of: SignalProducer(throwableAction))) == SignalProducer<String, AnyError>.self
+				expect(type(of: SignalProducer(throwableResultAction))) == SignalProducer<Result<String, NoError>, AnyError>.self
+			}
+		}
+
+		describe("init(_:) lazy value") {
 			it("should not evaluate the supplied closure until started") {
 				var evaluated: Bool = false
 				func lazyGetter() -> String {
@@ -291,7 +303,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
-		describe("SignalProducer.attempt") {
+		describe("init(_:) lazy result") {
 			it("should run the operation once per start()") {
 				var operationRunTimes = 0
 				let operation: () -> Result<String, NSError> = {
@@ -300,8 +312,8 @@ class SignalProducerSpec: QuickSpec {
 					return .success("OperationValue")
 				}
 
-				SignalProducer.attempt(operation).start()
-				SignalProducer.attempt(operation).start()
+				SignalProducer(operation).start()
+				SignalProducer(operation).start()
 
 				expect(operationRunTimes) == 2
 			}
@@ -312,7 +324,7 @@ class SignalProducerSpec: QuickSpec {
 					return .success(operationReturnValue)
 				}
 
-				let signalProducer = SignalProducer.attempt(operation)
+				let signalProducer = SignalProducer(operation)
 
 				expect(signalProducer).to(sendValue(operationReturnValue, sendError: nil, complete: true))
 			}
@@ -323,20 +335,19 @@ class SignalProducerSpec: QuickSpec {
 					return .failure(operationError)
 				}
 
-				let signalProducer = SignalProducer.attempt(operation)
+				let signalProducer = SignalProducer(operation)
 
 				expect(signalProducer).to(sendValue(nil, sendError: operationError, complete: false))
 			}
 		}
 
-		describe("SignalProducer.attempt throws") {
+		describe("init(_:) throwable lazy value") {
 			it("should send a successful value then complete") {
 				let operationReturnValue = "OperationValue"
 
-				let signalProducer = SignalProducer
-					.attempt { () throws -> String in
-						operationReturnValue
-					}
+				let signalProducer = SignalProducer { () throws -> String in
+					operationReturnValue
+				}
 
 				var error: Error?
 				signalProducer.startWithFailed {
@@ -349,10 +360,9 @@ class SignalProducerSpec: QuickSpec {
 			it("should send the error") {
 				let operationError = TestError.default
 
-				let signalProducer = SignalProducer
-					.attempt { () throws -> String in
-						throw operationError
-					}
+				let signalProducer = SignalProducer { () throws -> String in
+					throw operationError
+				}
 
 				var error: TestError?
 				signalProducer.startWithFailed {
@@ -387,8 +397,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var disposable: Disposable!
 
-				let producer = SignalProducer<Int, NoError>() { _, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<Int, NoError>() { _, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					return
 				}
 
@@ -483,8 +493,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<Int, TestError>.Observer!
 
-				let producer = SignalProducer<Int, TestError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<Int, TestError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -499,8 +509,8 @@ class SignalProducerSpec: QuickSpec {
 				let addedDisposable = SimpleDisposable()
 				var observer: Signal<Int, TestError>.Observer!
 
-				let producer = SignalProducer<Int, TestError>() { incomingObserver, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<Int, TestError>() { incomingObserver, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 					observer = incomingObserver
 				}
 
@@ -514,8 +524,8 @@ class SignalProducerSpec: QuickSpec {
 			it("should dispose of the added disposable if the signal is unretained and unobserved upon exiting the scope") {
 				let addedDisposable = SimpleDisposable()
 
-				let producer = SignalProducer<Int, TestError> { _, disposable in
-					disposable += addedDisposable
+				let producer = SignalProducer<Int, TestError> { _, lifetime in
+					lifetime.observeEnded(addedDisposable.dispose)
 				}
 
 				var started = false
@@ -780,7 +790,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should start signal producers in order as defined") {
 				var ids = [Int]()
 				let createProducer = { (id: Int) -> SignalProducer<Int, NoError> in
-					return SignalProducer { observer, disposable in
+					return SignalProducer { observer, lifetime in
 						ids.append(id)
 
 						observer.send(value: id)
@@ -817,7 +827,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should start signal producers in order as defined") {
 				var ids = [Int]()
 				let createProducer = { (id: Int) -> SignalProducer<Int, NoError> in
-					return SignalProducer { observer, disposable in
+					return SignalProducer { observer, lifetime in
 						ids.append(id)
 
 						observer.send(value: id)
@@ -1101,8 +1111,8 @@ class SignalProducerSpec: QuickSpec {
 				var (disposed, interrupted) = (false, false)
 				let disposable = baseProducer
 					.flatMapError { (error: TestError) -> SignalProducer<Int, TestError> in
-						return SignalProducer<Int, TestError> { _, disposable in
-							disposable += ActionDisposable { disposed = true }
+						return SignalProducer<Int, TestError> { _, lifetime in
+							lifetime.observeEnded { disposed = true }
 						}
 					}
 					.startWithInterrupted { interrupted = true }
@@ -1645,7 +1655,7 @@ class SignalProducerSpec: QuickSpec {
 						innerDisposable = SimpleDisposable()
 						isInnerInterrupted = false
 						isInnerDisposed = false
-						let innerProducer = SignalProducer<Int, NoError> { $1.add(innerDisposable) }
+						let innerProducer = SignalProducer<Int, NoError> { $1.observeEnded(innerDisposable.dispose) }
 							.on(interrupted: { isInnerInterrupted = true }, disposed: { isInnerDisposed = true })
 						
 						interrupted = false
@@ -2202,9 +2212,9 @@ class SignalProducerSpec: QuickSpec {
 
 		describe("observeOn") {
 			it("should immediately cancel upstream producer's work when disposed") {
-				var upstreamDisposable: Disposable!
-				let producer = SignalProducer<(), NoError>{ _, innerDisposable in
-					upstreamDisposable = innerDisposable
+				var upstreamLifetime: Lifetime!
+				let producer = SignalProducer<(), NoError>{ _, innerLifetime in
+					upstreamLifetime = innerLifetime
 				}
 
 				var downstreamDisposable: Disposable!
@@ -2215,10 +2225,10 @@ class SignalProducerSpec: QuickSpec {
 						downstreamDisposable = innerDisposable
 					}
 				
-				expect(upstreamDisposable.isDisposed) == false
+				expect(upstreamLifetime.hasEnded) == false
 				
 				downstreamDisposable.dispose()
-				expect(upstreamDisposable.isDisposed) == true
+				expect(upstreamLifetime.hasEnded) == true
 			}
 		}
 
@@ -2698,13 +2708,13 @@ class SignalProducerSpec: QuickSpec {
 	}
 }
 
+// MARK: - Helpers
+
 private func == <T>(left: Expectation<T.Type>, right: Any.Type) {
 	left.to(NonNilMatcherFunc { expression, _ in
 		return try expression.evaluate()! == right
 	})
 }
-
-// MARK: - Helpers
 
 extension SignalProducer {
 	internal static func pipe() -> (SignalProducer, ProducedSignal.Observer) {
@@ -2735,6 +2745,6 @@ extension SignalProducer {
 			}
 		}
 
-		return SignalProducer.attempt(operation)
+		return SignalProducer(operation)
 	}
 }

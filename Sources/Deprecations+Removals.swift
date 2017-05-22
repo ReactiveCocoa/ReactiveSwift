@@ -3,6 +3,41 @@ import Dispatch
 import Result
 
 // MARK: Unavailable methods in ReactiveSwift 2.0.
+extension Lifetime {
+	@available(*, unavailable, renamed:"hasEnded")
+	public var isDisposed: Bool { fatalError() }
+
+	@discardableResult
+	@available(*, unavailable, renamed:"observeEnded(_:)")
+	public func add(_ action: () -> Void) -> Disposable? { fatalError() }
+
+	@discardableResult
+	@available(*, unavailable, message:"Use `observeEnded(_:)` instead.")
+	public static func += (left: Lifetime, right: () -> Void) -> Disposable? { fatalError() }
+
+	@discardableResult
+	@available(*, deprecated, message:"Use `observeEnded(_:)` with a method reference to `dispose()` instead. This method is subject to removal in a future release.")
+	public func add(_ d: Disposable?) -> Disposable? {
+		return d.flatMap { observeEnded($0.dispose) }
+	}
+
+	@discardableResult
+	@available(*, deprecated, message:"Use `observeEnded(_:)` with a method reference to `dispose()` instead. This operator overload is subject to removal in a future release.")
+	public static func += (left: Lifetime, right: Disposable?) -> Disposable? {
+		return right.flatMap { left.observeEnded($0.dispose) }
+	}
+}
+
+extension SignalProducerProtocol {
+	@available(*, unavailable, renamed:"init(_:)")
+	public static func attempt(_ operation: @escaping () -> Result<Value, Error>) -> SignalProducer<Value, Error> { fatalError() }
+}
+
+extension SignalProducerProtocol where Error == AnyError {
+	@available(*, unavailable, renamed:"init(_:)")
+	public static func attempt(_ operation: @escaping () throws -> Value) -> SignalProducer<Value, Error> { fatalError() }
+}
+
 extension PropertyProtocol {
 	@available(*, unavailable, renamed:"flatMap(_:_:)")
 	public func flatMap<P: PropertyProtocol>(_ strategy: FlattenStrategy, transform: @escaping (Value) -> P) -> Property<P.Value> { fatalError() }

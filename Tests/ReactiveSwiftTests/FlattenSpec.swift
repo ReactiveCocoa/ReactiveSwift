@@ -41,10 +41,8 @@ class FlattenSpec: QuickSpec {
 
 					beforeEach {
 						disposed = false
-						pipe.input.send(value: SignalProducer<Int, TestError> { _, disposable in
-							disposable += ActionDisposable {
-								disposed = true
-							}
+						pipe.input.send(value: SignalProducer<Int, TestError> { _, lifetime in
+							lifetime.observeEnded { disposed = true }
 						})
 					}
 
@@ -79,10 +77,8 @@ class FlattenSpec: QuickSpec {
 				it("disposes original signal when result signal interrupted") {
 					var disposed = false
 
-					let disposable = SignalProducer<SignalProducer<(), NoError>, NoError> { _, disposable in
-						disposable += ActionDisposable {
-							disposed = true
-						}
+					let disposable = SignalProducer<SignalProducer<(), NoError>, NoError> { _, lifetime in
+						lifetime.observeEnded { disposed = true }
 					}
 						.flatten(flattenStrategy)
 						.start()
