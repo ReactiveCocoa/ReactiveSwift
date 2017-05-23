@@ -46,14 +46,16 @@ public struct Bag<Element> {
 	///
 	/// - parameters:
 	///   - token: A token returned from a call to `insert()`.
-	public mutating func remove(using token: Token) {
+	@discardableResult
+	public mutating func remove(using token: Token) -> Element? {
 		for i in (elements.startIndex ..< elements.endIndex).reversed() {
 			if tokens[i] == token.value {
 				tokens.remove(at: i)
-				elements.remove(at: i)
-				return
+				return elements.remove(at: i)
 			}
 		}
+
+		return nil
 	}
 }
 

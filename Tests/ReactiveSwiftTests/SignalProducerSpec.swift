@@ -31,7 +31,7 @@ class SignalProducerSpec: QuickSpec {
 				expect(handlerCalledTimes) == 2
 			}
 
-			it("should release signal observers when given disposable is disposed") {
+			it("should not release signal observers when given disposable is disposed") {
 				var lifetime: Lifetime!
 
 				let producer = SignalProducer<Int, NoError> { observer, innerLifetime in
@@ -893,25 +893,28 @@ class SignalProducerSpec: QuickSpec {
 					.dispose()
 			}
 
-			it("should release the signal when disposed") {
+			it("should dispose of the signal when disposed") {
 				let scheduler = TestScheduler()
 				let producer = SignalProducer.timer(interval: .seconds(1), on: scheduler, leeway: .seconds(0))
 				var interrupted = false
 
+				var isDisposed = false
 				weak var weakSignal: Signal<Date, NoError>?
 				producer.startWithSignal { signal, disposable in
 					weakSignal = signal
 					scheduler.schedule {
 						disposable.dispose()
 					}
-					signal.observeInterrupted { interrupted = true }
+					signal.on(disposed: { isDisposed = true }).observeInterrupted { interrupted = true }
 				}
 
-				expect(weakSignal).toNot(beNil())
+				expect(weakSignal).to(beNil())
+				expect(isDisposed) == false
 				expect(interrupted) == false
 
 				scheduler.run()
 				expect(weakSignal).to(beNil())
+				expect(isDisposed) == true
 				expect(interrupted) == true
 			}
 		}
