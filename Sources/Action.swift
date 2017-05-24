@@ -84,7 +84,9 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///                given the latest `Action` state.
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to be
 	///              executed by the `Action`.
-	public init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
+	public init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool,
+										 isExecuting wrappedIsExecuting: Property<Bool>? = nil,
+										 execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
 		
@@ -101,7 +103,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		completed = events.filter { $0.isCompleted }.map { _ in }
 
 		let initial = ActionState(value: property.value, isEnabled: { isEnabled($0 as! State.Value) })
-		state = MutableProperty(initial)
+		let state = MutableProperty(initial)
+		self.state = state
 
 		property.signal
 			.take(during: state.lifetime)
@@ -112,7 +115,12 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			}
 
 		self.isEnabled = state.map { $0.isEnabled }.skipRepeats()
-		self.isExecuting = state.map { $0.isExecuting }.skipRepeats()
+		let isExecuting = state.map { $0.isExecuting }.skipRepeats()
+		if let wrappedIsExecuting = wrappedIsExecuting {
+			self.isExecuting = wrappedIsExecuting.or(isExecuting).skipRepeats()
+		} else {
+			self.isExecuting = isExecuting
+		}
 	}
 
 	/// Initializes an `Action` that would be conditionally enabled.
@@ -133,7 +141,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 	public convenience init<P: PropertyProtocol>(enabledIf isEnabled: P, wrapping inner: Action<Input, Output, Error>) where P.Value == Bool {
 		let bothEnabled = isEnabled.and(inner.isEnabled)
-		self.init(state: bothEnabled, enabledIf: { $0 }, execute: inner.executeClosure)
+		self.init(state: bothEnabled, enabledIf: { $0 }, isExecuting: inner.isExecuting, execute: inner.executeClosure)
 	}
 
 	/// Initializes an `Action` that would always be enabled.
