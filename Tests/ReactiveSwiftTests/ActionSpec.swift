@@ -325,5 +325,56 @@ class ActionSpec: QuickSpec {
 				expect(action.isEnabled.value) == false
 			}
 		}
+
+		describe("composing with extra enabled check") {
+			var sut: Action<Int, Int, NoError>!
+			let enableInner = MutableProperty(true)
+			let enableOuter = MutableProperty(true)
+			var observer: Signal<Int, NoError>.Observer? = nil
+			let inner: Action<Int, Int, NoError> = Action(enabledIf: enableInner, execute: { _ in
+				return SignalProducer { obs, _ in observer = obs }
+			})
+
+			beforeEach {
+				observer = nil
+				sut = Action(enabledIf: enableOuter, wrapping: inner)
+			}
+
+			it("disables outer based on outer.isEnabled and inner.isEnabled") {
+				expect(sut.isEnabled.value) == true
+				enableOuter.value = false
+				expect(sut.isEnabled.value) == false
+				enableOuter.value = true
+				expect(sut.isEnabled.value) == true
+				enableInner.value = false
+				expect(sut.isEnabled.value) == false
+				enableInner.value = true
+				expect(sut.isEnabled.value) == true
+			}
+
+			it("updates outer.isEnabled and outer.isExecuting when outer is run") {
+				enableInner.value = true
+				enableOuter.value = true
+				sut.apply(3).start()
+				expect(sut.isExecuting.value) == true
+				expect(sut.isEnabled.value) == false
+				observer?.send(value: 2)
+				observer?.sendCompleted()
+				expect(sut.isExecuting.value) == false
+				expect(sut.isEnabled.value) == true
+			}
+
+			it("updates outer.isEnabled and outer.isExecuting when inner is run") {
+				enableInner.value = true
+				enableOuter.value = true
+				inner.apply(3).start()
+				expect(sut.isExecuting.value) == true
+				expect(sut.isEnabled.value) == false
+				observer?.send(value: 2)
+				observer?.sendCompleted()
+				expect(sut.isExecuting.value) == false
+				expect(sut.isEnabled.value) == true
+			}
+		}
 	}
 }
