@@ -145,8 +145,15 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	}
 
 	public convenience init<P: PropertyProtocol>(enabledIf isEnabled: P, wrapping inner: Action<Input, Output, Error>) where P.Value == Bool {
-		let bothEnabled = isEnabled.and(inner.isEnabled)
-		self.init(state: bothEnabled, enabledIf: { $0 }, isExecuting: inner.isExecuting, execute: inner.executeClosure)
+		self.init(
+			state: inner.state.combineLatest(with: isEnabled),
+			enabledIf: { innerState, isEnabled in
+				return innerState.isEnabled && isEnabled
+			},
+			isExecuting: inner.isExecuting,
+			execute: { stateAndEnabled, input in
+				inner.executeClosure(stateAndEnabled.0.value, input)
+			})
 	}
 
 	/// Initializes an `Action` that would always be enabled.
