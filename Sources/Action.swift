@@ -86,11 +86,11 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///              executed by the `Action`.
 	public convenience init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool,
 										 execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
-		self.init(state: property, enabledIf: isEnabled, isExecuting: nil, execute: execute)
+		self.init(state: property, enabledIf: isEnabled, isExecuting: { $0.isExecuting }, execute: execute)
 	}
 
 	fileprivate init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool,
-											 isExecuting wrappedIsExecuting: Property<Bool>?,
+											 isExecuting: @escaping (ActionState) -> Bool,
 											 execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
@@ -120,12 +120,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			}
 
 		self.isEnabled = state.map { $0.isEnabled }.skipRepeats()
-		let isExecuting = state.map { $0.isExecuting }.skipRepeats()
-		if let wrappedIsExecuting = wrappedIsExecuting {
-			self.isExecuting = wrappedIsExecuting.or(isExecuting).skipRepeats()
-		} else {
-			self.isExecuting = isExecuting
-		}
+		self.isExecuting = state.map(isExecuting).skipRepeats()
 	}
 
 	/// Initializes an `Action` that would be conditionally enabled.
@@ -150,7 +145,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			enabledIf: { innerState, isEnabled in
 				return innerState.isEnabled && isEnabled
 			},
-			isExecuting: inner.isExecuting,
+			isExecuting: { $0.isExecuting || ($0.value as! (ActionState, Bool)).0.isExecuting },
 			execute: { stateAndEnabled, input in
 				inner.executeClosure(stateAndEnabled.0.value, input)
 			})
@@ -158,14 +153,19 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 	public convenience init(either first: Action<Input, Output, Error>, or second: Action<Input, Output, Error>) {
 		let bothStates = first.state.combineLatest(with: second.state)
-		let bothExecuting = first.isExecuting.and(second.isExecuting)
-		self.init(state: bothStates, enabledIf: { $0.0.isEnabled || $0.1.isEnabled }, isExecuting: bothExecuting, execute: { (states, input) in
-			if states.0.isEnabled {
-				return first.executeClosure(states.0.value, input)
-			} else {
-				return second.executeClosure(states.1.value, input)
-			}
-		 })
+		self.init(
+			state: bothStates, enabledIf: { $0.0.isEnabled || $0.1.isEnabled },
+			isExecuting: {
+				if $0.isExecuting { return true }
+				let both = $0.value as! (ActionState, ActionState)
+				return both.0.isExecuting && both.1.isExecuting
+			},
+			execute: { (states, input) in
+				if states.0.isEnabled {
+					return first.executeClosure(states.0.value, input)
+				} else {
+					return second.executeClosure(states.1.value, input)
+				}})
 	}
 
 	/// Initializes an `Action` that would always be enabled.
