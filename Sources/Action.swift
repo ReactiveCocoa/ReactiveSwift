@@ -84,9 +84,14 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///                given the latest `Action` state.
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to be
 	///              executed by the `Action`.
-	public init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool,
-										 isExecuting wrappedIsExecuting: Property<Bool>? = nil,
+	public convenience init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool,
 										 execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
+		self.init(state: property, enabledIf: isEnabled, isExecuting: nil, execute: execute)
+	}
+
+	fileprivate init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool,
+											 isExecuting wrappedIsExecuting: Property<Bool>?,
+											 execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
 		
