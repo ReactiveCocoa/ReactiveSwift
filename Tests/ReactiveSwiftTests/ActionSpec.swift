@@ -328,14 +328,17 @@ class ActionSpec: QuickSpec {
 
 		describe("composing with extra enabled check") {
 			var sut: Action<Int, Int, NoError>!
-			let enableInner = MutableProperty(true)
+			let innerState = MutableProperty(5)
 			let enableOuter = MutableProperty(true)
 			var observer: Signal<Int, NoError>.Observer? = nil
-			let inner: Action<Int, Int, NoError> = Action(enabledIf: enableInner, execute: { _ in
+			let inner: Action<Int, Int, NoError> = Action(state: innerState, enabledIf: { $0 % 2 == 1}) { _ in
 				return SignalProducer { obs, _ in observer = obs }
-			})
+			}
 
 			beforeEach {
+				observer = nil
+				innerState.value = 5
+				enableOuter.value = true
 				observer = nil
 				sut = Action(enabledIf: enableOuter, wrapping: inner)
 			}
@@ -346,14 +349,17 @@ class ActionSpec: QuickSpec {
 				expect(sut.isEnabled.value) == false
 				enableOuter.value = true
 				expect(sut.isEnabled.value) == true
-				enableInner.value = false
+				innerState.value = 2
+				expect(inner.isEnabled.value) == false
 				expect(sut.isEnabled.value) == false
-				enableInner.value = true
+				innerState.value = 3
+				expect(inner.isEnabled.value) == true
 				expect(sut.isEnabled.value) == true
 			}
 
 			it("updates outer.isEnabled and outer.isExecuting when outer is run") {
-				enableInner.value = true
+				innerState.value = 3
+				expect(inner.isEnabled.value) == true
 				enableOuter.value = true
 				sut.apply(3).start()
 				expect(sut.isExecuting.value) == true
@@ -365,7 +371,8 @@ class ActionSpec: QuickSpec {
 			}
 
 			it("updates outer.isEnabled and outer.isExecuting when inner is run") {
-				enableInner.value = true
+				innerState.value = 3
+				expect(inner.isEnabled.value) == true
 				enableOuter.value = true
 				inner.apply(3).start()
 				expect(sut.isExecuting.value) == true
