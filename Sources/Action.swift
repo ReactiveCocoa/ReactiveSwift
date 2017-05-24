@@ -156,6 +156,18 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			})
 	}
 
+	public convenience init(either first: Action<Input, Output, Error>, or second: Action<Input, Output, Error>) {
+		let bothStates = first.state.combineLatest(with: second.state)
+		let bothExecuting = first.isExecuting.and(second.isExecuting)
+		self.init(state: bothStates, enabledIf: { $0.0.isEnabled || $0.1.isEnabled }, isExecuting: bothExecuting, execute: { (states, input) in
+			if states.0.isEnabled {
+				return first.executeClosure(states.0.value, input)
+			} else {
+				return second.executeClosure(states.1.value, input)
+			}
+		 })
+	}
+
 	/// Initializes an `Action` that would always be enabled.
 	///
 	/// When the `Action` is asked to start the execution with an input value, a unit of

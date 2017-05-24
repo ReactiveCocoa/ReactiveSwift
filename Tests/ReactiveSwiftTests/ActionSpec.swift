@@ -383,5 +383,100 @@ class ActionSpec: QuickSpec {
 				expect(sut.isEnabled.value) == true
 			}
 		}
+
+		describe("composing two actions with either") {
+			var sut: Action<Int, Int, SomeError>!
+			let enableFirst = MutableProperty(false)
+			let enableSecond = MutableProperty(false)
+			var observer: Signal<Int, SomeError>.Observer? = nil
+			var which: Int? = nil
+			var first: Action<Int, Int, SomeError>!
+			var second: Action<Int, Int, SomeError>!
+
+			beforeEach {
+				enableFirst.value = false
+				enableSecond.value = false
+				observer = nil
+				which = nil
+				first = Action(enabledIf: enableFirst) { _ in
+					return SignalProducer { obs, _ in which = 1; observer = obs }
+				}
+				second = Action(enabledIf: enableSecond) { _ in
+					return SignalProducer { obs, _ in which = 2; observer = obs }
+				}
+				sut = Action(either: first, or: second)
+			}
+
+			it("is enabled if either of the contained actions are") {
+				expect(sut.isEnabled.value) == false
+				enableFirst.value = true
+				expect(sut.isEnabled.value) == true
+				enableFirst.value = false
+				expect(sut.isEnabled.value) == false
+				enableSecond.value = true
+				expect(sut.isEnabled.value) == true
+				enableSecond.value = false
+				expect(sut.isEnabled.value) == false
+			}
+
+			it("runs the first of the two to be enabled") {
+				enableSecond.value = true
+				var completed = false
+				sut.apply(3).on(completed: { completed = true }).start()
+				expect(which) == 2
+				observer?.send(value: 1)
+				observer?.sendCompleted()
+				expect(completed) == true
+				which = nil
+				enableFirst.value = true
+				expect(first.isEnabled.value) == true
+				expect(first.isExecuting.value) == false
+				sut.apply(2).start()
+				expect(which) == 1
+			}
+
+			it("marks outer executing if both inner actions are executing") {
+				enableFirst.value = true
+				enableSecond.value = true
+				expect(sut.isExecuting.value) == false
+				first.apply(3).start()
+				expect(sut.isExecuting.value) == false
+				second.apply(2).start()
+				expect(first.isExecuting.value) == true
+				expect(second.isExecuting.value) == true
+				expect(sut.isExecuting.value) == true
+				observer?.sendCompleted()
+				expect(sut.isExecuting.value) == false
+			}
+
+			it("marks outer executing if it is executing (and driving one of inner)") {
+				expect(sut.isExecuting.value) == false
+				enableFirst.value = true
+				var completed = false
+				sut.apply(4).on(completed: { completed = true }).start()
+				expect(completed) == false
+				expect(sut.isExecuting.value) == true
+				observer?.sendCompleted()
+				expect(completed) == true
+				expect(sut.isExecuting.value) == false
+			}
+
+			it("passed failure through") {
+				enableFirst.value = true
+				var failure: ActionError<SomeError>? = nil
+				sut.apply(4).on(failed: { failure = $0 }).start()
+				observer?.send(error: .one)
+				expect(failure).toNot(beNil())
+				var gotExpectedFailure = false
+				if case ActionError.producerFailed(SomeError.one)? = failure {
+					gotExpectedFailure = true
+				}
+				expect(gotExpectedFailure) == true
+			}
+		}
 	}
+}
+
+private enum SomeError: Error {
+	case one, two
 }
