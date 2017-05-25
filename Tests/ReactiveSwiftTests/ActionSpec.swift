@@ -530,6 +530,18 @@ class ActionSpec: QuickSpec {
 				observeSecond?.sendCompleted()
 				expect(sut.isExecuting.value) == false
 			}
+
+			it("disables outer if either inner is disabled") {
+				expect(sut.isEnabled.value) == false
+				enableFirst.value = true
+				expect(sut.isEnabled.value) == false
+				enableSecond.value = true
+				expect(sut.isEnabled.value) == true
+				enableFirst.value = false
+				expect(sut.isEnabled.value) == false
+				enableSecond.value = false
+				expect(sut.isEnabled.value) == false
+			}
 		}
 	}
 }
