@@ -491,6 +491,8 @@ class ActionSpec: QuickSpec {
 				observeSecond = nil
 				gotFirst = nil
 				gotSecond = nil
+				enableFirst.value = false
+				enableSecond.value = false
 				first = Action(enabledIf: enableFirst) { input in
 					return SignalProducer { observer, _ in gotFirst = input; observeFirst = observer }
 				}
