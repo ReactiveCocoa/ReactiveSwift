@@ -109,7 +109,7 @@ extension Signal where Value: SignalProducerProtocol, Error == NoError {
 	///	  - strategy: Strategy used when flattening signals.
 	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Value, Value.Error> {
 		return self
-			.promoteErrors(Value.Error.self)
+			.promoteError(Value.Error.self)
 			.flatten(strategy)
 	}
 }
@@ -150,7 +150,7 @@ extension Signal where Value: SignalProducerProtocol, Value.Error == NoError {
 	/// - parameters:
 	///   - strategy: Strategy used when flattening signals.
 	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Value, Error> {
-		return self.flatMap(strategy) { $0.producer.promoteErrors(Error.self) }
+		return self.flatMap(strategy) { $0.producer.promoteError(Error.self) }
 	}
 }
 
@@ -194,7 +194,7 @@ extension SignalProducer where Value: SignalProducerProtocol, Error == NoError {
 	///   - strategy: Strategy used when flattening signals.
 	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Value, Value.Error> {
 		return self
-			.promoteErrors(Value.Error.self)
+			.promoteError(Value.Error.self)
 			.flatten(strategy)
 	}
 }
@@ -235,7 +235,7 @@ extension SignalProducer where Value: SignalProducerProtocol, Value.Error == NoE
 	/// - parameters:
 	///   - strategy: Strategy used when flattening signals.
 	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Value, Error> {
-		return self.flatMap(strategy) { $0.producer.promoteErrors(Error.self) }
+		return self.flatMap(strategy) { $0.producer.promoteError(Error.self) }
 	}
 }
 
@@ -272,7 +272,7 @@ extension Signal where Value: SignalProtocol, Error == NoError {
 	///   - strategy: Strategy used when flattening signals.
 	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Value, Value.Error> {
 		return self
-			.promoteErrors(Value.Error.self)
+			.promoteError(Value.Error.self)
 			.flatten(strategy)
 	}
 }
@@ -306,7 +306,7 @@ extension Signal where Value: SignalProtocol, Value.Error == NoError {
 	/// - parameters:
 	///   - strategy: Strategy used when flattening signals.
 	public func flatten(_ strategy: FlattenStrategy) -> Signal<Value.Value, Error> {
-		return self.flatMap(strategy) { $0.signal.promoteErrors(Error.self) }
+		return self.flatMap(strategy) { $0.signal.promoteError(Error.self) }
 	}
 }
 
@@ -350,7 +350,7 @@ extension SignalProducer where Value: SignalProtocol, Error == NoError {
 	///   - strategy: Strategy used when flattening signals.
 	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Value, Value.Error> {
 		return self
-			.promoteErrors(Value.Error.self)
+			.promoteError(Value.Error.self)
 			.flatten(strategy)
 	}
 }
@@ -384,7 +384,7 @@ extension SignalProducer where Value: SignalProtocol, Value.Error == NoError {
 	/// - parameters:
 	///   - strategy: Strategy used when flattening signals.
 	public func flatten(_ strategy: FlattenStrategy) -> SignalProducer<Value.Value, Error> {
-		return self.flatMap(strategy) { $0.signal.promoteErrors(Error.self) }
+		return self.flatMap(strategy) { $0.signal.promoteError(Error.self) }
 	}
 }
 
