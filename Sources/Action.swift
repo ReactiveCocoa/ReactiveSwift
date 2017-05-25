@@ -86,11 +86,11 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///              executed by the `Action`.
 	public convenience init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool,
 										 execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
-		self.init(state: property, enabledIf: isEnabled, isExecuting: { $0.isExecuting }, execute: execute)
+		self.init(state: property, enabledIf: isEnabled, isExecutingInner: nil, execute: execute)
 	}
 
 	fileprivate init<State: PropertyProtocol>(state property: State, enabledIf isEnabled: @escaping (State.Value) -> Bool,
-											 isExecuting: @escaping (ActionState) -> Bool,
+											 isExecutingInner: ((State.Value) -> Bool)?,
 											 execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
@@ -107,7 +107,9 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		errors = events.filterMap { $0.error }
 		completed = events.filter { $0.isCompleted }.map { _ in }
 
-		let initial = ActionState(value: property.value, isEnabled: { isEnabled($0 as! State.Value) })
+		let initial = ActionState(value: property.value,
+								  isEnabled: { isEnabled($0 as! State.Value) },
+								  isExecutingInner: { isExecutingInner?($0 as! State.Value) ?? false })
 		let state = MutableProperty(initial)
 		self.state = state
 
@@ -120,7 +122,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			}
 
 		self.isEnabled = state.map { $0.isEnabled }.skipRepeats()
-		self.isExecuting = state.map(isExecuting).skipRepeats()
+		self.isExecuting = state.map { $0.isExecuting }.skipRepeats()
 	}
 
 	/// Initializes an `Action` that would be conditionally enabled.
@@ -145,7 +147,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			enabledIf: { innerState, isEnabled in
 				return innerState.isEnabled && isEnabled
 			},
-			isExecuting: { $0.isExecuting || ($0.value as! (ActionState, Bool)).0.isExecuting },
+			isExecutingInner: { $0.0.isExecuting },
 			execute: { stateAndEnabled, input in
 				inner.executeClosure(stateAndEnabled.0.value, input)
 			})
@@ -155,10 +157,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		let bothStates = first.state.combineLatest(with: second.state)
 		self.init(
 			state: bothStates, enabledIf: { $0.0.isEnabled || $0.1.isEnabled },
-			isExecuting: {
-				if $0.isExecuting { return true }
-				let both = $0.value as! (ActionState, ActionState)
-				return both.0.isExecuting && both.1.isExecuting
+			isExecutingInner: {
+				return $0.0.isExecuting && $0.1.isExecuting
 			},
 			execute: { (states, input) in
 				if states.0.isEnabled {
@@ -202,7 +202,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		return SignalProducer { observer, lifetime in
 			let startingState = self.state.modify { state -> Any? in
 				if state.isEnabled {
-					state.isExecuting = true
+					state.isExecutingDirectly = true
 					return state.value
 				} else {
 					return nil
@@ -226,7 +226,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 			lifetime.observeEnded {
 				self.state.modify {
-					$0.isExecuting = false
+					$0.isExecutingDirectly = false
 				}
 			}
 		}
@@ -234,27 +234,37 @@ public final class Action<Input, Output, Error: Swift.Error> {
 }
 
 private struct ActionState {
-	var isExecuting: Bool = false
+	fileprivate var isExecutingDirectly: Bool = false
 
 	var value: Any {
 		didSet {
 			userEnabled = userEnabledClosure(value)
+			userExecuting = userExecutingClosure(value)
 		}
 	}
 
 	private var userEnabled: Bool
 	private let userEnabledClosure: (Any) -> Bool
 
-	init(value: Any, isEnabled: @escaping (Any) -> Bool) {
+	private var userExecuting: Bool
+	private let userExecutingClosure: (Any) -> Bool
+
+	init(value: Any, isEnabled: @escaping (Any) -> Bool, isExecutingInner: @escaping (Any) -> Bool) {
 		self.value = value
 		self.userEnabled = isEnabled(value)
 		self.userEnabledClosure = isEnabled
+		self.userExecuting = isExecutingInner(value)
+		self.userExecutingClosure = isExecutingInner
 	}
 
 	/// Whether the action should be enabled for the given combination of user
 	/// enabledness and executing status.
 	fileprivate var isEnabled: Bool {
 		return userEnabled && !isExecuting
+	}
+
+	fileprivate var isExecuting: Bool {
+		return isExecutingDirectly || userExecuting
 	}
 }
 
