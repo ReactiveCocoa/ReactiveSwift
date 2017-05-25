@@ -474,6 +474,63 @@ class ActionSpec: QuickSpec {
 				expect(gotExpectedFailure) == true
 			}
 		}
+
+		describe("functionlike composition") {
+			var sut: Action<Int, Int, SomeError>!
+			let enableFirst = MutableProperty(false)
+			let enableSecond = MutableProperty(false)
+			var observeFirst: Signal<String, SomeError>.Observer? = nil
+			var observeSecond: Signal<Int, SomeError>.Observer? = nil
+			var gotFirst: Int? = nil
+			var gotSecond: String? = nil
+			var first: Action<Int, String, SomeError>!
+			var second: Action<String, Int, SomeError>!
+
+			beforeEach {
+				observeFirst = nil
+				observeSecond = nil
+				gotFirst = nil
+				gotSecond = nil
+				first = Action(enabledIf: enableFirst) { input in
+					return SignalProducer { observer, _ in gotFirst = input; observeFirst = observer }
+				}
+				second = Action(enabledIf: enableSecond) { input in
+					return SignalProducer { observer, _ in gotSecond = input; observeSecond = observer}
+				}
+				sut = Action(first: first, then: second)
+			}
+
+			it("runs both actions in succession piping the results through") {
+				enableFirst.value = true
+				enableSecond.value = true
+				var completed = false
+				var value: Int? = nil
+				sut.apply(3).on(completed: { completed = true}, value: { value = $0 }).start()
+				observeFirst?.send(value: "thingy")
+				observeFirst?.sendCompleted()
+				observeSecond?.send(value: 7)
+				observeSecond?.sendCompleted()
+				expect(completed) == true
+				expect(value) == 7
+				expect(gotSecond) == "thingy"
+			}
+
+			it("marks the composition as executing if either inner action is executing") {
+				enableFirst.value = true
+				enableSecond.value = true
+				expect(sut.isExecuting.value) == false
+				first.apply(3).start()
+				expect(sut.isExecuting.value) == true
+				observeFirst?.send(value: "whatever")
+				observeFirst?.sendCompleted()
+				expect(sut.isExecuting.value) == false
+				second.apply("thing").start()
+				expect(sut.isExecuting.value) == true
+				observeSecond?.send(value: 4)
+				observeSecond?.sendCompleted()
+				expect(sut.isExecuting.value) == false
+			}
+		}
 	}
 }
 

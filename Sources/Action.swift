@@ -168,6 +168,18 @@ public final class Action<Input, Output, Error: Swift.Error> {
 				}})
 	}
 
+	public convenience init<Middle>(first: Action<Input, Middle, Error>, then second: Action<Middle, Output, Error>) {
+		let bothStates = first.state.combineLatest(with: second.state)
+		self.init(
+			state: bothStates,
+			enabledIf: { $0.0.isEnabled && $0.1.isEnabled },
+			isExecutingInner: { $0.0.isExecuting || $0.1.isExecuting },
+			execute: { (states, input) -> SignalProducer<Output, Error> in
+				return first.executeClosure(states.0.value, input)
+					.flatMap(.concat) { second.executeClosure(states.1.value, $0) }
+			})
+	}
+
 	/// Initializes an `Action` that would always be enabled.
 	///
 	/// When the `Action` is asked to start the execution with an input value, a unit of
