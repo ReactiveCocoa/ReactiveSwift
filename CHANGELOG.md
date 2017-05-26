@@ -1,0 +1,88 @@
+# master
+*Please add new entries at the top.*
+1. `promoteErrors(_:)` has been renamed to `promoteError(_:)`. (#408, kudos to @andersio)
+
+# 1.1.3
+## Deprecation
+1. `observe(_:during:)` is now deprecated. It would be removed in ReactiveSwift 2.0.
+    Use `take(during:)` and the relevant observation API of `Signal`, `SignalProducer` and `Property` instead. (#374)
+    
+# 1.1.2
+## Changes
+1. Fixed a rare occurrence of `interrupted` events being emitted by a `Property`. (#362)
+
+# 1.1.1
+## Changes
+1. The properties `Signal.negated`, `SignalProducer.negated` and `Property.negated` are deprecated. Use its operator form `negate()` instead.
+
+# 1.1
+## Additions
+
+#### General
+1. New boolean operators: `and`, `or` and `negated`; available on `Signal<Bool, E>`, `SignalProducer<Bool, E>` and `Property<Bool, E>` types. (#160, kudos to @cristianames92)
+2. New operator `filterMap`. (#232, kudos to @RuiAAPeres)
+3. New operator `lazyMap(on:_:)`. It coalesces `value` events when they are emitted at a rate faster than the rate the given scheduler can handle. The transform is applied on only the coalesced and the uncontended values. (#240, kudos to @liscio)
+4. New protocol `BindingTargetProvider`, which replaces `BindingTargetProtocol`. (#254, kudos to @andersio)
+
+#### SignalProducer
+5. New initializer `SignalProducer(_:)`, which takes a `@escaping () -> Value` closure. It is similar to `SignalProducer(value:)`, but it lazily evaluates the value every time the producer is started. (#240, kudos to @liscio)
+
+#### Lifetime
+6. New method `Lifetime.observeEnded(self:)`. This is now the recommended way to explicitly observe the end of a `Lifetime`. Use `Lifetime.ended` only if composition is needed. (#229, kudos to @andersio)
+7. New factory method `Lifetime.make()`, which returns a tuple of `Lifetime` and `Lifetime.Token`. (#236, kudos to @sharplet)
+
+#### Properties
+8. `ValidatingProperty`: A mutable property that validates mutations before committing them. (#182, kudos to @andersio).
+9. A new interactive UI playground: `ReactiveSwift-UIExamples.playground`. It demonstrates how `ValidatingProperty` can be used in an interactive form UI. (#182)
+
+## Changes
+1. Flattening a signal of `Sequence` no longer requires an explicit `FlattenStrategy`. (#199, kudos to @dmcrodrigues)
+2. `BindingSourceProtocol` has been renamed to `BindingSource`. (#254)
+3. `SchedulerProtocol` and `DateSchedulerProtocol` has been renamed to `Scheduler` and `DateScheduler`, respectively. (#257)
+4. `take(during:)` now handles ended `Lifetime` properly. (#229)
+
+## Deprecations
+1. `AtomicProtocol` has been deprecated. (#279)
+2. `ActionProtocol` has been deprecated. (#284)
+3. `ObserverProtocol` has been deprecated. (#262)
+4. `BindingTargetProtocol` has been deprecated. (#254)
+
+# 1.0.1
+## Changes
+1. Fixed a couple of infinite feedback loops in `Action`. (#221)
+2. Fixed a race condition of `Signal` which might result in a deadlock when a signal is sent a terminal event as a result of an observer of it being released. (#267)
+
+Kudos to @mdiep, @sharplet and @andersio who helped review the pull requests.
+
+# 1.0
+
+This is the first major release of ReactiveSwift, a multi-platform, pure-Swift functional reactive programming library spun off from [ReactiveCocoa](https://github.com/ReactiveCocoa/ReactiveCocoa). As Swift continues to expand beyond Apple’s platforms, we hope that ReactiveSwift will see broader adoption. To learn more, please refer to ReactiveCocoa’s [CHANGELOG](https://github.com/ReactiveCocoa/ReactiveCocoa/blob/master/CHANGELOG.md).
+
+Major changes since ReactiveCocoa 4 include:
+- **Updated for Swift 3**
+  
+  APIs have been updated and renamed to adhere to the Swift 3 [API Design Guidelines](https://swift.org/documentation/api-design-guidelines/).
+- **Signal Lifetime Semantics**
+  
+  `Signal`s now live and continue to emit events only while either (a) they have observers or (b) they are retained. This clears up a number of unexpected cases and makes Signals much less dangerous.
+- **Reactive Proxies**
+  
+  Types can now declare conformance to `ReactiveExtensionsProvider` to expose a `reactive` property that’s generic over `self`. This property hosts reactive extensions to the type, such as the ones provided on `NotificationCenter` and `URLSession`.
+- **Property Composition**
+  
+  `Property`s can now be composed. They expose many of the familiar operators from `Signal` and `SignalProducer`, including `map`, `flatMap`, `combineLatest`, etc.
+- **Binding Primitives**
+  
+  `BindingTargetProtocol` and `BindingSourceProtocol` have been introduced to allow binding of observable instances to targets. `BindingTarget` is a new concrete type that can be used to wrap a settable but non-observable property.
+- **Lifetime**
+  
+  `Lifetime` is introduced to represent the lifetime of any arbitrary reference type. This can be used with the new `take(during:)` operator, but also forms part of the new binding APIs.
+- **Race-free Action**
+  
+   A new `Action` initializer `Action(state:enabledIf:_:)` has been introduced. It allows the latest value of any arbitrary property to be supplied to the execution closure in addition to the input from `apply(_:)`, while having the availability being derived from the property.
+  
+   This eliminates a data race in ReactiveCocoa 4.x, when both the `enabledIf` predicate and the execution closure depend on an overlapping set of properties.
+
+Extensive use of Swift’s `@available` declaration has been used to ease migration from ReactiveCocoa 4. Xcode should have fix-its for almost all changes from older APIs.
+
+Thank you to all of @ReactiveCocoa/ReactiveSwift and all our contributors, but especially to @andersio, @liscio, @mdiep, @nachosoto, and @sharplet. ReactiveSwift is only possible due to the many hours of work that these individuals have volunteered. ❤️

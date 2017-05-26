@@ -1959,8 +1959,8 @@ extension Signal {
 					switch event {
 					case let .value(value):
 						let identity = transform(value)
-						if !seenValues.contains(identity) {
-							seenValues.insert(identity)
+						let (inserted, _) = seenValues.insert(identity)
+						if inserted {
 							fallthrough
 						}
 						
