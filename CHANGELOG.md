@@ -1,5 +1,8 @@
 # master
 *Please add new entries at the top.*
+
+1. `ActionDisposable` and `SimpleDisposable` have been folded into `AnyDisposable`. (#412, kudos to @andersio)
+
 1. `promoteErrors(_:)` has been renamed to `promoteError(_:)`. (#408, kudos to @andersio)
 
 # 1.1.3

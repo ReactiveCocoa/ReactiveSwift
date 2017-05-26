@@ -89,7 +89,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should dispose of returned disposable upon error") {
-				let disposable = SimpleDisposable()
+				let disposable = AnyDisposable()
 				
 				let signal: Signal<AnyObject, TestError> = Signal { observer in
 					testScheduler.schedule {
@@ -112,7 +112,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should dispose of returned disposable upon completion") {
-				let disposable = SimpleDisposable()
+				let disposable = AnyDisposable()
 				
 				let signal: Signal<AnyObject, NoError> = Signal { observer in
 					testScheduler.schedule {
@@ -135,7 +135,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should dispose of returned disposable upon interrupted") {
-				let disposable = SimpleDisposable()
+				let disposable = AnyDisposable()
 
 				let signal: Signal<AnyObject, NoError> = Signal { observer in
 					testScheduler.schedule {
@@ -159,7 +159,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should dispose of the returned disposable if the signal has interrupted in the generator") {
-				let disposable = SimpleDisposable()
+				let disposable = AnyDisposable()
 
 				let signal: Signal<AnyObject, NoError> = Signal { observer in
 					observer.sendInterrupted()
@@ -171,7 +171,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should dispose of the returned disposable if the signal has completed in the generator") {
-				let disposable = SimpleDisposable()
+				let disposable = AnyDisposable()
 
 				let signal: Signal<AnyObject, NoError> = Signal { observer in
 					observer.sendCompleted()
@@ -183,7 +183,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should dispose of the returned disposable if the signal has failed in the generator") {
-				let disposable = SimpleDisposable()
+				let disposable = AnyDisposable()
 
 				let signal: Signal<AnyObject, TestError> = Signal { observer in
 					observer.send(error: .default)
@@ -249,7 +249,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should dispose the supplied disposable when the signal terminates") {
-				let disposable = SimpleDisposable()
+				let disposable = AnyDisposable()
 				let (signal, observer) = Signal<(), NoError>.pipe(disposable: disposable)
 
 				expect(disposable.isDisposed) == false
@@ -383,7 +383,7 @@ class SignalSpec: QuickSpec {
 			}
 			
 			it("should stop forwarding events when disposed") {
-				let disposable = SimpleDisposable()
+				let disposable = AnyDisposable()
 				
 				let signal: Signal<Int, NoError> = Signal { observer in
 					testScheduler.schedule {
@@ -1022,13 +1022,13 @@ class SignalSpec: QuickSpec {
 
 				struct Item {
 					let payload: Bool
-					let disposable: ScopedDisposable<ActionDisposable>
+					let disposable: ScopedDisposable<AnyDisposable>
 				}
 
 				func item(_ payload: Bool) -> Item {
 					return Item(
 						payload: payload,
-						disposable: ScopedDisposable(ActionDisposable { disposedItems.append(payload) })
+						disposable: ScopedDisposable(AnyDisposable { disposedItems.append(payload) })
 					)
 				}
 

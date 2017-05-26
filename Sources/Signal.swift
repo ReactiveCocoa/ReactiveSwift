@@ -226,7 +226,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			updateLock.unlock()
 
 			if let token = token {
-				return ActionDisposable { [weak self] in
+				return AnyDisposable { [weak self] in
 					self?.removeObserver(with: token)
 				}
 			} else {
@@ -2179,7 +2179,7 @@ extension Signal {
 				disposables += action(index, strategy) { observer.action($0.map { _ in fatalError() }) }
 			}
 
-			return ActionDisposable {
+			return AnyDisposable {
 				strategy.modify { _ in
 					disposables.dispose()
 				}

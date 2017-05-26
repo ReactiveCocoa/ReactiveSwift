@@ -193,7 +193,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 
 		// Directly disposed of when `start()` or `startWithSignal()` is
 		// disposed.
-		let cancelDisposable = ActionDisposable(action: observer.sendInterrupted)
+		let cancelDisposable = AnyDisposable(observer.sendInterrupted)
 
 		setup(signal, cancelDisposable)
 

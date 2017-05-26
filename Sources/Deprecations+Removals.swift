@@ -3,6 +3,11 @@ import Dispatch
 import Result
 
 // MARK: Unavailable methods in ReactiveSwift 2.0.
+extension AnyDisposable {
+	@available(*, unavailable, renamed:"init(_:)")
+	public convenience init(action: @escaping () -> Void) { fatalError() }
+}
+
 extension Signal {
 	@available(*, unavailable, renamed:"promoteError")
 	public func promoteErrors<F: Swift.Error>(_: F.Type) -> Signal<Value, F> { fatalError() }
@@ -142,6 +147,12 @@ public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -
 public func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Date, NoError> { fatalError() }
 
 // MARK: Obsolete types in ReactiveSwift 2.0.
+@available(*, unavailable, renamed:"AnyDisposable")
+public typealias SimpleDisposable = AnyDisposable
+
+@available(*, unavailable, renamed:"AnyDisposable")
+public typealias ActionDisposable = AnyDisposable
+
 @available(*, unavailable, renamed:"Signal.Event")
 public typealias Event<Value, Error: Swift.Error> = Signal<Value, Error>.Event
 
