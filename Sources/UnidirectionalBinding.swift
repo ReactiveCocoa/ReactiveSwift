@@ -139,7 +139,7 @@ public struct BindingTarget<Value>: BindingTargetProvider {
 	///   - scheduler: The scheduler on which the `setter` consumes the values.
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
 	///   - action: The action to consume values.
-	public init(on scheduler: Scheduler, lifetime: Lifetime, action: @escaping (Value) -> Void) {
+	public init<S: Scheduler>(on scheduler: S, lifetime: Lifetime, action: @escaping (Value) -> Void) {
 		let setter: (Value) -> Void = { value in
 			scheduler.schedule {
 				action(value)
