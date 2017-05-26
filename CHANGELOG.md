@@ -1,5 +1,7 @@
 # master
 *Please add new entries at the top.*
+1. `promoteError` can now infer the new error type from the context. (#xxx, kudos to @andersio)
+
 1. `promoteErrors(_:)` has been renamed to `promoteError(_:)`. (#408, kudos to @andersio)
 
 # 1.1.3
