@@ -2405,7 +2405,7 @@ extension Signal where Error == NoError {
 	///   - _ An `ErrorType`.
 	///
 	/// - returns: A signal that has an instantiatable `ErrorType`.
-	public func promoteErrors<F: Swift.Error>(_: F.Type) -> Signal<Value, F> {
+	public func promoteError<F: Swift.Error>(_: F.Type) -> Signal<Value, F> {
 		return Signal<Value, F> { observer in
 			return self.observe { event in
 				switch event {
@@ -2444,7 +2444,7 @@ extension Signal where Error == NoError {
 		on scheduler: DateScheduler
 	) -> Signal<Value, NewError> {
 		return self
-			.promoteErrors(NewError.self)
+			.promoteError(NewError.self)
 			.timeout(after: interval, raising: error, on: scheduler)
 	}
 }
@@ -2539,7 +2539,7 @@ extension Signal where Error == NoError {
 	/// - returns: A signal which forwards the successful values of the given action.
 	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
 		return self
-			.promoteErrors(AnyError.self)
+			.promoteError(AnyError.self)
 			.attempt(action)
 	}
 
@@ -2553,7 +2553,7 @@ extension Signal where Error == NoError {
 	/// - returns: A signal which forwards the successfully transformed values.
 	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
 		return self
-			.promoteErrors(AnyError.self)
+			.promoteError(AnyError.self)
 			.attemptMap(transform)
 	}
 }

@@ -1397,8 +1397,8 @@ extension SignalProducer where Error == NoError {
 	///   - _ An `ErrorType`.
 	///
 	/// - returns: A producer that has an instantiatable `ErrorType`.
-	public func promoteErrors<F: Swift.Error>(_: F.Type) -> SignalProducer<Value, F> {
-		return lift { $0.promoteErrors(F.self) }
+	public func promoteError<F: Swift.Error>(_: F.Type) -> SignalProducer<Value, F> {
+		return lift { $0.promoteError(F.self) }
 	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't
@@ -1871,7 +1871,7 @@ extension SignalProducer {
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
 	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, Error> {
-		return _then(replacement.promoteErrors(Error.self))
+		return _then(replacement.promoteError(Error.self))
 	}
 
 	/// Wait for completion of `self`, *then* forward all events from
@@ -1948,7 +1948,7 @@ extension SignalProducer where Error == NoError {
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
 	public func then<U, NewError: Swift.Error>(_ replacement: SignalProducer<U, NewError>) -> SignalProducer<U, NewError> {
-		return promoteErrors(NewError.self)._then(replacement)
+		return promoteError(NewError.self)._then(replacement)
 	}
 
 	// NOTE: The overload below is added to disambiguate compile-time selection of

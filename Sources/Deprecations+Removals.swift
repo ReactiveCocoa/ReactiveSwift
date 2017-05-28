@@ -3,6 +3,16 @@ import Dispatch
 import Result
 
 // MARK: Unavailable methods in ReactiveSwift 2.0.
+extension Signal {
+	@available(*, unavailable, renamed:"promoteError")
+	public func promoteErrors<F: Swift.Error>(_: F.Type) -> Signal<Value, F> { fatalError() }
+}
+
+extension SignalProducer {
+	@available(*, unavailable, renamed:"promoteError")
+	public func promoteErrors<F: Swift.Error>(_: F.Type) -> SignalProducer<Value, F> { fatalError() }
+}
+
 extension Lifetime {
 	@available(*, unavailable, renamed:"hasEnded")
 	public var isDisposed: Bool { fatalError() }

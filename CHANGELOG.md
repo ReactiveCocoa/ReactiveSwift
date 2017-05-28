@@ -1,5 +1,6 @@
 # master
 *Please add new entries at the top.*
+1. `promoteErrors(_:)` has been renamed to `promoteError(_:)`. (#408, kudos to @andersio)
 
 # 1.1.3
 ## Deprecation
