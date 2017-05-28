@@ -53,6 +53,10 @@ public final class AnyDisposable: Disposable {
 			self.action = action
 		}
 
+		deinit {
+			state.deinitialize()
+		}
+
 		func dispose() {
 			if state.tryDispose() {
 				action?()
