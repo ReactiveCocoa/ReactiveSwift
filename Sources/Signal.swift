@@ -27,16 +27,21 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// `Signal` ownership graph from the perspective of an operator.
 	/// Note that there is no circular strong reference in the graph.
 	/// ```
-	/// ------------               --------------                --------
-	/// |          |               | endObserve |                |      |
-	/// |          | <~~ weak ~~~  | disposable | <== strong === |      |
-	/// |          |               --------------                |      | ... downstream(s)
-	/// |          |                ------------                 |      |
-	/// | upstream | === strong ==> | Observer |  === strong ==> | Core |
-	/// ------------                ------------                 --------
-	///                             ------------------              ^^
-	///                             | Signal (shell) | === strong ==//
-	///                             ------------------
+	///  ------------               --------------                --------
+	///  |          |               | endObserve |                |      |
+	///  |          | <~~ weak ~~~  | disposable | <== strong === |      |
+	///  |          |               --------------                |      | ... downstream(s)
+	///  | Upstream |                ------------                 |      |
+	///  | Core     | === strong ==> | Observer |  === strong ==> | Core |
+	///  ------------ ===\\          ------------                 -------- ===\\
+	///                   \\         ------------------              ^^        \\
+	///                    \\        | Signal (shell) | === strong ==//         \\
+	///                     \\       ------------------                          \\
+	///                     || strong                                            || strong
+	///                     vv                                                   vv
+	///            -------------------                                 -------------------
+	///            | Other observers |                                 | Other observers |
+	///            -------------------                                 -------------------
 	/// ```
 	private let core: Core
 
@@ -327,8 +332,8 @@ public final class Signal<Value, Error: Swift.Error> {
 			return commit()
 		}
 
-		/// Try to dispose of the signal silently if the `Signal` has deinitialized and has
-		/// no observer.
+		/// Try to dispose of the signal silently if the `Signal` has deinitialized and
+		/// has no observer.
 		///
 		/// It fails gracefully if the signal is terminating or terminated, has one or
 		/// more observers, or has not deinitialized.
@@ -358,11 +363,11 @@ public final class Signal<Value, Error: Swift.Error> {
 			return .none
 		}
 
-		/// Acknowledge the deinitialization of the shell.
-		fileprivate func shellDidDeinitialize() {
+		/// Acknowledge the deinitialization of the `Signal`.
+		fileprivate func signalDidDeinitialize() {
 			updateLock.lock()
 
-			// Mark the `Signal` shell has now deinitialized.
+			// Mark the `Signal` has now deinitialized.
 			hasDeinitialized = true
 
 			// Attempt to start the disposal of the signal if it has no active observer.
@@ -414,7 +419,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	}
 
 	deinit {
-		core.shellDidDeinitialize()
+		core.signalDidDeinitialize()
 	}
 
 	/// The state of a `Signal`.
