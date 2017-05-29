@@ -76,6 +76,10 @@ Two `Disposable`-accepting methods `Lifetime.Type.+=` and `Lifetime.add` are pro
 
 1. `Lifetime.ended` now uses the inhabitable `Never` as its value type. (#392)
 
+### Atomic
+
+1. `Signal` and `Atomic` now use `os_unfair_lock` when it is available. (#342)
+
 ## Additions
 1. `FlattenStrategy.race` is introduced. (#233, kudos to @inamiy)
 
