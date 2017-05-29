@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if [[ -z "$1" ]]; then
 	echo "Please specify a version tag."
 	exit
@@ -17,4 +18,7 @@ echo "Current tag: $CURRENT_TAG"
 perl -0777 -i -pe 's/s.version([\s]+)=([\s]+)"'${CURRENT_TAG}'"/s.version$1=$2"'${1}'"/' *.podspec
 perl -0777 -i -pe 's/g>'${CURRENT_TAG}'<\/str/g>'${PRERELEASE_STRIPPED}'<\/str/' */Info.plist
 perl -0777 -i -pe 's/g>'${CURRENT_TAG}'<\/str/g>'${PRERELEASE_STRIPPED}'<\/str/' */*/Info.plist
+sed -i '' '3i\
+\
+# '${1} CHANGELOG.md
 
