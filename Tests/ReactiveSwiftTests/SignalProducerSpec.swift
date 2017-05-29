@@ -282,10 +282,44 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("SignalProducer.never") {
-			it("should not send any events") {
+			it("should not send any events while still being alive") {
 				let signalProducer = SignalProducer<Int, NSError>.never
 
-				expect(signalProducer).to(sendValue(nil, sendError: nil, complete: false))
+				var numberOfEvents = 0
+				var isDisposed = false
+
+				func scope() -> Disposable {
+					defer {
+						expect(numberOfEvents) == 0
+						expect(isDisposed) == false
+					}
+					return signalProducer.on(disposed: { isDisposed = true }).start { _ in numberOfEvents += 1 }
+				}
+
+				let d = scope()
+				expect(numberOfEvents) == 0
+				expect(isDisposed) == false
+
+				d.dispose()
+				expect(numberOfEvents) == 1
+				expect(isDisposed) == true
+			}
+
+			it("should not send any events while still being alive even if the interrupt handle deinitializes") {
+				let signalProducer = SignalProducer<Int, NSError>.never
+
+				var numberOfEvents = 0
+				var isDisposed = false
+
+				func scope() {
+					signalProducer.on(disposed: { isDisposed = false }).start { _ in numberOfEvents += 1 }
+					expect(numberOfEvents) == 0
+					expect(isDisposed) == false
+				}
+
+				scope()
+				expect(numberOfEvents) == 0
+				expect(isDisposed) == false
 			}
 		}
 
