@@ -40,68 +40,60 @@ extension UnsafeAtomicState where State == DisposableState {
 
 /// A type-erased disposable that forwards operations to an underlying disposable.
 public final class AnyDisposable: Disposable {
-	private let disposable: Disposable
+	private final class ActionDisposable: Disposable {
+		let state: UnsafeAtomicState<DisposableState>
+		var action: (() -> Void)?
 
-	public var isDisposed: Bool {
-		return disposable.isDisposed
-	}
+		var isDisposed: Bool {
+			return state.is(.disposed)
+		}
 
-	public init(_ disposable: Disposable) {
-		self.disposable = disposable
-	}
+		init(_ action: (() -> Void)?) {
+			self.state = UnsafeAtomicState(.active)
+			self.action = action
+		}
 
-	public func dispose() {
-		disposable.dispose()
-	}
-}
+		deinit {
+			state.deinitialize()
+		}
 
-/// A disposable that only flips `isDisposed` upon disposal, and performs no other
-/// work.
-public final class SimpleDisposable: Disposable {
-	private var state = UnsafeAtomicState(DisposableState.active)
-
-	public var isDisposed: Bool {
-		return state.is(.disposed)
-	}
-
-	public init() {}
-
-	public func dispose() {
-		_ = state.tryDispose()
-	}
-
-	deinit {
-		state.deinitialize()
-	}
-}
-
-/// A disposable that will run an action upon disposal.
-public final class ActionDisposable: Disposable {
-	private var action: (() -> Void)?
-	private var state: UnsafeAtomicState<DisposableState>
-
-	public var isDisposed: Bool {
-		return state.is(.disposed)
-	}
-
-	/// Initialize the disposable to run the given action upon disposal.
-	///
-	/// - parameters:
-	///   - action: A closure to run when calling `dispose()`.
-	public init(action: @escaping () -> Void) {
-		self.action = action
-		self.state = UnsafeAtomicState(DisposableState.active)
-	}
-
-	public func dispose() {
-		if state.tryDispose() {
-			action?()
-			action = nil
+		func dispose() {
+			if state.tryDispose() {
+				action?()
+				action = nil
+			}
 		}
 	}
 
-	deinit {
-		state.deinitialize()
+	private let base: Disposable
+
+	public var isDisposed: Bool {
+		return base.isDisposed
+	}
+
+	/// Create a disposable which runs the given action upon disposal.
+	///
+	/// - parameters:
+	///   - action: A closure to run when calling `dispose()`.
+	public init(_ action: @escaping () -> Void) {
+		base = ActionDisposable(action)
+	}
+
+	/// Create a disposable.
+	public init() {
+		base = ActionDisposable(nil)
+	}
+
+	/// Create a disposable which wraps the given disposable.
+	///
+	/// - parameters:
+	///   - disposable: The disposable to be wrapped.
+	public init(_ disposable: Disposable) {
+		base = disposable
+	}
+
+	public func dispose() {
+		base.dispose()
 	}
 }
 
@@ -179,7 +171,7 @@ public final class CompositeDisposable: Disposable {
 			guard disposables != nil else { return nil }
 
 			let token = disposables!.insert(d)
-			return ActionDisposable { [weak self] in
+			return AnyDisposable { [weak self] in
 				self?.disposables.modify {
 					$0?.remove(using: token)
 				}
@@ -197,11 +189,50 @@ public final class CompositeDisposable: Disposable {
 	///            `disposable` is `nil`.
 	@discardableResult
 	public func add(_ action: @escaping () -> Void) -> Disposable? {
-		return add(ActionDisposable(action: action))
+		return add(AnyDisposable(action))
 	}
 
 	deinit {
 		state.deinitialize()
+	}
+
+	/// Adds the right-hand-side disposable to the left-hand-side
+	/// `CompositeDisposable`.
+	///
+	/// ````
+	///  disposable += producer
+	///      .filter { ... }
+	///      .map    { ... }
+	///      .start(observer)
+	/// ````
+	///
+	/// - parameters:
+	///   - lhs: Disposable to add to.
+	///   - rhs: Disposable to add.
+	///
+	/// - returns: An instance of `DisposableHandle` that can be used to opaquely
+	///            remove the disposable later (if desired).
+	@discardableResult
+	public static func +=(lhs: CompositeDisposable, rhs: Disposable?) -> Disposable? {
+		return lhs.add(rhs)
+	}
+
+	/// Adds the right-hand-side `ActionDisposable` to the left-hand-side
+	/// `CompositeDisposable`.
+	///
+	/// ````
+	/// disposable += { ... }
+	/// ````
+	///
+	/// - parameters:
+	///   - lhs: Disposable to add to.
+	///   - rhs: Closure to add as a disposable.
+	///
+	/// - returns: An instance of `DisposableHandle` that can be used to opaquely
+	///            remove the disposable later (if desired).
+	@discardableResult
+	public static func +=(lhs: CompositeDisposable, rhs: @escaping () -> ()) -> Disposable? {
+		return lhs.add(rhs)
 	}
 }
 
@@ -243,6 +274,44 @@ extension ScopedDisposable where Inner == AnyDisposable {
 	///                 will be wrapped in an `AnyDisposable`.
 	public convenience init(_ disposable: Disposable) {
 		self.init(Inner(disposable))
+	}
+}
+
+extension ScopedDisposable where Inner == CompositeDisposable {
+	/// Adds the right-hand-side disposable to the left-hand-side
+	/// `ScopedDisposable<CompositeDisposable>`.
+	///
+	/// ````
+	/// disposable += { ... }
+	/// ````
+	///
+	/// - parameters:
+	///   - lhs: Disposable to add to.
+	///   - rhs: Disposable to add.
+	///
+	/// - returns: An instance of `DisposableHandle` that can be used to opaquely
+	///            remove the disposable later (if desired).
+	@discardableResult
+	public static func +=(lhs: ScopedDisposable<CompositeDisposable>, rhs: Disposable?) -> Disposable? {
+		return lhs.inner.add(rhs)
+	}
+
+	/// Adds the right-hand-side disposable to the left-hand-side
+	/// `ScopedDisposable<CompositeDisposable>`.
+	///
+	/// ````
+	/// disposable += { ... }
+	/// ````
+	///
+	/// - parameters:
+	///   - lhs: Disposable to add to.
+	///   - rhs: Closure to add as a disposable.
+	///
+	/// - returns: An instance of `DisposableHandle` that can be used to opaquely
+	///            remove the disposable later (if desired).
+	@discardableResult
+	public static func +=(lhs: ScopedDisposable<CompositeDisposable>, rhs: @escaping () -> ()) -> Disposable? {
+		return lhs.inner.add(rhs)
 	}
 }
 
@@ -292,79 +361,4 @@ public final class SerialDisposable: Disposable {
 	deinit {
 		state.deinitialize()
 	}
-}
-
-/// Adds the right-hand-side disposable to the left-hand-side
-/// `CompositeDisposable`.
-///
-/// ````
-///  disposable += producer
-///      .filter { ... }
-///      .map    { ... }
-///      .start(observer)
-/// ````
-///
-/// - parameters:
-///   - lhs: Disposable to add to.
-///   - rhs: Disposable to add.
-///
-/// - returns: An instance of `DisposableHandle` that can be used to opaquely
-///            remove the disposable later (if desired).
-@discardableResult
-public func +=(lhs: CompositeDisposable, rhs: Disposable?) -> Disposable? {
-	return lhs.add(rhs)
-}
-
-/// Adds the right-hand-side `ActionDisposable` to the left-hand-side
-/// `CompositeDisposable`.
-///
-/// ````
-/// disposable += { ... }
-/// ````
-///
-/// - parameters:
-///   - lhs: Disposable to add to.
-///   - rhs: Closure to add as a disposable.
-///
-/// - returns: An instance of `DisposableHandle` that can be used to opaquely
-///            remove the disposable later (if desired).
-@discardableResult
-public func +=(lhs: CompositeDisposable, rhs: @escaping () -> ()) -> Disposable? {
-	return lhs.add(rhs)
-}
-
-/// Adds the right-hand-side disposable to the left-hand-side
-/// `ScopedDisposable<CompositeDisposable>`.
-///
-/// ````
-/// disposable += { ... }
-/// ````
-///
-/// - parameters:
-///   - lhs: Disposable to add to.
-///   - rhs: Disposable to add.
-///
-/// - returns: An instance of `DisposableHandle` that can be used to opaquely
-///            remove the disposable later (if desired).
-@discardableResult
-public func +=(lhs: ScopedDisposable<CompositeDisposable>, rhs: Disposable?) -> Disposable? {
-	return lhs.inner.add(rhs)
-}
-
-/// Adds the right-hand-side disposable to the left-hand-side
-/// `ScopedDisposable<CompositeDisposable>`.
-///
-/// ````
-/// disposable += { ... }
-/// ````
-///
-/// - parameters:
-///   - lhs: Disposable to add to.
-///   - rhs: Closure to add as a disposable.
-///
-/// - returns: An instance of `DisposableHandle` that can be used to opaquely
-///            remove the disposable later (if desired).
-@discardableResult
-public func +=(lhs: ScopedDisposable<CompositeDisposable>, rhs: @escaping () -> ()) -> Disposable? {
-	return lhs.inner.add(rhs)
 }

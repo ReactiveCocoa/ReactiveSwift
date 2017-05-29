@@ -444,7 +444,7 @@ extension Signal where Value: SignalProducerProtocol, Error == Value.Error {
 		func startNextIfNeeded() {
 			while let producer = state.modify({ $0.dequeue() }) {
 				let producerState = UnsafeAtomicState<ProducerState>(.starting)
-				let deinitializer = ScopedDisposable(ActionDisposable(action: producerState.deinitialize))
+				let deinitializer = ScopedDisposable(AnyDisposable(producerState.deinitialize))
 
 				producer.startWithSignal { signal, inner in
 					let handle = disposable.add(inner)

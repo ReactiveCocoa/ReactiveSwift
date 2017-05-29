@@ -62,7 +62,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should dispose of added disposables upon completion") {
-				let addedDisposable = SimpleDisposable()
+				let addedDisposable = AnyDisposable()
 				var observer: Signal<(), NoError>.Observer!
 
 				let producer = SignalProducer<(), NoError>() { incomingObserver, lifetime in
@@ -78,7 +78,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should dispose of added disposables upon error") {
-				let addedDisposable = SimpleDisposable()
+				let addedDisposable = AnyDisposable()
 				var observer: Signal<(), TestError>.Observer!
 
 				let producer = SignalProducer<(), TestError>() { incomingObserver, lifetime in
@@ -94,7 +94,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should dispose of added disposables upon interruption") {
-				let addedDisposable = SimpleDisposable()
+				let addedDisposable = AnyDisposable()
 				var observer: Signal<(), NoError>.Observer!
 
 				let producer = SignalProducer<(), NoError>() { incomingObserver, lifetime in
@@ -110,7 +110,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should dispose of added disposables upon start() disposal") {
-				let addedDisposable = SimpleDisposable()
+				let addedDisposable = AnyDisposable()
 
 				let producer = SignalProducer<(), TestError>() { _, lifetime in
 					lifetime.observeEnded(addedDisposable.dispose)
@@ -394,7 +394,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should dispose of added disposables if disposed") {
-				let addedDisposable = SimpleDisposable()
+				let addedDisposable = AnyDisposable()
 				var disposable: Disposable!
 
 				let producer = SignalProducer<Int, NoError>() { _, lifetime in
@@ -490,7 +490,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should dispose of added disposables upon completion") {
-				let addedDisposable = SimpleDisposable()
+				let addedDisposable = AnyDisposable()
 				var observer: Signal<Int, TestError>.Observer!
 
 				let producer = SignalProducer<Int, TestError>() { incomingObserver, lifetime in
@@ -506,7 +506,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should dispose of added disposables upon error") {
-				let addedDisposable = SimpleDisposable()
+				let addedDisposable = AnyDisposable()
 				var observer: Signal<Int, TestError>.Observer!
 
 				let producer = SignalProducer<Int, TestError>() { incomingObserver, lifetime in
@@ -522,7 +522,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should dispose of the added disposable if the signal is unretained and unobserved upon exiting the scope") {
-				let addedDisposable = SimpleDisposable()
+				let addedDisposable = AnyDisposable()
 
 				let producer = SignalProducer<Int, TestError> { _, lifetime in
 					lifetime.observeEnded(addedDisposable.dispose)
@@ -1643,7 +1643,7 @@ class SignalProducerSpec: QuickSpec {
 				var disposeOuter: (() -> Void)!
 				var execute: ((FlattenStrategy) -> Void)!
 
-				var innerDisposable = SimpleDisposable()
+				var innerDisposable = AnyDisposable()
 				var isInnerInterrupted = false
 				var isInnerDisposed = false
 				var interrupted = false
@@ -1652,7 +1652,7 @@ class SignalProducerSpec: QuickSpec {
 					execute = { strategy in
 						let (outerProducer, outerObserver) = SignalProducer<SignalProducer<Int, NoError>, NoError>.pipe()
 
-						innerDisposable = SimpleDisposable()
+						innerDisposable = AnyDisposable()
 						isInnerInterrupted = false
 						isInnerDisposed = false
 						let innerProducer = SignalProducer<Int, NoError> { $1.observeEnded(innerDisposable.dispose) }

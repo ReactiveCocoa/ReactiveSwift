@@ -35,7 +35,7 @@ extension Reactive where Base: NotificationCenter {
 				observer.send(value: notification)
 			}
 
-			return ActionDisposable {
+			return AnyDisposable {
 				base.removeObserver(notificationObserver)
 			}
 		}
