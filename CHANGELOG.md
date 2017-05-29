@@ -1,8 +1,112 @@
 # master
 *Please add new entries at the top.*
-1. `promoteError` can now infer the new error type from the context. (#xxx, kudos to @andersio)
 
-1. `promoteErrors(_:)` has been renamed to `promoteError(_:)`. (#408, kudos to @andersio)
+1. `promoteError` can now infer the new error type from the context. (#413, kudos to @andersio)
+
+# 2.0.0-alpha.1
+This is the first alpha release of ReactiveSwift 2.0. It requires Swift 3.1 (Xcode 8.3).
+
+## Changes
+### Modified `Signal` lifetime semantics (#355)
+The `Signal` lifetime semantics is modified to improve interoperability with memory debugging tools. ReactiveSwift 2.0 adopted a new `Signal` internal which does not exploit deliberate retain cycles that consequentially confuse memory debugging tools.
+
+A `Signal` is now automatically and silently disposed of, when:
+
+1. the `Signal`  is not retained and has no active observer; or
+1.  **(New)** both the `Signal`  and its input observer are not retained.
+
+It is expected that memory debugging tools would no longer report irrelevant negative leaks that were once caused by the ReactiveSwift internals.
+
+### `SignalProducer` resource management (#334)
+`SignalProducer` now uses `Lifetime` for resource management. You may observe the `Lifetime` for the disposal of the produced `Signal`.
+
+```swift
+let producer = SignalProducer<Int, NoError> { observer, lifetime in
+    if let disposable = numbers.observe(observer) {
+        lifetime.observeEnded(disposable.dispose)
+    }
+}
+```
+
+Two `Disposable`-accepting methods `Lifetime.Type.+=` and `Lifetime.add` are provided to aid migration, and are subject to removal in a future release.
+
+### Signal and SignalProducer 
+1. All `Signal` and `SignalProducer` operators now belongs to the respective concrete types. (#304)
+
+   Custom operators should extend the concrete types directly. `SignalProtocol` and `SignalProducerProtocol` should be used only for constraining associated types.
+
+1. `combineLatest` and `zip` are optimised to have a constant overhead regardless of arity, mitigating the possibility of stack overflow. (#345) 
+
+1. `flatMap(_:transform:)` is renamed to `flatMap(_:_:)`. (#339)
+
+1. `promoteErrors(_:)`is renamed to `promoteError(_:)`. (#408)
+
+1. `Event` is renamed to `Signal.Event`. (#376)
+
+1. `Observer` is renamed to `Signal.Observer`. (#376)
+
+### Action
+
+1. `Action(input:_:)`, `Action(_:)`, `Action(enabledIf:_:)` and `Action(state:enabledIf:_:)` are renamed to `Action(state:execute:)`, `Action(execute:)`, `Action(enabledIf:execute:)` and `Action(state:enabledIf:execute:)` respectively. (#325)
+
+### Properties
+1. The memory overhead of property composition has been considerably reduced. (#340)
+
+### Bindings
+1. The `BindingSource` now requires only a producer representation of `self`. (#359)
+
+1. The `<~` operator overloads are now provided by `BindingTargetProvider`. (#359)
+
+### Disposables
+1. `SimpleDisposable` and `ActionDisposable` has been folded into `AnyDisposable`. (#412)
+
+1. `CompositeDisposable.DisposableHandle` is replaced by `Disposable?`. (#363)
+
+1. The `+=` operator overloads for `CompositeDisposable` are now hosted inside the concrete types. (#412)
+
+### Bag
+
+1. Improved the performance of `Bag`. (#354)
+
+1. `RemovalToken` is renamed to `Bag.Token`. (#354)
+
+### Schedulers
+
+1. `Scheduler` gains a class bound. (#333)
+
+### Lifetime
+
+1. `Lifetime.ended` now uses the inhabitable `Never` as its value type. (#392)
+
+### Atomic
+
+1. `Signal` and `Atomic` now use `os_unfair_lock` when it is available. (#342)
+
+## Additions
+1. `FlattenStrategy.race` is introduced. (#233, kudos to @inamiy)
+
+   `race` flattens whichever inner signal that first sends an event, and ignores the rest.
+
+1. `FlattenStrategy.concurrent` is introduced. (#298, kudos to @andersio)
+
+   `concurrent` starts and flattens inner signals according to the specified concurrency limit. If an inner signal is received after the limit is reached, it would be queued and drained later as the in-flight inner signals terminate.
+
+1. New operators: `reduce(into:)` and `scan(into:)`. (#365, kudos to @ikesyo)
+ 
+   These variants pass to the closure an `inout` reference to the accumulator, which helps the performance when a large value type is used, e.g. collection.
+
+1. `Property(initial:then:)` gains overloads that accept a producer or signal of the wrapped value type when the value type is an `Optional`. (#396)
+
+## Deprecations and Removals
+1. The requirement `BindingSource.observe(_:during:)` and the implementations have been removed.
+
+1. All Swift 2 (ReactiveCocoa 4) obsolete symbols have been removed.
+
+1. All deprecated methods and protocols in ReactiveSwift 1.1.x are no longer available.
+
+## Acknowledgement
+
+Thank you to all of @ReactiveCocoa/reactiveswift and all our contributors, but especially to @andersio, @calebd, @eimantas, @ikesyo, @inamiy, @Marcocanc, @mdiep, @NachoSoto, @sharplet and @tjnet. ReactiveSwift is only possible due to the many hours of work that these individuals have volunteered. ❤️
 
 # 1.1.3
 ## Deprecation

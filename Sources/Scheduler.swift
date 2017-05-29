@@ -136,7 +136,7 @@ public final class UIScheduler: Scheduler {
 	///            begins.
 	@discardableResult
 	public func schedule(_ action: @escaping () -> Void) -> Disposable? {
-		let disposable = SimpleDisposable()
+		let disposable = AnyDisposable()
 		let actionAndDecrement = {
 			if !disposable.isDisposed {
 				action()
@@ -233,7 +233,7 @@ public final class QueueScheduler: DateScheduler {
 	///            begins.
 	@discardableResult
 	public func schedule(_ action: @escaping () -> Void) -> Disposable? {
-		let d = SimpleDisposable()
+		let d = AnyDisposable()
 
 		queue.async {
 			if !d.isDisposed {
@@ -263,7 +263,7 @@ public final class QueueScheduler: DateScheduler {
 	///            before it begins.
 	@discardableResult
 	public func schedule(after date: Date, action: @escaping () -> Void) -> Disposable? {
-		let d = SimpleDisposable()
+		let d = AnyDisposable()
 
 		queue.asyncAfter(wallDeadline: wallTime(with: date)) {
 			if !d.isDisposed {
@@ -325,7 +325,7 @@ public final class QueueScheduler: DateScheduler {
 		timer.setEventHandler(handler: action)
 		timer.resume()
 
-		return ActionDisposable {
+		return AnyDisposable {
 			timer.cancel()
 		}
 	}
@@ -378,7 +378,7 @@ public final class TestScheduler: DateScheduler {
 		scheduledActions.sort { $0.less($1) }
 		lock.unlock()
 
-		return ActionDisposable {
+		return AnyDisposable {
 			self.lock.lock()
 			self.scheduledActions = self.scheduledActions.filter { $0 !== action }
 			self.lock.unlock()
