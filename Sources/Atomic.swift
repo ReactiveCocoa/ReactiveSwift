@@ -12,26 +12,17 @@ import MachO
 #endif
 
 /// A simple, generic lock-free finite state machine.
-///
-/// - warning: `deinitialize` must be called to dispose of the consumed memory.
-internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue == Int32 {
+internal struct AtomicState<State: RawRepresentable> where State.RawValue == Int32 {
 	internal typealias Transition = (expected: State, next: State)
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-	private let value: UnsafeMutablePointer<Int32>
+	private var value: Int32
 
 	/// Create a finite state machine with the specified initial state.
 	///
 	/// - parameters:
 	///   - initial: The desired initial state.
 	internal init(_ initial: State) {
-		value = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
-		value.initialize(to: initial.rawValue)
-	}
-
-	/// Deinitialize the finite state machine.
-	internal func deinitialize() {
-		value.deinitialize()
-		value.deallocate(capacity: 1)
+		value = initial.rawValue
 	}
 
 	/// Compare the current state with the specified state.
@@ -41,10 +32,12 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	///
 	/// - returns: `true` if the current state matches the expected state.
 	///            `false` otherwise.
-	internal func `is`(_ expected: State) -> Bool {
-		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
-		                                       expected.rawValue,
-		                                       value)
+	internal mutating func `is`(_ expected: State) -> Bool {
+		return withUnsafeMutablePointer(to: &value) { valuePointer in
+			return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
+			                                       expected.rawValue,
+			                                       valuePointer)
+		}
 	}
 
 	/// Try to transition from the expected current state to the specified next
@@ -55,10 +48,12 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	///   - next: The state to transition to.
 	///
 	/// - returns: `true` if the transition succeeds. `false` otherwise.
-	internal func tryTransition(from expected: State, to next: State) -> Bool {
-		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
-		                                       next.rawValue,
-		                                       value)
+	internal mutating func tryTransition(from expected: State, to next: State) -> Bool {
+		return withUnsafeMutablePointer(to: &value) { valuePointer in
+			return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
+			                                       next.rawValue,
+			                                       valuePointer)
+		}
 	}
 #else
 	private let value: Atomic<Int32>
@@ -81,7 +76,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	///
 	/// - returns: `true` if the current state matches the expected state.
 	///            `false` otherwise.
-	internal func `is`(_ expected: State) -> Bool {
+	internal mutating func `is`(_ expected: State) -> Bool {
 		return value.modify { $0 == expected.rawValue }
 	}
 
@@ -92,7 +87,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	///   - expected: The expected state.
 	///
 	/// - returns: `true` if the transition succeeds. `false` otherwise.
-	internal func tryTransition(from expected: State, to next: State) -> Bool {
+	internal mutating func tryTransition(from expected: State, to next: State) -> Bool {
 		return value.modify { value in
 			if value == expected.rawValue {
 				value = next.rawValue
