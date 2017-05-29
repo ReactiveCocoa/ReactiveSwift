@@ -89,7 +89,7 @@ Two `Disposable`-accepting methods `Lifetime.Type.+=` and `Lifetime.add` are pro
  
    These variants pass to the closure an `inout` reference to the accumulator, which helps the performance when a large value type is used, e.g. collection.
 
-1. `Property(initial:then:)` gains an overload that handles optionals. (#396)
+1. `Property(initial:then:)` gains overloads that accept a producer or signal of the wrapped value type when the value type is an `Optional`. (#396)
 
 ## Deprecations and Removals
 1. The requirement `BindingSource.observe(_:during:)` and the implementations have been removed.
