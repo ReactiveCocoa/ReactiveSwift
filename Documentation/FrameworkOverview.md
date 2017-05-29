@@ -79,7 +79,7 @@ A **signal producer**, represented by the [`SignalProducer`][SignalProducer] typ
 [signals](#signals) and performs side effects.
 
 They can be used to represent operations or tasks, like network
-requests, where each invocation of `start()` will create a new underlying
+requests, where each invocation of `start()` or `observe()` will create a new underlying
 operation, and allow the caller to observe the result(s). The
 `startWithSignal()` variant gives access to the produced signal, allowing it to
 be observed multiple times if desired.
@@ -88,7 +88,9 @@ Because of the behavior of `start()`, each signal created from the same
 producer may see a different ordering or version of events, or the stream might
 even be completely different! Unlike a plain signal, no work is started (and
 thus no events are generated) until an observer is attached, and the work is
-restarted anew for each additional observer.
+restarted anew for each additional observer. (This means that, unlike for `Signal`,
+calling `observe(_:during:)` may generate side effects, since the underlying
+operation is created and run immediately.)
 
 Starting a signal producer returns a [disposable](#disposables) that can be used to
 interrupt/cancel the work associated with the produced signal.
