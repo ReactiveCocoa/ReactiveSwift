@@ -174,7 +174,9 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 
 	/// A producer for a Signal that never sends any events to its observers.
 	public static var never: SignalProducer {
-		return self.init { _ in return }
+		return self.init { observer, lifetime in
+			lifetime.observeEnded { _ = observer }
+		}
 	}
 
 	/// Create a `Signal` from `self`, pass it into the given closure, and start the
