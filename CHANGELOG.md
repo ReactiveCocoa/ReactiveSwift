@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. `promoteError` can now infer the new error type from the context. (#413, kudos to @andersio)
+
 # 2.0.0-alpha.1
 This is the first alpha release of ReactiveSwift 2.0. It requires Swift 3.1 (Xcode 8.3).
 

@@ -1399,8 +1399,23 @@ extension SignalProducer where Error == NoError {
 	///   - _ An `ErrorType`.
 	///
 	/// - returns: A producer that has an instantiatable `ErrorType`.
-	public func promoteError<F: Swift.Error>(_: F.Type) -> SignalProducer<Value, F> {
+	public func promoteError<F: Swift.Error>(_: F.Type = F.self) -> SignalProducer<Value, F> {
 		return lift { $0.promoteError(F.self) }
+	}
+
+	/// Promote a producer that does not generate failures into one that can.
+	///
+	/// - note: This does not actually cause failers to be generated for the
+	///         given producer, but makes it easier to combine with other
+	///         producers that may fail; for example, with operators like
+	///         `combineLatestWith`, `zipWith`, `flatten`, etc.
+	///
+	/// - parameters:
+	///   - _ An `ErrorType`.
+	///
+	/// - returns: A producer that has an instantiatable `ErrorType`.
+	public func promoteError(_: Error.Type = Error.self) -> SignalProducer<Value, Error> {
+		return self
 	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't
