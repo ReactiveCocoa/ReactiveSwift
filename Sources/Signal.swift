@@ -519,6 +519,23 @@ extension Signal {
 	}
 }
 
+public protocol SignalProtocol: class {
+	/// The type of values being sent by `self`.
+	associatedtype Value
+
+	/// The type of error that can occur on `self`.
+	associatedtype Error: Swift.Error
+
+	/// The materialized `self`.
+	var signal: Signal<Value, Error> { get }
+}
+
+extension Signal: SignalProtocol {
+	public var signal: Signal<Value, Error> {
+		return self
+	}
+}
+
 extension Signal: SignalProducerConvertible {
 	public var producer: SignalProducer<Value, Error> {
 		return SignalProducer(self)

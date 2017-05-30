@@ -123,12 +123,6 @@ public typealias SimpleDisposable = AnyDisposable
 @available(*, unavailable, renamed:"AnyDisposable")
 public typealias ActionDisposable = AnyDisposable
 
-@available(*, unavailable, message: "`SignalProtocol` has been removed. Constrain `Signal` directly instead.")
-public protocol SignalProtocol {}
-
-@available(*, unavailable, message: "`SignalProducerProtocol` has been removed. Constrain `SignalProducer` directly instead.")
-public protocol SignalProducerProtocol {}
-
 @available(*, unavailable, renamed:"Signal.Event")
 public typealias Event<Value, Error: Swift.Error> = Signal<Value, Error>.Event
 
