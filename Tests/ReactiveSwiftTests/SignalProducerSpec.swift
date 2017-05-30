@@ -2739,6 +2739,18 @@ class SignalProducerSpec: QuickSpec {
 				observer2.sendCompleted()
 			}
 		}
+
+		describe("promoteError") {
+			it("should infer the error type from the context") {
+				let combined: Any = SignalProducer
+					.combineLatest(SignalProducer<Int, NoError>.never.promoteError(),
+					               SignalProducer<Double, TestError>.never,
+					               SignalProducer<Float, NoError>.never.promoteError(),
+					               SignalProducer<UInt, POSIXError>.never.flatMapError { _ in .empty })
+
+				expect(combined is SignalProducer<(Int, Double, Float, UInt), TestError>) == true
+			}
+		}
 	}
 }
 
