@@ -98,15 +98,16 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
 
-		// `isExecuting` has its own `Signal`, so that legitimate feedbacks would
-		// not deadlock.
 		let actionState = MutableProperty(ActionState<State.Value>(isUserEnabled: true, isExecuting: false, value: state.value))
 		self.isEnabled = actionState.map { $0.isEnabled }
 
+		// `isExecuting` has its own backing so that when the observer of `isExecuting`
+		// synchronously affects the action state, the signal of the action state does not
+		// deadlock due to the recursion.
 		let isExecuting = MutableProperty(false)
 		self.isExecuting = Property(capturing: isExecuting)
 
-		// Associate the state property with the created `Action`.
+		// `Action` retains its state property.
 		lifetime.observeEnded { _ = state }
 
 		(events, eventsObserver) = Signal<Signal<Output, Error>.Event, NoError>.pipe()
@@ -127,19 +128,25 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 		self.execute = { action, input in
 			return SignalProducer { observer, lifetime in
-				func tryStart() -> State.Value? {
-					return actionState.modify { state in
-						guard state.isEnabled else {
-							return nil
-						}
+				var notifiesExecutionState = false
 
-						state.isExecuting = true
+				func didSet() {
+					if notifiesExecutionState {
 						isExecuting.value = true
-						return state.value
 					}
 				}
 
-				guard let state = tryStart() else {
+				let latestState: State.Value? = actionState.modify(didSet: didSet) { state in
+					guard state.isEnabled else {
+						return nil
+					}
+
+					state.isExecuting = true
+					notifiesExecutionState = true
+					return state.value
+				}
+
+				guard let state = latestState else {
 					observer.send(error: .disabled)
 					action.disabledErrorsObserver.send(value: ())
 					return
@@ -153,9 +160,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 				lifetime.observeEnded {
 					interruptHandle.dispose()
 
-					actionState.modify { state in
+					actionState.modify(didSet: { isExecuting.value = false }) { state in
 						state.isExecuting = false
-						isExecuting.value = false
 					}
 				}
 			}

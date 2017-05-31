@@ -673,6 +673,22 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 		}
 	}
 
+	/// Atomically modifies the variable.
+	///
+	/// - parameters:
+	///   - didSet: A closure that is invoked after `action` returns and the value is
+	///             committed to the storage, but before `modify` releases the lock.
+	///   - action: A closure that accepts old property value and returns a new
+	///             property value.
+	///
+	/// - returns: The result of the action.
+	@discardableResult
+	internal func modify<Result>(didSet: () -> Void, _ action: (inout Value) throws -> Result) rethrows -> Result {
+		return try box.modify(didSet: { self.observer.send(value: $0); didSet() }) { value in
+			return try action(&value)
+		}
+	}
+
 	/// Atomically performs an arbitrary action using the current value of the
 	/// variable.
 	///
