@@ -1,5 +1,6 @@
 # master
 *Please add new entries at the top.*
+1. Feedbacks from `isExecuting` to the state of the same `Action`, including all `enabledIf` convenience initializers, no longer deadlocks. (#400, kudos to @andersio)
 
 1. `MutableProperty` now enforces exclusivity of access. (#419, kudos to @andersio)
 
