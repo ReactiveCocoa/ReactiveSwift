@@ -1,6 +1,10 @@
 # master
 *Please add new entries at the top.*
 
+1. `MutableProperty` now enforces exclusivity of access. (#419, kudos to @andersio)
+
+   In other words, nested modification in `MutableProperty.modify` is now prohibited. Generally speaking, it should have extremely limited impact as in most cases the `MutableProperty` would have been deadlocked already.
+
 1. `promoteError` can now infer the new error type from the context. (#413, kudos to @andersio)
 
 # 2.0.0-alpha.1
