@@ -559,7 +559,7 @@ public final class Property<Value>: PropertyProtocol {
 		signal = relay
 
 		producer = SignalProducer { [box, signal = relay!] observer, lifetime in
-			box.modify { value in
+			box.withValue { value in
 				observer.send(value: value!)
 				if let d = signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer)) {
 					lifetime.observeEnded(d.dispose)
@@ -605,7 +605,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// Setting this to a new value will notify all observers of `signal`, or
 	/// signals created using `producer`.
 	public var value: Value {
-		get { return box.modify { $0 } }
+		get { return box.value }
 		set { modify { $0 = newValue } }
 	}
 
@@ -621,7 +621,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// deinitialized.
 	public var producer: SignalProducer<Value, NoError> {
 		return SignalProducer { [box, signal] observer, lifetime in
-			box.modify { value in
+			box.withValue { value in
 				observer.send(value: value)
 				if let d = signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer)) {
 					lifetime.observeEnded(d.dispose)
@@ -673,6 +673,22 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 		}
 	}
 
+	/// Atomically modifies the variable.
+	///
+	/// - parameters:
+	///   - didSet: A closure that is invoked after `action` returns and the value is
+	///             committed to the storage, but before `modify` releases the lock.
+	///   - action: A closure that accepts old property value and returns a new
+	///             property value.
+	///
+	/// - returns: The result of the action.
+	@discardableResult
+	internal func modify<Result>(didSet: () -> Void, _ action: (inout Value) throws -> Result) rethrows -> Result {
+		return try box.modify(didSet: { self.observer.send(value: $0); didSet() }) { value in
+			return try action(&value)
+		}
+	}
+
 	/// Atomically performs an arbitrary action using the current value of the
 	/// variable.
 	///
@@ -682,7 +698,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - returns: the result of the action.
 	@discardableResult
 	public func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
-		return try box.modify { try action($0) }
+		return try box.withValue { try action($0) }
 	}
 
 	deinit {
@@ -697,6 +713,8 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 private final class PropertyBox<Value> {
 	private let lock: Lock.PthreadLock
 	private var _value: Value
+	private var isModifying = false
+
 	var value: Value { return modify { $0 } }
 
 	init(_ value: Value) {
@@ -704,9 +722,17 @@ private final class PropertyBox<Value> {
 		lock = Lock.PthreadLock(recursive: true)
 	}
 
+	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
+		lock.lock()
+		defer { lock.unlock() }
+		return try action(_value)
+	}
+
 	func modify<Result>(didSet: (Value) -> Void = { _ in }, _ action: (inout Value) throws -> Result) rethrows -> Result {
 		lock.lock()
-		defer { didSet(_value); lock.unlock() }
+		guard !isModifying else { fatalError("Nested modifications violate exclusivity of access.") }
+		isModifying = true
+		defer { isModifying = false; didSet(_value); lock.unlock() }
 		return try action(&_value)
 	}
 }
