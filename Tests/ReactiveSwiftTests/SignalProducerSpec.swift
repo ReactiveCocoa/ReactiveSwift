@@ -123,6 +123,27 @@ class SignalProducerSpec: QuickSpec {
 				startDisposable.dispose()
 				expect(addedDisposable.isDisposed) == true
 			}
+
+			it("should deliver the interrupted event with respect to the applied asynchronous operators") {
+				let scheduler = TestScheduler()
+				var signalInterrupted = false
+				var observerInterrupted = false
+
+				let (signal, _) = Signal<Int, NoError>.pipe()
+
+				SignalProducer(signal)
+					.observe(on: scheduler)
+					.on(interrupted: { signalInterrupted = true })
+					.startWithInterrupted { observerInterrupted = true }
+					.dispose()
+
+				expect(signalInterrupted) == false
+				expect(observerInterrupted) == false
+
+				scheduler.run()
+				expect(signalInterrupted) == true
+				expect(observerInterrupted) == true
+			}
 		}
 
 		describe("init(signal:)") {
