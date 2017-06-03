@@ -4,6 +4,14 @@
 1. N-ary `SignalProducer` operators are now generic and accept any type that can be expressed as `SignalProducer`. (#410, kudos to @andersio)
    Types may conform to `SignalProducerConvertible` to be an eligible operand.
 
+1. The performance of `SignalProducer` has been improved significantly. (#140, kudos to @andersio)
+
+   All lifted `SignalProducer` operators no longer yield an extra `Signal`. As a result, the calling overhead of event delivery is generally reduced proportionally to the level of chaining of lifted operators.
+   
+1. `interrupted` now respects `observe(on:)`. (#140)
+
+   When a produced `Signal` is interrupted, if `observe(on:)` is the last applied operator, `interrupted` would now be delivered on the `Scheduler` passed to `observe(on:)` just like other events.
+
 1. Feedbacks from `isExecuting` to the state of the same `Action`, including all `enabledIf` convenience initializers, no longer deadlocks. (#400, kudos to @andersio)
 
 1. `MutableProperty` now enforces exclusivity of access. (#419, kudos to @andersio)
