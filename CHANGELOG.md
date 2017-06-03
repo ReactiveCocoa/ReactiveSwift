@@ -7,7 +7,7 @@
    
 1. `interrupted` now respects `observe(on:)`. (#140)
 
-   When a produced `Signal` is interrupted, if `observe(on:)` is the last applied asynchronous operator, `interrupted` would now be delivered on the `Scheduler` passed to `observe(on:)` just like other events.
+   When a produced `Signal` is interrupted, if `observe(on:)` is the last applied operator, `interrupted` would now be delivered on the `Scheduler` passed to `observe(on:)` just like other events.
 
 1. Feedbacks from `isExecuting` to the state of the same `Action`, including all `enabledIf` convenience initializers, no longer deadlocks. (#400, kudos to @andersio)
 
