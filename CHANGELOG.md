@@ -3,9 +3,11 @@
 
 1. The performance of `SignalProducer` has been improved significantly. (#140, kudos to @andersio)
 
-   All lifted `SignalProducer` operators no longer yields an extra `Signal`. As a result, the calling overhead of event delivery is generally reduced proportionally to the level of chaining of lifted operators.
+   All lifted `SignalProducer` operators no longer yield an extra `Signal`. As a result, the calling overhead of event delivery is generally reduced proportionally to the level of chaining of lifted operators.
    
-   Note that `interrupted` is now propagated from the upstream for all lifted `SignalProducer` operators if possible. This means `interrupted` might not be delivered immediately if an asynchronous operator e.g. `observe(on:)` has been applied.
+1. `interrupted` now respects `observe(on:)`. (#140)
+
+   When a produced `Signal` is interrupted, if `observe(on:)` is the last applied asynchronous operator, `interrupted` would now be delivered on the `Scheduler` passed to `observe(on:)` just like other events.
 
 1. Feedbacks from `isExecuting` to the state of the same `Action`, including all `enabledIf` convenience initializers, no longer deadlocks. (#400, kudos to @andersio)
 
