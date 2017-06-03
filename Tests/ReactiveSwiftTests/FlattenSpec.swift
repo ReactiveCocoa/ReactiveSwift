@@ -12,7 +12,7 @@ import Quick
 import ReactiveSwift
 import Dispatch
 
-private extension SignalProtocol {
+private extension Signal {
 	typealias Pipe = (output: Signal<Value, Error>, input: Signal<Value, Error>.Observer)
 }
 

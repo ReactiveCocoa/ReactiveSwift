@@ -774,7 +774,7 @@ class SignalProducerSpec: QuickSpec {
 						}
 					}
 
-					let producer = baseProducer.lift(transform)(otherSignal)
+					let producer = baseProducer.lift(transform)(SignalProducer(otherSignal))
 					expect(counter) == 0
 
 					producer.start()
@@ -796,7 +796,7 @@ class SignalProducerSpec: QuickSpec {
 						}
 					}
 
-					let producer = baseProducer.lift(transform)(otherSignal)
+					let producer = baseProducer.lift(transform)(SignalProducer(otherSignal))
 					var result: [Int] = []
 					var completed: Bool = false
 

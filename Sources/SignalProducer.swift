@@ -41,6 +41,14 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 
 	fileprivate let builder: () -> Instance
 
+	/// Convert an entity into its equivalent representation as `SignalProducer`.
+	///
+	/// - parameters:
+	///   - base: The entity to convert from.
+	public init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
+		self = base.producer
+	}
+
 	/// Initializes a `SignalProducer` that will emit the same events as the
 	/// given signal.
 	///
@@ -249,19 +257,31 @@ extension SignalProducer where Error == AnyError {
 	}
 }
 
-/// A protocol used to constraint `SignalProducer` operators.
-public protocol SignalProducerProtocol {
-	/// The type of values being sent on the producer
+/// Represents reactive primitives that can be represented by `SignalProducer`.
+public protocol SignalProducerConvertible {
+	/// The type of values being sent by `self`.
 	associatedtype Value
-	/// The type of error that can occur on the producer. If errors aren't possible
-	/// then `NoError` can be used.
+
+	/// The type of error that can occur on `self`.
 	associatedtype Error: Swift.Error
 
-	/// Extracts a signal producer from the receiver.
+	/// The `SignalProducer` representation of `self`.
 	var producer: SignalProducer<Value, Error> { get }
 }
 
-extension SignalProducer: SignalProducerProtocol {
+/// A protocol for constraining associated types to `SignalProducer`.
+public protocol SignalProducerProtocol {
+	/// The type of values being sent by `self`.
+	associatedtype Value
+
+	/// The type of error that can occur on `self`.
+	associatedtype Error: Swift.Error
+
+	/// The materialized `self`.
+	var producer: SignalProducer<Value, Error> { get }
+}
+
+extension SignalProducer: SignalProducerConvertible, SignalProducerProtocol {
 	public var producer: SignalProducer {
 		return self
 	}
@@ -477,25 +497,6 @@ extension SignalProducer {
 	/// - returns: A binary operator that operates on two signal producers.
 	public func lift<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return liftRight(transform)
-	}
-
-	/// Lift a binary Signal operator to operate upon a Signal and a
-	/// SignalProducer instead.
-	///
-	/// In other words, this will create a new `SignalProducer` which will apply
-	/// the given `Signal` operator to _every_ `Signal` created from the two
-	/// producers, just as if the operator had been applied to each `Signal`
-	/// yielded from `start()`.
-	///
-	/// - parameters:
-	///   - transform: A binary operator to lift.
-	///
-	/// - returns: A binary operator that works on `Signal` and returns
-	///            `SignalProducer`.
-	public func lift<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (Signal<U, F>) -> SignalProducer<V, G> {
-		return { otherSignal in
-			return self.liftRight(transform)(SignalProducer<U, F>(otherSignal))
-		}
 	}
 }
 
@@ -825,29 +826,8 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that, when started, will yield a tuple containing
 	///            values of `self` and given producer.
-	public func combineLatest<U>(with other: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
+	public func combineLatest<Other: SignalProducerConvertible>(with other: Other) -> SignalProducer<(Value, Other.Value), Error> where Other.Error == Error {
 		return SignalProducer.combineLatest(self, other)
-	}
-
-	/// Combine the latest value of the receiver with the latest value from
-	/// the given signal.
-	///
-	/// - note: The returned producer will not send a value until both inputs
-	///         have sent at least one value each. 
-	///
-	/// - note: If either input is interrupted, the returned producer will also
-	///         be interrupted.
-	///
-	/// - note: The returned producer will not complete until both inputs
-	///         complete.
-	///
-	/// - parameters:
-	///   - other: A signal to combine `self`'s value with.
-	///
-	/// - returns: A producer that, when started, will yield a tuple containing
-	///            values of `self` and given signal.
-	public func combineLatest<U>(with other: Signal<U, Error>) -> SignalProducer<(Value, U), Error> {
-		return SignalProducer.combineLatest(self, SignalProducer<U, Error>(other))
 	}
 
 	/// Delay `value` and `completed` events by the given interval, forwarding
@@ -906,27 +886,8 @@ extension SignalProducer {
 	///            sampled (possibly multiple times) by `sampler`, then complete
 	///            once both input producers have completed, or interrupt if
 	///            either input producer is interrupted.
-	public func sample<T>(with sampler: SignalProducer<T, NoError>) -> SignalProducer<(Value, T), Error> {
-		return liftLeft(Signal.sample(with:))(sampler)
-	}
-	
-	/// Forward the latest value from `self` with the value from `sampler` as a
-	/// tuple, only when `sampler` sends a `value` event.
-	///
-	/// - note: If `sampler` fires before a value has been observed on `self`,
-	///         nothing happens.
-	///
-	/// - parameters:
-	///   - sampler: A signal that will trigger the delivery of `value` event
-	///              from `self`.
-	///
-	/// - returns: A producer that, when started, will send values from `self`
-	///            and `sampler`, sampled (possibly multiple times) by
-	///            `sampler`, then complete once both input producers have
-	///            completed, or interrupt if either input producer is
-	///            interrupted.
-	public func sample<T>(with sampler: Signal<T, NoError>) -> SignalProducer<(Value, T), Error> {
-		return lift(Signal.sample(with:))(sampler)
+	public func sample<Sampler: SignalProducerConvertible>(with sampler: Sampler) -> SignalProducer<(Value, Sampler.Value), Error> where Sampler.Error == NoError {
+		return liftLeft(Signal.sample(with:))(sampler.producer)
 	}
 
 	/// Forward the latest value from `self` whenever `sampler` sends a `value`
@@ -943,26 +904,8 @@ extension SignalProducer {
 	///            sampled (possibly multiple times) by `sampler`, then complete
 	///            once both input producers have completed, or interrupt if
 	///            either input producer is interrupted.
-	public func sample(on sampler: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
-		return liftLeft(Signal.sample(on:))(sampler)
-	}
-
-	/// Forward the latest value from `self` whenever `sampler` sends a `value`
-	/// event.
-	///
-	/// - note: If `sampler` fires before a value has been observed on `self`,
-	///         nothing happens.
-	///
-	/// - parameters:
-	///   - trigger: A signal whose `value` or `completed` events will start the
-	///              deliver of events on `self`.
-	///
-	/// - returns: A producer that will send values from `self`, sampled
-	///            (possibly multiple times) by `sampler`, then complete once 
-	///            both inputs have completed, or interrupt if either input is
-	///            interrupted.
-	public func sample(on sampler: Signal<(), NoError>) -> SignalProducer<Value, Error> {
-		return lift(Signal.sample(on:))(sampler)
+	public func sample<Sampler: SignalProducerConvertible>(on sampler: Sampler) -> SignalProducer<Value, Error> where Sampler.Value == (), Sampler.Error == NoError {
+		return liftLeft(Signal.sample(on:))(sampler.producer)
 	}
 
 	/// Forward the latest value from `samplee` with the value from `self` as a
@@ -980,27 +923,8 @@ extension SignalProducer {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func withLatest<U>(from samplee: SignalProducer<U, NoError>) -> SignalProducer<(Value, U), Error> {
-		return liftRight(Signal.withLatest)(samplee)
-	}
-
-	/// Forward the latest value from `samplee` with the value from `self` as a
-	/// tuple, only when `self` sends a `value` event.
-	/// This is like a flipped version of `sample(with:)`, but `samplee`'s
-	/// terminal events are completely ignored.
-	///
-	/// - note: If `self` fires before a value has been observed on `samplee`,
-	///         nothing happens.
-	///
-	/// - parameters:
-	///   - samplee: A signal whose latest value is sampled by `self`.
-	///
-	/// - returns: A signal that will send values from `self` and `samplee`,
-	///            sampled (possibly multiple times) by `self`, then terminate
-	///            once `self` has terminated. **`samplee`'s terminated events
-	///            are ignored**.
-	public func withLatest<U>(from samplee: Signal<U, NoError>) -> SignalProducer<(Value, U), Error> {
-		return lift(Signal.withLatest)(samplee)
+	public func withLatest<Samplee: SignalProducerConvertible>(from samplee: Samplee) -> SignalProducer<(Value, Samplee.Value), Error> where Samplee.Error == NoError {
+		return liftRight(Signal.withLatest)(samplee.producer)
 	}
 
 	/// Forwards events from `self` until `lifetime` ends, at which point the
@@ -1024,21 +948,8 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that will deliver events until `trigger` sends
 	///            `value` or `completed` events.
-	public func take(until trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
-		return liftRight(Signal.take(until:))(trigger)
-	}
-
-	/// Forward events from `self` until `trigger` sends a `value` or
-	/// `completed` event, at which point the returned producer will complete.
-	///
-	/// - parameters:
-	///   - trigger: A signal whose `value` or `completed` events will stop the
-	///              delivery of `value` events from `self`.
-	///
-	/// - returns: A producer that will deliver events until `trigger` sends
-	///            `value` or `completed` events.
-	public func take(until trigger: Signal<(), NoError>) -> SignalProducer<Value, Error> {
-		return lift(Signal.take(until:))(trigger)
+	public func take<Trigger: SignalProducerConvertible>(until trigger: Trigger) -> SignalProducer<Value, Error> where Trigger.Value == (), Trigger.Error == NoError {
+		return liftRight(Signal.take(until:))(trigger.producer)
 	}
 
 	/// Do not forward any values from `self` until `trigger` sends a `value`
@@ -1051,24 +962,10 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that will deliver events once the `trigger` sends
 	///            `value` or `completed` events.
-	public func skip(until trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
-		return liftRight(Signal.skip(until:))(trigger)
+	public func skip<Trigger: SignalProducerConvertible>(until trigger: Trigger) -> SignalProducer<Value, Error> where Trigger.Value == (), Trigger.Error == NoError {
+		return liftRight(Signal.skip(until:))(trigger.producer)
 	}
-	
-	/// Do not forward any values from `self` until `trigger` sends a `value`
-	/// or `completed`, at which point the returned signal behaves exactly like
-	/// `signal`.
-	///
-	/// - parameters:
-	///   - trigger: A signal whose `value` or `completed` events will start the
-	///              deliver of events on `self`.
-	///
-	/// - returns: A producer that will deliver events once the `trigger` sends
-	///            `value` or `completed` events.
-	public func skip(until trigger: Signal<(), NoError>) -> SignalProducer<Value, Error> {
-		return lift(Signal.skip(until:))(trigger)
-	}
-	
+
 	/// Forward events from `self` with history: values of the returned producer
 	/// are a tuple whose first member is the previous value and whose second
 	/// member is the current value. `initial` is supplied as the first member
@@ -1179,26 +1076,10 @@ extension SignalProducer {
 		return lift { $0.skip(while: shouldContinue) }
 	}
 
-	/// Forward events from `self` until `replacement` begins sending events.
-	///
-	/// - parameters:
-	///   - replacement: A producer to wait to wait for values from and start
-	///                  sending them as a replacement to `self`'s values.
-	///
-	/// - returns: A producer which passes through `value`, `failed`, and
-	///            `interrupted` events from `self` until `replacement` sends an 
-	///            event, at which point the returned producer will send that
-	///            event and switch to passing through events from `replacement` 
-	///            instead, regardless of whether `self` has sent events
-	///            already.
-	public func take(untilReplacement signal: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return liftRight(Signal.take(untilReplacement:))(signal)
-	}
-
 	/// Forwards events from `self` until `replacement` begins sending events.
 	///
 	/// - parameters:
-	///   - replacement: A signal to wait to wait for values from and start
+	///   - replacement: A producer to wait to wait for values from and start
 	///                  sending them as a replacement to `self`'s values.
 	///
 	/// - returns: A producer which passes through `value`, `failed`, and
@@ -1207,8 +1088,8 @@ extension SignalProducer {
 	///            event and switch to passing through events from `replacement`
 	///            instead, regardless of whether `self` has sent events
 	///            already.
-	public func take(untilReplacement signal: Signal<Value, Error>) -> SignalProducer<Value, Error> {
-		return lift(Signal.take(untilReplacement:))(signal)
+	public func take<Replacement: SignalProducerConvertible>(untilReplacement replacement: Replacement) -> SignalProducer<Value, Error> where Replacement.Value == Value, Replacement.Error == Error {
+		return liftRight(Signal.take(untilReplacement:))(replacement.producer)
 	}
 
 	/// Wait until `self` completes and then forward the final `count` values
@@ -1242,19 +1123,8 @@ extension SignalProducer {
 	///   - other: A producer to zip values with.
 	///
 	/// - returns: A producer that sends tuples of `self` and `otherProducer`.
-	public func zip<U>(with other: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
+	public func zip<Other: SignalProducerConvertible>(with other: Other) -> SignalProducer<(Value, Other.Value), Error> where Other.Error == Error {
 		return SignalProducer.zip(self, other)
-	}
-
-	/// Zip elements of this producer and a signal into pairs. The elements of
-	/// any Nth pair are the Nth elements of the two.
-	///
-	/// - parameters:
-	///   - other: A signal to zip values with.
-	///
-	/// - returns: A producer that sends tuples of `self` and `otherSignal`.
-	public func zip<U>(with other: Signal<U, Error>) -> SignalProducer<(Value, U), Error> {
-		return SignalProducer.zip(self, SignalProducer<U, Error>(other))
 	}
 
 	/// Apply an action to every value from `self`, and forward the value if the action
@@ -1642,161 +1512,161 @@ extension SignalProducer {
 extension SignalProducer {
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
-		return SignalProducer<(Value, B), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b) { Signal.combineLatest($0, $1).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible>(_ a: A, _ b: B) -> SignalProducer<(Value, B.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer) { Signal.combineLatest($0, $1).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B, C>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(Value, B, C), Error> {
-		return SignalProducer<(Value, B, C), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c) { Signal.combineLatest($0, $1, $2).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C) -> SignalProducer<(Value, B.Value, C.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer) { Signal.combineLatest($0, $1, $2).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B, C, D>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(Value, B, C, D), Error> {
-		return SignalProducer<(Value, B, C, D), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d) { Signal.combineLatest($0, $1, $2, $3).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D) -> SignalProducer<(Value, B.Value, C.Value, D.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer) { Signal.combineLatest($0, $1, $2, $3).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B, C, D, E>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(Value, B, C, D, E), Error> {
-		return SignalProducer<(Value, B, C, D, E), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e) { Signal.combineLatest($0, $1, $2, $3, $4).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value), Error> where A.Value == Value, A.Error == Error , B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer) { Signal.combineLatest($0, $1, $2, $3, $4).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B, C, D, E, F>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(Value, B, C, D, E, F), Error> {
-		return SignalProducer<(Value, B, C, D, E, F), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f) { Signal.combineLatest($0, $1, $2, $3, $4, $5).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer) { Signal.combineLatest($0, $1, $2, $3, $4, $5).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B, C, D, E, F, G>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(Value, B, C, D, E, F, G), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f, g) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error, G.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B, C, D, E, F, G, H>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f, g, h) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error, G.Error == Error, H.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B, C, D, E, F, G, H, I>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f, g, h, i) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible, I: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error, G.Error == Error, H.Error == Error, I.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer, i.producer) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f, g, h, i, j) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible, I: SignalProducerConvertible, J: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value, J.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error, G.Error == Error, H.Error == Error, I.Error == Error, J.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer, i.producer, j.producer) { Signal.combineLatest($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
 		}
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`. Will return an empty `SignalProducer` if the sequence is empty.
-	public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
+	public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
 		return start(producers, Signal.combineLatest)
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(Value, B), Error> {
-		return SignalProducer<(Value, B), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b) { Signal.zip($0, $1).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible>(_ a: A, _ b: B) -> SignalProducer<(Value, B.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer) { Signal.zip($0, $1).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B, C>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(Value, B, C), Error> {
-		return SignalProducer<(Value, B, C), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c) { Signal.zip($0, $1, $2).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C) -> SignalProducer<(Value, B.Value, C.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer) { Signal.zip($0, $1, $2).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B, C, D>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(Value, B, C, D), Error> {
-		return SignalProducer<(Value, B, C, D), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d) { Signal.zip($0, $1, $2, $3).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D) -> SignalProducer<(Value, B.Value, C.Value, D.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer) { Signal.zip($0, $1, $2, $3).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B, C, D, E>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(Value, B, C, D, E), Error> {
-		return SignalProducer<(Value, B, C, D, E), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e) { Signal.zip($0, $1, $2, $3, $4).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer) { Signal.zip($0, $1, $2, $3, $4).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B, C, D, E, F>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(Value, B, C, D, E, F), Error> {
-		return SignalProducer<(Value, B, C, D, E, F), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f) { Signal.zip($0, $1, $2, $3, $4, $5).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer) { Signal.zip($0, $1, $2, $3, $4, $5).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B, C, D, E, F, G>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(Value, B, C, D, E, F, G), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f, g) { Signal.zip($0, $1, $2, $3, $4, $5, $6).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error, G.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer) { Signal.zip($0, $1, $2, $3, $4, $5, $6).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B, C, D, E, F, G, H>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f, g, h) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error, G.Error == Error, H.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B, C, D, E, F, G, H, I>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H, I), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f, g, h, i) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible, I: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error, G.Error == Error, H.Error == Error, I.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer, i.producer) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<B, C, D, E, F, G, H, I, J>(_ a: SignalProducer<Value, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> {
-		return SignalProducer<(Value, B, C, D, E, F, G, H, I, J), Error> { observer, lifetime in
-			flattenStart(lifetime, a, b, c, d, e, f, g, h, i, j) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
+	public static func zip<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible, I: SignalProducerConvertible, J: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value, J.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error, F.Error == Error, G.Error == Error, H.Error == Error, I.Error == Error, J.Error == Error {
+		return .init { observer, lifetime in
+			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer, i.producer, j.producer) { Signal.zip($0, $1, $2, $3, $4, $5, $6, $7, $8, $9).observe(observer) }
 		}
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zipWith`. Will return an empty `SignalProducer` if the sequence is empty.
-	public static func zip<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
+	public static func zip<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
 		return start(producers, Signal.zip)
 	}
 
-	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping (ReversedRandomAccessCollection<[Signal<Value, Error>]>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
+	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping (ReversedRandomAccessCollection<[Signal<Value, Error>]>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
 		return SignalProducer<[Value], Error> { observer, lifetime in
 			var producers = Array(producers)
 			var signals: [Signal<Value, Error>] = []
@@ -1812,7 +1682,7 @@ extension SignalProducer {
 					return
 				}
 
-				producers.removeLast().startWithSignal { signal, interruptHandle in
+				producers.removeLast().producer.startWithSignal { signal, interruptHandle in
 					lifetime.observeEnded(interruptHandle.dispose)
 					signals.append(signal)
 
@@ -2179,44 +2049,22 @@ extension SignalProducer where Value == Bool {
 	/// and `producer`.
 	///
 	/// - parameters:
-	///   - producer: Producer to be combined with `self`.
+	///   - booleans: A producer of booleans to be combined with `self`.
 	///
 	/// - returns: A producer that emits the logical AND results.
-	public func and(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return self.liftLeft(Signal.and)(producer)
+	public func and<Booleans: SignalProducerConvertible>(_ booleans: Booleans) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error {
+		return self.liftLeft(Signal.and)(booleans.producer)
 	}
-	
-	/// Create a producer that computes a logical AND between the latest values of `self`
-	/// and `signal`.
-	///
-	/// - parameters:
-	///   - signal: Signal to be combined with `self`.
-	///
-	/// - returns: A producer that emits the logical AND results.
-	public func and(_ signal: Signal<Value, Error>) -> SignalProducer<Value, Error> {
-		return self.lift(Signal.and)(signal)
-	}
-	
+
 	/// Create a producer that computes a logical OR between the latest values of `self`
 	/// and `producer`.
 	///
 	/// - parameters:
-	///   - producer: Producer to be combined with `self`.
+	///   - booleans: A producer of booleans to be combined with `self`.
 	///
 	/// - returns: A producer that emits the logical OR results.
-	public func or(_ producer: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return self.liftLeft(Signal.or)(producer)
-	}
-	
-	/// Create a producer that computes a logical OR between the latest values of `self`
-	/// and `signal`.
-	///
-	/// - parameters:
-	///   - signal: Signal to be combined with `self`.
-	///
-	/// - returns: A producer that emits the logical OR results.
-	public func or(_ signal: Signal<Value, Error>) -> SignalProducer<Value, Error> {
-		return self.lift(Signal.or)(signal)
+	public func or<Booleans: SignalProducerConvertible>(_ booleans: Booleans) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error {
+		return self.liftLeft(Signal.or)(booleans.producer)
 	}
 }
 

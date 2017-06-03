@@ -1,6 +1,9 @@
 # master
 *Please add new entries at the top.*
 
+1. N-ary `SignalProducer` operators are now generic and accept any type that can be expressed as `SignalProducer`. (#410, kudos to @andersio)
+   Types may conform to `SignalProducerConvertible` to be an eligible operand.
+
 1. The performance of `SignalProducer` has been improved significantly. (#140, kudos to @andersio)
 
    All lifted `SignalProducer` operators no longer yield an extra `Signal`. As a result, the calling overhead of event delivery is generally reduced proportionally to the level of chaining of lifted operators.
