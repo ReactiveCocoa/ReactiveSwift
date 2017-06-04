@@ -1,6 +1,6 @@
 language: objective-c
 osx_image: xcode8.3
-before_install: 
+before_install:
   - brew uninstall carthage
   - HOMEBREW_NO_AUTO_UPDATE=1 brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/6ae4f69a652fb0ecb102b0c9216378679a4f1b92/Formula/carthage.rb # 0.22.0
 install: true
@@ -9,7 +9,7 @@ branches:
     - master
     # Credit: @Omnikron13, https://github.com/mojombo/semver/issues/32
     - /^(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
-    - /^hotfix-(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/ 
+    - /^hotfix-(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
 script:
   - script/build
 xcode_workspace: ReactiveSwift.xcworkspace
@@ -55,6 +55,15 @@ jobs:
         submodules: false
       env:
         - JOB=SWIFTPM_DARWIN
+    - before_install:
+        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
+      script:
+        - swift build
+      git:
+        submodules: false
+      env:
+        - JOB=SWIFT_4
+        - SWIFT_VERSION=DEVELOPMENT-SNAPSHOT-2017-05-29-a
     - os: linux
       language: generic
       sudo: required
@@ -81,7 +90,7 @@ jobs:
     - stage: deploy
       before_install: true
       script: skip
-      deploy: 
+      deploy:
         provider: script
         script: script/gen-docs
         on:

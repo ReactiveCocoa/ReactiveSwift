@@ -2089,7 +2089,7 @@ extension Signal {
 		private let action: (ContiguousArray<Any>) -> Void
 
 		private var hasCompletedAndEmptiedSignal: Bool {
-			return Swift.zip(values, isCompleted).contains(where: { $0.isEmpty && $1 })
+			return Swift.zip(values, isCompleted).contains(where: { $0.0.isEmpty && $0.1 })
 		}
 
 		private var canEmit: Bool {
@@ -2489,7 +2489,7 @@ extension Signal where Value == Bool {
 	///
 	/// - returns: A signal that emits the logical AND results.
 	public func and(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
-		return self.combineLatest(with: signal).map { $0 && $1 }
+		return self.combineLatest(with: signal).map { $0.0 && $0.1 }
 	}
 	
 	/// Create a signal that computes a logical OR between the latest values of `self`
@@ -2500,7 +2500,7 @@ extension Signal where Value == Bool {
 	///
 	/// - returns: A signal that emits the logical OR results.
 	public func or(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
-		return self.combineLatest(with: signal).map { $0 || $1 }
+		return self.combineLatest(with: signal).map { $0.0 || $0.1 }
 	}
 }
 
@@ -2515,8 +2515,8 @@ extension Signal {
 	/// - returns: A signal which forwards the values from `self` until the given action
 	///            fails.
 	public func attempt(_ action: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
-		return attemptMap { value in
-			return action(value).map {
+		return attemptMap { value -> Result<Value, Error> in
+			return action(value).map { _ -> Value in
 				return value
 			}
 		}
