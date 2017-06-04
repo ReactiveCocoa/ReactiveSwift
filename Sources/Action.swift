@@ -23,15 +23,24 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			return isUserEnabled && !isExecuting
 		}
 
-		var isUserEnabled: Bool
-		var isExecuting: Bool
+		var isUserEnabled = true
+		var isExecuting = false
 		var value: Value
+
+		init(value: Value) {
+			self.value = value
+		}
+	}
+
+	private struct DerivedSignals {
+		var events: Signal<Signal<Output, Error>.Event, NoError>?
+		var disabledErrors: Signal<(), NoError>? = nil
+		var eventsObserver: Signal<Signal<Output, Error>.Event, NoError>.Observer? = nil
+		var disabledErrorsObserver: Signal<(), NoError>.Observer? = nil
 	}
 
 	private let execute: (Action<Input, Output, Error>, Input) -> SignalProducer<Output, ActionError<Error>>
-	private let eventsObserver: Signal<Signal<Output, Error>.Event, NoError>.Observer
-	private let disabledErrorsObserver: Signal<(), NoError>.Observer
-
+	private let derivedSignals: Atomic<DerivedSignals>
 	private let deinitToken: Lifetime.Token
 
 	/// The lifetime of the `Action`.
@@ -39,30 +48,64 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 	/// A signal of all events generated from all units of work of the `Action`.
 	///
-	/// In other words, this sends every `Event` from every unit of work that the `Action`
-	/// executes.
-	public let events: Signal<Signal<Output, Error>.Event, NoError>
+	/// - note: `Action` guarantees derived `Signal`s to emit relevant events for a
+	///         given unit of work only if the observation is made before the
+	///         execution attempt starts.
+	public var events: Signal<Signal<Output, Error>.Event, NoError> {
+		return derivedSignals.modify { signals in
+			if let events = signals.events {
+				return events
+			} else {
+				let (signal, observer) = Signal<Signal<Output, Error>.Event, NoError>.pipe()
+				(signals.events, signals.eventsObserver) = (signal, observer)
+				return signal
+			}
+		}
+	}
 
 	/// A signal of all values generated from all units of work of the `Action`.
 	///
-	/// In other words, this sends every value from every unit of work that the `Action`
-	/// executes.
-	public let values: Signal<Output, NoError>
+	/// - note: `Action` guarantees derived `Signal`s to emit relevant events for a
+	///         given unit of work only if the observation is made before the
+	///         execution attempt starts.
+	public var values: Signal<Output, NoError> {
+		return events.filterMap { $0.value }
+	}
 
 	/// A signal of all errors generated from all units of work of the `Action`.
 	///
-	/// In other words, this sends every error from every unit of work that the `Action`
-	/// executes.
-	public let errors: Signal<Error, NoError>
+	/// - note: `Action` guarantees derived `Signal`s to emit relevant events for a
+	///         given unit of work only if the observation is made before the
+	///         execution attempt starts.
+	public var errors: Signal<Error, NoError> {
+		return events.filterMap { $0.error }
+	}
 
 	/// A signal of all failed attempts to start a unit of work of the `Action`.
-	public let disabledErrors: Signal<(), NoError>
-
-	/// A signal of all completed events generated from applications of the action.
 	///
-	/// In other words, this will send completed events from every signal generated
-	/// by each SignalProducer returned from apply().
-	public let completed: Signal<(), NoError>
+	/// - note: `Action` guarantees derived `Signal`s to emit relevant events for a
+	///         given unit of work only if the observation is made before the
+	///         execution attempt starts.
+	public var disabledErrors: Signal<(), NoError> {
+		return derivedSignals.modify { signals in
+			if let disabledErrors = signals.disabledErrors {
+				return disabledErrors
+			} else {
+				let (signal, observer) = Signal<(), NoError>.pipe()
+				(signals.disabledErrors, signals.disabledErrorsObserver) = (signal, observer)
+				return signal
+			}
+		}
+	}
+
+	/// A signal of all completions of units of work of the `Action`.
+	///
+	/// - note: `Action` guarantees derived `Signal`s to emit relevant events for a
+	///         given unit of work only if the observation is made before the
+	///         execution attempt starts.
+	public var completed: Signal<(), NoError> {
+		return events.filterMap { $0.isCompleted ? () : nil }
+	}
 
 	/// Whether the action is currently executing.
 	public let isExecuting: Property<Bool>
@@ -98,7 +141,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
 
-		let actionState = MutableProperty(ActionState<State.Value>(isUserEnabled: true, isExecuting: false, value: state.value))
+		let actionState = MutableProperty(ActionState<State.Value>(value: state.value))
 		self.isEnabled = actionState.map { $0.isEnabled }
 
 		// `isExecuting` has its own backing so that when the observer of `isExecuting`
@@ -110,12 +153,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		// `Action` retains its state property.
 		lifetime.observeEnded { _ = state }
 
-		(events, eventsObserver) = Signal<Signal<Output, Error>.Event, NoError>.pipe()
-		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
-
-		values = events.filterMap { $0.value }
-		errors = events.filterMap { $0.error }
-		completed = events.filterMap { $0.isCompleted ? () : nil }
+		derivedSignals = Atomic(DerivedSignals())
 
 		let disposable = state.producer.startWithValues { value in
 			actionState.modify { state in
@@ -146,15 +184,21 @@ public final class Action<Input, Output, Error: Swift.Error> {
 					return state.value
 				}
 
+				// `Action` guarantees derived `Signal`s to emit relevant events for a
+				// given unit of work only if the observation is made before the
+				// execution attempt starts.
+				let (eventsObserver, disabledErrorsObserver) = action.derivedSignals
+					.modify { ($0.eventsObserver, $0.disabledErrorsObserver) }
+
 				guard let state = latestState else {
 					observer.send(error: .disabled)
-					action.disabledErrorsObserver.send(value: ())
+					disabledErrorsObserver?.send(value: ())
 					return
 				}
 
 				let interruptHandle = execute(state, input).start { event in
 					observer.action(event.mapError(ActionError.producerFailed))
-					action.eventsObserver.send(value: event)
+					eventsObserver?.send(value: event)
 				}
 
 				lifetime.observeEnded {
@@ -198,8 +242,9 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	}
 
 	deinit {
-		eventsObserver.sendCompleted()
-		disabledErrorsObserver.sendCompleted()
+		let signals = derivedSignals.swap(DerivedSignals())
+		signals.eventsObserver?.sendCompleted()
+		signals.disabledErrorsObserver?.sendCompleted()
 	}
 
 	/// Create a `SignalProducer` that would attempt to create and start a unit of work of
