@@ -866,6 +866,18 @@ class SignalProducerSpec: QuickSpec {
 				expect(ids) == [1, 2]
 				expect(values._bridgeToObjectiveC()) == [[1, 2]]._bridgeToObjectiveC()
 			}
+
+			it("should combine synchronous events") {
+				var values: [String] = []
+
+				SignalProducer<Int, NoError>([1, 2])
+					.combineLatest(with: SignalProducer(value: 1))
+					.startWithValues { a, b in
+						values.append("\(a)-\(b)")
+					}
+
+				expect(values) == ["1-1", "2-1"]
+			}
 		}
 
 		describe("zip") {
