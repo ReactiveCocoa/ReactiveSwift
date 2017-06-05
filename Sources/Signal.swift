@@ -2473,6 +2473,47 @@ extension Signal where Error == NoError {
 	}
 }
 
+extension Signal where Value == Never {
+	/// Promote a signal that does not generate values, as indicated by `Never`, to be
+	/// a signal of the given type of value.
+	///
+	/// - note: The promotion does not result in any value being generated.
+	///
+	/// - parameters:
+	///   - _ The type of value to promote to.
+	///
+	/// - returns: A signal that forwards all terminal events from `self`.
+	public func promoteValue<U>(_: U.Type = U.self) -> Signal<U, Error> {
+		return Signal<U, Error> { observer in
+			return self.observe { event in
+				switch event {
+				case .value:
+					fatalError("Never is impossible to construct")
+				case let .failed(error):
+					observer.send(error: error)
+				case .completed:
+					observer.sendCompleted()
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
+		}
+	}
+
+	/// Promote a signal that does not generate values, as indicated by `Never`, to be
+	/// a signal of the given type of value.
+	///
+	/// - note: The promotion does not result in any value being generated.
+	///
+	/// - parameters:
+	///   - _ The type of value to promote to.
+	///
+	/// - returns: A signal that forwards all terminal events from `self`.
+	public func promoteValue(_: Value.Type = Value.self) -> Signal<Value, Error> {
+		return self
+	}
+}
+
 extension Signal where Value == Bool {
 	/// Create a signal that computes a logical NOT in the latest values of `self`.
 	///

@@ -3105,6 +3105,16 @@ class SignalSpec: QuickSpec {
 				expect(combined is Signal<(Int, Double, Float, UInt), TestError>) == true
 			}
 		}
+
+		describe("promoteValue") {
+			it("should infer the value type from the context") {
+				let completable = Signal<Never, NoError>.never
+				let producer: Signal<Int, NoError> = Signal<Int, NoError>.never
+					.flatMap(.latest) { _ in completable.promoteValue() }
+
+				expect((producer as Any) is Signal<Int, NoError>) == true
+			}
+		}
 	}
 }
 
