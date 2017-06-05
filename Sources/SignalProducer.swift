@@ -79,7 +79,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - startHandler: A closure that accepts observer and a disposable.
 	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
-		self.init { _ -> Instance in
+		self.init { () -> Instance in
 			let disposable = CompositeDisposable()
 			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
 			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
@@ -427,7 +427,7 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer<U, F> { _ -> SignalProducer<U, F>.Instance in
+		return SignalProducer<U, F> { () -> SignalProducer<U, F>.Instance in
 			// Transform the `Signal`, and pass through the `didCreate` side effect and
 			// the interruptHandle.
 			let instance = self.producer.builder()
@@ -463,7 +463,7 @@ extension SignalProducer {
 
 	private func lift<U, F, V, G>(leftFirst: Bool, _ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
-			return SignalProducer<V, G> { _ -> SignalProducer<V, G>.Instance in
+			return SignalProducer<V, G> { () -> SignalProducer<V, G>.Instance in
 				let left = self.producer.builder()
 				let right = otherProducer.builder()
 
@@ -1466,7 +1466,7 @@ extension SignalProducer {
 		disposed: (() -> Void)? = nil,
 		value: ((Value) -> Void)? = nil
 	) -> SignalProducer<Value, Error> {
-		return SignalProducer { _ -> Instance in
+		return SignalProducer { () -> Instance in
 			let instance = self.producer.builder()
 			let signal = instance.producedSignal.on(event: event,
 			                                        failed: failed,
