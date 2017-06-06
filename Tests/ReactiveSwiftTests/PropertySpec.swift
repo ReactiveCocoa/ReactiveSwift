@@ -285,7 +285,7 @@ class PropertySpec: QuickSpec {
 
 					target! <~ source
 
-					queue.async(group: group) {
+					queue.async(group: group, flags: .barrier) {
 						semaphore.wait()
 						target = nil
 					}
