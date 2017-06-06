@@ -296,7 +296,9 @@ class PropertySpec: QuickSpec {
 					}
 				}
 
-				group.wait()
+				waitUntil { done in
+					group.notify(queue: queue, execute: done)
+				}
 			}
 		}
 
