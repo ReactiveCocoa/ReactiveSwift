@@ -15,8 +15,16 @@ infix operator <~ : BindingPrecedence
 // public protocol BindingSource: SignalProducerConvertible where Error == NoError {}
 
 /// Describes a source which can be bound.
-public protocol BindingSource: SignalProducerConvertible {}
+public protocol BindingSource: SignalProducerConvertible {
+	// FIXME: Swift 4 compiler regression.
+	// All requirements are replicated to workaround the type checker issue.
+	// https://bugs.swift.org/browse/SR-5090
 
+	associatedtype Value
+	associatedtype Error
+
+	var producer: SignalProducer<Value, Error> { get }
+}
 extension Signal: BindingSource {}
 extension SignalProducer: BindingSource {}
 
