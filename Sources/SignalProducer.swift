@@ -1297,7 +1297,7 @@ extension SignalProducer where Error == NoError {
 	///   - _ An `ErrorType`.
 	///
 	/// - returns: A producer that has an instantiatable `ErrorType`.
-	public func promoteError<F: Swift.Error>(_: F.Type = F.self) -> SignalProducer<Value, F> {
+	public func promoteError<F>(_: F.Type = F.self) -> SignalProducer<Value, F> {
 		return lift { $0.promoteError(F.self) }
 	}
 
@@ -1332,7 +1332,7 @@ extension SignalProducer where Error == NoError {
 	/// - returns: A producer that sends events for at most `interval` seconds,
 	///            then, if not `completed` - sends `error` with `failed` event
 	///            on `scheduler`.
-	public func timeout<NewError: Swift.Error>(
+	public func timeout<NewError>(
 		after interval: TimeInterval,
 		raising error: NewError,
 		on scheduler: DateScheduler
@@ -1857,7 +1857,7 @@ extension SignalProducer where Error == NoError {
 	///
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
-	public func then<U, NewError: Swift.Error>(_ replacement: SignalProducer<U, NewError>) -> SignalProducer<U, NewError> {
+	public func then<U, NewError>(_ replacement: SignalProducer<U, NewError>) -> SignalProducer<U, NewError> {
 		return promoteError(NewError.self)._then(replacement)
 	}
 

@@ -2414,7 +2414,7 @@ extension Signal where Error == NoError {
 	///   - _ An `ErrorType`.
 	///
 	/// - returns: A signal that has an instantiatable `ErrorType`.
-	public func promoteError<F: Swift.Error>(_: F.Type = F.self) -> Signal<Value, F> {
+	public func promoteError<F>(_: F.Type = F.self) -> Signal<Value, F> {
 		return Signal<Value, F> { observer in
 			return self.observe { event in
 				switch event {
@@ -2462,7 +2462,7 @@ extension Signal where Error == NoError {
 	/// - returns: A signal that sends events for at most `interval` seconds,
 	///            then, if not `completed` - sends `error` with `failed` event
 	///            on `scheduler`.
-	public func timeout<NewError: Swift.Error>(
+	public func timeout<NewError>(
 		after interval: TimeInterval,
 		raising error: NewError,
 		on scheduler: DateScheduler

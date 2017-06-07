@@ -190,7 +190,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	///   - inner: The inner property which validated values are committed to.
 	///   - other: The property that `validator` depends on.
 	///   - validator: The closure to invoke for any proposed value to `self`.
-	public convenience init<U, E: Swift.Error>(
+	public convenience init<U, E>(
 		_ inner: MutableProperty<Value>,
 		with other: ValidatingProperty<U, E>,
 		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
@@ -209,7 +209,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	///              pass the validation as specified by `validator`.
 	///   - other: The property that `validator` depends on.
 	///   - validator: The closure to invoke for any proposed value to `self`.
-	public convenience init<U, E: Swift.Error>(
+	public convenience init<U, E>(
 		_ initial: Value,
 		with other: ValidatingProperty<U, E>,
 		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
