@@ -59,11 +59,12 @@ jobs:
         - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
       script:
         - swift build
+        - SWIFTPM_TEST_ReactiveSwift=YES swift test
       git:
         submodules: false
       env:
         - JOB=SWIFT_4
-        - SWIFT_VERSION=DEVELOPMENT-SNAPSHOT-2017-05-29-a
+        - SWIFT_VERSION=4.0-DEVELOPMENT-SNAPSHOT-2017-06-06-a
     - os: linux
       language: generic
       sudo: required
