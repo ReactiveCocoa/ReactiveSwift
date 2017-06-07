@@ -525,6 +525,26 @@ class SignalSpec: QuickSpec {
 				observer.send(value: 1)
 				expect(lastValue) == "2"
 			}
+
+#if swift(>=3.2)
+			it("should support key paths") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal = signal.map(\String.count)
+
+				var lastValue: Int?
+				mappedSignal.observeValues {
+					lastValue = $0
+				}
+
+				expect(lastValue).to(beNil())
+
+				observer.send(value: "foo")
+				expect(lastValue) == 3
+
+				observer.send(value: "foobar")
+				expect(lastValue) == 6
+			}
+#endif
 		}
 		
 		
