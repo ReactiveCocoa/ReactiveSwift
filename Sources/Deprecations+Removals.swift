@@ -10,12 +10,12 @@ extension AnyDisposable {
 
 extension Signal {
 	@available(*, unavailable, renamed:"promoteError")
-	public func promoteErrors<F: Swift.Error>(_: F.Type) -> Signal<Value, F> { fatalError() }
+	public func promoteErrors<F>(_: F.Type) -> Signal<Value, F> { fatalError() }
 }
 
 extension SignalProducer {
 	@available(*, unavailable, renamed:"promoteError")
-	public func promoteErrors<F: Swift.Error>(_: F.Type) -> SignalProducer<Value, F> { fatalError() }
+	public func promoteErrors<F>(_: F.Type) -> SignalProducer<Value, F> { fatalError() }
 }
 
 extension Lifetime {
