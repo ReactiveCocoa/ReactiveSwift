@@ -18,5 +18,6 @@ let package = Package(
             ]
         }
         return deps
-    }()
+    }(),
+    swiftLanguageVersions: [3, 4]
 )
