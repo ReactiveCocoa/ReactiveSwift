@@ -2778,9 +2778,9 @@ class SignalProducerSpec: QuickSpec {
 // MARK: - Helpers
 
 private func == <T>(left: Expectation<T.Type>, right: Any.Type) {
-	left.to(NonNilMatcherFunc { expression, _ in
+	left.to(Predicate.fromDeprecatedClosure { expression, _ in
 		return try expression.evaluate()! == right
-	})
+	}.requireNonNil)
 }
 
 extension SignalProducer {
