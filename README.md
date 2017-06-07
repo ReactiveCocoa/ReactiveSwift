@@ -138,17 +138,16 @@ The primary goal of ReactiveSwift 2.0 is to take advantage of **concrete same-ty
 
 These changes are source breaking, but are automatically or trivially migratable.
 
-ReactiveSwift 2.0 have also continued the work in cleaning up its APIs, preparing for the eventual API freeze for library resilience.
+ReactiveSwift 2.0 has continued the work in polishing the APIs, preparing for the eventual API freeze for library resilience.
+
+#### Swift 3.2 and Swift 4.0 compatibility
+While the development would be Swift 3.2 and Swift 4.0 aware, ReactiveSwift 2.0 would not declare official support until Swift 3.2 and Swift 4.0 launch.
+
+The official release for Swift 3.2 and Swift 4.0 is expected to be a minor 2.x release with full API compatibility.
 
 ### Plan of Record
 #### ReactiveSwift 3.0
-It targets Swift 4.0. The estimated schedule is late 2017.
-
-The release is expected to be source breaking. For the moment, ReactiveSwift 3.0 is expected to:
-
-1. Adpot new Swift 4 language features;
-1. Complete annontation of the Swift memory ownership model; and
-1. Complete annotation of the Swift library evolution model.
+ReactiveSwift 3.0 is expected to declare library ABI stability as it adopts generics features arriving in a later Swift 4 release, e.g. conditional conformance. There is no ETA for now.
 
 [Core Reactive Primitives]: Documentation/ReactivePrimitives.md
 [Basic Operators]: Documentation/BasicOperators.md
