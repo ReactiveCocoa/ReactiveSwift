@@ -281,20 +281,16 @@ class PropertySpec: QuickSpec {
 					let source = MutableProperty(1)
 					var target = Optional(MutableProperty(1))
 
-					let semaphore = DispatchSemaphore(value: 0)
-
 					target! <~ source
 
 					queue.async(group: group, flags: .barrier) {}
 
 					queue.async(group: group) {
-						semaphore.wait()
-						target = nil
+						source.value = 2
 					}
 
 					queue.async(group: group) {
-						semaphore.signal()
-						source.value = 2
+						target = nil
 					}
 				}
 
