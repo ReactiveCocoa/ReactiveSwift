@@ -2567,7 +2567,7 @@ class SignalSpec: QuickSpec {
 			it("should forward original values upon success") {
 				let (baseSignal, observer) = Signal<Int, TestError>.pipe()
 				let signal = baseSignal.attempt { _ in
-					return .success()
+					return .success(())
 				}
 				
 				var current: Int?
