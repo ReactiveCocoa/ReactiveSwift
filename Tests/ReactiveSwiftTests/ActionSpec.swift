@@ -162,25 +162,15 @@ class ActionSpec: QuickSpec {
 						return .empty
 					}
 
-					let disposable = CompositeDisposable()
+					var count = 0
 
-					waitUntil(timeout: 0.01) { done in
-						let target = DispatchQueue(label: "test target queue")
-						let highPriority = QueueScheduler(qos: .userInitiated, targeting: target)
-						let lowPriority = QueueScheduler(qos: .default, targeting: target)
+					action.isExecuting.producer
+						.startWithValues { _ in
+							condition.value = 10
 
-						disposable += action.isExecuting.producer
-							.observe(on: highPriority)
-							.startWithValues { _ in
-								condition.value = 10
-							}
-
-						disposable += lowPriority.schedule {
-							done()
+							count += 1
+							expect(count) == 1
 						}
-					}
-
-					disposable.dispose()
 				}
 			}
 
