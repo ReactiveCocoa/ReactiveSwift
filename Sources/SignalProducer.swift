@@ -1392,6 +1392,34 @@ extension SignalProducer where Error == AnyError {
 	}
 }
 
+extension SignalProducer where Value == Never {
+	/// Promote a signal that does not generate values, as indicated by `Never`, to be
+	/// a signal of the given type of value.
+	///
+	/// - note: The promotion does not result in any value being generated.
+	///
+	/// - parameters:
+	///   - _ The type of value to promote to.
+	///
+	/// - returns: A signal that forwards all terminal events from `self`.
+	public func promoteValue<U>(_: U.Type = U.self) -> SignalProducer<U, Error> {
+		return lift { $0.promoteValue(U.self) }
+	}
+
+	/// Promote a signal that does not generate values, as indicated by `Never`, to be
+	/// a signal of the given type of value.
+	///
+	/// - note: The promotion does not result in any value being generated.
+	///
+	/// - parameters:
+	///   - _ The type of value to promote to.
+	///
+	/// - returns: A signal that forwards all terminal events from `self`.
+	public func promoteValue(_: Value.Type = Value.self) -> SignalProducer<Value, Error> {
+		return self
+	}
+}
+
 extension SignalProducer where Value: Equatable {
 	/// Forward only values from `self` that are not equal to its immediately preceding
 	/// value.
