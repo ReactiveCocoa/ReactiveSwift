@@ -49,7 +49,7 @@ jobs:
       env:
         - JOB=PODSPEC
     - script:
-      - swift --version
+        - swift --version
         - swift build
         - SWIFTPM_TEST_ReactiveSwift=YES swift test
       git:
