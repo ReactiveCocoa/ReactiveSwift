@@ -56,14 +56,14 @@ class ActionSpec: QuickSpec {
 
 				action.values.observeValues { values.append($0) }
 				action.errors.observeValues { errors.append($0) }
-				action.completed.observeValues { completedCount += 1 }
+				action.completed.observeValues { _ in completedCount += 1 }
 			}
 
 			it("should retain the state property") {
 				var property: MutableProperty<Bool>? = MutableProperty(false)
 				weak var weakProperty = property
 				
-				var action: Action<(), (), NoError>? = Action(state: property!, enabledIf: { _ in true }) { _ in
+				var action: Action<(), (), NoError>? = Action(state: property!, enabledIf: { _ in true }) { _, _ in
 					return .empty
 				}
 				
@@ -88,7 +88,7 @@ class ActionSpec: QuickSpec {
 				var receivedError: ActionError<NSError>?
 				var disabledErrorsTriggered = false
 
-				action.disabledErrors.observeValues {
+				action.disabledErrors.observeValues { _ in
 					disabledErrorsTriggered = true
 				}
 
@@ -133,10 +133,10 @@ class ActionSpec: QuickSpec {
 
 			it("should not deadlock") {
 				final class ViewModel {
-					let action2 = Action<(), (), NoError> { SignalProducer(value: ()) }
+					let action2 = Action<(), (), NoError> { _ in SignalProducer(value: ()) }
 				}
 
-				let action1 = Action<(), ViewModel, NoError> { SignalProducer(value: ViewModel()) }
+				let action1 = Action<(), ViewModel, NoError> { _ in SignalProducer(value: ViewModel()) }
 
 				// Fixed in #267. (https://github.com/ReactiveCocoa/ReactiveSwift/pull/267)
 				//
@@ -150,15 +150,15 @@ class ActionSpec: QuickSpec {
 					.flatMap(.latest) { viewModel in viewModel.action2.values.map { _ in viewModel } }
 					.observeValues { _ in }
 
-				action1.apply().start()
-				action1.apply().start()
+				action1.apply(()).start()
+				action1.apply(()).start()
 			}
 
 			if #available(macOS 10.10, *) {
 				it("should not loop indefinitely") {
 					let condition = MutableProperty(1)
 
-					let action = Action<Void, Void, NoError>(state: condition, enabledIf: { $0 == 0 }) { _ in
+					let action = Action<Void, Void, NoError>(state: condition, enabledIf: { $0 == 0 }) { _, _ in
 						return .empty
 					}
 
@@ -314,11 +314,11 @@ class ActionSpec: QuickSpec {
 				action.values.observeValues { values.append($0) }
 
 				input.value = 1
-				action.apply().start()
+				action.apply(()).start()
 				input.value = 2
-				action.apply().start()
+				action.apply(()).start()
 				input.value = 3
-				action.apply().start()
+				action.apply(()).start()
 
 				expect(values) == [1, 2, 3]
 			}

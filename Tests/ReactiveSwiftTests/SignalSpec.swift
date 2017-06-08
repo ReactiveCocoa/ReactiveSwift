@@ -1958,7 +1958,7 @@ class SignalSpec: QuickSpec {
 
 			it("should forward the latest value when the sampler fires") {
 				var result: [String] = []
-				sampledSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				sampledSignal.observeValues { result.append("\($0.0)\($0.1)") }
 				
 				observer.send(value: 1)
 				observer.send(value: 2)
@@ -1968,7 +1968,7 @@ class SignalSpec: QuickSpec {
 
 			it("should do nothing if sampler fires before signal receives value") {
 				var result: [String] = []
-				sampledSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				sampledSignal.observeValues { result.append("\($0.0)\($0.1)") }
 				
 				samplerObserver.send(value: "a")
 				expect(result).to(beEmpty())
@@ -1976,7 +1976,7 @@ class SignalSpec: QuickSpec {
 
 			it("should send lates value with sampler value multiple times when sampler fires multiple times") {
 				var result: [String] = []
-				sampledSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				sampledSignal.observeValues { result.append("\($0.0)\($0.1)") }
 				
 				observer.send(value: 1)
 				samplerObserver.send(value: "a")
@@ -2064,7 +2064,7 @@ class SignalSpec: QuickSpec {
 
 			it("should forward the latest value when the receiver fires") {
 				var result: [String] = []
-				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestSignal.observeValues { result.append("\($0.0)\($0.1)") }
 
 				sampleeObserver.send(value: "a")
 				sampleeObserver.send(value: "b")
@@ -2074,7 +2074,7 @@ class SignalSpec: QuickSpec {
 
 			it("should do nothing if receiver fires before samplee sends value") {
 				var result: [String] = []
-				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestSignal.observeValues { result.append("\($0.0)\($0.1)") }
 
 				observer.send(value: 1)
 				expect(result).to(beEmpty())
@@ -2082,7 +2082,7 @@ class SignalSpec: QuickSpec {
 
 			it("should send latest value with samplee value multiple times when receiver fires multiple times") {
 				var result: [String] = []
-				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestSignal.observeValues { result.append("\($0.0)\($0.1)") }
 
 				sampleeObserver.send(value: "a")
 				observer.send(value: 1)
@@ -2133,7 +2133,7 @@ class SignalSpec: QuickSpec {
 
 			it("should forward the latest value when the receiver fires") {
 				var result: [String] = []
-				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestSignal.observeValues { result.append("\($0.0)\($0.1)") }
 
 				sampleeObserver.send(value: "a")
 				sampleeObserver.send(value: "b")
@@ -2143,7 +2143,7 @@ class SignalSpec: QuickSpec {
 
 			it("should do nothing if receiver fires before samplee sends value") {
 				var result: [String] = []
-				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestSignal.observeValues { result.append("\($0.0)\($0.1)") }
 
 				observer.send(value: 1)
 				expect(result).to(beEmpty())
@@ -2151,7 +2151,7 @@ class SignalSpec: QuickSpec {
 
 			it("should send latest value with samplee value multiple times when receiver fires multiple times") {
 				var result: [String] = []
-				withLatestSignal.observeValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestSignal.observeValues { result.append("\($0.0)\($0.1)") }
 
 				sampleeObserver.send(value: "a")
 				observer.send(value: 1)
@@ -2242,7 +2242,7 @@ class SignalSpec: QuickSpec {
 
 			it("should combine pairs") {
 				var result: [String] = []
-				zipped.observeValues { (left, right) in result.append("\(left)\(right)") }
+				zipped.observeValues { result.append("\($0.0)\($0.1)") }
 
 				leftObserver.send(value: 1)
 				leftObserver.send(value: 2)
@@ -2567,7 +2567,7 @@ class SignalSpec: QuickSpec {
 			it("should forward original values upon success") {
 				let (baseSignal, observer) = Signal<Int, TestError>.pipe()
 				let signal = baseSignal.attempt { _ in
-					return .success()
+					return .success(())
 				}
 				
 				var current: Int?

@@ -439,7 +439,7 @@ class SignalProducerSpec: QuickSpec {
 					}, value: {
 						value = $0
 					})
-					.startWithSignal { _ in
+					.startWithSignal { _, _ in
 						expect(started) == false
 						expect(value).to(beNil())
 					}
@@ -588,7 +588,7 @@ class SignalProducerSpec: QuickSpec {
 
 				producer
 					.on(started: { started = true }, disposed: { disposed = true })
-					.startWithSignal { _ in }
+					.startWithSignal { _, _ in }
 
 				expect(started) == true
 				expect(disposed) == true
@@ -750,7 +750,7 @@ class SignalProducerSpec: QuickSpec {
 
 					let transform = { (signal: Signal<Int, NoError>) -> (Signal<Int, NoError>) -> Signal<Int, NoError> in
 						return { otherSignal in
-							return Signal.zip(signal, otherSignal).map { first, second in first + second }
+							return Signal.zip(signal, otherSignal).map { $0.0 + $0.1 }
 						}
 					}
 
@@ -792,7 +792,7 @@ class SignalProducerSpec: QuickSpec {
 
 					let transform = { (signal: Signal<Int, NoError>) -> (Signal<Int, NoError>) -> Signal<Int, NoError> in
 						return { otherSignal in
-							return Signal.zip(signal, otherSignal).map(+)
+							return Signal.zip(signal, otherSignal).map { $0.0 + $0.1 }
 						}
 					}
 
@@ -1097,7 +1097,7 @@ class SignalProducerSpec: QuickSpec {
 				let scheduler = TestScheduler()
 				var invoked = false
 
-				let producer = SignalProducer<Int, NoError>() { _ in
+				let producer = SignalProducer<Int, NoError>() { _, _ in
 					invoked = true
 				}
 
@@ -1194,7 +1194,7 @@ class SignalProducerSpec: QuickSpec {
 						let (previousProducer, previousObserver) = SignalProducer<Int, NoError>.pipe()
 
 						subsequentStarted = false
-						let subsequentProducer = SignalProducer<Int, NoError> { _ in
+						let subsequentProducer = SignalProducer<Int, NoError> { _, _ in
 							subsequentStarted = true
 						}
 

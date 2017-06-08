@@ -1302,7 +1302,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			
 			it("should forward the latest value when the sampler fires") {
 				var result: [String] = []
-				sampledProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				sampledProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 				
 				observer.send(value: 1)
 				observer.send(value: 2)
@@ -1312,7 +1312,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			
 			it("should do nothing if sampler fires before signal receives value") {
 				var result: [String] = []
-				sampledProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				sampledProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 				
 				samplerObserver.send(value: "a")
 				expect(result).to(beEmpty())
@@ -1320,7 +1320,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			
 			it("should send lates value multiple times when sampler fires multiple times") {
 				var result: [String] = []
-				sampledProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				sampledProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 				
 				observer.send(value: 1)
 				samplerObserver.send(value: "a")
@@ -1346,7 +1346,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				let result = producer.sample(with: sampler)
 				
 				var valueReceived: String?
-				result.startWithValues { (left, right) in valueReceived = "\(left)\(right)" }
+				result.startWithValues { valueReceived = "\($0.0)\($0.1)" }
 				
 				expect(valueReceived) == "1a"
 			}
@@ -1470,7 +1470,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			it("should forward the latest value when the receiver fires") {
 				var result: [String] = []
-				withLatestProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 
 				sampleeObserver.send(value: "a")
 				sampleeObserver.send(value: "b")
@@ -1480,7 +1480,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			it("should do nothing if receiver fires before samplee sends value") {
 				var result: [String] = []
-				withLatestProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 
 				observer.send(value: 1)
 				expect(result).to(beEmpty())
@@ -1488,7 +1488,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			it("should send latest value with samplee value multiple times when receiver fires multiple times") {
 				var result: [String] = []
-				withLatestProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 
 				sampleeObserver.send(value: "a")
 				observer.send(value: 1)
@@ -1536,7 +1536,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			it("should forward the latest value when the receiver fires") {
 				var result: [String] = []
-				withLatestProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 
 				sampleeObserver.send(value: "a")
 				sampleeObserver.send(value: "b")
@@ -1546,7 +1546,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			it("should do nothing if receiver fires before samplee sends value") {
 				var result: [String] = []
-				withLatestProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 
 				observer.send(value: 1)
 				expect(result).to(beEmpty())
@@ -1554,7 +1554,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			it("should send latest value with samplee value multiple times when receiver fires multiple times") {
 				var result: [String] = []
-				withLatestProducer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				withLatestProducer.startWithValues { result.append("\($0.0)\($0.1)") }
 
 				sampleeObserver.send(value: "a")
 				observer.send(value: 1)
@@ -1645,7 +1645,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			it("should combine pairs") {
 				var result: [String] = []
-				zipped.startWithValues { (left, right) in result.append("\(left)\(right)") }
+				zipped.startWithValues { result.append("\($0.0)\($0.1)") }
 
 				leftObserver.send(value: 1)
 				leftObserver.send(value: 2)
@@ -1913,7 +1913,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			it("should forward original values upon success") {
 				let (baseProducer, observer) = SignalProducer<Int, TestError>.pipe()
 				let producer = baseProducer.attempt { _ in
-					return .success()
+					return .success(())
 				}
 				
 				var current: Int?
