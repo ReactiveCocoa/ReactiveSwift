@@ -676,7 +676,7 @@ extension Signal {
 	///
 	/// - returns: A signal that sends values obtained using `transform` as this 
 	///            signal sends values.
-	public func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> Signal<U, Error> {
+	public func lazyMap<U, S: Scheduler>(on scheduler: S, transform: @escaping (Value) -> U) -> Signal<U, Error> {
 		return flatMap(.latest) { value in
 			return SignalProducer({ transform(value) })
 				.start(on: scheduler)
@@ -975,7 +975,7 @@ extension Signal {
 	///   - scheduler: A scheduler to deliver events on.
 	///
 	/// - returns: A signal that will yield `self` values on provided scheduler.
-	public func observe(on scheduler: Scheduler) -> Signal<Value, Error> {
+	public func observe<S: Scheduler>(on scheduler: S) -> Signal<Value, Error> {
 		return Signal { observer in
 			return self.observe { event in
 				scheduler.schedule {
@@ -1829,7 +1829,7 @@ extension Signal {
 	///   - scheduler: A scheduler to deliver events on.
 	///
 	/// - returns: A signal that sends values only while `shouldThrottle` is false.
-	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: Scheduler) -> Signal<Value, Error>
+	public func throttle<P: PropertyProtocol, S: Scheduler>(while shouldThrottle: P, on scheduler: S) -> Signal<Value, Error>
 		where P.Value == Bool
 	{
 		return Signal { observer in

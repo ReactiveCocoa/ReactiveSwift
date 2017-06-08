@@ -647,7 +647,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that, when started, sends values obtained using 
 	///            `transform` as this producer sends values.
-	public func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
+	public func lazyMap<U, S: Scheduler>(on scheduler: S, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.lazyMap(on: scheduler, transform: transform) }
 	}
 
@@ -805,7 +805,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that, when started, will yield `self` values on
 	///            provided scheduler.
-	public func observe(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
+	public func observe<S: Scheduler>(on scheduler: S) -> SignalProducer<Value, Error> {
 		return lift { $0.observe(on: scheduler) }
 	}
 
@@ -1206,7 +1206,7 @@ extension SignalProducer {
 	///   - scheduler: A scheduler to deliver events on.
 	///
 	/// - returns: A producer that sends values only while `shouldThrottle` is false.
-	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: Scheduler) -> SignalProducer<Value, Error>
+	public func throttle<P: PropertyProtocol, S: Scheduler>(while shouldThrottle: P, on scheduler: S) -> SignalProducer<Value, Error>
 		where P.Value == Bool
 	{
 		// Using `Property.init(_:)` avoids capturing a strong reference
@@ -1523,7 +1523,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that will deliver events on given `scheduler` when
 	///            started.
-	public func start(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
+	public func start<S: Scheduler>(on scheduler: S) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, lifetime in
 			let disposable = scheduler.schedule {
 				self.startWithSignal { signal, signalDisposable in
