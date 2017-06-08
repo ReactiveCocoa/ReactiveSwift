@@ -150,8 +150,8 @@ class ActionSpec: QuickSpec {
 					.flatMap(.latest) { viewModel in viewModel.action2.values.map { _ in viewModel } }
 					.observeValues { _ in }
 
-				action1.apply(()).start()
-				action1.apply(()).start()
+				action1.apply().start()
+				action1.apply().start()
 			}
 
 			if #available(macOS 10.10, *) {
@@ -314,11 +314,11 @@ class ActionSpec: QuickSpec {
 				action.values.observeValues { values.append($0) }
 
 				input.value = 1
-				action.apply(()).start()
+				action.apply().start()
 				input.value = 2
-				action.apply(()).start()
+				action.apply().start()
 				input.value = 3
-				action.apply(()).start()
+				action.apply().start()
 
 				expect(values) == [1, 2, 3]
 			}
