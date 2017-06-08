@@ -783,7 +783,7 @@ class PropertySpec: QuickSpec {
 					var secondResult: String!
 
 					let combined = property.combineLatest(with: otherProperty)
-					combined.producer.startWithValues { (left, right) in firstResult = left + right }
+					combined.producer.startWithValues { firstResult = $0.0 + $0.1 }
 
 					func getValue() -> String {
 						return combined.value.0 + combined.value.1
@@ -796,7 +796,7 @@ class PropertySpec: QuickSpec {
 					expect(getValue()) == subsequentPropertyValue + initialOtherPropertyValue
 					expect(firstResult) == subsequentPropertyValue + initialOtherPropertyValue
 
-					combined.producer.startWithValues { (left, right) in secondResult = left + right }
+					combined.producer.startWithValues { secondResult = $0.0 + $0.1 }
 					expect(secondResult) == subsequentPropertyValue + initialOtherPropertyValue
 
 					otherProperty.value = subsequentOtherPropertyValue
@@ -813,7 +813,7 @@ class PropertySpec: QuickSpec {
 					var firstResult: Int!
 
 					let combined = A.combineLatest(with: B)
-					combined.producer.startWithValues { (left, right) in firstResult = left + right }
+					combined.producer.startWithValues { firstResult = $0.0 + $0.1 }
 
 					func getValue() -> Int {
 						return combined.value.0 + combined.value.1
@@ -839,7 +839,7 @@ class PropertySpec: QuickSpec {
 					/// Zip another property now.
 					var secondResult: Int!
 					let anotherCombined = combined.combineLatest(with: C)
-					anotherCombined.producer.startWithValues { (left, right) in secondResult = (left.0 + left.1) + right }
+					anotherCombined.producer.startWithValues { secondResult = ($0.0.0 + $0.0.1) + $0.1 }
 
 					func getAnotherValue() -> Int {
 						return (anotherCombined.value.0.0 + anotherCombined.value.0.1) + anotherCombined.value.1
@@ -866,7 +866,7 @@ class PropertySpec: QuickSpec {
 					var result: [String] = []
 
 					let zippedProperty = property.zip(with: otherProperty)
-					zippedProperty.producer.startWithValues { (left, right) in result.append("\(left)\(right)") }
+					zippedProperty.producer.startWithValues { result.append("\($0.0)\($0.1)") }
 
 					let firstResult = [ "\(initialPropertyValue)\(initialOtherPropertyValue)" ]
 					let secondResult = firstResult + [ "\(subsequentPropertyValue)\(subsequentOtherPropertyValue)" ]
@@ -900,7 +900,7 @@ class PropertySpec: QuickSpec {
 					var secondResult: String!
 
 					let zippedProperty = property.zip(with: otherProperty)
-					zippedProperty.producer.startWithValues { (left, right) in firstResult = left + right }
+					zippedProperty.producer.startWithValues { firstResult = $0.0 + $0.1 }
 
 					func getValue() -> String {
 						return zippedProperty.value.0 + zippedProperty.value.1
@@ -915,7 +915,7 @@ class PropertySpec: QuickSpec {
 
 					// It should still be the tuple with initial property values,
 					// since `otherProperty` isn't changed yet.
-					zippedProperty.producer.startWithValues { (left, right) in secondResult = left + right }
+					zippedProperty.producer.startWithValues { secondResult = $0.0 + $0.1 }
 					expect(secondResult) == initialPropertyValue + initialOtherPropertyValue
 
 					otherProperty.value = subsequentOtherPropertyValue
@@ -932,7 +932,7 @@ class PropertySpec: QuickSpec {
 					var firstResult: Int!
 
 					let zipped = A.zip(with: B)
-					zipped.producer.startWithValues { (left, right) in firstResult = left + right }
+					zipped.producer.startWithValues { firstResult = $0.0 + $0.1 }
 
 					func getValue() -> Int {
 						return zipped.value.0 + zipped.value.1
@@ -958,7 +958,7 @@ class PropertySpec: QuickSpec {
 					/// Zip another property now.
 					var secondResult: Int!
 					let anotherZipped = zipped.zip(with: C)
-					anotherZipped.producer.startWithValues { (left, right) in secondResult = (left.0 + left.1) + right }
+					anotherZipped.producer.startWithValues { secondResult = ($0.0.0 + $0.0.1) + $0.1 }
 
 					func getAnotherValue() -> Int {
 						return (anotherZipped.value.0.0 + anotherZipped.value.0.1) + anotherZipped.value.1
@@ -987,7 +987,7 @@ class PropertySpec: QuickSpec {
 					var firstResult: Int!
 
 					let zipped = A.zip(with: B)
-					zipped.producer.startWithValues { (left, right) in firstResult = left + right }
+					zipped.producer.startWithValues { firstResult = $0.0 + $0.1 }
 
 					func getValue() -> Int {
 						return zipped.value.0 + zipped.value.1
@@ -1013,7 +1013,7 @@ class PropertySpec: QuickSpec {
 					/// Zip another property now.
 					var secondResult: Int!
 					let anotherZipped = zipped.zip(with: C)
-					anotherZipped.producer.startWithValues { (left, right) in secondResult = (left.0 + left.1) + right }
+					anotherZipped.producer.startWithValues { secondResult = ($0.0.0 + $0.0.1) + $0.1 }
 
 					func getAnotherValue() -> Int {
 						return (anotherZipped.value.0.0 + anotherZipped.value.0.1) + anotherZipped.value.1
@@ -1033,9 +1033,9 @@ class PropertySpec: QuickSpec {
 					let combined = anotherZipped.combineLatest(with: yetAnotherZipped)
 
 					var thirdResult: Int!
-					combined.producer.startWithValues { (left, right) in
-						let leftResult = left.0.0 + left.0.1 + left.1
-						let rightResult = right.0.0.0 + right.0.0.1 + right.0.1 + right.1
+					combined.producer.startWithValues {
+						let leftResult = $0.0.0.0 + $0.0.0.1 + $0.0.1
+						let rightResult = $0.1.0.0.0 + $0.1.0.0.1 + $0.1.0.1 + $0.1.1
 						thirdResult = leftResult + rightResult
 					}
 
