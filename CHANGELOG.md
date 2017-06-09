@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+# 2.0.0-alpha.2
 1. In Swift 3.2 or later, you can use `map()` with the new Smart Key Paths. (#435, kudos to @sharplet)
 
 1. When composing `Signal` and `SignalProducer` of inhabitable types, e.g. `Never` or `NoError`, ReactiveSwift now warns about operators that are illogical to use, and traps at runtime when such operators attempt to instantiate an instance. (#429, kudos to @andersio)
