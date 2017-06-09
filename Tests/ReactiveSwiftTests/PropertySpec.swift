@@ -732,6 +732,17 @@ class PropertySpec: QuickSpec {
 					property.value = 2
 					expect(mappedProperty.value) == 3
 				}
+
+#if swift(>=3.2)
+				it("should work with key paths") {
+					let property = MutableProperty("foo")
+					let mappedProperty = property.map(\.count)
+					expect(mappedProperty.value) == 3
+
+					property.value = "foobar"
+					expect(mappedProperty.value) == 6
+				}
+#endif
 			}
 
 			describe("combineLatest") {

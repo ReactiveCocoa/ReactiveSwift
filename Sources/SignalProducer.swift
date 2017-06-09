@@ -621,6 +621,18 @@ extension SignalProducer {
 		return lift { $0.map(transform) }
 	}
 
+#if swift(>=3.2)
+	/// Map each value in the producer to a new value by applying a key path.
+	///
+	/// - parameters:
+	///   - keyPath: A key path relative to the producer's `Value` type.
+	///
+	/// - returns: A producer that will send new values.
+	public func map<U>(_ keyPath: KeyPath<Value, U>) -> SignalProducer<U, Error> {
+		return lift { $0.map(keyPath) }
+	}
+#endif
+
 	/// Map errors in the producer to a new error.
 	///
 	/// - parameters:
