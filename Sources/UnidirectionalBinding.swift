@@ -148,4 +148,30 @@ public struct BindingTarget<Value>: BindingTargetProvider {
 		}
 		self.init(lifetime: lifetime, action: setter)
 	}
+
+	#if swift(>=3.2)
+	// `Lifetime` is required on these overloads. RAC would provide convenience overloads
+	// for these with `lifetime(of:)`.
+
+	/// Creates a binding target.
+	///
+	/// - parameters:
+	///   - lifetime: The expected lifetime of any bindings towards `self`.
+	///   - object: The object to consume values.
+	///   - keyPath: The key path of the object that consumes values.
+	public init<Object: AnyObject>(lifetime: Lifetime, object: Object, keyPath: ReferenceWritableKeyPath<Object, Value>) {
+		self.init(lifetime: lifetime) { [weak object] in object?[keyPath: keyPath] = $0 }
+	}
+
+	/// Creates a binding target which consumes values on the specified scheduler.
+	///
+	/// - parameters:
+	///   - scheduler: The scheduler on which the `setter` consumes the values.
+	///   - lifetime: The expected lifetime of any bindings towards `self`.
+	///   - object: The object to consume values.
+	///   - keyPath: The key path of the object that consumes values.
+	public init<Object: AnyObject>(on scheduler: Scheduler, lifetime: Lifetime, object: Object, keyPath: ReferenceWritableKeyPath<Object, Value>) {
+		self.init(on: scheduler, lifetime: lifetime) { [weak object] in object?[keyPath: keyPath] = $0 }
+	}
+	#endif
 }
