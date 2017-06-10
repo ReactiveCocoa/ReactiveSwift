@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. In Swift 3.2 or later, you may create `BindingTarget` for a key path of a specific object. (#440, kudos to @andersio)
+
 # 2.0.0-alpha.2
 1. In Swift 3.2 or later, you can use `map()` with the new Smart Key Paths. (#435, kudos to @sharplet)
 
