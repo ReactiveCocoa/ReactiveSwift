@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. `ValidationResult` and `ValidatorOutput` have been renamed to `ValidatingProperty.Result` and `ValidatingProperty.Decision`, respectively. (#443)
+
 # 2.0.0-alpha.2
 1. In Swift 3.2 or later, you can use `map()` with the new Smart Key Paths. (#435, kudos to @sharplet)
 
