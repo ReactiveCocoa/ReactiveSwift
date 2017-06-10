@@ -78,7 +78,7 @@ git add ./reactiveswift/docs/latest
 
 # Update the docset feed.
 rm ./reactiveswift/docs/ReactiveSwift.xml 
-cp ../script/feed.xml.template ./reactiveswift/docs/ReactiveSwift.xml
+/bin/cp -f ../script/feed.xml.template ./reactiveswift/docs/ReactiveSwift.xml
 sed -i -- "s/FRAMEWORK_VERSION/${TRAVIS_TAG}/g" ./reactiveswift/docs/ReactiveSwift.xml
 git add ./reactiveswift/docs/ReactiveSwift.xml
 
