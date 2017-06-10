@@ -80,12 +80,12 @@ public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
 
 extension PropertyProtocol {
 	/// Lifts a unary SignalProducer operator to operate upon PropertyProtocol instead.
-	fileprivate func lift<U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> SignalProducer<U, NoError>) -> Property<U> {
+	internal func lift<U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> SignalProducer<U, NoError>) -> Property<U> {
 		return Property(unsafeProducer: transform(producer))
 	}
 
 	/// Lifts a binary SignalProducer operator to operate upon PropertyProtocol instead.
-	fileprivate func lift<P: PropertyProtocol, U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> (SignalProducer<P.Value, NoError>) -> SignalProducer<U, NoError>) -> (P) -> Property<U> {
+	internal func lift<P: PropertyProtocol, U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> (SignalProducer<P.Value, NoError>) -> SignalProducer<U, NoError>) -> (P) -> Property<U> {
 		return { other in
 			return Property(unsafeProducer: transform(self.producer)(other.producer))
 		}

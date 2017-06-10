@@ -75,6 +75,9 @@
 		9A681A9E1E5A241B00B097CF /* DeprecationSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */; };
 		9A681A9F1E5A241B00B097CF /* DeprecationSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */; };
 		9A681AA01E5A241B00B097CF /* DeprecationSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */; };
+		9A7026F91EED3C740042AB76 /* CollectionDiffingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7026F41EED3B930042AB76 /* CollectionDiffingSpec.swift */; };
+		9A7026FA1EED3C740042AB76 /* CollectionDiffingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7026F41EED3B930042AB76 /* CollectionDiffingSpec.swift */; };
+		9A7026FB1EED3C750042AB76 /* CollectionDiffingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7026F41EED3B930042AB76 /* CollectionDiffingSpec.swift */; };
 		9A9100DF1E0E6E620093E346 /* ValidatingProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */; };
 		9A9100E01E0E6E670093E346 /* ValidatingProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */; };
 		9A9100E11E0E6E680093E346 /* ValidatingProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */; };
@@ -83,6 +86,10 @@
 		9ABCB1861D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */; };
 		9ABCB1871D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */; };
 		9ABCB1881D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */; };
+		9AF47DEC1EEC212A00578B0F /* CollectionDiffing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF47DEB1EEC212A00578B0F /* CollectionDiffing.swift */; };
+		9AF47DED1EEC212A00578B0F /* CollectionDiffing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF47DEB1EEC212A00578B0F /* CollectionDiffing.swift */; };
+		9AF47DEE1EEC212A00578B0F /* CollectionDiffing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF47DEB1EEC212A00578B0F /* CollectionDiffing.swift */; };
+		9AF47DEF1EEC212A00578B0F /* CollectionDiffing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF47DEB1EEC212A00578B0F /* CollectionDiffing.swift */; };
 		A9B315BC1B3940810001CB9C /* Disposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C312BE19EF2A5800984962 /* Disposable.swift */; };
 		A9B315BE1B3940810001CB9C /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = D08C54B51A69A3DB00AD8286 /* Event.swift */; };
 		A9B315C01B3940810001CB9C /* Scheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C312C819EF2A5800984962 /* Scheduler.swift */; };
@@ -251,8 +258,10 @@
 		9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnidirectionalBindingSpec.swift; sourceTree = "<group>"; };
 		9A5D93721EE5733300438925 /* InhabitableTypeGuards.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InhabitableTypeGuards.swift; sourceTree = "<group>"; };
 		9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeprecationSpec.swift; sourceTree = "<group>"; };
+		9A7026F41EED3B930042AB76 /* CollectionDiffingSpec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionDiffingSpec.swift; sourceTree = "<group>"; };
 		9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingProperty.swift; sourceTree = "<group>"; };
 		9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Deprecations+Removals.swift"; sourceTree = "<group>"; };
+		9AF47DEB1EEC212A00578B0F /* CollectionDiffing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionDiffing.swift; sourceTree = "<group>"; };
 		A97451331B3A935E00F48E55 /* watchOS-Application.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Application.xcconfig"; sourceTree = "<group>"; };
 		A97451341B3A935E00F48E55 /* watchOS-Base.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Base.xcconfig"; sourceTree = "<group>"; };
 		A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Framework.xcconfig"; sourceTree = "<group>"; };
@@ -410,6 +419,7 @@
 			isa = PBXGroup;
 			children = (
 				D08C54AF1A69A2AC00AD8286 /* Action.swift */,
+				9AF47DEB1EEC212A00578B0F /* CollectionDiffing.swift */,
 				D85C65291C0D84C7005A77AD /* Flatten.swift */,
 				4A0E10FE1D2A92720065D310 /* Lifetime.swift */,
 				D08C54B01A69A2AC00AD8286 /* Property.swift */,
@@ -493,6 +503,7 @@
 				D021671C1A6CD50500987861 /* ActionSpec.swift */,
 				D0C312EE19EF2A7700984962 /* AtomicSpec.swift */,
 				D0C312EF19EF2A7700984962 /* BagSpec.swift */,
+				9A7026F41EED3B930042AB76 /* CollectionDiffingSpec.swift */,
 				D0C312F019EF2A7700984962 /* DisposableSpec.swift */,
 				CA6F284F1C52626B001879D2 /* FlattenSpec.swift */,
 				D8170FC01B100EBC004192AD /* FoundationExtensionsSpec.swift */,
@@ -888,6 +899,7 @@
 				57A4D1B91BA13D7A00F7D4B1 /* Action.swift in Sources */,
 				57A4D1BA1BA13D7A00F7D4B1 /* Property.swift in Sources */,
 				9A090C171DA0309E00EE97CA /* Reactive.swift in Sources */,
+				9AF47DEF1EEC212A00578B0F /* CollectionDiffing.swift in Sources */,
 				57A4D1BB1BA13D7A00F7D4B1 /* Signal.swift in Sources */,
 				57A4D1BC1BA13D7A00F7D4B1 /* SignalProducer.swift in Sources */,
 				9A5D93761EE5733300438925 /* InhabitableTypeGuards.swift in Sources */,
@@ -916,6 +928,7 @@
 				7DFBED291CDB8DE300EE435B /* SchedulerSpec.swift in Sources */,
 				7DFBED2A1CDB8DE300EE435B /* SignalLifetimeSpec.swift in Sources */,
 				7DFBED2B1CDB8DE300EE435B /* SignalProducerSpec.swift in Sources */,
+				9A7026FB1EED3C750042AB76 /* CollectionDiffingSpec.swift in Sources */,
 				9A681AA01E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
 				7DFBED2C1CDB8DE300EE435B /* SignalProducerLiftingSpec.swift in Sources */,
 				7DFBED2D1CDB8DE300EE435B /* SignalSpec.swift in Sources */,
@@ -943,6 +956,7 @@
 				A9B315C11B3940810001CB9C /* Action.swift in Sources */,
 				A9B315C21B3940810001CB9C /* Property.swift in Sources */,
 				9A090C161DA0309E00EE97CA /* Reactive.swift in Sources */,
+				9AF47DEE1EEC212A00578B0F /* CollectionDiffing.swift in Sources */,
 				A9B315C31B3940810001CB9C /* Signal.swift in Sources */,
 				A9B315C41B3940810001CB9C /* SignalProducer.swift in Sources */,
 				9A5D93751EE5733300438925 /* InhabitableTypeGuards.swift in Sources */,
@@ -971,6 +985,7 @@
 				D03B4A3D19F4C39A009E02AC /* FoundationExtensions.swift in Sources */,
 				9A090C141DA0309E00EE97CA /* Reactive.swift in Sources */,
 				D08C54B31A69A2AE00AD8286 /* Signal.swift in Sources */,
+				9AF47DEC1EEC212A00578B0F /* CollectionDiffing.swift in Sources */,
 				D85C652A1C0D84C7005A77AD /* Flatten.swift in Sources */,
 				D0C312CF19EF2A5800984962 /* Bag.swift in Sources */,
 				9A5D93731EE5733300438925 /* InhabitableTypeGuards.swift in Sources */,
@@ -999,6 +1014,7 @@
 				C79B64741CD38B2B003F2376 /* TestLogger.swift in Sources */,
 				CA6F28501C52626B001879D2 /* FlattenSpec.swift in Sources */,
 				4A0E11041D2A95200065D310 /* LifetimeSpec.swift in Sources */,
+				9A7026F91EED3C740042AB76 /* CollectionDiffingSpec.swift in Sources */,
 				9A681A9E1E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
 				CDCD247A1C277EEC00710AEE /* AtomicSpec.swift in Sources */,
 				579504331BB8A34200A5E482 /* BagSpec.swift in Sources */,
@@ -1026,6 +1042,7 @@
 				9ABCB1861D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				EBCC7DBD1BBF01E100A2AE92 /* Observer.swift in Sources */,
 				9A090C151DA0309E00EE97CA /* Reactive.swift in Sources */,
+				9AF47DED1EEC212A00578B0F /* CollectionDiffing.swift in Sources */,
 				D85C652B1C0E70E3005A77AD /* Flatten.swift in Sources */,
 				4A0E11001D2A92720065D310 /* Lifetime.swift in Sources */,
 				9A5D93741EE5733300438925 /* InhabitableTypeGuards.swift in Sources */,
@@ -1054,6 +1071,7 @@
 				BFA6B94E1A7604D500C846D1 /* SignalProducerNimbleMatchers.swift in Sources */,
 				B696FB821A7640C00075236D /* TestError.swift in Sources */,
 				D8170FC21B100EBC004192AD /* FoundationExtensionsSpec.swift in Sources */,
+				9A7026FA1EED3C740042AB76 /* CollectionDiffingSpec.swift in Sources */,
 				9A681A9F1E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
 				D0C3131419EF2B2000984962 /* SchedulerSpec.swift in Sources */,
 				C79B64751CD38B2B003F2376 /* TestLogger.swift in Sources */,
