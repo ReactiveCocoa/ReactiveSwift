@@ -136,37 +136,44 @@ public final class UIScheduler: Scheduler {
 	///            begins.
 	@discardableResult
 	public func schedule(_ action: @escaping () -> Void) -> Disposable? {
-		let disposable = AnyDisposable()
-		let actionAndDecrement = {
-			if !disposable.isDisposed {
-				action()
-			}
-
-			#if os(Linux)
-				self.queueLength.modify { $0 -= 1 }
-			#else
-				OSAtomicDecrement32(self.queueLength)
-			#endif
-		}
-
-		#if os(Linux)
-			let queued = self.queueLength.modify { value -> Int32 in
-				value += 1
-				return value
-			}
-		#else
-			let queued = OSAtomicIncrement32(queueLength)
-		#endif
+		let positionInQueue = enqueue()
 
 		// If we're already running on the main queue, and there isn't work
 		// already enqueued, we can skip scheduling and just execute directly.
-		if queued == 1 && DispatchQueue.getSpecific(key: UIScheduler.dispatchSpecificKey) == UIScheduler.dispatchSpecificValue {
-			actionAndDecrement()
+		if positionInQueue == 1 && DispatchQueue.getSpecific(key: UIScheduler.dispatchSpecificKey) == UIScheduler.dispatchSpecificValue {
+			action()
+			dequeue()
+			return nil
 		} else {
-			DispatchQueue.main.async(execute: actionAndDecrement)
-		}
+			let disposable = AnyDisposable()
 
-		return disposable
+			DispatchQueue.main.async {
+				defer { self.dequeue() }
+				guard !disposable.isDisposed else { return }
+				action()
+			}
+
+			return disposable
+		}
+	}
+
+	private func dequeue() {
+		#if os(Linux)
+			queueLength.modify { $0 -= 1 }
+		#else
+			OSAtomicDecrement32(queueLength)
+		#endif
+	}
+
+	private func enqueue() -> Int32 {
+		#if os(Linux)
+		return queueLength.modify { value -> Int32 in
+			value += 1
+			return value
+		}
+		#else
+		return OSAtomicIncrement32(queueLength)
+		#endif
 	}
 }
 
