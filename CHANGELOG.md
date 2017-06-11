@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. A new variant of `Action.apply` now accepts also a disabled error, and creates a unit of work that uses the error type of the `Action` directly. (#446, kudos to @andersio)
+
 1. In Swift 3.2 or later, you may create `BindingTarget` for a key path of a specific object. (#440, kudos to @andersio)
 
 # 2.0.0-alpha.2
