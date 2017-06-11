@@ -2768,7 +2768,7 @@ class SignalSpec: QuickSpec {
 				(signal, observer) = (baseSignal, baseObserver)
 			}
 			
-			it("should forward the latest value with previous value with the given initial value") {
+			it("should forward the latest value with previous value with an initial value") {
 				signal.combinePrevious(initialValue).observeValues { latestValues = $0 }
 
 				expect(latestValues).to(beNil())

@@ -1444,18 +1444,37 @@ extension Signal {
 
 	/// Forward events from `self` with history: values of the returned signal
 	/// are a tuples whose first member is the previous value and whose second member
-	/// is the current value.
-	///
-	/// If an initial value is given, the returned `Signal` would emit tuples as soon as
-	/// the first value is received. If `initial` is nil, the returned `Signal` would not
-	/// emit any tuple until it has received at least two values.
+	/// is the current value. `initial` is supplied as the first member when `self`
+	/// sends its first value.
 	///
 	/// - parameters:
-	///   - initial: An optional initial value.
+	///   - initial: A value that will be combined with the first value sent by
+	///              `self`.
 	///
 	/// - returns: A signal that sends tuples that contain previous and current
 	///            sent values of `self`.
-	public func combinePrevious(_ initial: Value? = nil) -> Signal<(Value, Value), Error> {
+	public func combinePrevious(_ initial: Value) -> Signal<(Value, Value), Error> {
+		return combinePrevious(initial: initial)
+	}
+
+	/// Forward events from `self` with history: values of the returned signal
+	/// are a tuples whose first member is the previous value and whose second member
+	/// is the current value.
+	///
+	/// The returned `Signal` would not emit any tuple until it has received at least two
+	/// values.
+	///
+	/// - returns: A signal that sends tuples that contain previous and current
+	///            sent values of `self`.
+	public func combinePrevious() -> Signal<(Value, Value), Error> {
+		return combinePrevious(initial: nil)
+	}
+
+	/// Implementation detail of `combinePrevious`. A default argument of a `nil` initial
+	/// is deliberately avoided, since in the case of `Value` being an optional, the
+	/// `nil` literal would be materialized as `Optional<Value>.none` instead of `Value`,
+	/// thus changing the semantic.
+	private func combinePrevious(initial: Value?) -> Signal<(Value, Value), Error> {
 		return Signal<(Value, Value), Error> { observer in
 			var previous = initial
 
