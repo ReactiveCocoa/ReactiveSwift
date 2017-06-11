@@ -1444,21 +1444,38 @@ extension Signal {
 
 	/// Forward events from `self` with history: values of the returned signal
 	/// are a tuples whose first member is the previous value and whose second member
-	/// is the current value. `initial` is supplied as the first member when `self`
-	/// sends its first value.
+	/// is the current value.
+	///
+	/// If an initial value is given, the returned `Signal` would emit tuples as soon as
+	/// the first value is received. If `initial` is nil, the returned `Signal` would not
+	/// emit any tuple until it has received at least two values.
 	///
 	/// - parameters:
-	///   - initial: A value that will be combined with the first value sent by
-	///              `self`.
+	///   - initial: An optional initial value.
 	///
 	/// - returns: A signal that sends tuples that contain previous and current
 	///            sent values of `self`.
-	public func combinePrevious(_ initial: Value) -> Signal<(Value, Value), Error> {
-		return scan((initial, initial)) { previousCombinedValues, newValue in
-			return (previousCombinedValues.1, newValue)
+	public func combinePrevious(_ initial: Value? = nil) -> Signal<(Value, Value), Error> {
+		return Signal<(Value, Value), Error> { observer in
+			var previous = initial
+
+			return self.observe { event in
+				switch event {
+				case let .value(value):
+					if let previous = previous {
+						observer.send(value: (previous, value))
+					}
+					previous = value
+				case .completed:
+					observer.sendCompleted()
+				case let .failed(error):
+					observer.send(error: error)
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
 		}
 	}
-
 
 	/// Combine all values from `self`, and forward only the final accumuated result.
 	///

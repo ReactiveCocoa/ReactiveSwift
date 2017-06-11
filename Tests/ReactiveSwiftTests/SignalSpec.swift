@@ -2756,6 +2756,7 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("combinePrevious") {
+			var signal: Signal<Int, NoError>!
 			var observer: Signal<Int, NoError>.Observer!
 			let initialValue: Int = 0
 			var latestValues: (Int, Int)?
@@ -2763,18 +2764,32 @@ class SignalSpec: QuickSpec {
 			beforeEach {
 				latestValues = nil
 				
-				let (signal, baseObserver) = Signal<Int, NoError>.pipe()
-				observer = baseObserver
-				signal.combinePrevious(initialValue).observeValues { latestValues = $0 }
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				(signal, observer) = (baseSignal, baseObserver)
 			}
 			
-			it("should forward the latest value with previous value") {
+			it("should forward the latest value with previous value with the given initial value") {
+				signal.combinePrevious(initialValue).observeValues { latestValues = $0 }
+
 				expect(latestValues).to(beNil())
 				
 				observer.send(value: 1)
 				expect(latestValues?.0) == initialValue
 				expect(latestValues?.1) == 1
 				
+				observer.send(value: 2)
+				expect(latestValues?.0) == 1
+				expect(latestValues?.1) == 2
+			}
+
+			it("should forward the latest value with previous value without any initial value") {
+				signal.combinePrevious().observeValues { latestValues = $0 }
+
+				expect(latestValues).to(beNil())
+
+				observer.send(value: 1)
+				expect(latestValues).to(beNil())
+
 				observer.send(value: 2)
 				expect(latestValues?.0) == 1
 				expect(latestValues?.1) == 2
