@@ -124,53 +124,41 @@ public struct BindingTarget<Value>: BindingTargetProvider {
 		return self
 	}
 
-	/// Creates a binding target.
-	///
-	/// - parameters:
-	///   - lifetime: The expected lifetime of any bindings towards `self`.
-	///   - action: The action to consume values.
-	public init(lifetime: Lifetime, action: @escaping (Value) -> Void) {
-		self.action = action
-		self.lifetime = lifetime
-	}
-
 	/// Creates a binding target which consumes values on the specified scheduler.
 	///
+	/// If no scheduler is specified, the binding target would consume the value
+	/// immediately.
+	///
 	/// - parameters:
-	///   - scheduler: The scheduler on which the `setter` consumes the values.
+	///   - scheduler: The scheduler on which the `action` consumes the values.
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
 	///   - action: The action to consume values.
-	public init(on scheduler: Scheduler, lifetime: Lifetime, action: @escaping (Value) -> Void) {
-		let setter: (Value) -> Void = { value in
-			scheduler.schedule {
-				action(value)
+	public init(on scheduler: Scheduler = ImmediateScheduler(), lifetime: Lifetime, action: @escaping (Value) -> Void) {
+		self.lifetime = lifetime
+
+		if scheduler is ImmediateScheduler {
+			self.action = action
+		} else {
+			self.action = { value in
+				scheduler.schedule {
+					action(value)
+				}
 			}
 		}
-		self.init(lifetime: lifetime, action: setter)
 	}
 
 	#if swift(>=3.2)
-	// `Lifetime` is required on these overloads. RAC would provide convenience overloads
-	// for these with `lifetime(of:)`.
-
-	/// Creates a binding target.
-	///
-	/// - parameters:
-	///   - lifetime: The expected lifetime of any bindings towards `self`.
-	///   - object: The object to consume values.
-	///   - keyPath: The key path of the object that consumes values.
-	public init<Object: AnyObject>(lifetime: Lifetime, object: Object, keyPath: ReferenceWritableKeyPath<Object, Value>) {
-		self.init(lifetime: lifetime) { [weak object] in object?[keyPath: keyPath] = $0 }
-	}
-
 	/// Creates a binding target which consumes values on the specified scheduler.
 	///
+	/// If no scheduler is specified, the binding target would consume the value
+	/// immediately.
+	///
 	/// - parameters:
-	///   - scheduler: The scheduler on which the `setter` consumes the values.
+	///   - scheduler: The scheduler on which the key path consumes the values.
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
 	///   - object: The object to consume values.
 	///   - keyPath: The key path of the object that consumes values.
-	public init<Object: AnyObject>(on scheduler: Scheduler, lifetime: Lifetime, object: Object, keyPath: ReferenceWritableKeyPath<Object, Value>) {
+	public init<Object: AnyObject>(on scheduler: Scheduler = ImmediateScheduler(), lifetime: Lifetime, object: Object, keyPath: ReferenceWritableKeyPath<Object, Value>) {
 		self.init(on: scheduler, lifetime: lifetime) { [weak object] in object?[keyPath: keyPath] = $0 }
 	}
 	#endif
