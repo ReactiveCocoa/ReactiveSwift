@@ -112,7 +112,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		private var hasDeinitialized: Bool
 
 		fileprivate init(_ generator: (Observer) -> Disposable?) {
-			state = .alive(AliveState())
+			state = .alive(AliveState(observers: Bag()))
 
 			updateLock = Lock.make()
 			sendLock = Lock.make()
@@ -225,7 +225,9 @@ public final class Signal<Value, Error: Swift.Error> {
 			updateLock.lock()
 
 			if case let .alive(state) = state {
-				token = state.observers.insert(observer)
+				var observers = state.observers
+				token = observers.insert(observer)
+				self.state = .alive(AliveState(observers: observers))
 			}
 
 			updateLock.unlock()
@@ -250,7 +252,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			if case let .alive(state) = state {
 				var observers = state.observers
 				let observer = observers.remove(using: token)
-				state.observers = observers
+				self.state = .alive(AliveState(observers: observers))
 
 				var result = OperationResult.none
 
@@ -450,13 +452,14 @@ public final class Signal<Value, Error: Swift.Error> {
 	private final class AliveState {
 		/// The observers of the `Signal`.
 		///
-		/// - note: Since `Bag` is a copy-on-write collection, writes can be done safety
-		///         as long as `updateLock` is acquired.
-		fileprivate var observers: Bag<Observer>
+		/// - important: `observer` should not be mutated directly given the layout of
+		///              `Bag`. Copy the bag, and replace the current `AliveState` with
+		///              a new one created with the bag instead.
+		fileprivate let observers: Bag<Observer>
 
 		/// Create an alive state.
-		init() {
-			self.observers = Bag()
+		init(observers: Bag<Observer>) {
+			self.observers = observers
 		}
 	}
 
