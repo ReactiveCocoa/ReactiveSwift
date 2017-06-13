@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Fixed an impedance mismatch in the `Signal` internals that caused heap corruptions. (#449, kudos to @gparker42)
+
 1. In Swift 3.2 or later, you may create `BindingTarget` for a key path of a specific object. (#440, kudos to @andersio)
 
 # 2.0.0-alpha.2
