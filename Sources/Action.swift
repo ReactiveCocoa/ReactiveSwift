@@ -168,6 +168,20 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		}
 	}
 
+	/// Initializes an `Action` that uses a property as its state.
+	///
+	/// When the `Action` is asked to start the execution, a unit of work — represented by
+	/// a `SignalProducer` — would be created by invoking `execute` with the latest value
+	/// of the state.
+	///
+	/// - parameters:
+	///   - state: A property to be the state of the `Action`.
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
+	///              be executed by the `Action`.
+	public convenience init<P: PropertyProtocol>(state: P, execute: @escaping (P.Value, Input) -> SignalProducer<Output, Error>) {
+		self.init(state: state, enabledIf: { _ in true }, execute: execute)
+	}
+
 	/// Initializes an `Action` that would be conditionally enabled.
 	///
 	/// When the `Action` is asked to start the execution with an input value, a unit of
@@ -269,7 +283,9 @@ extension Action where Input == Void {
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
 	///              be executed by the `Action`.
 	public convenience init<P: PropertyProtocol, T>(state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
-		self.init(state: state.map(Optional.some), execute: execute)
+		self.init(state: state) { state, _ in
+			execute(state)
+		}
 	}
 }
 
