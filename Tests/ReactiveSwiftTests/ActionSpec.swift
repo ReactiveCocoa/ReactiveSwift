@@ -350,6 +350,34 @@ class ActionSpec: QuickSpec {
 				input.value = nil
 				expect(action.isEnabled.value) == false
 			}
+
+			it("allows a different input type while unwrapping an optional state property") {
+				let state = MutableProperty<Int?>(nil)
+
+				let add = Action<String, Int?, NoError>(unwrapping: state) { state, input -> SignalProducer<Int?, NoError> in
+					guard let input = Int(input) else { return SignalProducer(value: nil) }
+					return SignalProducer(value: state + input)
+				}
+
+				var values: [Int] = []
+				add.values.observeValues { output in
+					if let output = output {
+						values.append(output)
+					}
+				}
+
+				expect(add.isEnabled.value) == false
+				state.value = 1
+				expect(add.isEnabled.value) == true
+
+				add.apply("2").start()
+				add.apply("3").start()
+
+				state.value = -1
+				add.apply("-10").start()
+
+				expect(values) == [3, 4, -11]
+			}
 		}
 	}
 }
