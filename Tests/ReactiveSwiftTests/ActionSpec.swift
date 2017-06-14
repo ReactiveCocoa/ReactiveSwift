@@ -344,7 +344,7 @@ class ActionSpec: QuickSpec {
 
 			it("is disabled if the property is nil") {
 				let input = MutableProperty<Int?>(1)
-				let action = Action(state: input, execute: echo)
+				let action = Action(unwrapping: input, execute: echo)
 
 				expect(action.isEnabled.value) == true
 				input.value = nil

@@ -285,7 +285,7 @@ extension Action where Input == Void {
 	///   - state: A property of optional to be the state of the `Action`.
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
 	///              be executed by the `Action`.
-	public convenience init<P: PropertyProtocol, T>(state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
+	public convenience init<P: PropertyProtocol, T>(unwrapping state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
 		self.init(unwrapping: state) { state, _ in
 			execute(state)
 		}
