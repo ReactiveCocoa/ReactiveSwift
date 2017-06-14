@@ -107,80 +107,114 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 /// `Lock` exposes `os_unfair_lock` on supported platforms, with pthread mutex as the
 // fallback.
 internal class Lock {
+	// Both `UnfairLock` and `PthreadLock` use `ManagedBufferPointer` to allocate inline
+	// storage for the lock. Inout reference to a stored property is deliberately avoided
+	// because Swift does not make any guarantee on the memory location of a variable. It
+	// is also prone to reabstractions made by the compiler, which may disrupt the
+	// atomicity of synchronization primitives.
+	//
+	// https://github.com/apple/swift/blob/master/docs/OwnershipManifesto.md#memory
+	// https://lists.swift.org/pipermail/swift-users/Week-of-Mon-20161205/004147.html
+
 	#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 	@available(iOS 10.0, *)
 	@available(macOS 10.12, *)
 	@available(tvOS 10.0, *)
 	@available(watchOS 3.0, *)
 	internal final class UnfairLock: Lock {
-		private let _lock: os_unfair_lock_t
+		// Inline storage support.
 
-		override init() {
-			_lock = .allocate(capacity: 1)
-			_lock.initialize(to: os_unfair_lock())
-			super.init()
+		private func withLock<R>(_ body: (os_unfair_lock_t) -> R) -> R {
+			return ManagedBufferPointer<os_unfair_lock, Never>(unsafeBufferObject: self)
+				.withUnsafeMutablePointerToHeader(body)
 		}
 
+		override class func make() -> UnfairLock {
+			let pointer = ManagedBufferPointer<os_unfair_lock, Never>(bufferClass: self, minimumCapacity: 0) { _, _ in
+				return os_unfair_lock()
+			}
+			return unsafeDowncast(pointer.buffer, to: UnfairLock.self)
+		}
+
+		override private init() {}
+
+		// Lock operations.
+
 		override func lock() {
-			os_unfair_lock_lock(_lock)
+			withLock(os_unfair_lock_lock)
 		}
 
 		override func unlock() {
-			os_unfair_lock_unlock(_lock)
+			withLock(os_unfair_lock_unlock)
 		}
 
 		override func `try`() -> Bool {
-			return os_unfair_lock_trylock(_lock)
+			return withLock(os_unfair_lock_trylock)
 		}
 
 		deinit {
-			_lock.deinitialize()
-			_lock.deallocate(capacity: 1)
+			withLock { _ = $0.deinitialize() }
 		}
 	}
 	#endif
 
 	internal final class PthreadLock: Lock {
-		private let _lock: UnsafeMutablePointer<pthread_mutex_t>
+		// Inline storage support.
 
-		init(recursive: Bool = false) {
-			_lock = .allocate(capacity: 1)
-			_lock.initialize(to: pthread_mutex_t())
-
-			let attr = UnsafeMutablePointer<pthread_mutexattr_t>.allocate(capacity: 1)
-			attr.initialize(to: pthread_mutexattr_t())
-			pthread_mutexattr_init(attr)
-
-			defer {
-				pthread_mutexattr_destroy(attr)
-				attr.deinitialize()
-				attr.deallocate(capacity: 1)
-			}
-
-			#if DEBUG
-			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_ERRORCHECK))
-			#else
-			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL))
-			#endif
-
-			let status = pthread_mutex_init(_lock, attr)
-			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
-
-			super.init()
+		private func withLock<R>(_ body: (UnsafeMutablePointer<pthread_mutex_t>) -> R) -> R {
+			return ManagedBufferPointer<pthread_mutex_t, Never>(unsafeBufferObject: self)
+				.withUnsafeMutablePointerToHeader(body)
 		}
 
+		override class func make() -> PthreadLock {
+			return make(recursive: false)
+		}
+
+		class func make(recursive: Bool) -> PthreadLock {
+			let pointer = ManagedBufferPointer<pthread_mutex_t, Never>(bufferClass: self, minimumCapacity: 0) { _, _ in
+				return pthread_mutex_t()
+			}
+
+			pointer.withUnsafeMutablePointerToHeader { _lock in
+				let attr = UnsafeMutablePointer<pthread_mutexattr_t>.allocate(capacity: 1)
+				attr.initialize(to: pthread_mutexattr_t())
+				pthread_mutexattr_init(attr)
+
+				defer {
+					pthread_mutexattr_destroy(attr)
+					attr.deinitialize()
+					attr.deallocate(capacity: 1)
+				}
+
+				#if DEBUG
+					pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_ERRORCHECK))
+				#else
+					pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL))
+				#endif
+
+				let status = pthread_mutex_init(_lock, attr)
+				assert(status == 0, "Unexpected pthread mutex error code: \(status)")
+			}
+
+			return unsafeDowncast(pointer.buffer, to: PthreadLock.self)
+		}
+
+		override private init() {}
+
+		// Lock operations.
+
 		override func lock() {
-			let status = pthread_mutex_lock(_lock)
+			let status = withLock(pthread_mutex_lock)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 		}
 
 		override func unlock() {
-			let status = pthread_mutex_unlock(_lock)
+			let status = withLock(pthread_mutex_unlock)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 		}
 
 		override func `try`() -> Bool {
-			let status = pthread_mutex_trylock(_lock)
+			let status = withLock(pthread_mutex_trylock)
 			switch status {
 			case 0:
 				return true
@@ -193,22 +227,23 @@ internal class Lock {
 		}
 
 		deinit {
-			let status = pthread_mutex_destroy(_lock)
-			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
+			withLock { lock in
+				let status = pthread_mutex_destroy(lock)
+				assert(status == 0, "Unexpected pthread mutex error code: \(status)")
 
-			_lock.deinitialize()
-			_lock.deallocate(capacity: 1)
+				_ = lock.deinitialize()
+			}
 		}
 	}
 
-	static func make() -> Lock {
+	class func make() -> Lock {
 		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 		if #available(*, iOS 10.0, macOS 10.12, tvOS 10.0, watchOS 3.0) {
-			return UnfairLock()
+			return UnfairLock.make()
 		}
 		#endif
 
-		return PthreadLock()
+		return PthreadLock.make()
 	}
 
 	private init() {}

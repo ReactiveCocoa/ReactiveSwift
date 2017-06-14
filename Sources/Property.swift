@@ -732,7 +732,7 @@ private final class PropertyBox<Value> {
 
 	init(_ value: Value) {
 		_value = value
-		lock = Lock.PthreadLock(recursive: true)
+		lock = Lock.PthreadLock.make(recursive: true)
 	}
 
 	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result {
