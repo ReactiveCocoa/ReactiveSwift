@@ -52,55 +52,33 @@ public final class Signal<Value, Error: Swift.Error> {
 			case none
 		}
 
+		/// The state of a `Signal`.
+		private enum State {
+			/// The `Signal` is alive.
+			case alive(Bag<Observer>)
+
+			/// The `Signal` has received a termination event, and is about to be
+			/// terminated.
+			case terminating(Bag<Observer>, Event?)
+
+			/// The `Signal` has terminated.
+			case terminated
+
+			var isTerminating: Bool {
+				switch self {
+				case .terminating:
+					return true
+				default:
+					return false
+				}
+			}
+		}
+
 		/// The disposable associated with the signal.
 		private let disposable: SerialDisposable
 
 		/// The state of the signal.
-		///
-		/// `state` synchronizes using Read-Copy-Update. Reads on the event delivery
-		/// routine are thus wait-free. But modifications, e.g. inserting observers,
-		/// still have to be serialized, and are required not to mutate in place.
-		///
-		/// This suits `Signal` as reads to `status` happens on the critical path of
-		/// event delivery, while observers bag manipulation or termination generally
-		/// has a constant occurrence.
-		///
-		/// As `SignalState` is a packed object reference (a tagged pointer) that is
-		/// naturally aligned, reads to are guaranteed to be atomic on all supported
-		/// hardware architectures of Swift (ARM and x86).
-		///
-		/// # Thread Safety Notes
-		///
-		/// - Check if the signal is at a specific state.
-		///   * Read directly.
-		///
-		/// - Deliver `value` events with the alive state.
-		///   * `sendLock` must be acquired.
-		///
-		/// - Replace the alive state with another. (e.g. observers bag manipulation)
-		///   * `updateLock` must be acquired.
-		///
-		/// - Transition from `alive` to `terminating` as a result of receiving
-		///   a termination event.
-		///   * `updateLock` must be acquired, and should fail gracefully if the
-		///     signal has terminated.
-		///
-		/// - Check if the signal is terminating. If it is, invoke `tryTerminate`
-		///   which transitions the state from `terminating` to `terminated`, and
-		///   delivers the termination event.
-		///   * Both `sendLock` and `updateLock` must be acquired. The check can be
-		///     relaxed, but the state must be checked again after the locks are
-		///     acquired. Fail gracefully if the state has changed since the relaxed
-		///     read, i.e. a concurrent sender has already handled the termination
-		///     event.
-		///
-		/// Exploiting the relaxation of reads, please note that false positives
-		/// are intentionally allowed in the `terminating` checks below. As a
-		/// result, normal event deliveries need not acquire `updateLock`.
-		/// Nevertheless, this should not cause the termination event being
-		/// sent multiple times, since `tryTerminate` would not respond to false
-		/// positives.
-		private var state: State
+		private let state: Atomic<State>
 
 		/// Used to ensure that state updates are serialized.
 		private let updateLock: Lock
@@ -112,7 +90,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		private var hasDeinitialized: Bool
 
 		fileprivate init(_ generator: (Observer) -> Disposable?) {
-			state = .alive(AliveState(observers: Bag()))
+			state = Atomic(.alive(Bag()))
 
 			updateLock = Lock.make()
 			sendLock = Lock.make()
@@ -145,20 +123,16 @@ public final class Signal<Value, Error: Swift.Error> {
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
 
-				self.updateLock.lock()
-
-				if case let .alive(state) = self.state {
-					let newSnapshot = TerminatingState(observers: state.observers, event: event)
-					self.state = .terminating(newSnapshot)
-					self.updateLock.unlock()
-
-					// Check whether the terminating state has been handled by a
-					// concurrent sender. If not, handle it.
-					if self.tryToCommitTermination() == .shouldDispose {
-						self.disposable.dispose()
+				state.modify { state in
+					if case let .alive(observers) = state {
+						state = .terminating(observers, event)
 					}
-				} else {
-					self.updateLock.unlock()
+				}
+
+				// Check whether the terminating state has been handled by a
+				// concurrent sender. If not, handle it.
+				if self.tryToCommitTermination() == .shouldDispose {
+					self.disposable.dispose()
 				}
 			} else {
 				var result = OperationResult.none
@@ -183,15 +157,16 @@ public final class Signal<Value, Error: Swift.Error> {
 
 				self.sendLock.lock()
 
-				if case let .alive(state) = self.state {
-					for observer in state.observers {
-						observer.action(event)
+				let observers: Bag<Observer>? = state.modify { state in
+					if case let .alive(observers) = state {
+						return observers
 					}
+					return nil
+				}
 
-					// Check if the status has been bumped to `terminating` due to a
-					// concurrent or a recursive termination event.
-					if case .terminating = self.state {
-						result = self.tryToCommitTermination(acquired: self.sendLock)
+				if let observers = observers {
+					for observer in observers {
+						observer.action(event)
 					}
 				}
 
@@ -200,7 +175,7 @@ public final class Signal<Value, Error: Swift.Error> {
 				// Check if the status has been bumped to `terminating` due to a
 				// concurrent termination event that has not been caught in the main
 				// protected section.
-				if result == .none, case .terminating = self.state {
+				if result == .none, state.modify({ $0.isTerminating }) {
 					result = self.tryToCommitTermination()
 				}
 
@@ -220,17 +195,15 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// - returns: A `Disposable` which can be used to disconnect the observer,
 		///            or `nil` if the signal has already terminated.
 		fileprivate func observe(_ observer: Observer) -> Disposable? {
-			var token: Bag<Observer>.Token?
-
-			updateLock.lock()
-
-			if case let .alive(state) = state {
-				var observers = state.observers
-				token = observers.insert(observer)
-				self.state = .alive(AliveState(observers: observers))
+			let token: Bag<Observer>.Token? = state.modify { state in
+				if case let .alive(observers) = state {
+					var newObservers = observers
+					let token = newObservers.insert(observer)
+					state = .alive(newObservers)
+					return token
+				}
+				return nil
 			}
-
-			updateLock.unlock()
 
 			if let token = token {
 				return AnyDisposable { [weak self] in
@@ -247,24 +220,22 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// - parameters:
 		///   - token: The token of the observer to remove.
 		private func removeObserver(with token: Bag<Observer>.Token) {
-			updateLock.lock()
+			let observer: Observer? = state.modify { state in
+				if case let .alive(observers) = state {
+					var newObservers = observers
+					let observer = newObservers.remove(using: token)
+					state = .alive(newObservers)
+					return observer
+				}
+				return nil
+			}
 
-			if case let .alive(state) = state {
-				var observers = state.observers
-				let observer = observers.remove(using: token)
-				self.state = .alive(AliveState(observers: observers))
-
+			withExtendedLifetime(observer) {
 				var result = OperationResult.none
 
-				// Ensure `observer` is deallocated after `updateLock` is
-				// released to avoid deadlocks.
-				withExtendedLifetime(observer) {
-					// Start the disposal of the `Signal` core if the `Signal` has
-					// deinitialized and there is no active observer.
-					result = tryToDisposeSilentlyIfQualified()
-
-					updateLock.unlock()
-				}
+				// Start the disposal of the `Signal` core if the `Signal` has
+				// deinitialized and there is no active observer.
+				result = tryToDisposeSilentlyIfQualified()
 
 				if result == .shouldTryCommitTermination {
 					result = tryToCommitTermination()
@@ -276,8 +247,6 @@ public final class Signal<Value, Error: Swift.Error> {
 					// as the last +1 retain of the `Signal` core may deinitialize.
 					disposable.dispose()
 				}
-			} else {
-				updateLock.unlock()
 			}
 		}
 
@@ -298,16 +267,17 @@ public final class Signal<Value, Error: Swift.Error> {
 			assert(sendLock == nil || sendLock === self.sendLock,
 			       "`tryTerminate` receives a lock that is not the `sendLock` of the signal.")
 			func commit() -> OperationResult {
-				// Acquire `updateLock`. If the termination has still not yet been
-				// handled, take it over and bump the status to `terminated`.
-				self.updateLock.lock()
+				let terminatingState: (Bag<Observer>, Event?)? = state.modify { state in
+					if case let .terminating(observers, event) = state {
+						state = .terminated
+						return (observers, event)
+					}
+					return nil
+				}
 
-				if case let .terminating(state) = self.state {
-					self.state = .terminated
-					self.updateLock.unlock()
-
-					if let event = state.event {
-						for observer in state.observers {
+				if let (observers, event) = terminatingState {
+					if let event = event {
+						for observer in observers {
 							observer.action(event)
 						}
 					}
@@ -315,7 +285,6 @@ public final class Signal<Value, Error: Swift.Error> {
 					return .shouldDispose
 				}
 
-				self.updateLock.unlock()
 				return .none
 			}
 
@@ -347,19 +316,19 @@ public final class Signal<Value, Error: Swift.Error> {
 		///            `terminating` state, and the caller should try to commit the
 		///            termination with `tryToCommitTermination`. `.none` otherwise.
 		private func tryToDisposeSilentlyIfQualified() -> OperationResult {
-			assert(!updateLock.try(), "Calling `unconditionallyTerminate` without acquiring `updateLock`.")
+			if hasDeinitialized {
+				return state.modify { state in
+					// Transition to `terminated` directly only if there is no event delivery
+					// on going.
+					if sendLock.try() {
+						defer { sendLock.unlock() }
+						state = .terminated
+						return .shouldDispose
+					}
 
-			if hasDeinitialized, case let .alive(state) = state, state.observers.isEmpty {
-				// Transition to `terminated` directly only if there is no event delivery
-				// on going.
-				if sendLock.try() {
-					defer { sendLock.unlock() }
-					self.state = .terminated
-					return .shouldDispose
+					state = .terminating(Bag(), nil)
+					return .shouldTryCommitTermination
 				}
-
-				self.state = .terminating(TerminatingState(observers: Bag(), event: nil))
-				return .shouldTryCommitTermination
 			}
 
 			return .none
@@ -367,15 +336,11 @@ public final class Signal<Value, Error: Swift.Error> {
 
 		/// Acknowledge the deinitialization of the `Signal`.
 		fileprivate func signalDidDeinitialize() {
-			updateLock.lock()
-
 			// Mark the `Signal` has now deinitialized.
 			hasDeinitialized = true
 
 			// Attempt to start the disposal of the signal if it has no active observer.
 			var result = tryToDisposeSilentlyIfQualified()
-
-			updateLock.unlock()
 
 			if result == .shouldTryCommitTermination {
 				result = tryToCommitTermination()
@@ -422,65 +387,6 @@ public final class Signal<Value, Error: Swift.Error> {
 
 	deinit {
 		core.signalDidDeinitialize()
-	}
-
-	/// The state of a `Signal`.
-	///
-	/// `SignalState` is guaranteed to be laid out as a tagged pointer by the Swift
-	/// compiler in the support targets of the Swift 3.0.1 ABI.
-	///
-	/// The Swift compiler has also an optimization for enums with payloads that are
-	/// all reference counted, and at most one no-payload case.
-	private enum State {
-		/// The `Signal` is alive.
-		case alive(AliveState)
-
-		/// The `Signal` has received a termination event, and is about to be
-		/// terminated.
-		case terminating(TerminatingState)
-
-		/// The `Signal` has terminated.
-		case terminated
-	}
-
-	// As the amount of state would definitely span over a cache line,
-	// `AliveState` and `TerminatingState` is set to be a reference type so
-	// that we can atomically update the reference instead.
-
-	/// The state of a `Signal` that is alive. It contains a bag of observers and
-	/// an optional self-retaining reference.
-	private final class AliveState {
-		/// The observers of the `Signal`.
-		///
-		/// - important: `observer` should not be mutated directly given the layout of
-		///              `Bag`. Copy the bag, and replace the current `AliveState` with
-		///              a new one created with the bag instead.
-		fileprivate let observers: Bag<Observer>
-
-		/// Create an alive state.
-		init(observers: Bag<Observer>) {
-			self.observers = observers
-		}
-	}
-
-	/// The state of a terminating `Signal`. It contains a bag of observers and the
-	/// termination event.
-	private final class TerminatingState {
-		/// The observers of the `Signal`.
-		fileprivate let observers: Bag<Observer>
-
-		///  The termination event.
-		fileprivate let event: Event?
-
-		/// Create a terminating state.
-		///
-		/// - parameters:
-		///   - observers: The latest bag of observers.
-		///   - event: The termination event.
-		init(observers: Bag<Observer>, event: Event?) {
-			self.observers = observers
-			self.event = event
-		}
 	}
 }
 
