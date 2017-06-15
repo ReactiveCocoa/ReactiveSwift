@@ -323,13 +323,60 @@ class ActionSpec: QuickSpec {
 				expect(values) == [1, 2, 3]
 			}
 
+			it("allows a non-void input type") {
+				let state = MutableProperty(1)
+
+				let add = Action<Int, Int, NoError>(state: state) { state, input in
+					SignalProducer(value: state + input)
+				}
+
+				var values: [Int] = []
+				add.values.observeValues { values.append($0) }
+
+				add.apply(2).start()
+				add.apply(3).start()
+
+				state.value = -1
+				add.apply(-10).start()
+
+				expect(values) == [3, 4, -11]
+			}
+
 			it("is disabled if the property is nil") {
 				let input = MutableProperty<Int?>(1)
-				let action = Action(state: input, execute: echo)
+				let action = Action(unwrapping: input, execute: echo)
 
 				expect(action.isEnabled.value) == true
 				input.value = nil
 				expect(action.isEnabled.value) == false
+			}
+
+			it("allows a different input type while unwrapping an optional state property") {
+				let state = MutableProperty<Int?>(nil)
+
+				let add = Action<String, Int?, NoError>(unwrapping: state) { state, input -> SignalProducer<Int?, NoError> in
+					guard let input = Int(input) else { return SignalProducer(value: nil) }
+					return SignalProducer(value: state + input)
+				}
+
+				var values: [Int] = []
+				add.values.observeValues { output in
+					if let output = output {
+						values.append(output)
+					}
+				}
+
+				expect(add.isEnabled.value) == false
+				state.value = 1
+				expect(add.isEnabled.value) == true
+
+				add.apply("2").start()
+				add.apply("3").start()
+
+				state.value = -1
+				add.apply("-10").start()
+
+				expect(values) == [3, 4, -11]
 			}
 		}
 	}
