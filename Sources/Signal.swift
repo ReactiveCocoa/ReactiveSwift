@@ -182,17 +182,16 @@ public final class Signal<Value, Error: Swift.Error> {
 				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
 
 				self.sendLock.lock()
+				self.updateLock.lock()
 
 				if case let .alive(state) = self.state {
+					self.updateLock.unlock()
+
 					for observer in state.observers {
 						observer.action(event)
 					}
-
-					// Check if the status has been bumped to `terminating` due to a
-					// concurrent or a recursive termination event.
-					if case .terminating = self.state {
-						result = self.tryToCommitTermination(acquired: self.sendLock)
-					}
+				} else {
+					self.updateLock.unlock()
 				}
 
 				self.sendLock.unlock()
@@ -200,8 +199,12 @@ public final class Signal<Value, Error: Swift.Error> {
 				// Check if the status has been bumped to `terminating` due to a
 				// concurrent termination event that has not been caught in the main
 				// protected section.
+				self.updateLock.lock()
 				if result == .none, case .terminating = self.state {
+					self.updateLock.unlock()
 					result = self.tryToCommitTermination()
+				} else {
+					self.updateLock.unlock()
 				}
 
 				// Dispose only after notifying observers, so disposal
