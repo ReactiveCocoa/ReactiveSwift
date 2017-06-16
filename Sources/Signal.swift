@@ -101,18 +101,10 @@ public final class Signal<Value, Error: Swift.Error> {
 				if case let .alive(observers, _) = state {
 					self.state = .terminating(observers, .init(event))
 					self.stateLock.unlock()
-
-					// Check whether the terminating state has been handled by a
-					// concurrent sender. If not, handle it.
-					if self.tryToCommitTermination() == .shouldDispose {
-						self.disposable.dispose()
-					}
 				} else {
 					self.stateLock.unlock()
 				}
 			} else {
-				var result = OperationResult.none
-
 				self.sendLock.lock()
 				self.stateLock.lock()
 
@@ -127,28 +119,20 @@ public final class Signal<Value, Error: Swift.Error> {
 				}
 
 				self.sendLock.unlock()
+			}
 
-				// Check if the status has been bumped to `terminating` due to a
-				// terminal event being sent concurrently or recursively.
-				//
-				// The check is deliberately made outside of the `sendLock` so that it
-				// covers also any potential concurrent terminal event in one shot.
-				//
-				// Related PR:
-				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
-				self.stateLock.lock()
-				if result == .none, case .terminating = self.state {
-					self.stateLock.unlock()
-					result = self.tryToCommitTermination()
-				} else {
-					self.stateLock.unlock()
-				}
-
+			// Check if the status has been bumped to `terminating` due to a
+			// terminal event being sent concurrently or recursively.
+			//
+			// The check is deliberately made outside of the `sendLock` so that it
+			// covers also any potential concurrent terminal event in one shot.
+			//
+			// Related PR:
+			// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
+			if .shouldDispose == self.tryToCommitTermination() {
 				// Dispose only after notifying observers, so disposal
 				// logic is consistently the last thing to run.
-				if result == .shouldDispose {
-					self.disposable.dispose()
-				}
+				self.disposable.dispose()
 			}
 		}
 
@@ -229,22 +213,20 @@ public final class Signal<Value, Error: Swift.Error> {
 		///
 		/// - precondition: `stateLock` must not be acquired by the caller.
 		///
-		/// - parameters:
-		///   - sendLock: `sendLock` if the caller has acquired it. If not specified,
-		///               `tryTerminate` would attempt to acquire the `sendLock`.
-		///
 		/// - returns: `.shouldDispose` if the attempt succeeds. `.none` otherwise.
-		private func tryToCommitTermination(acquired sendLock: Lock? = nil) -> OperationResult {
-			assert(sendLock == nil || sendLock === self.sendLock,
-			       "`tryTerminate` receives a lock that is not the `sendLock` of the signal.")
-			func commit() -> OperationResult {
-				// Acquire `stateLock`. If the termination has still not yet been
-				// handled, take it over and bump the status to `terminated`.
-				self.stateLock.lock()
+		private func tryToCommitTermination() -> OperationResult {
+			// Acquire `stateLock`. If the termination has still not yet been
+			// handled, take it over and bump the status to `terminated`.
+			stateLock.lock()
 
-				if case let .terminating(observers, terminationKind) = self.state {
-					self.state = .terminated
-					self.stateLock.unlock()
+			if case let .terminating(observers, terminationKind) = state {
+				// Try to acquire the `sendLock`, and fail gracefully since the current
+				// lock holder would attempt to commit after it is done anyway.
+				if sendLock.try() {
+					state = .terminated
+					stateLock.unlock()
+
+					defer { sendLock.unlock() }
 
 					if let event = terminationKind.materialize() {
 						for observer in observers {
@@ -254,24 +236,10 @@ public final class Signal<Value, Error: Swift.Error> {
 
 					return .shouldDispose
 				}
-
-				self.stateLock.unlock()
-				return .none
 			}
 
-			// If the caller declares prior acquisition of `sendLock`, go straight to
-			// the termination committing routine.
-			guard sendLock == nil else {
-				return commit()
-			}
-
-			guard self.sendLock.try() else {
-				// The current sender would commit the termination anyway.
-				return .none
-			}
-
-			defer { self.sendLock.unlock() }
-			return commit()
+			stateLock.unlock()
+			return .none
 		}
 
 		/// Try to dispose of the signal silently if the `Signal` has deinitialized and
