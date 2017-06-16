@@ -56,54 +56,10 @@ public final class Signal<Value, Error: Swift.Error> {
 		private let disposable: SerialDisposable
 
 		/// The state of the signal.
-		///
-		/// `state` synchronizes using Read-Copy-Update. Reads on the event delivery
-		/// routine are thus wait-free. But modifications, e.g. inserting observers,
-		/// still have to be serialized, and are required not to mutate in place.
-		///
-		/// This suits `Signal` as reads to `status` happens on the critical path of
-		/// event delivery, while observers bag manipulation or termination generally
-		/// has a constant occurrence.
-		///
-		/// As `SignalState` is a packed object reference (a tagged pointer) that is
-		/// naturally aligned, reads to are guaranteed to be atomic on all supported
-		/// hardware architectures of Swift (ARM and x86).
-		///
-		/// # Thread Safety Notes
-		///
-		/// - Check if the signal is at a specific state.
-		///   * Read directly.
-		///
-		/// - Deliver `value` events with the alive state.
-		///   * `sendLock` must be acquired.
-		///
-		/// - Replace the alive state with another. (e.g. observers bag manipulation)
-		///   * `updateLock` must be acquired.
-		///
-		/// - Transition from `alive` to `terminating` as a result of receiving
-		///   a termination event.
-		///   * `updateLock` must be acquired, and should fail gracefully if the
-		///     signal has terminated.
-		///
-		/// - Check if the signal is terminating. If it is, invoke `tryTerminate`
-		///   which transitions the state from `terminating` to `terminated`, and
-		///   delivers the termination event.
-		///   * Both `sendLock` and `updateLock` must be acquired. The check can be
-		///     relaxed, but the state must be checked again after the locks are
-		///     acquired. Fail gracefully if the state has changed since the relaxed
-		///     read, i.e. a concurrent sender has already handled the termination
-		///     event.
-		///
-		/// Exploiting the relaxation of reads, please note that false positives
-		/// are intentionally allowed in the `terminating` checks below. As a
-		/// result, normal event deliveries need not acquire `updateLock`.
-		/// Nevertheless, this should not cause the termination event being
-		/// sent multiple times, since `tryTerminate` would not respond to false
-		/// positives.
 		private var state: State
 
-		/// Used to ensure that state updates are serialized.
-		private let updateLock: Lock
+		/// Used to ensure that all state accesses are serialized.
+		private let stateLock: Lock
 
 		/// Used to ensure that events are serialized during delivery to observers.
 		private let sendLock: Lock
@@ -111,7 +67,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		fileprivate init(_ generator: (Observer) -> Disposable?) {
 			state = .alive(Bag(), hasDeinitialized: false)
 
-			updateLock = Lock.make()
+			stateLock = Lock.make()
 			sendLock = Lock.make()
 			disposable = SerialDisposable()
 
@@ -140,11 +96,11 @@ public final class Signal<Value, Error: Swift.Error> {
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
 
-				self.updateLock.lock()
+				self.stateLock.lock()
 
 				if case let .alive(observers, _) = state {
 					self.state = .terminating(observers, .init(event))
-					self.updateLock.unlock()
+					self.stateLock.unlock()
 
 					// Check whether the terminating state has been handled by a
 					// concurrent sender. If not, handle it.
@@ -152,53 +108,40 @@ public final class Signal<Value, Error: Swift.Error> {
 						self.disposable.dispose()
 					}
 				} else {
-					self.updateLock.unlock()
+					self.stateLock.unlock()
 				}
 			} else {
 				var result = OperationResult.none
 
-				// The `terminating` status check is performed twice for two different
-				// purposes:
-				//
-				// 1. Within the main protected section
-				//    It guarantees that a recursive termination event sent by a
-				//    downstream consumer, is immediately processed and need not compete
-				//    with concurrent pending senders (if any).
-				//
-				//    Termination events sent concurrently may also be caught here, but
-				//    not necessarily all of them due to data races.
-				//
-				// 2. After the main protected section
-				//    It ensures the termination event sent concurrently that are not
-				//    caught by (1) due to data races would still be processed.
-				//
-				// The related PR on the race conditions:
-				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
-
 				self.sendLock.lock()
-				self.updateLock.lock()
+				self.stateLock.lock()
 
 				if case let .alive(observers, _) = self.state {
-					self.updateLock.unlock()
+					self.stateLock.unlock()
 
 					for observer in observers {
 						observer.action(event)
 					}
 				} else {
-					self.updateLock.unlock()
+					self.stateLock.unlock()
 				}
 
 				self.sendLock.unlock()
 
 				// Check if the status has been bumped to `terminating` due to a
-				// concurrent termination event that has not been caught in the main
-				// protected section.
-				self.updateLock.lock()
+				// terminal event being sent concurrently or recursively.
+				//
+				// The check is deliberately made outside of the `sendLock` so that it
+				// covers also any potential concurrent terminal event in one shot.
+				//
+				// Related PR:
+				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
+				self.stateLock.lock()
 				if result == .none, case .terminating = self.state {
-					self.updateLock.unlock()
+					self.stateLock.unlock()
 					result = self.tryToCommitTermination()
 				} else {
-					self.updateLock.unlock()
+					self.stateLock.unlock()
 				}
 
 				// Dispose only after notifying observers, so disposal
@@ -219,7 +162,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		fileprivate func observe(_ observer: Observer) -> Disposable? {
 			var token: Bag<Observer>.Token?
 
-			updateLock.lock()
+			stateLock.lock()
 
 			if case let .alive(observers, hasDeinitialized) = state {
 				var newObservers = observers
@@ -227,7 +170,7 @@ public final class Signal<Value, Error: Swift.Error> {
 				self.state = .alive(newObservers, hasDeinitialized: hasDeinitialized)
 			}
 
-			updateLock.unlock()
+			stateLock.unlock()
 
 			if let token = token {
 				return AnyDisposable { [weak self] in
@@ -244,7 +187,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// - parameters:
 		///   - token: The token of the observer to remove.
 		private func removeObserver(with token: Bag<Observer>.Token) {
-			updateLock.lock()
+			stateLock.lock()
 
 			if case let .alive(observers, hasDeinitialized) = state {
 				var newObservers = observers
@@ -253,14 +196,14 @@ public final class Signal<Value, Error: Swift.Error> {
 
 				var result = OperationResult.none
 
-				// Ensure `observer` is deallocated after `updateLock` is
+				// Ensure `observer` is deallocated after `stateLock` is
 				// released to avoid deadlocks.
 				withExtendedLifetime(observer) {
 					// Start the disposal of the `Signal` core if the `Signal` has
 					// deinitialized and there is no active observer.
 					result = tryToDisposeSilentlyIfQualified()
 
-					updateLock.unlock()
+					stateLock.unlock()
 				}
 
 				if result == .shouldTryCommitTermination {
@@ -274,7 +217,7 @@ public final class Signal<Value, Error: Swift.Error> {
 					disposable.dispose()
 				}
 			} else {
-				updateLock.unlock()
+				stateLock.unlock()
 			}
 		}
 
@@ -284,7 +227,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// It fails gracefully if the signal is alive or has terminated. Calling this
 		/// method as a result of a false positive `terminating` check is permitted.
 		///
-		/// - precondition: `updateLock` must not be acquired by the caller.
+		/// - precondition: `stateLock` must not be acquired by the caller.
 		///
 		/// - parameters:
 		///   - sendLock: `sendLock` if the caller has acquired it. If not specified,
@@ -295,13 +238,13 @@ public final class Signal<Value, Error: Swift.Error> {
 			assert(sendLock == nil || sendLock === self.sendLock,
 			       "`tryTerminate` receives a lock that is not the `sendLock` of the signal.")
 			func commit() -> OperationResult {
-				// Acquire `updateLock`. If the termination has still not yet been
+				// Acquire `stateLock`. If the termination has still not yet been
 				// handled, take it over and bump the status to `terminated`.
-				self.updateLock.lock()
+				self.stateLock.lock()
 
 				if case let .terminating(observers, terminationKind) = self.state {
 					self.state = .terminated
-					self.updateLock.unlock()
+					self.stateLock.unlock()
 
 					if let event = terminationKind.materialize() {
 						for observer in observers {
@@ -312,7 +255,7 @@ public final class Signal<Value, Error: Swift.Error> {
 					return .shouldDispose
 				}
 
-				self.updateLock.unlock()
+				self.stateLock.unlock()
 				return .none
 			}
 
@@ -337,14 +280,14 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// It fails gracefully if the signal is terminating or terminated, has one or
 		/// more observers, or has not deinitialized.
 		///
-		/// - precondition: `updateLock` must have been acquired by the caller.
+		/// - precondition: `stateLock` must have been acquired by the caller.
 		///
 		/// - returns: `.shouldDispose` if the signal has terminated immediately.
 		///            `.shouldTryCommitTermination` if the signal has transitioned to
 		///            `terminating` state, and the caller should try to commit the
 		///            termination with `tryToCommitTermination`. `.none` otherwise.
 		private func tryToDisposeSilentlyIfQualified() -> OperationResult {
-			assert(!updateLock.try(), "Calling `unconditionallyTerminate` without acquiring `updateLock`.")
+			assert(!stateLock.try(), "Calling `unconditionallyTerminate` without acquiring `stateLock`.")
 
 			if case let .alive(observers, true) = state, observers.isEmpty {
 				// Transition to `terminated` directly only if there is no event delivery
@@ -364,7 +307,7 @@ public final class Signal<Value, Error: Swift.Error> {
 
 		/// Acknowledge the deinitialization of the `Signal`.
 		fileprivate func signalDidDeinitialize() {
-			updateLock.lock()
+			stateLock.lock()
 
 			// Mark the `Signal` has now deinitialized.
 			if case let .alive(observers, false) = state {
@@ -374,7 +317,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			// Attempt to start the disposal of the signal if it has no active observer.
 			var result = tryToDisposeSilentlyIfQualified()
 
-			updateLock.unlock()
+			stateLock.unlock()
 
 			if result == .shouldTryCommitTermination {
 				result = tryToCommitTermination()
