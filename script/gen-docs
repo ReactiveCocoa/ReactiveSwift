@@ -67,8 +67,8 @@ cp ../Logo/PNG/JoinSlack.png ${DOC_PATH}/Logo/PNG/JoinSlack.png
 cp ../Logo/PNG/Docs.png ${DOC_PATH}/Logo/PNG/Docs.png
 
 # Fix all readme links.
-perl -0777 -i -pe 's/"Documentation\/([a-zA-Z0-9-_]+)\.md/"\L$1\.html/g' ${DOC_PATH}/*.html
-perl -0777 -i -pe 's/"(a-zA-Z0-9-_]+)\.md/"\L$1\.html/g' ${DOC_PATH}/*.html
+perl -0777 -i -pe 's/"Documentation\/([a-zA-Z0-9-_\.]+)\.md/"\L$1\.html/g' ${DOC_PATH}/*.html
+perl -0777 -i -pe 's/"(a-zA-Z0-9-_\.]+)\.md/"\L$1\.html/g' ${DOC_PATH}/*.html
 
 git add ${DOC_PATH}
 
