@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Mitigated a race condition related to ARC in the `Signal` internal. (#456, kudos to @andersio)
+
 1. Added new convenience initialisers to `Action` that make creating actions with state input properties easier. When creating an `Action` that is conditionally enabled based on an optional property, use the renamed `Action.init(unwrapping:execute:)` initialisers. (#455, kudos to @sharplet)
 
 # 2.0.0-alpha.3
