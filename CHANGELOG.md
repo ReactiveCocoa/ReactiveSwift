@@ -3,6 +3,15 @@
 
 1. `ValidationResult` and `ValidatorOutput` have been renamed to `ValidatingProperty.Result` and `ValidatingProperty.Decision`, respectively. (#443)
 
+1. Mitigated a race condition related to ARC in the `Signal` internal. (#456, kudos to @andersio)
+
+1. Added new convenience initialisers to `Action` that make creating actions with state input properties easier. When creating an `Action` that is conditionally enabled based on an optional property, use the renamed `Action.init(unwrapping:execute:)` initialisers. (#455, kudos to @sharplet)
+
+# 2.0.0-alpha.3
+1. `combinePrevious` for `Signal` and `SignalProducer` no longer requires an initial value. The first tuple would be emitted as soon as the second value is received by the operator if no initial value is given. (#445, kudos to @andersio)
+
+1. Fixed an impedance mismatch in the `Signal` internals that caused heap corruptions. (#449, kudos to @gparker42)
+
 1. In Swift 3.2 or later, you may create `BindingTarget` for a key path of a specific object. (#440, kudos to @andersio)
 
 # 2.0.0-alpha.2

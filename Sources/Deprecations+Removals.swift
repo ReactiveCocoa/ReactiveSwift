@@ -141,7 +141,10 @@ extension Action {
 }
 
 extension Action where Input == Void {
-	@available(*, unavailable, renamed:"init(state:execute:)")
+	@available(*, unavailable, renamed:"init(unwrapping:execute:)")
+	public convenience init<P: PropertyProtocol, T>(state: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? { fatalError() }
+
+	@available(*, unavailable, renamed:"init(unwrapping:execute:)")
 	public convenience init<P: PropertyProtocol, T>(input: P, _ execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? { fatalError() }
 
 	@available(*, unavailable, renamed:"init(state:execute:)")

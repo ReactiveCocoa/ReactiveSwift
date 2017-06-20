@@ -978,19 +978,32 @@ extension SignalProducer {
 		return liftRight(Signal.skip(until:))(trigger.producer)
 	}
 
-	/// Forward events from `self` with history: values of the returned producer
-	/// are a tuple whose first member is the previous value and whose second
-	/// member is the current value. `initial` is supplied as the first member
-	/// when `self` sends its first value.
+	/// Forward events from `self` with history: values of the returned signal
+	/// are a tuples whose first member is the previous value and whose second member
+	/// is the current value. `initial` is supplied as the first member when `self`
+	/// sends its first value.
 	///
 	/// - parameters:
 	///   - initial: A value that will be combined with the first value sent by
 	///              `self`.
 	///
-	/// - returns: A producer that sends tuples that contain previous and
-	///            current sent values of `self`.
+	/// - returns: A signal that sends tuples that contain previous and current
+	///            sent values of `self`.
 	public func combinePrevious(_ initial: Value) -> SignalProducer<(Value, Value), Error> {
 		return lift { $0.combinePrevious(initial) }
+	}
+
+	/// Forward events from `self` with history: values of the produced signal
+	/// are a tuples whose first member is the previous value and whose second member
+	/// is the current value.
+	///
+	/// The produced `Signal` would not emit any tuple until it has received at least two
+	/// values.
+	///
+	/// - returns: A producer that sends tuples that contain previous and current
+	///            sent values of `self`.
+	public func combinePrevious() -> SignalProducer<(Value, Value), Error> {
+		return lift { $0.combinePrevious() }
 	}
 
 	/// Combine all values from `self`, and forward the final result.

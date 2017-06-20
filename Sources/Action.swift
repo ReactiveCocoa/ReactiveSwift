@@ -168,6 +168,20 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		}
 	}
 
+	/// Initializes an `Action` that uses a property as its state.
+	///
+	/// When the `Action` is asked to start the execution, a unit of work — represented by
+	/// a `SignalProducer` — would be created by invoking `execute` with the latest value
+	/// of the state.
+	///
+	/// - parameters:
+	///   - state: A property to be the state of the `Action`.
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
+	///              be executed by the `Action`.
+	public convenience init<P: PropertyProtocol>(state: P, execute: @escaping (P.Value, Input) -> SignalProducer<Output, Error>) {
+		self.init(state: state, enabledIf: { _ in true }, execute: execute)
+	}
+
 	/// Initializes an `Action` that would be conditionally enabled.
 	///
 	/// When the `Action` is asked to start the execution with an input value, a unit of
@@ -181,6 +195,25 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	public convenience init<P: PropertyProtocol>(enabledIf isEnabled: P, execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
 		self.init(state: isEnabled, enabledIf: { $0 }) { _, input in
 			execute(input)
+		}
+	}
+
+	/// Initializes an `Action` that uses a property of optional as its state.
+	///
+	/// When the `Action` is asked to start executing, a unit of work (represented by
+	/// a `SignalProducer`) is created by invoking `execute` with the latest value
+	/// of the state and the `input` that was passed to `apply()`.
+	///
+	/// If the property holds a `nil`, the `Action` would be disabled until it is not
+	/// `nil`.
+	///
+	/// - parameters:
+	///   - state: A property of optional to be the state of the `Action`.
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
+	///              be executed by the `Action`.
+	public convenience init<P: PropertyProtocol, T>(unwrapping state: P, execute: @escaping (T, Input) -> SignalProducer<Output, Error>) where P.Value == T? {
+		self.init(state: state, enabledIf: { $0 != nil }) { state, input in
+			execute(state!, input)
 		}
 	}
 
@@ -252,9 +285,9 @@ extension Action where Input == Void {
 	///   - state: A property of optional to be the state of the `Action`.
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
 	///              be executed by the `Action`.
-	public convenience init<P: PropertyProtocol, T>(state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
-		self.init(state: state, enabledIf: { $0 != nil }) { state, _ in
-			execute(state!)
+	public convenience init<P: PropertyProtocol, T>(unwrapping state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
+		self.init(unwrapping: state) { state, _ in
+			execute(state)
 		}
 	}
 
@@ -269,7 +302,9 @@ extension Action where Input == Void {
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
 	///              be executed by the `Action`.
 	public convenience init<P: PropertyProtocol, T>(state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T {
-		self.init(state: state.map(Optional.some), execute: execute)
+		self.init(state: state) { state, _ in
+			execute(state)
+		}
 	}
 }
 
