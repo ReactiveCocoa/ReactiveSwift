@@ -260,7 +260,7 @@ class SignalSpec: QuickSpec {
 
 			context("memory") {
 				it("should not crash allocating memory with a few observers") {
-					let (signal, _) = Signal<Int, NoError>.pipe()
+					let (signal, observer) = Signal<Int, NoError>.pipe()
 
 					#if os(Linux)
 						func autoreleasepool(invoking code: () -> Void) {
@@ -268,11 +268,13 @@ class SignalSpec: QuickSpec {
 						}
 					#endif
 
-					for _ in 0..<50 {
-						autoreleasepool {
-							let disposable = signal.observe { _ in }
+					withExtendedLifetime(observer) {
+						for _ in 0..<50 {
+							autoreleasepool {
+								let disposable = signal.observe { _ in }
 
-							disposable!.dispose()
+								disposable!.dispose()
+							}
 						}
 					}
 				}

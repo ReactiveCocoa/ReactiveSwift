@@ -22,6 +22,44 @@ class SignalLifetimeSpec: QuickSpec {
 				testScheduler = TestScheduler()
 			}
 
+			it("should automatically interrupt if the input observer is not retained") {
+				let disposable = AnyDisposable()
+				var outerSignal: Signal<Never, NoError>!
+
+				func scope() {
+					let (signal, observer) = Signal<Never, NoError>.pipe(disposable: disposable)
+					outerSignal = signal
+
+					expect(disposable.isDisposed) == false
+				}
+
+				scope()
+				expect(disposable.isDisposed) == true
+			}
+
+
+			it("should automatically interrupt if the input observer is not retained, even if there are still one or more active observer") {
+				let disposable = AnyDisposable()
+				var isInterrupted = false
+				var outerSignal: Signal<Never, NoError>!
+
+				func scope() {
+					let (signal, observer) = Signal<Never, NoError>.pipe(disposable: disposable)
+					outerSignal = signal
+
+					signal.observeInterrupted {
+						isInterrupted = true
+					}
+
+					expect(isInterrupted) == false
+					expect(disposable.isDisposed) == false
+				}
+
+				scope()
+				expect(isInterrupted) == true
+				expect(disposable.isDisposed) == true
+			}
+
 			it("should be disposed of if it does not have any observers") {
 				var isDisposed = false
 
@@ -35,20 +73,29 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should be disposed of if no one retains it") {
 				var isDisposed = false
-				var signal: Signal<AnyObject, NoError>? = Signal { _ in nil }.on(disposed: { isDisposed = true })
+				var observer: Signal<AnyObject, NoError>.Observer!
+				var signal: Signal<AnyObject, NoError>? = Signal
+					.init { innerObserver in
+						observer = innerObserver
+						return nil
+					}
+					.on(disposed: { isDisposed = true })
+
 				weak var weakSignal = signal
 
-				expect(weakSignal).toNot(beNil())
-				expect(isDisposed) == false
+				withExtendedLifetime(observer) {
+					expect(weakSignal).toNot(beNil())
+					expect(isDisposed) == false
 
-				var reference = signal
-				signal = nil
-				expect(weakSignal).toNot(beNil())
-				expect(isDisposed) == false
+					var reference = signal
+					signal = nil
+					expect(weakSignal).toNot(beNil())
+					expect(isDisposed) == false
 
-				reference = nil
-				expect(weakSignal).to(beNil())
-				expect(isDisposed) == true
+					reference = nil
+					expect(weakSignal).to(beNil())
+					expect(isDisposed) == true
+				}
 			}
 
 			it("should be disposed of when the signal shell has deinitialized with no active observer regardless of whether the generator observer is retained or not") {

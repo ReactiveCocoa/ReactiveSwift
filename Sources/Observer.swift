@@ -15,6 +15,21 @@ extension Signal {
 		/// An action that will be performed upon arrival of the event.
 		public let action: Action
 
+		/// Whether the observer should send an `interrupted` event as it deinitializes.
+		private let interruptsOnDeinit: Bool
+
+		/// An initializer that accepts a closure accepting an event for the
+		/// observer.
+		///
+		/// - parameters:
+		///   - action: A closure to lift over received event.
+		///   - interruptsOnDeinit: `true` if the observer should send an `interrupted`
+		///                         event as it deinitializes. `false` otherwise.
+		internal init(action: @escaping Action, interruptsOnDeinit: Bool) {
+			self.action = action
+			self.interruptsOnDeinit = interruptsOnDeinit
+		}
+
 		/// An initializer that accepts a closure accepting an event for the 
 		/// observer.
 		///
@@ -22,6 +37,7 @@ extension Signal {
 		///   - action: A closure to lift over received event.
 		public init(_ action: @escaping Action) {
 			self.action = action
+			self.interruptsOnDeinit = false
 		}
 
 		/// An initializer that accepts closures for different event types.
@@ -65,6 +81,15 @@ extension Signal {
 				case .interrupted:
 					observer.sendCompleted()
 				}
+			}
+		}
+
+		deinit {
+			if interruptsOnDeinit {
+				// Since `Signal` would ensure that only one terminal event would ever be
+				// sent for any given `Signal`, we do not need to assert any condition
+				// here.
+				action(.interrupted)
 			}
 		}
 

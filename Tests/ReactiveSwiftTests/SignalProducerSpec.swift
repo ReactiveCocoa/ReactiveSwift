@@ -1049,18 +1049,20 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("should attach event handlers for disposal") {
-				let (baseProducer, _) = SignalProducer<Int, TestError>.pipe()
+				let (baseProducer, observer) = SignalProducer<Int, TestError>.pipe()
 
-				var disposed: Bool = false
+				withExtendedLifetime(observer) {
+					var disposed: Bool = false
 
-				let producer = baseProducer
-					.on(disposed: { disposed = true })
+					let producer = baseProducer
+						.on(disposed: { disposed = true })
 
-				let disposable = producer.start()
+					let disposable = producer.start()
 
-				expect(disposed) == false
-				disposable.dispose()
-				expect(disposed) == true
+					expect(disposed) == false
+					disposable.dispose()
+					expect(disposed) == true
+				}
 			}
 
 			it("should invoke the `started` action of the inner producer first") {
@@ -1323,12 +1325,15 @@ class SignalProducerSpec: QuickSpec {
 					var completeB: (() -> Void)!
 					var sendB: (() -> Void)!
 
+					var outerObserver: Signal<SignalProducer<Int, NoError>, NoError>.Observer!
 					var outerCompleted = false
 
 					var recv = [Int]()
 
 					beforeEach {
-						let (outerProducer, outerObserver) = SignalProducer<SignalProducer<Int, NoError>, NoError>.pipe()
+						let (outerProducer, _outerObserver) = SignalProducer<SignalProducer<Int, NoError>, NoError>.pipe()
+						outerObserver = _outerObserver
+
 						let (producerA, observerA) = SignalProducer<Int, NoError>.pipe()
 						let (producerB, observerB) = SignalProducer<Int, NoError>.pipe()
 
@@ -1356,6 +1361,15 @@ class SignalProducerSpec: QuickSpec {
 						outerObserver.send(value: producerB)
 
 						outerObserver.sendCompleted()
+					}
+
+					afterEach {
+						(completeA, completeB) = (nil, nil)
+						(sendA, sendB) = (nil, nil)
+						outerObserver = nil
+
+						outerCompleted = false
+						recv = []
 					}
 
 					it("should forward values from any inner signals") {

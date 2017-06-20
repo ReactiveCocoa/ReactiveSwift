@@ -1680,17 +1680,19 @@ class PropertySpec: QuickSpec {
 				}
 
 				it("should tear down the binding when the property deallocates") {
-					let (signal, _) = Signal<String, NoError>.pipe()
+					let (signal, observer) = Signal<String, NoError>.pipe()
 					let signalProducer = SignalProducer(signal)
 
 					var mutableProperty: MutableProperty<String>? = MutableProperty(initialPropertyValue)
 
-					var isDisposed = false
-					mutableProperty! <~ signalProducer.on(disposed: { isDisposed = true })
-					expect(isDisposed) == false
+					withExtendedLifetime(observer) {
+						var isDisposed = false
+						mutableProperty! <~ signalProducer.on(disposed: { isDisposed = true })
+						expect(isDisposed) == false
 
-					mutableProperty = nil
-					expect(isDisposed) == true
+						mutableProperty = nil
+						expect(isDisposed) == true
+					}
 				}
 			}
 
