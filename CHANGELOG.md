@@ -3,6 +3,8 @@
 
 1. If the input observer of a `Signal` deinitializes while the `Signal` has not yet terminated, an `interrupted` event would now be automatically sent. (#463, kudos to @andersio)
 
+1. `ValidationResult` and `ValidatorOutput` have been renamed to `ValidatingProperty.Result` and `ValidatingProperty.Decision`, respectively. (#443)
+
 1. Mitigated a race condition related to ARC in the `Signal` internal. (#456, kudos to @andersio)
 
 1. Added new convenience initialisers to `Action` that make creating actions with state input properties easier. When creating an `Action` that is conditionally enabled based on an optional property, use the renamed `Action.init(unwrapping:execute:)` initialisers. (#455, kudos to @sharplet)
