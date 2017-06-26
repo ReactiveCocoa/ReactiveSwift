@@ -1430,12 +1430,14 @@ class SignalProducerLiftingSpec: QuickSpec {
 				}
 
 				var sampledProducer: SignalProducer<Payload, NoError>!
+				var samplerObserver: Signal<(), NoError>.Observer!
 				var observer: Signal<Payload, NoError>.Observer!
 
 				beforeEach {
 					let (producer, incomingObserver) = SignalProducer<Payload, NoError>.pipe()
-					let (sampler, _) = Signal<(), NoError>.pipe()
+					let (sampler, _samplerObserver) = Signal<(), NoError>.pipe()
 					sampledProducer = producer.sample(on: sampler)
+					samplerObserver = _samplerObserver
 					observer = incomingObserver
 				}
 

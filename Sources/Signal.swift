@@ -70,7 +70,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			disposable = SerialDisposable()
 
 			// The generator observer retains the `Signal` core.
-			disposable.inner = generator(Observer(self.send))
+			disposable.inner = generator(Observer(action: self.send, interruptsOnDeinit: true))
 		}
 
 		private func send(_ event: Event) {
@@ -376,7 +376,11 @@ public final class Signal<Value, Error: Swift.Error> {
 extension Signal {
 	/// A Signal that never sends any events to its observers.
 	public static var never: Signal {
-		return self.init { _ in nil }
+		return self.init { observer in
+			// If `observer` deinitializes, the `Signal` would interrupt which is
+			// undesirable for `Signal.never`.
+			return AnyDisposable { _ = observer }
+		}
 	}
 
 	/// A Signal that completes immediately without emitting any value.
