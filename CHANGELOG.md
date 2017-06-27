@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+# 2.0.0-rc.1
 1. If the input observer of a `Signal` deinitializes while the `Signal` has not yet terminated, an `interrupted` event would now be automatically sent. (#463, kudos to @andersio)
 
 1. `ValidationResult` and `ValidatorOutput` have been renamed to `ValidatingProperty.Result` and `ValidatingProperty.Decision`, respectively. (#443)
