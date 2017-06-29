@@ -66,7 +66,7 @@ extension Reactive where Base: UISwitch {
 		return Signal { observer in
 			let target = CocoaTarget { observer.send(value: ($0 as! UISwitch).isOn) }
 			base.addTarget(target, action: #selector(target.execute), for: .valueChanged)
-			return ActionDisposable { _ = target }
+			return AnyDisposable { _ = target }
 		}
 	}
 }
@@ -76,7 +76,7 @@ extension Reactive where Base: UITextField {
 		return Signal { observer in
 			let target = CocoaTarget { observer.send(value: ($0 as! UITextField).text) }
 			base.addTarget(target, action: #selector(target.execute), for: .editingChanged)
-			return ActionDisposable { _ = target }
+			return AnyDisposable { _ = target }
 		}
 	}
 }
