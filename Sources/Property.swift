@@ -383,7 +383,7 @@ extension PropertyProtocol where Value == Bool {
 	///   - property: Property to be combined with `self`.
 	///
 	/// - returns: A property that contains the logial AND results.
-	public func and(_ property: Property<Value>) -> Property<Value> {
+	public func and<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.and)(property)
 	}
 	
@@ -394,7 +394,7 @@ extension PropertyProtocol where Value == Bool {
 	///   - property: Property to be combined with `self`.
 	///
 	/// - returns: A property that contains the logial OR results.
-	public func or(_ property: Property<Value>) -> Property<Value> {
+	public func or<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.or)(property)
 	}
 }

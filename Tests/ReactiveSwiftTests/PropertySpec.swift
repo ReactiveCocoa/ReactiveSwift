@@ -1571,13 +1571,13 @@ class PropertySpec: QuickSpec {
 			describe("and attribute") {
 				it("should emit true when both properties contains the same value") {
 					let property1 = MutableProperty(true)
-					let property2 = Property(MutableProperty(true))
+					let property2 = MutableProperty(true)
 					expect(property1.and(property2).value).to(beTrue())
 				}
 
 				it("should emit false when both properties contains opposite values") {
 					let property1 = MutableProperty(true)
-					let property2 = Property(MutableProperty(false))
+					let property2 = MutableProperty(false)
 					expect(property1.and(property2).value).to(beFalse())
 				}
 			}
@@ -1585,13 +1585,13 @@ class PropertySpec: QuickSpec {
 			describe("or attribute") {
 				it("should emit true when at least one of the properties contains true") {
 					let property1 = MutableProperty(true)
-					let property2 = Property(MutableProperty(false))
+					let property2 = MutableProperty(false)
 					expect(property1.or(property2).value).to(beTrue())
 				}
 
 				it("should emit false when both properties contains false") {
 					let property1 = MutableProperty(false)
-					let property2 = Property(MutableProperty(false))
+					let property2 = MutableProperty(false)
 					expect(property1.or(property2).value).to(beFalse())
 				}
 			}
