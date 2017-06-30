@@ -2791,6 +2791,96 @@ class SignalSpec: QuickSpec {
 				aObserver.send(value: ())
 				bObserver.send(value: ())
 			}
+
+			it("should not deadlock upon recursive completion of the sources") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.zip(a, b)
+					.observeValues { _ in
+						aObserver.sendCompleted()
+					}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive interruption of the sources") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.zip(a, b)
+					.observeResult { _ in
+						aObserver.sendInterrupted()
+					}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive failure of the sources") {
+				let (a, aObserver) = Signal<(), TestError>.pipe()
+				let (b, bObserver) = Signal<(), TestError>.pipe()
+
+				Signal.zip(a, b)
+					.observeResult { _ in
+						aObserver.send(error: .default)
+					}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon disposal") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.combineLatest(a, b)
+					.take(first: 1)
+					.observeValues { _ in }
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive completion of the sources") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.combineLatest(a, b)
+					.observeValues { _ in
+						aObserver.sendCompleted()
+				}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive interruption of the sources") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.combineLatest(a, b)
+					.observeResult { _ in
+						aObserver.sendInterrupted()
+				}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive failure of the sources") {
+				let (a, aObserver) = Signal<(), TestError>.pipe()
+				let (b, bObserver) = Signal<(), TestError>.pipe()
+
+				Signal.combineLatest(a, b)
+					.observeResult { _ in
+						aObserver.send(error: .default)
+				}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
 		}
 
 		describe("combineLatest") {
