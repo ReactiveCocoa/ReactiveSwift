@@ -2132,11 +2132,7 @@ extension Signal {
 				disposables += action(index, strategy) { observer.action($0.map { _ in fatalError() }) }
 			}
 
-			return AnyDisposable {
-				strategy.modify { _ in
-					disposables.dispose()
-				}
-			}
+			return disposables
 		}
 	}
 
