@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Fixed a deadlock upon disposal when combining operators, i.e. `zip` and `combineLatest`, are used. (#471, kudos to @stevebrambilla for catching the bug)
+
 # 2.0.0-rc.1
 1. If the input observer of a `Signal` deinitializes while the `Signal` has not yet terminated, an `interrupted` event would now be automatically sent. (#463, kudos to @andersio)
 

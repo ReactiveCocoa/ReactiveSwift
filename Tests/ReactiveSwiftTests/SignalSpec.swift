@@ -14,27 +14,8 @@ import Nimble
 import Quick
 @testable import ReactiveSwift
 
-private class StateA<U, V> {}
-private class StateB<U, V> {}
-private enum SignalState<U, V> {
-	case alive(StateA<U, V>)
-	case terminating(StateB<U, V>)
-	case terminated
-}
-
 class SignalSpec: QuickSpec {
 	override func spec() {
-		describe("thread safety") {
-			it("should have the same memory layout as a native pointer") {
-				let enumLayout = MemoryLayout<SignalState<Int, Error>>.self
-				let pointerLayout = MemoryLayout<UnsafeMutableRawPointer>.self
-
-				expect(enumLayout.alignment) == pointerLayout.alignment
-				expect(enumLayout.size) == pointerLayout.size
-				expect(enumLayout.stride) == pointerLayout.stride
-			}
-		}
-
 		describe("init") {
 			var testScheduler: TestScheduler!
 			
@@ -2795,6 +2776,110 @@ class SignalSpec: QuickSpec {
 				observer.send(value: 2)
 				expect(latestValues?.0) == 1
 				expect(latestValues?.1) == 2
+			}
+		}
+
+		describe("AggregateBuilder") {
+			it("should not deadlock upon disposal") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.zip(a, b)
+					.take(first: 1)
+					.observeValues { _ in }
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive completion of the sources") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.zip(a, b)
+					.observeValues { _ in
+						aObserver.sendCompleted()
+					}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive interruption of the sources") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.zip(a, b)
+					.observeResult { _ in
+						aObserver.sendInterrupted()
+					}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive failure of the sources") {
+				let (a, aObserver) = Signal<(), TestError>.pipe()
+				let (b, bObserver) = Signal<(), TestError>.pipe()
+
+				Signal.zip(a, b)
+					.observeResult { _ in
+						aObserver.send(error: .default)
+					}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon disposal") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.combineLatest(a, b)
+					.take(first: 1)
+					.observeValues { _ in }
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive completion of the sources") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.combineLatest(a, b)
+					.observeValues { _ in
+						aObserver.sendCompleted()
+				}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive interruption of the sources") {
+				let (a, aObserver) = Signal<(), NoError>.pipe()
+				let (b, bObserver) = Signal<(), NoError>.pipe()
+
+				Signal.combineLatest(a, b)
+					.observeResult { _ in
+						aObserver.sendInterrupted()
+				}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
+			}
+
+			it("should not deadlock upon recursive failure of the sources") {
+				let (a, aObserver) = Signal<(), TestError>.pipe()
+				let (b, bObserver) = Signal<(), TestError>.pipe()
+
+				Signal.combineLatest(a, b)
+					.observeResult { _ in
+						aObserver.send(error: .default)
+				}
+
+				aObserver.send(value: ())
+				bObserver.send(value: ())
 			}
 		}
 
