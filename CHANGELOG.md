@@ -1,6 +1,10 @@
 # master
 *Please add new entries at the top.*
 
+1. New `Action` initializer that forwards inputs to an inner `Action` with the input transform applied. (#473, kudos to @andersio)
+
+   The created `Action` shares the states of the wrapped `Action`, including the availability and execution status.
+
 # 2.0.0-rc.2
 1. Fixed a deadlock upon disposal when combining operators, i.e. `zip` and `combineLatest`, are used. (#471, kudos to @stevebrambilla for catching the bug)
 
