@@ -124,7 +124,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 					state.isUserEnabled = isUserEnabled(value)
 				}
 			}
-			.bind(to: lifetime)
+			.dispose(whenEnded: lifetime)
 
 		self.execute = { action, input in
 			return SignalProducer { observer, lifetime in

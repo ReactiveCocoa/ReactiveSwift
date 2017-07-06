@@ -20,7 +20,7 @@ public protocol Disposable: class {
 }
 
 extension Disposable {
-	/// Observe the termination of the given lifetime and dispose `self` on it.
+	/// Dispose `self` when the given lifetime terminated.
 	///
 	/// - parameters:
 	///   - lifetime: The lifetime its termination is observed.
@@ -28,7 +28,7 @@ extension Disposable {
 	/// - returns: A disposable that detaches the disposing action from the
 	///            lifetime, or `nil` if `lifetime` has already ended.
 	@discardableResult
-	public func bind(to lifetime: Lifetime) -> Disposable? {
+	public func dispose(whenEnded lifetime: Lifetime) -> Disposable? {
 		return lifetime.observeEnded(self.dispose)
 	}
 }
