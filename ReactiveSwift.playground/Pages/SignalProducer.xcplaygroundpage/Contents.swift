@@ -19,8 +19,8 @@ import Foundation
 /*:
 ## SignalProducer
 
-A **signal producer**, represented by the [`SignalProducer`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/ReactiveSwift/SignalProducer.swift) type, creates
-[signals](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/ReactiveSwift/Signal.swift) and performs side effects.
+A **signal producer**, represented by the [`SignalProducer`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/SignalProducer.swift) type, creates
+[signals](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/Signal.swift) and performs side effects.
 
 They can be used to represent operations or tasks, like network
 requests, where each invocation of `start()` will create a new underlying
@@ -34,7 +34,7 @@ even be completely different! Unlike a plain signal, no work is started (and
 thus no events are generated) until an observer is attached, and the work is
 restarted anew for each additional observer.
 
-Starting a signal producer returns a [disposable](#disposables) that can be used to
+Starting a signal producer returns a [disposable](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/Disposable.swift) that can be used to
 interrupt/cancel the work associated with the produced signal.
 
 Just like signals, signal producers can also be manipulated via primitives
