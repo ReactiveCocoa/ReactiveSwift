@@ -387,7 +387,7 @@ The `flatMapError` operator catches any failure that may occur on the input even
 
 ```Swift
 let (signal, observer) = Signal<String, NSError>.pipe()
-let producer = SignalProducer(signal: signal)
+let producer = SignalProducer(signal)
 
 let error = NSError(domain: "domain", code: 0, userInfo: nil)
 
