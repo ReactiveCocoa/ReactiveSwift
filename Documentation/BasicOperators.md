@@ -497,14 +497,14 @@ observer.send(error: NSError(domain: "com.example.foo", code: 42, userInfo: nil)
 
 ### Promote
 
-The `promoteErrors` operator promotes an event stream that does not generate failures into one that can. 
+The `promoteError` operator promotes an event stream that does not generate failures into one that can.
 
 ```Swift
 let (numbersSignal, numbersObserver) = Signal<Int, NoError>.pipe()
 let (lettersSignal, lettersObserver) = Signal<String, NSError>.pipe()
 
 numbersSignal
-    .promoteErrors(NSError.self)
+    .promoteError(NSError.self)
     .combineLatest(with: lettersSignal)
 ```
 
