@@ -17,6 +17,7 @@ cache:
   directories: Carthage/Build
 jobs:
   include:
+    # Xcode 8
     - xcode_scheme: ReactiveSwift-macOS
       env:
         - XCODE_SDK=macosx
@@ -43,6 +44,32 @@ jobs:
         - XCODE_SDK=watchsimulator
         - XCODE_ACTION=build
         - XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
+    # Xcode 9
+    - xcode_scheme: ReactiveSwift-macOS
+      osx_image: xcode9
+      env:
+        - XCODE_SDK=macosx
+        - XCODE_ACTION="build test"
+        - XCODE_DESTINATION="arch=x86_64"
+        - XCODE_PLAYGROUND_TARGET="x86_64-apple-macosx10.10"
+    - xcode_scheme: ReactiveSwift-iOS
+      osx_image: xcode9
+      env:
+        - XCODE_SDK=iphonesimulator
+        - XCODE_ACTION="build-for-testing test-without-building"
+        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
+    - xcode_scheme: ReactiveSwift-tvOS
+      osx_image: xcode9
+      env:
+        - XCODE_SDK=appletvsimulator
+        - XCODE_ACTION="build-for-testing test-without-building"
+        - XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV 1080p"
+    - xcode_scheme: ReactiveSwift-watchOS
+      osx_image: xcode9
+      env:
+        - XCODE_SDK=watchsimulator
+        - XCODE_ACTION=build
+        - XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
     - script:
       - pod repo update --silent
       - pod lib lint ReactiveSwift.podspec
@@ -56,8 +83,7 @@ jobs:
         submodules: false
       env:
         - JOB=SWIFTPM_DARWIN
-    - before_install:
-        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
+    - osx_image: xcode9
       script:
         - swift --version
         - swift build
@@ -66,7 +92,6 @@ jobs:
         submodules: false
       env:
         - JOB=SWIFT_4
-        - SWIFT_VERSION=4.0-DEVELOPMENT-SNAPSHOT-2017-06-06-a
     - os: linux
       language: generic
       sudo: required
