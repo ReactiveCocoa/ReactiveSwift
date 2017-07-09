@@ -99,7 +99,57 @@ class ActionSpec: QuickSpec {
 				expect(receivedError).notTo(beNil())
 				expect(disabledErrorsTriggered) == true
 				if let error = receivedError {
-					let expectedError = ActionError<NSError>.disabled
+					let expectedError = ActionError<NSError>.disabled(reason: .disabledByOwner)
+					expect(error == expectedError) == true
+				}
+			}
+
+			it("should error if executed while executing") {
+				enabled.value = true
+
+				var receivedError: ActionError<NSError>?
+				var disabledErrorsTriggered = false
+
+				action.disabledErrors.observeValues { _ in
+					disabledErrorsTriggered = true
+				}
+
+				action.apply(0).start()
+				action.apply(0).startWithFailed {
+					receivedError = $0
+				}
+
+				expect(receivedError).notTo(beNil())
+				expect(disabledErrorsTriggered) == true
+
+				if let error = receivedError {
+					let expectedError = ActionError<NSError>.disabled(reason: .executing)
+					expect(error == expectedError) == true
+				}
+			}
+
+			it("should error if executed while executing and disabled") {
+				enabled.value = true
+
+				var receivedError: ActionError<NSError>?
+				var disabledErrorsTriggered = false
+
+				action.disabledErrors.observeValues { _ in
+					disabledErrorsTriggered = true
+				}
+
+				action.apply(0).start()
+
+				enabled.value = false
+				action.apply(0).startWithFailed {
+					receivedError = $0
+				}
+
+				expect(receivedError).notTo(beNil())
+				expect(disabledErrorsTriggered) == true
+
+				if let error = receivedError {
+					let expectedError = ActionError<NSError>.disabled(reason: [.executing, .disabledByOwner])
 					expect(error == expectedError) == true
 				}
 			}
