@@ -577,9 +577,7 @@ public final class Property<Value>: PropertyProtocol {
 		producer = SignalProducer { [box, signal = relay!] observer, lifetime in
 			box.withValue { value in
 				observer.send(value: value!)
-				if let d = signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer)) {
-					lifetime.observeEnded(d.dispose)
-				}
+				lifetime += signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
 			}
 		}
 	}

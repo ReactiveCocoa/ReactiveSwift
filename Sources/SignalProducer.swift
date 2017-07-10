@@ -59,9 +59,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - signal: A signal to observe after starting the producer.
 	public init(_ signal: Signal<Value, Error>) {
 		self.init { observer, lifetime in
-			if let disposable = signal.observe(observer) {
-				lifetime.observeEnded(disposable.dispose)
-			}
+			lifetime += signal.observe(observer)
 		}
 	}
 
@@ -394,7 +392,7 @@ extension SignalProducer {
 	///   - setup: A closure that accepts the produced `Signal`.
 	fileprivate func startWithSignal(during lifetime: Lifetime, setup: (Signal<Value, Error>) -> Void) {
 		startWithSignal { signal, interruptHandle in
-			lifetime.observeEnded(interruptHandle.dispose)
+			lifetime += interruptHandle
 			setup(signal)
 		}
 	}
@@ -1550,14 +1548,12 @@ extension SignalProducer {
 	///            started.
 	public func start(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, lifetime in
-			let disposable = scheduler.schedule {
+			lifetime += scheduler.schedule {
 				self.startWithSignal { signal, signalDisposable in
 					lifetime.observeEnded(signalDisposable.dispose)
 					signal.observe(observer)
 				}
 			}
-
-			if let d = disposable { lifetime.observeEnded(d.dispose) }
 		}
 	}
 }
@@ -1776,7 +1772,7 @@ extension SignalProducer {
 
 		return SignalProducer { observer, lifetime in
 			let serialDisposable = SerialDisposable()
-			lifetime.observeEnded(serialDisposable.dispose)
+			lifetime += serialDisposable
 
 			func iterate(_ current: Int) {
 				self.startWithSignal { signal, signalDisposable in
@@ -1879,15 +1875,14 @@ extension SignalProducer {
 	internal func _then<U>(_ replacement: SignalProducer<U, Error>) -> SignalProducer<U, Error> {
 		return SignalProducer<U, Error> { observer, lifetime in
 			self.startWithSignal { signal, signalDisposable in
-				lifetime.observeEnded(signalDisposable.dispose)
+				lifetime += signalDisposable
 
 				signal.observe { event in
 					switch event {
 					case let .failed(error):
 						observer.send(error: error)
 					case .completed:
-						let interruptHandle = replacement.start(observer)
-						lifetime.observeEnded(interruptHandle.dispose)
+						lifetime += replacement.start(observer)
 					case .interrupted:
 						observer.sendInterrupted()
 					case .value:
