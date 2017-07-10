@@ -136,32 +136,43 @@ public final class Action<Input, Output, Error: Swift.Error> {
 					}
 				}
 
-				let latestState: State.Value? = actionState.modify(didSet: didSet) { state in
+				let result: Result<State.Value, ActionError<Error>> = actionState.modify(didSet: didSet) { state in
 					guard state.isEnabled else {
-						return nil
+						var reason = ActionUnavailableReason()
+
+						if state.isExecuting {
+							reason.insert(.executing)
+						}
+
+						if !state.isUserEnabled {
+							reason.insert(.disabledByOwner)
+						}
+
+						return .failure(.disabled(reason: reason))
 					}
 
 					state.isExecuting = true
 					notifiesExecutionState = true
-					return state.value
+					return .success(state.value)
 				}
 
-				guard let state = latestState else {
-					observer.send(error: .disabled)
+				switch result {
+				case let .failure(error):
+					observer.send(error: error)
 					action.disabledErrorsObserver.send(value: ())
-					return
-				}
 
-				let interruptHandle = execute(state, input).start { event in
-					observer.action(event.mapError(ActionError.producerFailed))
-					action.eventsObserver.send(value: event)
-				}
+				case let .success(state):
+					let interruptHandle = execute(state, input).start { event in
+						observer.action(event.mapError(ActionError.producerFailed))
+						action.eventsObserver.send(value: event)
+					}
 
-				lifetime.observeEnded {
-					interruptHandle.dispose()
+					lifetime.observeEnded {
+						interruptHandle.dispose()
 
-					actionState.modify(didSet: { isExecuting.value = false }) { state in
-						state.isExecuting = false
+						actionState.modify(didSet: { isExecuting.value = false }) { state in
+							state.isExecuting = false
+						}
 					}
 				}
 			}
@@ -308,11 +319,25 @@ extension Action where Input == Void {
 	}
 }
 
+public struct ActionUnavailableReason: OptionSet {
+	public let rawValue: UInt
+
+	/// The `Action` is executing.
+	public static let executing = ActionUnavailableReason(rawValue: 1)
+
+	/// The `Action` is disabled by the owner.
+	public static let disabledByOwner = ActionUnavailableReason(rawValue: 1 << 1)
+
+	public init(rawValue: UInt) {
+		self.rawValue = rawValue
+	}
+}
+
 /// `ActionError` represents the error that could be emitted by a unit of work of a
 /// certain `Action`.
 public enum ActionError<Error: Swift.Error>: Swift.Error {
 	/// The execution attempt was failed, since the `Action` was disabled.
-	case disabled
+	case disabled(reason: ActionUnavailableReason)
 
 	/// The unit of work emitted an error.
 	case producerFailed(Error)
@@ -321,8 +346,8 @@ public enum ActionError<Error: Swift.Error>: Swift.Error {
 extension ActionError where Error: Equatable {
 	public static func == (lhs: ActionError<Error>, rhs: ActionError<Error>) -> Bool {
 		switch (lhs, rhs) {
-		case (.disabled, .disabled):
-			return true
+		case let (.disabled(left), .disabled(right)):
+			return left == right
 
 		case let (.producerFailed(left), .producerFailed(right)):
 			return left == right
