@@ -1,6 +1,10 @@
 # master
 *Please add new entries at the top.*
 
+1. Feedbacks from `isEnabled` to the state of the same `Action` no longer deadlocks if it does not constitute an infinite feedback loop. (#481, kudos to @andersio)
+
+   Note that `isExecuting` already supports `Action` state feedback, and legitimate feedback loops would still deadlock.
+
 # 2.0.0-rc.2
 1. Fixed a deadlock upon disposal when combining operators, i.e. `zip` and `combineLatest`, are used. (#471, kudos to @stevebrambilla for catching the bug)
 

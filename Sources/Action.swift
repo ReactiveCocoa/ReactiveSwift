@@ -98,15 +98,6 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		deinitToken = Lifetime.Token()
 		lifetime = Lifetime(deinitToken)
 
-		let actionState = MutableProperty(ActionState<State.Value>(isUserEnabled: true, isExecuting: false, value: state.value))
-		self.isEnabled = actionState.map { $0.isEnabled }
-
-		// `isExecuting` has its own backing so that when the observer of `isExecuting`
-		// synchronously affects the action state, the signal of the action state does not
-		// deadlock due to the recursion.
-		let isExecuting = MutableProperty(false)
-		self.isExecuting = Property(capturing: isExecuting)
-
 		// `Action` retains its state property.
 		lifetime.observeEnded { _ = state }
 
@@ -117,8 +108,34 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		errors = events.filterMap { $0.error }
 		completed = events.filterMap { $0.isCompleted ? () : nil }
 
+		let actionState = MutableProperty(ActionState<State.Value>(isUserEnabled: true, isExecuting: false, value: state.value))
+
+		// `isEnabled` and `isExecuting` have their own backing so that when the observers
+		// of these synchronously affects the action state, the signal of the action state
+		// does not deadlock due to the recursion.
+		let isExecuting = MutableProperty(false)
+		self.isExecuting = Property(capturing: isExecuting)
+		let isEnabled = MutableProperty(actionState.value.isEnabled)
+		self.isEnabled = Property(capturing: isEnabled)
+
+		func modifyActionState<Result>(_ action: (inout ActionState<State.Value>) throws -> Result) rethrows -> Result {
+			return try actionState.begin { storage in
+				let oldState = storage.value
+				defer {
+					let newState = storage.value
+					if oldState.isEnabled != newState.isEnabled {
+						isEnabled.value = newState.isEnabled
+					}
+					if oldState.isExecuting != newState.isExecuting {
+						isExecuting.value = newState.isExecuting
+					}
+				}
+				return try storage.modify(action)
+			}
+		}
+
 		let disposable = state.producer.startWithValues { value in
-			actionState.modify { state in
+			modifyActionState { state in
 				state.value = value
 				state.isUserEnabled = isUserEnabled(value)
 			}
@@ -128,21 +145,12 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 		self.execute = { action, input in
 			return SignalProducer { observer, lifetime in
-				var notifiesExecutionState = false
-
-				func didSet() {
-					if notifiesExecutionState {
-						isExecuting.value = true
-					}
-				}
-
-				let latestState: State.Value? = actionState.modify(didSet: didSet) { state in
+				let latestState: State.Value? = modifyActionState { state in
 					guard state.isEnabled else {
 						return nil
 					}
 
 					state.isExecuting = true
-					notifiesExecutionState = true
 					return state.value
 				}
 
@@ -159,10 +167,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 				lifetime.observeEnded {
 					interruptHandle.dispose()
-
-					actionState.modify(didSet: { isExecuting.value = false }) { state in
-						state.isExecuting = false
-					}
+					modifyActionState { $0.isExecuting = false }
 				}
 			}
 		}

@@ -554,10 +554,13 @@ public final class Property<Value>: PropertyProtocol {
 					return observer.action(event)
 				}
 
-				box.modify(didSet: { _ in observer.action(event) }) { value in
-					if let newValue = event.value {
-						value = newValue
+				box.begin { storage in
+					storage.modify { value in
+						if let newValue = event.value {
+							value = newValue
+						}
 					}
+					observer.action(event)
 				}
 			}
 		}
@@ -675,31 +678,28 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// Atomically modifies the variable.
 	///
 	/// - parameters:
-	///   - action: A closure that accepts old property value and returns a new
-	///             property value.
+	///   - action: A closure that accepts an inout reference to the value.
 	///
 	/// - returns: The result of the action.
 	@discardableResult
 	public func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
-		return try box.modify(didSet: { self.observer.send(value: $0) }) { value in
-			return try action(&value)
+		return try box.begin { storage in
+			defer { observer.send(value: storage.value) }
+			return try storage.modify(action)
 		}
 	}
 
 	/// Atomically modifies the variable.
 	///
+	/// - warning: The reference should not be escaped.
+	///
 	/// - parameters:
-	///   - didSet: A closure that is invoked after `action` returns and the value is
-	///             committed to the storage, but before `modify` releases the lock.
-	///   - action: A closure that accepts old property value and returns a new
-	///             property value.
+	///   - action: A closure that accepts a reference to the property storage.
 	///
 	/// - returns: The result of the action.
 	@discardableResult
-	internal func modify<Result>(didSet: () -> Void, _ action: (inout Value) throws -> Result) rethrows -> Result {
-		return try box.modify(didSet: { self.observer.send(value: $0); didSet() }) { value in
-			return try action(&value)
-		}
+	internal func begin<Result>(_ action: (PropertyStorage<Value>) throws -> Result) rethrows -> Result {
+		return try box.begin(action)
 	}
 
 	/// Atomically performs an arbitrary action using the current value of the
@@ -719,16 +719,40 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	}
 }
 
+internal struct PropertyStorage<Value> {
+	private unowned let box: PropertyBox<Value>
+
+	var value: Value {
+		return box._value
+	}
+
+	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result {
+		guard !box.isModifying else { fatalError("Nested modifications violate exclusivity of access.") }
+		box.isModifying = true
+		defer { box.isModifying = false }
+		return try action(&box._value)
+	}
+
+	fileprivate init(_ box: PropertyBox<Value>) {
+		self.box = box
+	}
+}
+
 /// A reference counted box which holds a recursive lock and a value storage.
 ///
 /// The requirement of a `Value?` storage from composed properties prevents further
 /// implementation sharing with `MutableProperty`.
 private final class PropertyBox<Value> {
-	private let lock: Lock.PthreadLock
-	private var _value: Value
-	private var isModifying = false
 
-	var value: Value { return modify { $0 } }
+	private let lock: Lock.PthreadLock
+	fileprivate var _value: Value
+	fileprivate var isModifying = false
+
+	internal var value: Value {
+		lock.lock()
+		defer { lock.unlock() }
+		return _value
+	}
 
 	init(_ value: Value) {
 		_value = value
@@ -741,11 +765,9 @@ private final class PropertyBox<Value> {
 		return try action(_value)
 	}
 
-	func modify<Result>(didSet: (Value) -> Void = { _ in }, _ action: (inout Value) throws -> Result) rethrows -> Result {
+	func begin<Result>(_ action: (PropertyStorage<Value>) throws -> Result) rethrows -> Result {
 		lock.lock()
-		guard !isModifying else { fatalError("Nested modifications violate exclusivity of access.") }
-		isModifying = true
-		defer { isModifying = false; didSet(_value); lock.unlock() }
-		return try action(&_value)
+		defer { lock.unlock() }
+		return try action(PropertyStorage(self))
 	}
 }
