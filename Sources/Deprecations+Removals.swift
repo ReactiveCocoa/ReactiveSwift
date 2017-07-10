@@ -35,12 +35,6 @@ extension Lifetime {
 	public func add(_ d: Disposable?) -> Disposable? {
 		return d.flatMap { observeEnded($0.dispose) }
 	}
-
-	@discardableResult
-	@available(*, deprecated, message:"Use `observeEnded(_:)` with a method reference to `dispose()` instead. This operator overload is subject to removal in a future release.")
-	public static func += (left: Lifetime, right: Disposable?) -> Disposable? {
-		return right.flatMap { left.observeEnded($0.dispose) }
-	}
 }
 
 extension SignalProducer {

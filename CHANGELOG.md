@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. `Lifetime.+=` which ties a `Disposable` to a `Lifetime`, is now part of the public API and is no longer deprecated.
+
 1. Feedbacks from `isEnabled` to the state of the same `Action` no longer deadlocks if it does not constitute an infinite feedback loop. (#481, kudos to @andersio)
 
    Note that `isExecuting` already supports `Action` state feedback, and legitimate feedback loops would still deadlock.
