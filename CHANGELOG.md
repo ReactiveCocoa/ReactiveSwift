@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Added a convenient `dispose(whenEnded:)` to `Disposable`. (#475, kudos to @ikesyo)
+
 # 2.0.0-rc.2
 1. Fixed a deadlock upon disposal when combining operators, i.e. `zip` and `combineLatest`, are used. (#471, kudos to @stevebrambilla for catching the bug)
 

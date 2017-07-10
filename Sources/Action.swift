@@ -117,14 +117,14 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		errors = events.filterMap { $0.error }
 		completed = events.filterMap { $0.isCompleted ? () : nil }
 
-		let disposable = state.producer.startWithValues { value in
-			actionState.modify { state in
-				state.value = value
-				state.isUserEnabled = isUserEnabled(value)
+		state.producer
+			.startWithValues { value in
+				actionState.modify { state in
+					state.value = value
+					state.isUserEnabled = isUserEnabled(value)
+				}
 			}
-		}
-
-		lifetime.observeEnded(disposable.dispose)
+			.dispose(whenEnded: lifetime)
 
 		self.execute = { action, input in
 			return SignalProducer { observer, lifetime in

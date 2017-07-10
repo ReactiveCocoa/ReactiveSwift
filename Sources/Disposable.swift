@@ -19,6 +19,20 @@ public protocol Disposable: class {
 	func dispose()
 }
 
+extension Disposable {
+	/// Dispose `self` when the given lifetime terminated.
+	///
+	/// - parameters:
+	///   - lifetime: The lifetime its termination is observed.
+	///
+	/// - returns: A disposable that detaches the disposing action from the
+	///            lifetime, or `nil` if `lifetime` has already ended.
+	@discardableResult
+	public func dispose(whenEnded lifetime: Lifetime) -> Disposable? {
+		return lifetime.observeEnded(self.dispose)
+	}
+}
+
 /// Represents the state of a disposable.
 private enum DisposableState: Int32 {
 	/// The disposable is active.
