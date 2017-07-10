@@ -131,6 +131,39 @@ class ActionSpec: QuickSpec {
 				expect(action.isExecuting.value) == false
 			}
 
+			it("should not deadlock when its enabled state affects its state property without constituting a feedback loop") {
+				// Emulate control binding: When a UITextField is the first responder and
+				// is being disabled by an `Action`, the control events emitted might
+				// feedback into the availability of the `Action` synchronously, e.g.
+				// via a `MutableProperty` or `ValidatingProperty`.
+				var isFirstResponder = false
+
+				action.isEnabled.producer
+					.filterMap { isActionEnabled in !isActionEnabled && isFirstResponder ? () : nil }
+					.startWithValues { _ in enabled.value = false }
+
+				enabled.value = true
+				expect(enabled.value) == true
+				expect(action.isEnabled.value) == true
+				expect(action.isExecuting.value) == false
+
+				isFirstResponder = true
+				let disposable = action.apply(0).start()
+				expect(enabled.value) == false
+				expect(action.isEnabled.value) == false
+				expect(action.isExecuting.value) == true
+
+				disposable.dispose()
+				expect(enabled.value) == false
+				expect(action.isEnabled.value) == false
+				expect(action.isExecuting.value) == false
+
+				enabled.value = true
+				expect(enabled.value) == true
+				expect(action.isEnabled.value) == true
+				expect(action.isExecuting.value) == false
+			}
+
 			it("should not deadlock") {
 				final class ViewModel {
 					let action2 = Action<(), (), NoError> { _ in SignalProducer(value: ()) }
