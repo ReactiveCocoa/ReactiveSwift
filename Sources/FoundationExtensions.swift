@@ -96,7 +96,7 @@ extension DispatchTimeInterval {
 			case let .milliseconds(ms):
 				return TimeInterval(TimeInterval(ms) / 1000.0)
 			case let .microseconds(us):
-				return TimeInterval( UInt64(us) * NSEC_PER_USEC ) / TimeInterval(NSEC_PER_SEC)
+				return TimeInterval(Int64(us) * Int64(NSEC_PER_USEC)) / TimeInterval(NSEC_PER_SEC)
 			case let .nanoseconds(ns):
 				return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
 			case .never:
@@ -109,7 +109,7 @@ extension DispatchTimeInterval {
 			case let .milliseconds(ms):
 				return TimeInterval(TimeInterval(ms) / 1000.0)
 			case let .microseconds(us):
-				return TimeInterval( UInt64(us) * NSEC_PER_USEC ) / TimeInterval(NSEC_PER_SEC)
+				return TimeInterval(Int64(us) * Int64(NSEC_PER_USEC)) / TimeInterval(NSEC_PER_SEC)
 			case let .nanoseconds(ns):
 				return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
 			}
