@@ -89,31 +89,61 @@ extension Date {
 
 extension DispatchTimeInterval {
 	internal var timeInterval: TimeInterval {
-		switch self {
-		case let .seconds(s):
-			return TimeInterval(s)
-		case let .milliseconds(ms):
-			return TimeInterval(TimeInterval(ms) / 1000.0)
-		case let .microseconds(us):
-			return TimeInterval( UInt64(us) * NSEC_PER_USEC ) / TimeInterval(NSEC_PER_SEC)
-		case let .nanoseconds(ns):
-			return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
-		}
+		#if swift(>=3.2)
+			switch self {
+			case let .seconds(s):
+				return TimeInterval(s)
+			case let .milliseconds(ms):
+				return TimeInterval(TimeInterval(ms) / 1000.0)
+			case let .microseconds(us):
+				return TimeInterval(Int64(us) * Int64(NSEC_PER_USEC)) / TimeInterval(NSEC_PER_SEC)
+			case let .nanoseconds(ns):
+				return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
+			case .never:
+				return .infinity
+			}
+		#else
+			switch self {
+			case let .seconds(s):
+				return TimeInterval(s)
+			case let .milliseconds(ms):
+				return TimeInterval(TimeInterval(ms) / 1000.0)
+			case let .microseconds(us):
+				return TimeInterval(Int64(us) * Int64(NSEC_PER_USEC)) / TimeInterval(NSEC_PER_SEC)
+			case let .nanoseconds(ns):
+				return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
+			}
+		#endif
 	}
 
 	// This was added purely so that our test scheduler to "go backwards" in
 	// time. See `TestScheduler.rewind(by interval: DispatchTimeInterval)`.
 	internal static prefix func -(lhs: DispatchTimeInterval) -> DispatchTimeInterval {
-		switch lhs {
-		case let .seconds(s):
-			return .seconds(-s)
-		case let .milliseconds(ms):
-			return .milliseconds(-ms)
-		case let .microseconds(us):
-			return .microseconds(-us)
-		case let .nanoseconds(ns):
-			return .nanoseconds(-ns)
-		}
+		#if swift(>=3.2)
+			switch lhs {
+			case let .seconds(s):
+				return .seconds(-s)
+			case let .milliseconds(ms):
+				return .milliseconds(-ms)
+			case let .microseconds(us):
+				return .microseconds(-us)
+			case let .nanoseconds(ns):
+				return .nanoseconds(-ns)
+			case .never:
+				return .never
+			}
+		#else
+			switch lhs {
+			case let .seconds(s):
+				return .seconds(-s)
+			case let .milliseconds(ms):
+				return .milliseconds(-ms)
+			case let .microseconds(us):
+				return .microseconds(-us)
+			case let .nanoseconds(ns):
+				return .nanoseconds(-ns)
+			}
+		#endif
 	}
 
 	/// Scales a time interval by the given scalar specified in `rhs`.
