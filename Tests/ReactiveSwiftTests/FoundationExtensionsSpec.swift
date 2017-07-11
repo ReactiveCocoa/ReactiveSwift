@@ -103,13 +103,19 @@ class FoundationExtensionsSpec: QuickSpec {
 
 				expect(DispatchTimeInterval.milliseconds(500).timeInterval).to(beCloseTo(0.5))
 				expect(DispatchTimeInterval.milliseconds(250).timeInterval).to(beCloseTo(0.25))
+				#if swift(>=3.2)
+					expect(DispatchTimeInterval.never.timeInterval) == Double.infinity
+				#endif
 			}
 
 			it("should negate as you'd hope") {
-				expect(-DispatchTimeInterval.seconds(1).timeInterval).to(beCloseTo(-1.0))
-				expect(-DispatchTimeInterval.milliseconds(1).timeInterval).to(beCloseTo(-0.001))
-				expect(-DispatchTimeInterval.microseconds(1).timeInterval).to(beCloseTo(-0.000001, within: 0.0000001))
-				expect(-DispatchTimeInterval.nanoseconds(1).timeInterval).to(beCloseTo(-0.000000001, within: 0.0000000001))
+				expect((-DispatchTimeInterval.seconds(1)).timeInterval).to(beCloseTo(-1.0))
+				expect((-DispatchTimeInterval.milliseconds(1)).timeInterval).to(beCloseTo(-0.001))
+				expect((-DispatchTimeInterval.microseconds(1)).timeInterval).to(beCloseTo(-0.000001, within: 0.0000001))
+				expect((-DispatchTimeInterval.nanoseconds(1)).timeInterval).to(beCloseTo(-0.000000001, within: 0.0000000001))
+				#if swift(>=3.2)
+					expect((-DispatchTimeInterval.never).timeInterval) == Double.infinity
+				#endif
 			}
 		}
 	}
