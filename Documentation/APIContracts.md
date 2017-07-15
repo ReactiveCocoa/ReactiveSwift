@@ -314,7 +314,7 @@ everything added to the [`CompositeDisposable`][CompositeDisposable] in
 Note that disposing of one produced `Signal` will not affect other signals created
 by the same `SignalProducer`.
 
-## The Property contract.
+## The Property contract
 
 A property is essentially a `Signal` which guarantees it has an initial value, and its latest value is always available for being read out.
 
