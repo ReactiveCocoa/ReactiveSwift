@@ -18,6 +18,24 @@ extension Signal {
 		/// Whether the observer should send an `interrupted` event as it deinitializes.
 		private let interruptsOnDeinit: Bool
 
+		/// The target observer of `self`.
+		private let wrapped: AnyObject?
+
+		/// An initializer that transforms the action of the given observer with the
+		/// given transform.
+		///
+		/// If the given observer would perform side effect on deinitialization, the
+		/// created observer would retain it.
+		///
+		/// - parameters:
+		///   - observer: The observer to transform.
+		///   - transform: The transform.
+		internal init<U, E: Swift.Error>(_ observer: Signal<U, E>.Observer, _ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> Action) {
+			self.action = transform(observer.action)
+			self.wrapped = observer.interruptsOnDeinit ? observer : nil
+			self.interruptsOnDeinit = false
+		}
+
 		/// An initializer that accepts a closure accepting an event for the
 		/// observer.
 		///
@@ -27,6 +45,7 @@ extension Signal {
 		///                         event as it deinitializes. `false` otherwise.
 		internal init(action: @escaping Action, interruptsOnDeinit: Bool) {
 			self.action = action
+			self.wrapped = nil
 			self.interruptsOnDeinit = interruptsOnDeinit
 		}
 
@@ -37,6 +56,7 @@ extension Signal {
 		///   - action: A closure to lift over received event.
 		public init(_ action: @escaping Action) {
 			self.action = action
+			self.wrapped = nil
 			self.interruptsOnDeinit = false
 		}
 

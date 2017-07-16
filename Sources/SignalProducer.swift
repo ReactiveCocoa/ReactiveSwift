@@ -242,7 +242,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			return disposable
 		}
 
-		internal func flatMapEvent<U, E>(_ transform: @escaping (Signal<Value, Error>.Event) -> Signal<U, E>.Event?) -> SignalProducer<U, E> {
+		internal func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
 			return SignalProducer<U, E>(SignalProducer<U, E>.EventTransformingCore(source: self, transform: transform))
 		}
 
@@ -272,38 +272,27 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 
 	private class EventTransformingCore<SourceValue, SourceError: Swift.Error>: Core {
 		private let source: SignalProducer<SourceValue, SourceError>.Core
-		private let transform: (Signal<SourceValue, SourceError>.Event) -> Signal<Value, Error>.Event?
+		private let transform: (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void
 
-		init(source: SignalProducer<SourceValue, SourceError>.Core, transform: @escaping (Signal<SourceValue, SourceError>.Event) -> Signal<Value, Error>.Event?) {
+		init(source: SignalProducer<SourceValue, SourceError>.Core, transform: @escaping (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void) {
 			self.source = source
 			self.transform = transform
 		}
 
 		internal override func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
-			return source.start(.init { [transform] event in
-				if let e = transform(event) {
-					observer.action(e)
-				}
-			})
+			return source.start(.init(observer, transform))
 		}
 
-		internal override func flatMapEvent<U, E>(_ transform: @escaping (Signal<Value, Error>.Event) -> Signal<U, E>.Event?) -> SignalProducer<U, E> {
-			return SignalProducer<U, E>(SignalProducer<U, E>.EventTransformingCore(source: source) { [innerTransform = self.transform] event in
-				if let e = innerTransform(event) {
-					return transform(e)
-				}
-				return nil
+		internal override func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
+			return SignalProducer<U, E>(SignalProducer<U, E>.EventTransformingCore(source: source) { [innerTransform = self.transform] action in
+				return innerTransform(transform(action))
 			})
 		}
 
 		internal override func make() -> Product {
 			let product = source.make()
 			let signal = Signal<Value, Error> { observer in
-				return product.signal.observe { [transform = self.transform] event in
-					if let e = transform(event) {
-						observer.action(e)
-					}
-				}
+				return product.signal.observe(.init(observer, transform))
 			}
 
 			return Product(signal: signal,
@@ -709,7 +698,7 @@ extension SignalProducer {
 	/// - returns: A signal producer that, when started, will send a mapped
 	///            value of `self.`
 	public func map<U>(_ transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
-		return core.flatMapEvent { $0.map(transform) }
+		return core.flatMapEvent(Signal.Event.map(transform))
 	}
 
 #if swift(>=3.2)
@@ -720,7 +709,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that will send new values.
 	public func map<U>(_ keyPath: KeyPath<Value, U>) -> SignalProducer<U, Error> {
-		return core.flatMapEvent { $0.map { $0[keyPath: keyPath] } }
+		return core.flatMapEvent(Signal.Event.filterMap { $0[keyPath: keyPath] })
 	}
 #endif
 
@@ -732,7 +721,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that emits errors of new type.
 	public func mapError<F>(_ transform: @escaping (Error) -> F) -> SignalProducer<Value, F> {
-		return core.flatMapEvent { $0.mapError(transform) }
+		return core.flatMapEvent(Signal.Event.mapError(transform))
 	}
 
 	/// Maps each value in the producer to a new value, lazily evaluating the
@@ -763,7 +752,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, forwards the values passing the given
 	///            closure.
 	public func filter(_ isIncluded: @escaping (Value) -> Bool) -> SignalProducer<Value, Error> {
-		return filterMap { isIncluded($0) ? $0 : nil }
+		return core.flatMapEvent(Signal.Event.filter(isIncluded))
 	}
 
 	/// Applies `transform` to values from the producer and forwards values with non `nil` results unwrapped.
@@ -773,9 +762,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that will send new values, that are non `nil` after the transformation.
 	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> SignalProducer<U, Error> {
-		return core.flatMapEvent {
-			return $0.filterMap(transform)
-		}
+		return core.flatMapEvent(Signal.Event.filterMap(transform))
 	}
 	
 	/// Yield the first `count` values from the input producer.

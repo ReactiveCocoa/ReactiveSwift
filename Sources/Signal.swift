@@ -534,12 +534,21 @@ extension Signal {
 	///                returns a new value.
 	///
 	/// - returns: A signal that will send new values.
-	public func map<U>(_ transform: @escaping (Value) -> U) -> Signal<U, Error> {
-		return Signal<U, Error> { observer in
-			return self.observe { event in
-				observer.action(event.map(transform))
-			}
+	public func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Event) -> Void) -> Signal<U, E> {
+		return Signal<U, E> { observer in
+			return self.observe(.init(observer, transform))
 		}
+	}
+
+	/// Map each value in the signal to a new value.
+	///
+	/// - parameters:
+	///   - transform: A closure that accepts a value from the `value` event and
+	///                returns a new value.
+	///
+	/// - returns: A signal that will send new values.
+	public func map<U>(_ transform: @escaping (Value) -> U) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.map(transform))
 	}
 
 #if swift(>=3.2)
@@ -562,11 +571,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will send new type of errors.
 	public func mapError<F>(_ transform: @escaping (Error) -> F) -> Signal<Value, F> {
-		return Signal<Value, F> { observer in
-			return self.observe { event in
-				observer.action(event.mapError(transform))
-			}
-		}
+		return flatMapEvent(Signal.Event.mapError(transform))
 	}
 
 	/// Maps each value in the signal to a new value, lazily evaluating the
@@ -599,18 +604,7 @@ extension Signal {
 	///
 	/// - returns: A signal that forwards the values passing the given closure.
 	public func filter(_ isIncluded: @escaping (Value) -> Bool) -> Signal<Value, Error> {
-		return Signal { observer in
-			return self.observe { (event: Event) -> Void in
-				guard let value = event.value else {
-					observer.action(event)
-					return
-				}
-
-				if isIncluded(value) {
-					observer.send(value: value)
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.filter(isIncluded))
 	}
 	
 	/// Applies `transform` to values from `signal` and forwards values with non `nil` results unwrapped.
@@ -620,32 +614,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
 	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
-		return Signal<U, Error> { observer in
-			return self.observe { (event: Event) -> Void in
-				switch event {
-				case let .value(value):
-					if let mapped = transform(value) {
-						observer.send(value: mapped)
-					}
-				case let .failed(error):
-					observer.send(error: error)
-				case .completed:
-					observer.sendCompleted()
-				case .interrupted:
-					observer.sendInterrupted()
-				}
-			}
-		}
-	}
-
-	internal func flatMapEvent<Events: Sequence>(_ transform: @escaping (Signal<Value, Error>.Event) -> Events) -> Signal<Events.Iterator.Element.Value, Events.Iterator.Element.Error> where Events.Iterator.Element: EventProtocol {
-		return Signal<Events.Iterator.Element.Value, Events.Iterator.Element.Error> { observer in
-			return self.observe { event in
-				for e in transform(event) {
-					observer.action(e.event)
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.filterMap(transform))
 	}
 }
 

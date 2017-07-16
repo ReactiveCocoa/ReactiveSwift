@@ -103,26 +103,6 @@ extension Signal {
 			}
 		}
 
-		internal func filterMap<U>(_ transform: (Value) -> U?) -> Signal<U, Error>.Event? {
-			switch self {
-			case let .value(value):
-				if let newValue = transform(value) {
-					return .value(newValue)
-				} else {
-					return nil
-				}
-
-			case .completed:
-				return .completed
-
-			case let .failed(error):
-				return .failed(error)
-
-			case .interrupted:
-				return .interrupted
-			}
-		}
-
 		/// Unwrap the contained `value` value.
 		public var value: Value? {
 			if case let .value(value) = self {
@@ -196,5 +176,91 @@ public protocol EventProtocol {
 extension Signal.Event: EventProtocol {
 	public var event: Signal<Value, Error>.Event {
 		return self
+	}
+}
+
+extension Signal.Event {
+	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+		return { action in
+			return { event in
+				switch event {
+				case let .value(value):
+					if isIncluded(value) {
+						action(.value(value))
+					}
+
+				case .completed:
+					action(.completed)
+
+				case let .failed(error):
+					action(.failed(error))
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
+	internal static func filterMap<U>(_ transform: @escaping (Value) -> U?) -> (@escaping Signal<U, Error>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+		return { action in
+			return { event in
+				switch event {
+				case let .value(value):
+					if let newValue = transform(value) {
+						action(.value(newValue))
+					}
+
+				case .completed:
+					action(.completed)
+
+				case let .failed(error):
+					action(.failed(error))
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
+	internal static func map<U>(_ transform: @escaping (Value) -> U) -> (@escaping Signal<U, Error>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+		return { action in
+			return { event in
+				switch event {
+				case let .value(value):
+					action(.value(transform(value)))
+
+				case .completed:
+					action(.completed)
+
+				case let .failed(error):
+					action(.failed(error))
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
+	internal static func mapError<E>(_ transform: @escaping (Error) -> E) -> (@escaping Signal<Value, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+		return { action in
+			return { event in
+				switch event {
+				case let .value(value):
+					action(.value(value))
+
+				case .completed:
+					action(.completed)
+
+				case let .failed(error):
+					action(.failed(transform(error)))
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
 	}
 }
