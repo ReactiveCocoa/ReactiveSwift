@@ -44,13 +44,11 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		case signal(() -> Product)
 
 		/// An internal `Signal`-less `SignalProducer`, optimized for single observer,
-		/// that does not serialize events and does not guard for redundant terminal
-		/// events.
+		/// that does not serialize events.
 		case unsafeAction((Signal<Value, Error>.Observer, Lifetime) -> Void)
 
 		/// An internal `Signal`-less `SignalProducer`, optimized for single observer,
-		/// that does not serialize events and does not guard for redundant terminal
-		/// events.
+		/// that does not serialize events and cannot be interrupted.
 		case unsafeUninterruptibleAction((Signal<Value, Error>.Observer) -> Void)
 
 		/// Produce a `Signal`.
@@ -72,7 +70,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			case let .unsafeUninterruptibleAction(startHandler):
 				let (signal, observer) = Signal<Value, Error>.pipe()
 				let observerDidSetup = { startHandler(observer) }
-				return Product(producedSignal: signal, observerDidSetup: observerDidSetup, interruptHandle: NopDisposable.shared)
+				return Product(producedSignal: signal, observerDidSetup: observerDidSetup, interruptHandle: AnyDisposable(observer.sendInterrupted))
 			}
 
 		}
@@ -331,9 +329,13 @@ extension SignalProducer {
 			let disposable = CompositeDisposable()
 
 			let realObserver = Signal<Value, Error>.Observer { event in
-				observer.action(event)
+				guard event.isTerminating else {
+					observer.action(event)
+					return
+				}
 
-				if event.isTerminating {
+				if !disposable.isDisposed {
+					observer.action(event)
 					disposable.dispose()
 				}
 			}
