@@ -35,12 +35,10 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// `observerDidSetup` must be invoked before any other post-creation side effect.
 	fileprivate enum Instance {
 		struct Product {
-			let producedSignal: ReactiveSwift.Signal<Value, Error>
+			let producedSignal: Signal<Value, Error>
 			let observerDidSetup: () -> Void
 			let interruptHandle: Disposable
 		}
-
-		typealias StartHandler = (ReactiveSwift.Signal<Value, Error>.Observer, Lifetime) -> Void
 
 		/// The conventional `Signal`-based `SignalProducer`.
 		case signal(() -> Product)
@@ -48,7 +46,12 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		/// An internal `Signal`-less `SignalProducer`, optimized for single observer,
 		/// that does not serialize events and does not guard for redundant terminal
 		/// events.
-		case unsafeAction(StartHandler)
+		case unsafeAction((Signal<Value, Error>.Observer, Lifetime) -> Void)
+
+		/// An internal `Signal`-less `SignalProducer`, optimized for single observer,
+		/// that does not serialize events and does not guard for redundant terminal
+		/// events.
+		case unsafeUninterruptibleAction((Signal<Value, Error>.Observer) -> Void)
 
 		/// Produce a `Signal`.
 		///
@@ -60,12 +63,18 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 
 			case let .unsafeAction(startHandler):
 				let disposable = CompositeDisposable()
-				let (signal, observer) = ReactiveSwift.Signal<Value, Error>.pipe(disposable: disposable)
+				let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
 				let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
 				let interruptHandle = AnyDisposable(observer.sendInterrupted)
 
 				return Product(producedSignal: signal, observerDidSetup: observerDidSetup, interruptHandle: interruptHandle)
+
+			case let .unsafeUninterruptibleAction(startHandler):
+				let (signal, observer) = Signal<Value, Error>.pipe()
+				let observerDidSetup = { startHandler(observer) }
+				return Product(producedSignal: signal, observerDidSetup: observerDidSetup, interruptHandle: NopDisposable.shared)
 			}
+
 		}
 	}
 
@@ -126,7 +135,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - value: A value that should be sent by the `Signal` in a `value`
 	///            event.
 	public init(value: Value) {
-		self.init(.unsafeAction { observer, _ in
+		self.init(.unsafeUninterruptibleAction { observer in
 			observer.send(value: value)
 			observer.sendCompleted()
 		})
@@ -143,7 +152,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - action: A action that yields a value to be sent by the `Signal` as
 	///             a `value` event.
 	public init(_ action: @escaping () -> Value) {
-		self.init(.unsafeAction { observer, _ in
+		self.init(.unsafeUninterruptibleAction { observer in
 			observer.send(value: action())
 			observer.sendCompleted()
 		})
@@ -159,7 +168,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - action: A closure that returns instance of `Result`.
 	public init(_ action: @escaping () -> Result<Value, Error>) {
-		self.init(.unsafeAction { observer, _ in
+		self.init(.unsafeUninterruptibleAction { observer in
 			action().analysis(ifSuccess: { value in
 				observer.send(value: value)
 				observer.sendCompleted()
@@ -176,7 +185,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - error: An error that should be sent by the `Signal` in a `failed`
 	///            event.
 	public init(error: Error) {
-		self.init(.unsafeAction { observer, _ in
+		self.init(.unsafeUninterruptibleAction { observer in
 			observer.send(error: error)
 		})
 	}
@@ -232,7 +241,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// A producer for a Signal that will immediately complete without sending
 	/// any values.
 	public static var empty: SignalProducer {
-		return self.init(.unsafeAction { observer, _ in
+		return self.init(.unsafeUninterruptibleAction { observer in
 			observer.sendCompleted()
 		})
 	}
@@ -331,6 +340,10 @@ extension SignalProducer {
 
 			startHandler(realObserver, Lifetime(disposable))
 			return AnyDisposable(realObserver.sendInterrupted)
+
+		case let .unsafeUninterruptibleAction(startHandler):
+			startHandler(observer)
+			return NopDisposable.shared
 
 		case .signal:
 			var disposable: Disposable!
