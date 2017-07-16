@@ -103,6 +103,26 @@ extension Signal {
 			}
 		}
 
+		internal func filterMap<U>(_ transform: (Value) -> U?) -> Signal<U, Error>.Event? {
+			switch self {
+			case let .value(value):
+				if let newValue = transform(value) {
+					return .value(newValue)
+				} else {
+					return nil
+				}
+
+			case .completed:
+				return .completed
+
+			case let .failed(error):
+				return .failed(error)
+
+			case .interrupted:
+				return .interrupted
+			}
+		}
+
 		/// Unwrap the contained `value` value.
 		public var value: Value? {
 			if case let .value(value) = self {

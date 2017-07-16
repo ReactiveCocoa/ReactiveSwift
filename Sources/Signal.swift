@@ -637,6 +637,16 @@ extension Signal {
 			}
 		}
 	}
+
+	internal func flatMapEvent<Events: Sequence>(_ transform: @escaping (Signal<Value, Error>.Event) -> Events) -> Signal<Events.Iterator.Element.Value, Events.Iterator.Element.Error> where Events.Iterator.Element: EventProtocol {
+		return Signal<Events.Iterator.Element.Value, Events.Iterator.Element.Error> { observer in
+			return self.observe { event in
+				for e in transform(event) {
+					observer.action(e.event)
+				}
+			}
+		}
+	}
 }
 
 extension Signal where Value: OptionalProtocol {
