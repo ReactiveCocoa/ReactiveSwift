@@ -33,13 +33,50 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// the upstreams for producer interruption.
 	///
 	/// `observerDidSetup` must be invoked before any other post-creation side effect.
-	fileprivate struct Instance {
-		let producedSignal: Signal<Value, Error>
-		let observerDidSetup: () -> Void
-		let interruptHandle: Disposable
+	fileprivate enum Instance {
+		struct Product {
+			let producedSignal: Signal<Value, Error>
+			let observerDidSetup: () -> Void
+			let interruptHandle: Disposable
+		}
+
+		/// The conventional `Signal`-based `SignalProducer`.
+		case signal(() -> Product)
+
+		/// An internal `Signal`-less `SignalProducer`, optimized for single observer,
+		/// that does not serialize events.
+		case unsafeAction((Signal<Value, Error>.Observer, Lifetime) -> Void)
+
+		/// An internal `Signal`-less `SignalProducer`, optimized for single observer,
+		/// that does not serialize events and cannot be interrupted.
+		case unsafeUninterruptibleAction((Signal<Value, Error>.Observer) -> Void)
+
+		/// Produce a `Signal`.
+		///
+		/// - returns: The produced `Signal` and the associated context.
+		func build() -> Product {
+			switch self {
+			case let .signal(builder):
+				return builder()
+
+			case let .unsafeAction(startHandler):
+				let disposable = CompositeDisposable()
+				let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+				let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
+				let interruptHandle = AnyDisposable(observer.sendInterrupted)
+
+				return Product(producedSignal: signal, observerDidSetup: observerDidSetup, interruptHandle: interruptHandle)
+
+			case let .unsafeUninterruptibleAction(startHandler):
+				let (signal, observer) = Signal<Value, Error>.pipe()
+				let observerDidSetup = { startHandler(observer) }
+				return Product(producedSignal: signal, observerDidSetup: observerDidSetup, interruptHandle: AnyDisposable(observer.sendInterrupted))
+			}
+
+		}
 	}
 
-	fileprivate let builder: () -> Instance
+	fileprivate let builder: Instance
 
 	/// Convert an entity into its equivalent representation as `SignalProducer`.
 	///
@@ -77,14 +114,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - startHandler: A closure that accepts observer and a disposable.
 	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
-		self.init { () -> Instance in
-			let disposable = CompositeDisposable()
-			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
-			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
-			let interruptHandle = AnyDisposable(observer.sendInterrupted)
-
-			return Instance(producedSignal: signal, observerDidSetup: observerDidSetup, interruptHandle: interruptHandle)
-		}
+		self.init(.signal { Instance.unsafeAction(startHandler).build() })
 	}
 
 	/// Create a SignalProducer that will invoke the given factory once for each
@@ -92,7 +122,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - builder: A builder that is used by `startWithSignal` to create new `Signal`s.
-	fileprivate init(_ builder: @escaping () -> Instance) {
+	fileprivate init(_ builder: Instance) {
 		self.builder = builder
 	}
 
@@ -103,10 +133,10 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - value: A value that should be sent by the `Signal` in a `value`
 	///            event.
 	public init(value: Value) {
-		self.init { observer, lifetime in
+		self.init(.unsafeUninterruptibleAction { observer in
 			observer.send(value: value)
 			observer.sendCompleted()
-		}
+		})
 	}
 
 	/// Creates a producer for a `Signal` that immediately sends one value, then
@@ -120,10 +150,10 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - action: A action that yields a value to be sent by the `Signal` as
 	///             a `value` event.
 	public init(_ action: @escaping () -> Value) {
-		self.init { observer, lifetime in
+		self.init(.unsafeUninterruptibleAction { observer in
 			observer.send(value: action())
 			observer.sendCompleted()
-		}
+		})
 	}
 
 	/// Create a `SignalProducer` that will attempt the given operation once for
@@ -136,14 +166,14 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - action: A closure that returns instance of `Result`.
 	public init(_ action: @escaping () -> Result<Value, Error>) {
-		self.init { observer, disposable in
+		self.init(.unsafeUninterruptibleAction { observer in
 			action().analysis(ifSuccess: { value in
 				observer.send(value: value)
 				observer.sendCompleted()
 			}, ifFailure: { error in
 				observer.send(error: error)
 			})
-		}
+		})
 	}
 
 	/// Creates a producer for a `Signal` that will immediately fail with the
@@ -153,9 +183,9 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - error: An error that should be sent by the `Signal` in a `failed`
 	///            event.
 	public init(error: Error) {
-		self.init { observer, lifetime in
+		self.init(.unsafeUninterruptibleAction { observer in
 			observer.send(error: error)
-		}
+		})
 	}
 
 	/// Creates a producer for a Signal that will immediately send one value
@@ -182,7 +212,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
 	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
-		self.init { observer, lifetime in
+		self.init(.unsafeAction { observer, lifetime in
 			for value in values {
 				observer.send(value: value)
 
@@ -192,7 +222,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			}
 
 			observer.sendCompleted()
-		}
+		})
 	}
 	
 	/// Creates a producer for a Signal that will immediately send the values
@@ -209,16 +239,16 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// A producer for a Signal that will immediately complete without sending
 	/// any values.
 	public static var empty: SignalProducer {
-		return self.init { observer, lifetime in
+		return self.init(.unsafeUninterruptibleAction { observer in
 			observer.sendCompleted()
-		}
+		})
 	}
 
 	/// A producer for a Signal that never sends any events to its observers.
 	public static var never: SignalProducer {
-		return self.init { observer, lifetime in
+		return self.init(.unsafeAction { observer, lifetime in
 			lifetime.observeEnded { _ = observer }
-		}
+		})
 	}
 
 	/// Create a `Signal` from `self`, pass it into the given closure, and start the
@@ -229,7 +259,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///            `Signal` commences. Both the produced `Signal` and an interrupt handle
 	///            of the signal would be passed to the closure.
 	public func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interruptHandle: Disposable) -> Void) {
-		let instance = builder()
+		let instance = builder.build()
 		setup(instance.producedSignal, instance.interruptHandle)
 		guard !instance.interruptHandle.isDisposed else { return }
 		instance.observerDidSetup()
@@ -294,14 +324,39 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func start(_ observer: Signal<Value, Error>.Observer = .init()) -> Disposable {
-		var disposable: Disposable!
+		switch builder {
+		case let .unsafeAction(startHandler):
+			let disposable = CompositeDisposable()
 
-		startWithSignal { signal, innerDisposable in
-			signal.observe(observer)
-			disposable = innerDisposable
+			let realObserver = Signal<Value, Error>.Observer { event in
+				guard event.isTerminating else {
+					observer.action(event)
+					return
+				}
+
+				if !disposable.isDisposed {
+					observer.action(event)
+					disposable.dispose()
+				}
+			}
+
+			startHandler(realObserver, Lifetime(disposable))
+			return AnyDisposable(realObserver.sendInterrupted)
+
+		case let .unsafeUninterruptibleAction(startHandler):
+			startHandler(observer)
+			return NopDisposable.shared
+
+		case .signal:
+			var disposable: Disposable!
+
+			startWithSignal { signal, innerDisposable in
+				signal.observe(observer)
+				disposable = innerDisposable
+			}
+
+			return disposable
 		}
-
-		return disposable
 	}
 
 	/// Create a `Signal` from `self`, and observe the `Signal` for all events
@@ -425,14 +480,14 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer<U, F> { () -> SignalProducer<U, F>.Instance in
+		return SignalProducer<U, F>(.signal {
 			// Transform the `Signal`, and pass through the `didCreate` side effect and
 			// the interruptHandle.
-			let instance = self.producer.builder()
-			return SignalProducer<U, F>.Instance(producedSignal: transform(instance.producedSignal),
-			                                     observerDidSetup: instance.observerDidSetup,
-			                                     interruptHandle: instance.interruptHandle)
-		}
+			let instance = self.producer.builder.build()
+			return .init(producedSignal: transform(instance.producedSignal),
+			             observerDidSetup: instance.observerDidSetup,
+			             interruptHandle: instance.interruptHandle)
+		})
 	}
 
 	/// Lift a binary Signal operator to operate upon SignalProducers.
@@ -461,9 +516,9 @@ extension SignalProducer {
 
 	private func lift<U, F, V, G>(leftFirst: Bool, _ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
-			return SignalProducer<V, G> { () -> SignalProducer<V, G>.Instance in
-				let left = self.producer.builder()
-				let right = otherProducer.builder()
+			return SignalProducer<V, G>(.signal {
+				let left = self.producer.builder.build()
+				let right = otherProducer.builder.build()
 
 				return .init(producedSignal: transform(left.producedSignal)(right.producedSignal),
 				             observerDidSetup: {
@@ -475,7 +530,7 @@ extension SignalProducer {
 									left.observerDidSetup()
 								}},
 				             interruptHandle: CompositeDisposable([left.interruptHandle, right.interruptHandle]))
-			}
+			})
 		}
 	}
 
@@ -1517,8 +1572,8 @@ extension SignalProducer {
 		disposed: (() -> Void)? = nil,
 		value: ((Value) -> Void)? = nil
 	) -> SignalProducer<Value, Error> {
-		return SignalProducer { () -> Instance in
-			let instance = self.producer.builder()
+		return SignalProducer(.signal {
+			let instance = self.producer.builder.build()
 			let signal = instance.producedSignal.on(event: event,
 			                                        failed: failed,
 			                                        completed: completed,
@@ -1527,10 +1582,10 @@ extension SignalProducer {
 			                                        disposed: disposed,
 			                                        value: value)
 
-			return Instance(producedSignal: signal,
-			                observerDidSetup: { starting?(); instance.observerDidSetup(); started?() },
-			                interruptHandle: instance.interruptHandle)
-		}
+			return Instance.Product(producedSignal: signal,
+			                        observerDidSetup: { starting?(); instance.observerDidSetup(); started?() },
+			                        interruptHandle: instance.interruptHandle)
+		})
 	}
 
 	/// Start the returned producer on the given `Scheduler`.
@@ -2058,7 +2113,7 @@ extension SignalProducer {
 			while true {
 				var result: Result<Bag<Signal<Value, Error>.Observer>.Token?, ReplayError<Value>>!
 				state.modify {
-					result = $0.observe(observer)
+					result = $0.observe(ObjectIdentifier(lifetime), observer)
 				}
 
 				switch result! {
@@ -2124,6 +2179,8 @@ private struct ReplayError<Value>: Error {
 	let values: [Value]
 }
 
+private final class Token {}
+
 private struct ReplayState<Value, Error: Swift.Error> {
 	let capacity: Int
 
@@ -2163,11 +2220,11 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	///            with the corresponding removal token would be returned.
 	///            Otherwise, a `Result.failure` with a `ReplayError` would be
 	///            returned.
-	mutating func observe(_ observer: Signal<Value, Error>.Observer) -> Result<Bag<Signal<Value, Error>.Observer>.Token?, ReplayError<Value>> {
+	mutating func observe(_ token: ObjectIdentifier, _ observer: Signal<Value, Error>.Observer) -> Result<Bag<Signal<Value, Error>.Observer>.Token?, ReplayError<Value>> {
 		// Since the only use case is `replayLazily`, which always creates a unique
 		// `Observer` for every produced signal, we can use the ObjectIdentifier of
 		// the `Observer` to track them directly.
-		let id = ObjectIdentifier(observer)
+		let id = token
 
 		switch replayBuffers[id] {
 		case .none where !values.isEmpty:

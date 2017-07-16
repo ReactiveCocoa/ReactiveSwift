@@ -42,9 +42,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	/// - returns: `true` if the current state matches the expected state.
 	///            `false` otherwise.
 	internal func `is`(_ expected: State) -> Bool {
-		return OSAtomicCompareAndSwap32Barrier(expected.rawValue,
-		                                       expected.rawValue,
-		                                       value)
+		return value.pointee == expected.rawValue
 	}
 
 	/// Try to transition from the expected current state to the specified next
