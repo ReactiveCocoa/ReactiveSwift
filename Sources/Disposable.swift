@@ -38,6 +38,13 @@ extension UnsafeAtomicState where State == DisposableState {
 	}
 }
 
+internal final class NopDisposable: Disposable {
+	internal static let shared = NopDisposable()
+	internal let isDisposed = false
+	private init() {}
+	internal func dispose() {}
+}
+
 /// A type-erased disposable that forwards operations to an underlying disposable.
 public final class AnyDisposable: Disposable {
 	private final class ActionDisposable: Disposable {
