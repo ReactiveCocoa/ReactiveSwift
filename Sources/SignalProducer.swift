@@ -19,7 +19,7 @@ import Result
 public struct SignalProducer<Value, Error: Swift.Error> {
 	public typealias ProducedSignal = Signal<Value, Error>
 
-	fileprivate let core: Core
+	fileprivate let core: SignalProducerCore<Value, Error>
 
 	/// Convert an entity into its equivalent representation as `SignalProducer`.
 	///
@@ -63,7 +63,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
 			let interruptHandle = AnyDisposable(observer.sendInterrupted)
 
-			return Core.Product(signal: signal, observerDidSetup: observerDidSetup, interruptHandle: interruptHandle)
+			return SignalProducerCore.Product(signal: signal, observerDidSetup: observerDidSetup, interruptHandle: interruptHandle)
 		}
 	}
 
@@ -71,7 +71,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - core: The `SignalProducer` core.
-	internal init(_ core: Core) {
+	internal init(_ core: SignalProducerCore<Value, Error>) {
 		self.core = core
 	}
 
@@ -205,123 +205,119 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	public func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interruptHandle: Disposable) -> Void) {
 		return core.startWithSignal(setup)
 	}
+}
 
-	internal class Core {
-		/// Wraps a closure which, when invoked, produces a new instance of `Signal`, a
-		/// customized `observerDidSetup` post-creation side effect for the `Signal` and a
-		/// disposable to interrupt the produced `Signal`.
-		///
-		/// Unlike the safe `startWithSignal(_:)` API, `builder` shifts the responsibility of
-		/// invoking the post-creation side effect to the caller, while it takes from the
-		/// caller the responsibility of the `Signal` creation.
-		///
-		/// The design allows producer lifting to be as efficient as native `Signal`
-		/// operators, by eliminating the unnecessary relay `Signal` imposed by the old
-		/// `startWithSignal(_:)`, regardless of the fact that lifted operators can rely on
-		/// the upstreams for producer interruption.
-		///
-		/// `observerDidSetup` must be invoked before any other post-creation side effect.
-		struct Product {
-			let signal: Signal<Value, Error>
-			let observerDidSetup: () -> Void
-			let interruptHandle: Disposable
-		}
-
-		func make() -> Product {
-			fatalError()
-		}
-
-		func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
-			var disposable: Disposable!
-
-			startWithSignal { signal, innerDisposable in
-				signal.observe(observer)
-				disposable = innerDisposable
-			}
-
-			return disposable
-		}
-
-		internal func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
-			return SignalProducer<U, E>(SignalProducer<U, E>.EventTransformingCore(source: self, transform: transform))
-		}
-
-		final func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interruptHandle: Disposable) -> Void) {
-			let instance = make()
-			setup(instance.signal, instance.interruptHandle)
-			guard !instance.interruptHandle.isDisposed else { return }
-			instance.observerDidSetup()
-		}
-
-		static func makeSignalCore(_ action: @escaping () -> Product) -> Core {
-			return SignalCore(action)
-		}
+internal class SignalProducerCore<Value, Error: Swift.Error> {
+	/// Wraps a closure which, when invoked, produces a new instance of `Signal`, a
+	/// customized `observerDidSetup` post-creation side effect for the `Signal` and a
+	/// disposable to interrupt the produced `Signal`.
+	///
+	/// Unlike the safe `startWithSignal(_:)` API, `builder` shifts the responsibility of
+	/// invoking the post-creation side effect to the caller, while it takes from the
+	/// caller the responsibility of the `Signal` creation.
+	///
+	/// The design allows producer lifting to be as efficient as native `Signal`
+	/// operators, by eliminating the unnecessary relay `Signal` imposed by the old
+	/// `startWithSignal(_:)`, regardless of the fact that lifted operators can rely on
+	/// the upstreams for producer interruption.
+	///
+	/// `observerDidSetup` must be invoked before any other post-creation side effect.
+	struct Product {
+		let signal: Signal<Value, Error>
+		let observerDidSetup: () -> Void
+		let interruptHandle: Disposable
 	}
 
-	private class SignalCore: Core {
-		private let _make: () -> Product
-
-		init(_ action: @escaping () -> Product) {
-			self._make = action
-		}
-
-		override func make() -> Product {
-			return _make()
-		}
+	func make() -> Product {
+		fatalError()
 	}
 
-	private class EventTransformingCore<SourceValue, SourceError: Swift.Error>: Core {
-		private let source: SignalProducer<SourceValue, SourceError>.Core
-		private let transform: (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void
+	func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
+		var disposable: Disposable!
 
-		init(source: SignalProducer<SourceValue, SourceError>.Core, transform: @escaping (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void) {
-			self.source = source
-			self.transform = transform
+		startWithSignal { signal, innerDisposable in
+			signal.observe(observer)
+			disposable = innerDisposable
 		}
 
-		internal override func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
-			return source.start(.init(observer, transform))
-		}
-
-		internal override func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
-			return SignalProducer<U, E>(SignalProducer<U, E>.EventTransformingCore(source: source) { [innerTransform = self.transform] action in
-				return innerTransform(transform(action))
-			})
-		}
-
-		internal override func make() -> Product {
-			let product = source.make()
-			let signal = Signal<Value, Error> { observer in
-				return product.signal.observe(.init(observer, transform))
-			}
-
-			return Product(signal: signal,
-			               observerDidSetup: product.observerDidSetup,
-			               interruptHandle: product.interruptHandle)
-		}
+		return disposable
 	}
 
-	private class EventGeneratingCore: Core {
-		private let generator: (Signal<Value, Error>.Observer, Disposable) -> Void
+	internal func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
+		return SignalProducer<U, E>(EventTransformingCore(source: self, transform: transform))
+	}
 
-		init(_ generator: @escaping (Signal<Value, Error>.Observer, Disposable) -> Void) {
-			self.generator = generator
+	final func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interruptHandle: Disposable) -> Void) {
+		let instance = make()
+		setup(instance.signal, instance.interruptHandle)
+		guard !instance.interruptHandle.isDisposed else { return }
+		instance.observerDidSetup()
+	}
+}
+
+private final class SignalCore<Value, Error: Swift.Error>: SignalProducerCore<Value, Error> {
+	private let _make: () -> Product
+
+	init(_ action: @escaping () -> Product) {
+		self._make = action
+	}
+
+	override func make() -> Product {
+		return _make()
+	}
+}
+
+private final class EventTransformingCore<Value, Error: Swift.Error, SourceValue, SourceError: Swift.Error>: SignalProducerCore<Value, Error> {
+	private let source: SignalProducerCore<SourceValue, SourceError>
+	private let transform: (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void
+
+	init(source: SignalProducerCore<SourceValue, SourceError>, transform: @escaping (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void) {
+		self.source = source
+		self.transform = transform
+	}
+
+	internal override func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
+		return source.start(.init(observer, transform))
+	}
+
+	internal override func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
+		return SignalProducer<U, E>(EventTransformingCore<U, E, SourceValue, SourceError>(source: source) { [innerTransform = self.transform] action in
+			return innerTransform(transform(action))
+		})
+	}
+
+	internal override func make() -> Product {
+		let product = source.make()
+		let signal = Signal<Value, Error> { observer in
+			return product.signal.observe(.init(observer, transform))
 		}
 
-		internal override func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
-			let d = NopDisposable.shared
-			generator(observer, d)
-			return d
-		}
+		return Product(signal: signal,
+		               observerDidSetup: product.observerDidSetup,
+		               interruptHandle: product.interruptHandle)
+	}
+}
 
-		internal override func make() -> Product {
-			let (signal, observer) = Signal<Value, Error>.pipe()
-			let d = AnyDisposable(observer.sendInterrupted)
+private final class EventGeneratingCore<Value, Error: Swift.Error>: SignalProducerCore<Value, Error> {
+	private let generator: (Signal<Value, Error>.Observer, Disposable) -> Void
 
-			return Product(signal: signal,
-			               observerDidSetup: { self.generator(observer, d) },
-			               interruptHandle: d)
-		}
+	init(_ generator: @escaping (Signal<Value, Error>.Observer, Disposable) -> Void) {
+		self.generator = generator
+	}
+
+	internal override func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
+		let d = NopDisposable.shared
+		generator(observer, d)
+		return d
+	}
+
+	internal override func make() -> Product {
+		let (signal, observer) = Signal<Value, Error>.pipe()
+		let d = AnyDisposable(observer.sendInterrupted)
+
+		return Product(signal: signal,
+		               observerDidSetup: { self.generator(observer, d) },
+		               interruptHandle: d)
 	}
 }
 
@@ -507,7 +503,7 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer<U, F>(.makeSignalCore {
+		return SignalProducer<U, F>(SignalCore {
 			// Transform the `Signal`, and pass through the `didCreate` side effect and
 			// the interruptHandle.
 			let instance = self.core.make()
@@ -519,7 +515,7 @@ extension SignalProducer {
 
 	private func lift<U, F, V, G>(leftFirst: Bool, _ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
-			return SignalProducer<V, G>(.makeSignalCore {
+			return SignalProducer<V, G>(SignalCore {
 				let left = self.core.make()
 				let right = otherProducer.core.make()
 
@@ -1599,7 +1595,7 @@ extension SignalProducer {
 		disposed: (() -> Void)? = nil,
 		value: ((Value) -> Void)? = nil
 	) -> SignalProducer<Value, Error> {
-		return SignalProducer(.makeSignalCore {
+		return SignalProducer(SignalCore {
 			let instance = self.core.make()
 			let signal = instance.signal.on(event: event,
 			                                failed: failed,
