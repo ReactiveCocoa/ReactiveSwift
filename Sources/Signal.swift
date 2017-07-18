@@ -527,14 +527,17 @@ extension Signal where Error == NoError {
 }
 
 extension Signal {
-	/// Map each value in the signal to a new value.
+	/// Perform an action upon every event from `self`. The action may generate zero or
+	/// more events.
+	///
+	/// - precondition: The action must be synchronous.
 	///
 	/// - parameters:
-	///   - transform: A closure that accepts a value from the `value` event and
-	///                returns a new value.
+	///   - transform: A closure that creates the said action from the given event
+	///                closure.
 	///
-	/// - returns: A signal that will send new values.
-	public func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Event) -> Void) -> Signal<U, E> {
+	/// - returns: A signal that forwards events yielded by the action.
+	internal func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Event) -> Void) -> Signal<U, E> {
 		return Signal<U, E> { observer in
 			return self.observe(.init(observer, transform))
 		}

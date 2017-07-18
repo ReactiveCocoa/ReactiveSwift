@@ -243,6 +243,16 @@ internal class SignalProducerCore<Value, Error: Swift.Error> {
 		return disposable
 	}
 
+	/// Perform an action upon every event from `self`. The action may generate zero or
+	/// more events.
+	///
+	/// - precondition: The action must be synchronous.
+	///
+	/// - parameters:
+	///   - transform: A closure that creates the said action from the given event
+	///                closure.
+	///
+	/// - returns: A producer that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
 		return SignalProducer<U, E>(EventTransformingCore(source: self, transform: transform))
 	}
