@@ -84,6 +84,8 @@ jobs:
       env:
         - JOB=SWIFTPM_DARWIN
     - osx_image: xcode9
+      before_install:
+        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
       script:
         - swift --version
         - swift build
@@ -92,6 +94,7 @@ jobs:
         submodules: false
       env:
         - JOB=SWIFT_4
+        - SWIFT_VERSION=DEVELOPMENT-SNAPSHOT-2017-07-13-a
     - os: linux
       language: generic
       sudo: required
@@ -105,6 +108,21 @@ jobs:
       git:
         submodules: false
       env: JOB=SWIFTPM_LINUX
+    - os: linux
+      language: generic
+      sudo: required
+      dist: trusty
+      before_install:
+        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
+      script:
+        - swift --version
+        - swift build
+        - SWIFTPM_TEST_ReactiveSwift=YES swift test
+      git:
+        submodules: false
+      env: 
+        - JOB=SWIFTPM_SWIFT_4_LINUX
+        - SWIFT_VERSION=DEVELOPMENT-SNAPSHOT-2017-07-13-a
     - stage: prepare carthage cache
       script: carthage build --cache-builds
     - stage: carthage

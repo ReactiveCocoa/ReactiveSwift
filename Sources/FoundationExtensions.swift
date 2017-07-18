@@ -87,7 +87,7 @@ extension Date {
 
 extension DispatchTimeInterval {
 	internal var timeInterval: TimeInterval {
-		#if swift(>=3.2)
+		#if swift(>=3.2) && !os(Linux)
 			switch self {
 			case let .seconds(s):
 				return TimeInterval(s)
@@ -117,7 +117,7 @@ extension DispatchTimeInterval {
 	// This was added purely so that our test scheduler to "go backwards" in
 	// time. See `TestScheduler.rewind(by interval: DispatchTimeInterval)`.
 	internal static prefix func -(lhs: DispatchTimeInterval) -> DispatchTimeInterval {
-		#if swift(>=3.2)
+		#if swift(>=3.2) && !os(Linux)
 			switch lhs {
 			case let .seconds(s):
 				return .seconds(-s)
