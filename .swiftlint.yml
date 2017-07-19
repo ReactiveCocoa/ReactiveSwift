@@ -1,3 +1,5 @@
+disabled_rules:
+  - opening_brace
 included:
   - Sources
   - Tests

@@ -49,8 +49,7 @@ public func sendValues<T: Equatable, E: Equatable>(_ values: [T], sendError mayb
 			}
 
 			return signalCompleted == complete
-		}
-		else {
+		} else {
 			return false
 		}
 	}

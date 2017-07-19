@@ -17,5 +17,5 @@ Quick.QCKMain([
     SignalLifetimeSpec.self,
     SignalProducerLiftingSpec.self,
     SignalProducerSpec.self,
-    SignalSpec.self,
+    SignalSpec.self
 ])

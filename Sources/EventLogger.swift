@@ -14,7 +14,7 @@ public enum LoggingEvent {
 		case value, completed, failed, terminated, disposed, interrupted
 
 		public static let allEvents: Set<Signal> = [
-			.value, .completed, .failed, .terminated, .disposed, .interrupted,
+			.value, .completed, .failed, .terminated, .disposed, .interrupted
 		]
 	}
 
@@ -22,7 +22,7 @@ public enum LoggingEvent {
 		case starting, started, value, completed, failed, terminated, disposed, interrupted
 
 		public static let allEvents: Set<SignalProducer> = [
-			.starting, .started, .value, .completed, .failed, .terminated, .disposed, .interrupted,
+			.starting, .started, .value, .completed, .failed, .terminated, .disposed, .interrupted
 		]
 	}
 }
