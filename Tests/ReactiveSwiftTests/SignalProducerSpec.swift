@@ -1962,6 +1962,59 @@ class SignalProducerSpec: QuickSpec {
 				let result = producer.single()
 				expect(result?.value) == 1
 			}
+			
+			context("with interval") {
+				
+				it("should send values at the given interval until hitting the limitation") {
+					
+					let scheduler = TestScheduler()
+					var count = 0
+
+					let original = SignalProducer<Int, TestError> { observer, _ in
+						
+						if count < 2 {
+							scheduler.schedule { observer.send(value: count) }
+							scheduler.schedule { observer.send(error: .default) }
+						} else {
+							scheduler.schedule { observer.sendCompleted() }
+						}
+						count += 1
+					}
+
+					var values: [Int] = []
+					var completed = false
+					
+					original.retry(upTo: Int.max, interval: 1, on: scheduler)
+					.start { event in
+						switch event {
+						case let .value(value):
+							values.append(value)
+						case .completed:
+							completed = true
+						default:
+							break
+						}
+					}
+					
+					expect(count) == 1
+					expect(values) == []
+					
+					scheduler.advance()
+					expect(count) == 1
+					expect(values) == [1]
+					expect(completed) == false
+					
+					scheduler.advance(by: .seconds(1))
+					expect(count) == 2
+					expect(values) == [1, 2]
+					expect(completed) == false
+					
+					scheduler.advance(by: .seconds(1))
+					expect(count) == 3
+					expect(values) == [1, 2]
+					expect(completed) == true
+				}
+			}
 		}
 
 		describe("then") {
