@@ -3,3 +3,5 @@ disabled_rules:
 included:
   - Sources
   - Tests
+
+line_length: 200
