@@ -1064,7 +1064,9 @@ extension Signal {
 		return Signal { observer in
 			let disposable = CompositeDisposable()
 
-			_ = disposed.map(disposable.add)
+			if let action = disposed {
+				disposable.add(action)
+			}
 
 			disposable += self.observe { receivedEvent in
 				event?(receivedEvent)
