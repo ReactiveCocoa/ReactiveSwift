@@ -1879,7 +1879,7 @@ class SignalProducerSpec: QuickSpec {
 				let results: [Result<Int, TestError>] = [
 					.success(1),
 					.success(2),
-					.failure(.default)
+					.failure(.default),
 				]
 
 				let original = SignalProducer.attemptWithResults(results)
@@ -1894,7 +1894,7 @@ class SignalProducerSpec: QuickSpec {
 				let expectedEvents: [Signal<Int, TestError>.Event] = [
 					.value(1),
 					.value(2),
-					.failed(.default)
+					.failed(.default),
 				]
 
 				// TODO: if let result = result where result.count == expectedEvents.count
@@ -1923,7 +1923,7 @@ class SignalProducerSpec: QuickSpec {
 				let results: [Result<Int, TestError>] = [
 					.failure(.error1),
 					.failure(.error2),
-					.success(1)
+					.success(1),
 				]
 
 				let original = SignalProducer.attemptWithResults(results)
@@ -1938,7 +1938,7 @@ class SignalProducerSpec: QuickSpec {
 				let results: [Result<Int, TestError>] = [
 					.failure(.default),
 					.failure(.error1),
-					.failure(.error2)
+					.failure(.error2),
 				]
 
 				let original = SignalProducer.attemptWithResults(results)
@@ -1953,7 +1953,7 @@ class SignalProducerSpec: QuickSpec {
 				let results: [Result<Int, TestError>] = [
 					.success(1),
 					.success(2),
-					.success(3)
+					.success(3),
 				]
 
 				let original = SignalProducer.attemptWithResults(results)
@@ -2606,7 +2606,7 @@ class SignalProducerSpec: QuickSpec {
 						{ event in expect(event) == "[] value 1" },
 						{ event in expect(event) == "[] completed" },
 						{ event in expect(event) == "[] terminated" },
-						{ event in expect(event) == "[] disposed" }
+						{ event in expect(event) == "[] disposed" },
 					]
 
 					let logger = TestLogger(expectations: expectations)

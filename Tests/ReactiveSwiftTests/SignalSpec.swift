@@ -1354,7 +1354,7 @@ class SignalSpec: QuickSpec {
 
 				var expectedValues = [
 					[5, 5],
-					[42, 5]
+					[42, 5],
 				]
 
 				signal.observeValues { value in
@@ -1379,7 +1379,7 @@ class SignalSpec: QuickSpec {
 
 				var expectedValues = [
 					[1, 2, 3, 4],
-					[5, 6, 7, 8, 9]
+					[5, 6, 7, 8, 9],
 				]
 
 				signal.observeValues { value in
@@ -3097,7 +3097,7 @@ class SignalSpec: QuickSpec {
 						{ event in expect(event) == "[] value 1" },
 						{ event in expect(event) == "[] completed" },
 						{ event in expect(event) == "[] terminated" },
-						{ event in expect(event) == "[] disposed" }
+						{ event in expect(event) == "[] disposed" },
 					]
 
 					let logger = TestLogger(expectations: expectations)
@@ -3116,7 +3116,7 @@ class SignalSpec: QuickSpec {
 						{ event in expect(event) == "[test.rac] value 1" },
 						{ event in expect(event) == "[test.rac] failed error1" },
 						{ event in expect(event) == "[test.rac] terminated" },
-						{ event in expect(event) == "[test.rac] disposed" }
+						{ event in expect(event) == "[test.rac] disposed" },
 					]
 
 					let logger = TestLogger(expectations: expectations)
@@ -3132,7 +3132,7 @@ class SignalSpec: QuickSpec {
 
 				it("should only output the events specified in the `events` parameter") {
 					let expectations: [(String) -> Void] = [
-						{ event in expect(event) == "[test.rac] failed error1" }
+						{ event in expect(event) == "[test.rac] failed error1" },
 					]
 
 					let logger = TestLogger(expectations: expectations)

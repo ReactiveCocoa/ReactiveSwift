@@ -878,7 +878,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				var expectedValues = [
 					[5, 5],
-					[42, 5]
+					[42, 5],
 				]
 
 				producer.startWithValues { value in
@@ -903,7 +903,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				var expectedValues = [
 					[1, 2, 3, 4],
-					[5, 6, 7, 8, 9]
+					[5, 6, 7, 8, 9],
 				]
 
 				producer.startWithValues { value in
