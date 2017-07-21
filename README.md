@@ -9,8 +9,6 @@
 
 ☕️ [Looking for Cocoa extensions?][ReactiveCocoa]
 🎉 [Getting Started](#getting-started)
-⚠️ [Still using Swift 2.x?][]
-
 
 🚄 [Release Roadmap](#release-roadmap)
 ## What is ReactiveSwift?
@@ -70,7 +68,7 @@ If you use [Carthage][] to manage your dependencies, simply add
 ReactiveSwift to your `Cartfile`:
 
 ```
-github "ReactiveCocoa/ReactiveSwift" ~> 1.1
+github "ReactiveCocoa/ReactiveSwift" ~> 2.0
 ```
 
 If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework`, and `Result.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
@@ -81,7 +79,7 @@ If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
-pod 'ReactiveSwift', '~> 1.1'
+pod 'ReactiveSwift', '~> 2.0'
 ```
 
 #### Swift Package Manager
@@ -90,7 +88,7 @@ If you use Swift Package Manager, simply add ReactiveSwift as a dependency
 of your package in `Package.swift`:
 
 ```
-.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", majorVersion: 1)
+.Package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", majorVersion: 2)
 ```
 
 #### Git submodule
@@ -126,19 +124,6 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 
 ## Release Roadmap
 **Current Stable Release:**<br />[![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveSwift.svg)](https://github.com/ReactiveCocoa/ReactiveSwift/releases)
-
-### In Development
-#### ReactiveSwift 2.0
-It targets Swift 3.1. The estimated schedule is WWDC 2017.
-
-The primary goal of ReactiveSwift 2.0 is to take advantage of **concrete same-type requirements** introduced in Swift 3.1. As a result:
-
-1. A few single-implementation protocols were removed; and
-2. `Signal` and `SignalProducer` operators were moved from the protocols to the concrete types.
-
-These changes are source breaking, but are automatically or trivially migratable.
-
-ReactiveSwift 2.0 has continued the work in polishing the APIs, preparing for the eventual API freeze for library resilience.
 
 #### Swift 3.2 and Swift 4.0 compatibility
 While the development would be Swift 3.2 and Swift 4.0 aware, ReactiveSwift 2.0 would not declare official support until Swift 3.2 and Swift 4.0 launch.
