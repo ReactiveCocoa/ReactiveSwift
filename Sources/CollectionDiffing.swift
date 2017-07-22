@@ -84,10 +84,47 @@ public struct Changeset {
 	///              start index and the offset.
 	public var moves = [Int: Move]()
 
+	/// Whether the delta actually represents no changes.
+	///
+	/// Generally speaking, this is prevalent only when diffing nested collections as
+	/// a placeholder for unchanged inner collections.
+	public var representsNoChanges: Bool {
+		return inserts.isEmpty && removals.isEmpty && mutations.isEmpty && moves.isEmpty
+	}
+
 	public init() {}
 
 	public init<C: Collection>(initial: C) {
 		inserts = IndexSet(integersIn: 0 ..< Int(initial.count))
+	}
+}
+
+/// Represents an atomic batch of changes made to a sectioned collection.
+public struct SectionedChangeset {
+	public struct MutatedSection {
+		public let changeset: Changeset
+		public let source: Int
+	}
+
+	/// The changes of sections.
+	///
+	/// - precondition: Offsets in `sections.mutations` and `sections.moves` must have a
+	///                 corresponding entry in `mutatedSections` if they represent a
+	///                 mutation.
+	public var sections = Changeset()
+
+	/// The changes of items in the mutated sections.
+	///
+	/// - precondition: `mutatedSections` must have an entry for every mutated sections
+	///                 specified by `sections.mutations` and `sections.moves`.
+	public var mutatedSections: [Int: MutatedSection] = [:]
+
+	public init(sections: Changeset = Changeset(), mutatedSections: [Int: MutatedSection] = [:]) {
+		(self.sections, self.mutatedSections) = (sections, mutatedSections)
+	}
+
+	public init<C: Collection>(initial: C) {
+		sections.inserts.insert(integersIn: 0 ..< Int(initial.count))
 	}
 }
 
@@ -551,6 +588,156 @@ extension Collection where Index == Indices.Iterator.Element {
 	}
 }
 
+// FIXME: Swift 4 Associated type constraints
+// extension CollectionDiffer {
+extension Signal where Value: Collection, Value.Iterator.Element: Collection, Value.Indices.Iterator.Element == Value.Index, Value.Iterator.Element.Indices.Iterator.Element == Value.Iterator.Element.Index {
+	/// Compute the difference of `self` with regard to `old` by value equality.
+	///
+	/// `diff(with:)` works best with collections that contain unique values.
+	///
+	/// If the elements are repeated per the definition of `Element.==`, `diff(with:)`
+	/// cannot guarantee a deterministic stable order, so these would all be uniformly
+	/// treated as removals and inserts.
+	///
+	/// - precondition: The collection type must exhibit array semantics.
+	///
+	/// - parameters:
+	///   - keyGenerator: A unique identifier generator to apply on elements.
+	///   - comparator: A comparator that evaluates two elements for equality.
+	///
+	/// - complexity: O(n) time and space.
+	public func diff<Identifier: Hashable, SectionIdentifier: Hashable>(
+		sectionIdentifier: @escaping (Value.Iterator.Element) -> SectionIdentifier,
+		areSectionsEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool,
+		elementIdentifier: @escaping (Value.Iterator.Element.Iterator.Element) -> Identifier,
+		areElementsEqual: @escaping (Value.Iterator.Element.Iterator.Element, Value.Iterator.Element.Iterator.Element) -> Bool
+	) -> Signal<Snapshot<Value, SectionedChangeset>, Error> {
+		return Signal<Snapshot<Value, SectionedChangeset>, Error> { observer in
+			var previous: Value?
+
+			return self.observe { event in
+				switch event {
+				case let .value(elements):
+					let changeset: SectionedChangeset
+
+					if let previous = previous {
+						changeset = Value.sectioningDiff(previous: previous,
+						                                 current: elements,
+						                                 sectionIdentifier: sectionIdentifier,
+						                                 areSectionsEqual: areSectionsEqual,
+						                                 elementIdentifier: elementIdentifier,
+						                                 areElementsEqual: areElementsEqual)
+					} else {
+						changeset = SectionedChangeset(initial: elements)
+					}
+
+					observer.send(value: Snapshot(elements: elements, changeset: changeset))
+					previous = elements
+				case .completed:
+					observer.sendCompleted()
+				case let .failed(error):
+					observer.send(error: error)
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
+		}
+	}
+}
+
+extension SignalProducer where Value: Collection, Value.Iterator.Element: Collection, Value.Indices.Iterator.Element == Value.Index, Value.Iterator.Element.Indices.Iterator.Element == Value.Iterator.Element.Index {
+	public func diff<Identifier: Hashable, SectionIdentifier: Hashable>(
+		sectionIdentifier: @escaping (Value.Iterator.Element) -> SectionIdentifier,
+		areSectionsEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool,
+		elementIdentifier: @escaping (Value.Iterator.Element.Iterator.Element) -> Identifier,
+		areElementsEqual: @escaping (Value.Iterator.Element.Iterator.Element, Value.Iterator.Element.Iterator.Element) -> Bool
+	) -> SignalProducer<Snapshot<Value, SectionedChangeset>, Error> {
+		return lift { $0.diff(sectionIdentifier: sectionIdentifier,
+		                      areSectionsEqual: areSectionsEqual,
+		                      elementIdentifier: elementIdentifier,
+		                      areElementsEqual: areElementsEqual) }
+	}
+}
+
+extension PropertyProtocol where Value: Collection, Value.Iterator.Element: Collection, Value.Indices.Iterator.Element == Value.Index, Value.Iterator.Element.Indices.Iterator.Element == Value.Iterator.Element.Index {
+	public func diff<Identifier: Hashable, SectionIdentifier: Hashable>(
+		sectionIdentifier: @escaping (Value.Iterator.Element) -> SectionIdentifier,
+		areSectionsEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool,
+		elementIdentifier: @escaping (Value.Iterator.Element.Iterator.Element) -> Identifier,
+		areElementsEqual: @escaping (Value.Iterator.Element.Iterator.Element, Value.Iterator.Element.Iterator.Element) -> Bool
+	) -> Property<Snapshot<Value, SectionedChangeset>> {
+		return lift { $0.diff(sectionIdentifier: sectionIdentifier,
+		                      areSectionsEqual: areSectionsEqual,
+		                      elementIdentifier: elementIdentifier,
+		                      areElementsEqual: areElementsEqual) }
+	}
+}
+
+extension Collection where Iterator.Element: Collection, Index == Indices.Iterator.Element, Iterator.Element.Indices.Iterator.Element == Iterator.Element.Index {
+	// @testable
+	internal static func sectioningDiff<Identifier: Hashable, SectionIdentifier: Hashable>(
+		previous: Self,
+		current: Self,
+		sectionIdentifier: (Iterator.Element) -> SectionIdentifier,
+		areSectionsEqual: (Iterator.Element, Iterator.Element) -> Bool,
+		elementIdentifier: (Iterator.Element.Iterator.Element) -> Identifier,
+		areElementsEqual: (Iterator.Element.Iterator.Element, Iterator.Element.Iterator.Element) -> Bool
+	) -> SectionedChangeset {
+		var topLevelDiff = diff(previous: previous, current: current, identifier: sectionIdentifier, areEqual: areSectionsEqual)
+
+		let moveDests = IndexSet(topLevelDiff.moves.keys)
+		let allInsertions = topLevelDiff.inserts.union(moveDests)
+		let moveSources = IndexSet(topLevelDiff.moves.map { $0.value.source })
+		let allRemovals = topLevelDiff.removals.union(moveSources)
+
+		var innerDeltas: [Int: SectionedChangeset.MutatedSection] = Dictionary(minimumCapacity: Int(current.count))
+
+		var moves: [Int: Changeset.Move] = [:]
+		var mutations = IndexSet()
+
+		for (offset, section) in current.enumerated() {
+			guard !topLevelDiff.inserts.contains(offset) else {
+				continue
+			}
+
+			let predeletionOffset: Int
+			let isMove: Bool
+
+			if let move = topLevelDiff.moves[offset] {
+				predeletionOffset = move.source
+				isMove = true
+			} else {
+				let preinsertionOffset = offset - allInsertions.count(in: 0 ..< offset)
+				predeletionOffset = preinsertionOffset + allRemovals.count(in: 0 ... preinsertionOffset)
+				isMove = false
+			}
+
+			let previousIndex = previous.index(previous.startIndex, offsetBy: IndexDistance(predeletionOffset))
+			let changeset = Iterator.Element.diff(previous: previous[previousIndex],
+			                                      current: section,
+			                                      identifier: elementIdentifier,
+			                                      areEqual: areElementsEqual)
+
+			let representsNoChanges = changeset.representsNoChanges
+
+			if !representsNoChanges {
+				innerDeltas[offset] = SectionedChangeset.MutatedSection(changeset: changeset, source: predeletionOffset)
+			}
+
+			if isMove {
+				moves[offset] = Changeset.Move(source: predeletionOffset, isMutated: !representsNoChanges)
+			} else if !representsNoChanges {
+				mutations.insert(predeletionOffset)
+			}
+		}
+
+		topLevelDiff.mutations = mutations
+		topLevelDiff.moves = moves
+
+		return SectionedChangeset(sections: topLevelDiff, mutatedSections: innerDeltas)
+	}
+}
+
 #if !swift(>=3.2)
 	extension SignedInteger {
 		fileprivate init<I: SignedInteger>(_ integer: I) {
@@ -558,3 +745,33 @@ extension Collection where Index == Indices.Iterator.Element {
 		}
 	}
 #endif
+
+// Better debugging experience
+
+extension Changeset: CustomDebugStringConvertible {
+	public var debugDescription: String {
+		func moveDescription(_ destination: Int, _ move: Move) -> String {
+			return "\(move.source) -> \(move.isMutated ? "*" : "")\(destination)"
+		}
+
+		return ([
+			"- inserted \(inserts.count) item(s) at [\(inserts.map(String.init).joined(separator: ", "))]" as String,
+			"- deleted \(removals.count) item(s) at [\(removals.map(String.init).joined(separator: ", "))]" as String,
+			"- mutated \(mutations.count) item(s) at [\(mutations.map(String.init).joined(separator: ", "))]" as String,
+			"- moved \(moves.count) item(s) at [\(moves.map(moveDescription).joined(separator: ", "))]" as String,
+		] as [String]).joined(separator: "\n")
+	}
+}
+
+extension SectionedChangeset: CustomDebugStringConvertible {
+	public var debugDescription: String {
+		return ([
+			sections.debugDescription,
+			"- changesets of mutated sections: <<<" as String,
+			mutatedSections.map { offset, section in
+				"    section \(section.source) -> \(offset)\n" + section.changeset.debugDescription._split(separator: "\n").map { "    \($0)" }.joined(separator: "\n")
+			}.joined(separator: "\n") as String,
+			"  >>>" as String,
+		] as [String]).joined(separator: "\n")
+	}
+}
