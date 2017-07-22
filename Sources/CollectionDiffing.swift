@@ -304,7 +304,9 @@ extension PropertyProtocol where Value: Collection, Value.Iterator.Element: Hash
 	}
 }
 
-extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject, Value.Indices.Iterator.Element == Value.Index {
+// FIXME: Swift 4 compiler workaround for `diff` overloads.
+// extension PropertyProtocol ...
+extension _PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject, Value.Indices.Iterator.Element == Value.Index {
 	/// Compute the difference of `self` with regard to `old` by object identity.
 	///
 	/// - precondition: The collection type must exhibit array semantics.
@@ -315,7 +317,9 @@ extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyO
 	}
 }
 
-extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject & Equatable, Value.Indices.Iterator.Element == Value.Index {
+// FIXME: Swift 4 compiler workaround for `diff` overloads.
+// extension PropertyProtocol ...
+extension _PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject & Equatable, Value.Indices.Iterator.Element == Value.Index {
 	/// Compute the difference of `self` with regard to `old` using the given comparing
 	/// strategy. The elements are identified by their object identity.
 	///
@@ -330,7 +334,9 @@ extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyO
 	}
 }
 
-extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject & Hashable, Value.Indices.Iterator.Element == Value.Index {
+// FIXME: Swift 4 compiler workaround for `diff` overloads.
+// extension PropertyProtocol ...
+extension _PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject & Hashable, Value.Indices.Iterator.Element == Value.Index {
 	/// Compute the difference of `self` with regard to `old` using the given comparing
 	/// strategy. The elements are identified by the given identifying strategy.
 	///

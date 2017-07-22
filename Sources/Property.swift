@@ -9,7 +9,7 @@ import enum Result.NoError
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: class, BindingSource {
+public protocol PropertyProtocol: class, BindingSource, _PropertyProtocol {
 	associatedtype Value
 
 	/// The current value of the property.
@@ -32,6 +32,13 @@ public protocol PropertyProtocol: class, BindingSource {
 	/// - note: If `self` is a composed property, the signal would be
 	///         bound to the lifetime of its sources.
 	var signal: Signal<Value, NoError> { get }
+}
+
+// FIXME: Swift 4 compiler workaround for `diff` overloads.
+public protocol _PropertyProtocol: class {
+	associatedtype Value
+
+	var producer: SignalProducer<Value, NoError> { get }
 }
 
 /// Represents an observable property that can be mutated directly.
@@ -78,7 +85,7 @@ public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
 // own its lifetime. Its producer and signal are bound to the lifetime of
 // its sources.
 
-extension PropertyProtocol {
+extension _PropertyProtocol {
 	/// Lifts a unary SignalProducer operator to operate upon PropertyProtocol instead.
 	internal func lift<U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> SignalProducer<U, NoError>) -> Property<U> {
 		return Property(unsafeProducer: transform(producer))
