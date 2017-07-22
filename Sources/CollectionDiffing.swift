@@ -93,23 +93,6 @@ public struct ObjectDiffStrategy {
 	}
 }
 
-extension Signal where Value: Collection, Value.Iterator.Element: Equatable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by value equality.
-	///
-	/// `diff(with:)` works best with collections that contain unique values.
-	///
-	/// If the elements are repeated per the definition of `Element.==`, `diff(with:)`
-	/// cannot guarantee a deterministic stable order, so these would all be uniformly
-	/// treated as removals and inserts.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> Signal<CollectionDelta<Value>, Error> {
-		return diff(with: EquatableDiffKeyGenerator<Value>.self)
-	}
-}
-
 extension Signal where Value: Collection, Value.Iterator.Element: Hashable, Value.Indices.Iterator.Element == Value.Index {
 	/// Compute the difference of `self` with regard to `old` by value equality.
 	///
@@ -220,23 +203,6 @@ extension Signal where Value: Collection, Value.Indices.Iterator.Element == Valu
 	}
 }
 
-extension SignalProducer where Value: Collection, Value.Iterator.Element: Equatable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by value equality.
-	///
-	/// `diff(with:)` works best with collections that contain unique values.
-	///
-	/// If the elements are repeated per the definition of `Element.==`, `diff(with:)`
-	/// cannot guarantee a deterministic stable order, so these would all be uniformly
-	/// treated as removals and inserts.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> SignalProducer<CollectionDelta<Value>, Error> {
-		return lift { $0.diff() }
-	}
-}
-
 extension SignalProducer where Value: Collection, Value.Iterator.Element: Hashable, Value.Indices.Iterator.Element == Value.Index {
 	/// Compute the difference of `self` with regard to `old` by value equality.
 	///
@@ -319,23 +285,6 @@ extension SignalProducer where Value: Collection, Value.Indices.Iterator.Element
 	/// - complexity: O(n) time and space.
 	public func diff<KeyGenerator: CollectionDiffKeyGenerator>(with _: KeyGenerator.Type) -> SignalProducer<CollectionDelta<Value>, Error> where KeyGenerator.Element == Value.Iterator.Element {
 		return lift { $0.diff(with: KeyGenerator.self) }
-	}
-}
-
-extension PropertyProtocol where Value: Collection, Value.Iterator.Element: Equatable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by value equality.
-	///
-	/// `diff(with:)` works best with collections that contain unique values.
-	///
-	/// If the elements are repeated per the definition of `Element.==`, `diff(with:)`
-	/// cannot guarantee a deterministic stable order, so these would all be uniformly
-	/// treated as removals and inserts.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> Property<CollectionDelta<Value>> {
-		return lift { $0.diff() }
 	}
 }
 
@@ -442,34 +391,6 @@ private final class DiffEntry {
 private enum DiffReference {
 	case remote(Int)
 	case table(DiffEntry)
-}
-
-private enum EquatableDiffKeyGenerator<E: Collection>: CollectionDiffKeyGenerator where E.Iterator.Element: Equatable, E.Index == E.Indices.Iterator.Element {
-	typealias Elements = E
-
-	struct Key: Hashable {
-		let value: E.Iterator.Element
-		let hashValue: Int
-
-		init(_ value: E.Iterator.Element) {
-			self.value = value
-
-			var temp = value
-			hashValue = withUnsafeMutableBytes(of: &temp) { bytes in
-				// The nasty way to generate a hash from non-hashable types: use the raw
-				// bytes.
-				return bytes.prefix(MemoryLayout<Int>.size).reduce(Int(0)) { $0 << 8 | Int($1) }
-			}
-		}
-
-		static func ==(left: Key, right: Key) -> Bool {
-			return left.hashValue == right.hashValue && left.value == right.value
-		}
-	}
-
-	static func key(for element: Elements.Iterator.Element) -> Key {
-		return Key(element)
-	}
 }
 
 private enum HashableDiffKeyGenerator<E: Collection>: CollectionDiffKeyGenerator where E.Iterator.Element: Hashable, E.Index == E.Indices.Iterator.Element {

@@ -9,63 +9,11 @@ import Glibc
 import Darwin.C
 #endif
 
-private struct OpaqueValue: Equatable {
-	let value: Int
-
-	init(_ value: Int) {
-		self.value = value
-	}
-
-	static func ==(left: OpaqueValue, right: OpaqueValue) -> Bool {
-		return left.value == right.value
-	}
-}
-
 private class ObjectValue {}
 
 class CollectionDiffingSpec: QuickSpec {
 	override func spec() {
 		describe("diff()") {
-			describe("Equatable elements") {
-				it("should produce a delta that can reproduce the current snapshot from the previous snapshot") {
-					let (snapshots, snapshotObserver) = Signal<[OpaqueValue], NoError>.pipe()
-					let deltas = snapshots.diff()
-
-					let oldValues = Array(0 ..< 32).map(OpaqueValue.init).shuffled()
-					let newValues = Array(oldValues.dropLast(8) + (128 ..< 168).map(OpaqueValue.init)).shuffled()
-
-					var delta: CollectionDelta<[OpaqueValue]>?
-					deltas.observeValues { delta = $0 }
-					expect(delta).to(beNil())
-
-					snapshotObserver.send(value: oldValues)
-					expect(delta).toNot(beNil())
-					expect(delta?.previous).to(beNil())
-
-					snapshotObserver.send(value: newValues)
-					expect(delta).toNot(beNil())
-					expect(delta?.previous).toNot(beNil())
-
-					if let delta = delta, let previous = delta.previous {
-						var values = previous
-						expect(values) == oldValues
-
-						delta.removals
-							.union(IndexSet(delta.moves.lazy.map { $0.previous }))
-							.reversed()
-							.forEach { values.remove(at: $0) }
-
-						delta.mutations.forEach { values[$0] = delta.current[$0] }
-
-						delta.inserts
-							.union(IndexSet(delta.moves.lazy.map { $0.current }))
-							.forEach { values.insert(delta.current[$0], at: $0) }
-
-						expect(values) == newValues
-					}
-				}
-			}
-
 			describe("Hashable elements") {
 				it("should produce a delta that can reproduce the current snapshot from the previous snapshot") {
 					let (snapshots, snapshotObserver) = Signal<[Int], NoError>.pipe()
