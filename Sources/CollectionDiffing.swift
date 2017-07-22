@@ -21,17 +21,6 @@ import Result
 /// state of the collection, via `previous`, is always available in the second and later
 /// delta received by any given observation.
 public struct CollectionDelta<Elements: Collection> {
-	/// Represents a move operation applied to the collection.
-	public struct Move {
-		public let source: Int
-		public let destination: Int
-		public let isMutated: Bool
-
-		public init(source: Int, destination: Int, isMutated: Bool) {
-			(self.source, self.destination, self.isMutated) = (source, destination, isMutated)
-		}
-	}
-
 	/// The collection with the changes applied.
 	public let current: Elements
 
@@ -60,16 +49,29 @@ public struct CollectionDelta<Elements: Collection> {
 	///              old value or the new value is the interest.
 	public var mutations = IndexSet()
 
-	/// The relative movements of elements. The `source` offsets are valid with the
-	/// `previous` snapshot, and the `destination` offsets are valid with the `current`
-	/// snapshot.
+	/// The relative movements of elements. They are recorded as a `Dictionary` keyed by
+	/// the destination offset, with the source offset and a mutation flag as the
+	/// associated value.
+	///
+	/// The source offsets are valid with the `previous` snapshot, and the destination
+	/// offsets are valid with the `current` snapshot.
 	///
 	/// - important: To obtain the actual index, you must query the `index(_:offsetBy:)`
 	///              method on either `previous` or `current` as appropriate.
-	public var moves = [Move]()
+	public var moves = [Int: CollectionMove]()
 
 	public init(current: Elements) {
 		self.current = current
+	}
+}
+
+/// Represents the source of a move operation applied to a collection.
+public struct CollectionMove {
+	public let source: Int
+	public let isMutated: Bool
+
+	public init(source: Int, isMutated: Bool) {
+		(self.source, self.isMutated) = (source, isMutated)
 	}
 }
 
@@ -517,8 +519,7 @@ extension Collection where Index == Indices.Iterator.Element {
 					diff.mutations.insert(position)
 
 				case (_, false):
-					let move = CollectionDelta<Self>.Move(source: position, destination: newPosition, isMutated: !areEqual)
-					diff.moves.append(move)
+					diff.moves[newPosition] = CollectionMove(source: position, isMutated: !areEqual)
 
 				case (true, true):
 					break
