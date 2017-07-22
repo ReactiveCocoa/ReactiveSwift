@@ -39,14 +39,14 @@ class CollectionDiffingSpec: QuickSpec {
 						expect(numbers) == oldNumbers
 
 						delta.removals
-							.union(IndexSet(delta.moves.lazy.map { $0.previous }))
+							.union(IndexSet(delta.moves.lazy.map { $0.source }))
 							.reversed()
 							.forEach { numbers.remove(at: $0) }
 
 						delta.mutations.forEach { numbers[$0] = delta.current[$0] }
 
 						delta.inserts
-							.union(IndexSet(delta.moves.lazy.map { $0.current }))
+							.union(IndexSet(delta.moves.lazy.map { $0.destination }))
 							.forEach { numbers.insert(delta.current[$0], at: $0) }
 
 						expect(numbers) == newNumbers
@@ -79,7 +79,7 @@ class CollectionDiffingSpec: QuickSpec {
 						expect(characters.elementsEqual(oldCharacters)) == true
 
 						delta.removals
-							.union(IndexSet(delta.moves.lazy.map { $0.previous }))
+							.union(IndexSet(delta.moves.lazy.map { $0.source }))
 							.reversed()
 							.forEach { offset in
 								let index = characters.index(characters.startIndex, offsetBy: offset)
@@ -94,7 +94,7 @@ class CollectionDiffingSpec: QuickSpec {
 						}
 
 						delta.inserts
-							.union(IndexSet(delta.moves.lazy.map { $0.current }))
+							.union(IndexSet(delta.moves.lazy.map { $0.destination }))
 							.forEach { offset in
 								let index = characters.index(characters.startIndex, offsetBy: offset)
 								let index2 = delta.current.index(delta.current.startIndex, offsetBy: offset)
@@ -131,14 +131,14 @@ class CollectionDiffingSpec: QuickSpec {
 						expect(objects.elementsEqual(oldObjects, by: ===)) == true
 
 						delta.removals
-							.union(IndexSet(delta.moves.lazy.map { $0.previous }))
+							.union(IndexSet(delta.moves.lazy.map { $0.source }))
 							.reversed()
 							.forEach { objects.remove(at: $0) }
 
 						delta.mutations.forEach { objects[$0] = delta.current[$0] }
 
 						delta.inserts
-							.union(IndexSet(delta.moves.lazy.map { $0.current }))
+							.union(IndexSet(delta.moves.lazy.map { $0.destination }))
 							.forEach { objects.insert(delta.current[$0], at: $0) }
 
 						expect(objects.elementsEqual(newObjects, by: ===)) == true

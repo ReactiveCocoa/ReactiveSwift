@@ -17,6 +17,17 @@ import Result
 /// state of the collection, via `previous`, is always available in the second and later
 /// delta received by any given observation.
 public struct CollectionDelta<Elements: Collection> {
+	/// Represents a move operation applied to the collection.
+	public struct Move {
+		public let source: Int
+		public let destination: Int
+		public let isMutated: Bool
+
+		public init(source: Int, destination: Int, isMutated: Bool) {
+			(self.source, self.destination, self.isMutated) = (source, destination, isMutated)
+		}
+	}
+
 	/// The collection prior to the changes, or `nil` if the collection has not ever been
 	/// changed before.
 	///
@@ -52,12 +63,13 @@ public struct CollectionDelta<Elements: Collection> {
 	///              old value or the new value is the interest.
 	public var mutations = IndexSet()
 
-	/// The relative movements. The `previous` offsets are valid with the `previous`
-	/// snapshot, and the `current` offsets are valid with the `current` snapshot.
+	/// The relative movements of elements. The `source` offsets are valid with the
+	/// `previous` snapshot, and the `destination` offsets are valid with the `current`
+	/// snapshot.
 	///
 	/// - important: To obtain the actual index, you must query the `index(_:offsetBy:)`
 	///              method on either `previous` or `current` as appropriate.
-	public var moves = [(previous: Int, current: Int, mutated: Bool)]()
+	public var moves = [Move]()
 
 	public init(previous: Elements?, current: Elements) {
 		self.current = current
@@ -509,7 +521,8 @@ extension Collection where Index == Indices.Iterator.Element {
 					diff.mutations.insert(position)
 
 				case (_, false):
-					diff.moves.append((previous: position, current: newPosition, mutated: !areEqual))
+					let move = CollectionDelta<Self>.Move(source: position, destination: newPosition, isMutated: !areEqual)
+					diff.moves.append(move)
 
 				case (true, true):
 					break
