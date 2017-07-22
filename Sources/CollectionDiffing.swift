@@ -57,7 +57,7 @@ public struct CollectionDelta<Elements: Collection> {
 	///
 	/// - important: To obtain the actual index, you must query the `index(_:offsetBy:)`
 	///              method on either `previous` or `current` as appropriate.
-	public var moves = [(previous: Int, current: Int)]()
+	public var moves = [(previous: Int, current: Int, mutated: Bool)]()
 
 	public init(previous: Elements?, current: Elements) {
 		self.current = current
@@ -106,7 +106,7 @@ extension Signal where Value: Collection, Value.Iterator.Element: Hashable, Valu
 	///
 	/// - complexity: O(n) time and space.
 	public func diff() -> Signal<CollectionDelta<Value>, Error> {
-		return diff(with: HashableDiffKeyGenerator<Value>.self)
+		return diff(HashableDiffKeyGenerator<Value>.self, EquatableComparator<Value.Iterator.Element>.self)
 	}
 }
 
@@ -117,47 +117,51 @@ extension Signal where Value: Collection, Value.Iterator.Element: AnyObject, Val
 	///
 	/// - complexity: O(n) time and space.
 	public func diff() -> Signal<CollectionDelta<Value>, Error> {
-		return diff(with: ObjectIdentityDiffKeyGenerator<Value>.self)
+		return diff(ObjectIdentityDiffKeyGenerator<Value>.self, ObjectIdentityComparator<Value.Iterator.Element>.self)
 	}
 }
 
 extension Signal where Value: Collection, Value.Iterator.Element: AnyObject & Equatable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by object identity.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> Signal<CollectionDelta<Value>, Error> {
-		return diff(with: ObjectIdentityDiffKeyGenerator<Value>.self)
-	}
-}
-
-extension Signal where Value: Collection, Value.Iterator.Element: AnyObject & Hashable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by value equality.
-	///
-	/// - note: If you wish to compare by object identity, use `diff(.identity)` instead.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> Signal<CollectionDelta<Value>, Error> {
-		return diff(.value)
-	}
-
-	/// Compute the difference of `self` with regard to `old` by the given strategy.
+	/// Compute the difference of `self` with regard to `old` using the given comparing
+	/// strategy. The elements are identified by their object identity.
 	///
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - parameters:
-	///   - strategy: The comparison strategy to use.
+	///   - strategy: The comparing strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(_ strategy: ObjectDiffStrategy) -> Signal<CollectionDelta<Value>, Error> {
+	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> Signal<CollectionDelta<Value>, Error> {
 		switch strategy.kind {
 		case .value:
-			return diff(with: HashableDiffKeyGenerator<Value>.self)
+			return diff(ObjectIdentityDiffKeyGenerator<Value>.self, EquatableComparator<Value.Iterator.Element>.self)
 		case .identity:
-			return diff(with: ObjectIdentityDiffKeyGenerator<Value>.self)
+			return diff(ObjectIdentityDiffKeyGenerator<Value>.self, ObjectIdentityComparator<Value.Iterator.Element>.self)
+		}
+	}
+}
+
+extension Signal where Value: Collection, Value.Iterator.Element: AnyObject & Hashable, Value.Indices.Iterator.Element == Value.Index {
+	/// Compute the difference of `self` with regard to `old` using the given comparing
+	/// strategy. The elements are identified by the given identifying strategy.
+	///
+	/// - precondition: The collection type must exhibit array semantics.
+	///
+	/// - parameters:
+	///   - identifyingStrategy: The identifying strategy to use.
+	///   - comparingStrategy: The comparingStrategy strategy to use.
+	///
+	/// - complexity: O(n) time and space.
+	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> Signal<CollectionDelta<Value>, Error> {
+		switch (identifyingStrategy.kind, comparingStrategy.kind) {
+		case (.value, .value):
+			return diff(HashableDiffKeyGenerator<Value>.self, EquatableComparator<Value.Iterator.Element>.self)
+		case (.value, .identity):
+			return diff(HashableDiffKeyGenerator<Value>.self, ObjectIdentityComparator<Value.Iterator.Element>.self)
+		case (.identity, .identity):
+			return diff(ObjectIdentityDiffKeyGenerator<Value>.self, ObjectIdentityComparator<Value.Iterator.Element>.self)
+		case (.identity, .value):
+			return diff(ObjectIdentityDiffKeyGenerator<Value>.self, EquatableComparator<Value.Iterator.Element>.self)
 		}
 	}
 }
@@ -174,11 +178,11 @@ extension Signal where Value: Collection, Value.Indices.Iterator.Element == Valu
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - parameters:
-	///   - key: A closure to generate a key for the given element. The closure could be
-	///          repeatedly invoked for the same element.
+	///   - keyGenerator: A unique identifier generator to apply on elements.
+	///   - comparator: A comparator that evaluates two elements for equality.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff<KeyGenerator: CollectionDiffKeyGenerator>(with _: KeyGenerator.Type) -> Signal<CollectionDelta<Value>, Error> where KeyGenerator.Element == Value.Iterator.Element {
+	public func diff<KeyGenerator: CollectionDiffKeyGenerator, Comparator: CollectionDiffComparator>(_ keyGenerator: KeyGenerator.Type, _ comparator: Comparator.Type) -> Signal<CollectionDelta<Value>, Error> where KeyGenerator.Element == Value.Iterator.Element, Comparator.Element == Value.Iterator.Element {
 		return Signal<CollectionDelta<Value>, Error> { observer in
 			var previous: Value?
 
@@ -186,7 +190,7 @@ extension Signal where Value: Collection, Value.Indices.Iterator.Element == Valu
 				switch event {
 				case let .value(elements):
 					if let previous = previous {
-						observer.send(value: Value.diff(previous: previous, current: elements, using: KeyGenerator.self))
+						observer.send(value: Value.diff(previous: previous, current: elements, using: KeyGenerator.self, using: Comparator.self))
 					} else {
 						observer.send(value: CollectionDelta(previous: nil, current: elements))
 					}
@@ -232,38 +236,33 @@ extension SignalProducer where Value: Collection, Value.Iterator.Element: AnyObj
 }
 
 extension SignalProducer where Value: Collection, Value.Iterator.Element: AnyObject & Equatable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by object identity.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> SignalProducer<CollectionDelta<Value>, Error> {
-		return lift { $0.diff() }
-	}
-}
-
-extension SignalProducer where Value: Collection, Value.Iterator.Element: AnyObject & Hashable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by value equality.
-	///
-	/// - note: If you wish to compare by object identity, use `diff(.identity)` instead.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> SignalProducer<CollectionDelta<Value>, Error> {
-		return lift { $0.diff() }
-	}
-
-	/// Compute the difference of `self` with regard to `old` by the given strategy.
+	/// Compute the difference of `self` with regard to `old` using the given comparing
+	/// strategy. The elements are identified by their object identity.
 	///
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - parameters:
-	///   - strategy: The comparison strategy to use.
+	///   - strategy: The comparing strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(_ strategy: ObjectDiffStrategy) -> SignalProducer<CollectionDelta<Value>, Error> {
-		return lift { $0.diff(strategy) }
+	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> SignalProducer<CollectionDelta<Value>, Error> {
+		return lift { $0.diff(comparingBy: strategy) }
+	}
+}
+
+extension SignalProducer where Value: Collection, Value.Iterator.Element: AnyObject & Hashable, Value.Indices.Iterator.Element == Value.Index {
+	/// Compute the difference of `self` with regard to `old` using the given comparing
+	/// strategy. The elements are identified by the given identifying strategy.
+	///
+	/// - precondition: The collection type must exhibit array semantics.
+	///
+	/// - parameters:
+	///   - identifyingStrategy: The identifying strategy to use.
+	///   - comparingStrategy: The comparingStrategy strategy to use.
+	///
+	/// - complexity: O(n) time and space.
+	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> SignalProducer<CollectionDelta<Value>, Error> {
+		return lift { $0.diff(identifyingBy: identifyingStrategy, comparingBy: comparingStrategy) }
 	}
 }
 
@@ -279,12 +278,12 @@ extension SignalProducer where Value: Collection, Value.Indices.Iterator.Element
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - parameters:
-	///   - key: A closure to generate a key for the given element. The closure could be
-	///          repeatedly invoked for the same element.
+	///   - keyGenerator: A unique identifier generator to apply on elements.
+	///   - comparator: A comparator that evaluates two elements for equality.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff<KeyGenerator: CollectionDiffKeyGenerator>(with _: KeyGenerator.Type) -> SignalProducer<CollectionDelta<Value>, Error> where KeyGenerator.Element == Value.Iterator.Element {
-		return lift { $0.diff(with: KeyGenerator.self) }
+	public func diff<KeyGenerator: CollectionDiffKeyGenerator, Comparator: CollectionDiffComparator>(_ keyGenerator: KeyGenerator.Type, _ comparator: Comparator.Type) -> SignalProducer<CollectionDelta<Value>, Error> where KeyGenerator.Element == Value.Iterator.Element, Comparator.Element == Value.Iterator.Element {
+		return lift { $0.diff(KeyGenerator.self, Comparator.self) }
 	}
 }
 
@@ -317,38 +316,33 @@ extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyO
 }
 
 extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject & Equatable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by object identity.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> Property<CollectionDelta<Value>> {
-		return lift { $0.diff() }
-	}
-}
-
-extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject & Hashable, Value.Indices.Iterator.Element == Value.Index {
-	/// Compute the difference of `self` with regard to `old` by value equality.
-	///
-	/// - note: If you wish to compare by object identity, use `diff(.identity)` instead.
-	///
-	/// - precondition: The collection type must exhibit array semantics.
-	///
-	/// - complexity: O(n) time and space.
-	public func diff() -> Property<CollectionDelta<Value>> {
-		return lift { $0.diff() }
-	}
-
-	/// Compute the difference of `self` with regard to `old` by the given strategy.
+	/// Compute the difference of `self` with regard to `old` using the given comparing
+	/// strategy. The elements are identified by their object identity.
 	///
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - parameters:
-	///   - strategy: The comparison strategy to use.
+	///   - strategy: The comparing strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(_ strategy: ObjectDiffStrategy) -> Property<CollectionDelta<Value>> {
-		return lift { $0.diff(strategy) }
+	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> Property<CollectionDelta<Value>> {
+		return lift { $0.diff(comparingBy: strategy) }
+	}
+}
+
+extension PropertyProtocol where Value: Collection, Value.Iterator.Element: AnyObject & Hashable, Value.Indices.Iterator.Element == Value.Index {
+	/// Compute the difference of `self` with regard to `old` using the given comparing
+	/// strategy. The elements are identified by the given identifying strategy.
+	///
+	/// - precondition: The collection type must exhibit array semantics.
+	///
+	/// - parameters:
+	///   - identifyingStrategy: The identifying strategy to use.
+	///   - comparingStrategy: The comparingStrategy strategy to use.
+	///
+	/// - complexity: O(n) time and space.
+	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> Property<CollectionDelta<Value>> {
+		return lift { $0.diff(identifyingBy: identifyingStrategy, comparingBy: comparingStrategy) }
 	}
 }
 
@@ -364,22 +358,35 @@ extension PropertyProtocol where Value: Collection, Value.Indices.Iterator.Eleme
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - parameters:
-	///   - key: A closure to generate a key for the given element. The closure could be
-	///          repeatedly invoked for the same element.
+	///   - keyGenerator: A unique identifier generator to apply on elements.
+	///   - comparator: A comparator that evaluates two elements for equality.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff<KeyGenerator: CollectionDiffKeyGenerator>(with _: KeyGenerator.Type) -> Property<CollectionDelta<Value>> where KeyGenerator.Element == Value.Iterator.Element {
-		return lift { $0.diff(with: KeyGenerator.self) }
+	public func diff<KeyGenerator: CollectionDiffKeyGenerator, Comparator: CollectionDiffComparator>(_ keyGenerator: KeyGenerator.Type, _ comparator: Comparator.Type) -> Property<CollectionDelta<Value>> where KeyGenerator.Element == Value.Iterator.Element, Comparator.Element == Value.Iterator.Element {
+		return lift { $0.diff(KeyGenerator.self, Comparator.self) }
 	}
 }
 
 // MARK: - Implementation details
+
+// The key equality implies only referential equality. But the value equality of the
+// uniquely identified element across snapshots is uncertain. It is pretty common to diff
+// elements with constant unique identifiers but changing contents. For example, we may
+// have an array of `Conversation`s, identified by the backend ID, that is constantly
+// updated with the latest messages pushed from the backend. So our diffing algorithm
+// must have an additional mean to test elements for value equality.
 
 public protocol CollectionDiffKeyGenerator {
 	associatedtype Element
 	associatedtype Key: Hashable
 
 	static func key(for element: Element) -> Key
+}
+
+public protocol CollectionDiffComparator {
+	associatedtype Element
+
+	static func isEqual(_ left: Element, _ right: Element) -> Bool
 }
 
 private final class DiffEntry {
@@ -391,6 +398,18 @@ private final class DiffEntry {
 private enum DiffReference {
 	case remote(Int)
 	case table(DiffEntry)
+}
+
+private enum EquatableComparator<E: Equatable>: CollectionDiffComparator {
+	static func isEqual(_ left: E, _ right: E) -> Bool {
+		return left == right
+	}
+}
+
+private enum ObjectIdentityComparator<E: AnyObject>: CollectionDiffComparator {
+	static func isEqual(_ left: E, _ right: E) -> Bool {
+		return left === right
+	}
 }
 
 private enum HashableDiffKeyGenerator<E: Collection>: CollectionDiffKeyGenerator where E.Iterator.Element: Hashable, E.Index == E.Indices.Iterator.Element {
@@ -412,11 +431,12 @@ private enum ObjectIdentityDiffKeyGenerator<E: Collection>: CollectionDiffKeyGen
 // FIXME: Swift 4 Associated type constraints
 // extension CollectionDiffer {
 extension Collection where Index == Indices.Iterator.Element {
-	public static func diff<KeyGenerator: CollectionDiffKeyGenerator>(
+	public static func diff<KeyGenerator: CollectionDiffKeyGenerator, Comparator: CollectionDiffComparator>(
 		previous: Self,
 		current: Self,
-		using _: KeyGenerator.Type
-	) -> CollectionDelta<Self> where KeyGenerator.Element == Iterator.Element {
+		using _: KeyGenerator.Type,
+		using _: Comparator.Type
+	) -> CollectionDelta<Self> where KeyGenerator.Element == Iterator.Element, Comparator.Element == Iterator.Element {
 		switch Self.self {
 		case is Array<Iterator.Element>.Type:
 			fallthrough
@@ -432,7 +452,8 @@ extension Collection where Index == Indices.Iterator.Element {
 					return diff(previous: previousBuffer,
 								current: currentBuffer,
 								delta: CollectionDelta(previous: previous, current: current),
-								using: KeyGenerator.self)
+								using: KeyGenerator.self,
+								using: Comparator.self)
 				}
 			}
 
@@ -440,16 +461,18 @@ extension Collection where Index == Indices.Iterator.Element {
 			return diff(previous: previous,
 						current: current,
 						delta: CollectionDelta(previous: previous, current: current),
-						using: KeyGenerator.self)
+						using: KeyGenerator.self,
+						using: Comparator.self)
 		}
 	}
 
-	private static func diff<View: Collection, KeyGenerator: CollectionDiffKeyGenerator>(
+	private static func diff<View: Collection, KeyGenerator: CollectionDiffKeyGenerator, Comparator: CollectionDiffComparator>(
 		previous: View,
 		current: View,
 		delta: CollectionDelta<Self>,
-		using _: KeyGenerator.Type
-	) -> CollectionDelta<Self> where KeyGenerator.Element == Iterator.Element, View.Iterator.Element == Iterator.Element, View.Index == View.Indices.Iterator.Element {
+		using _: KeyGenerator.Type,
+		using _: Comparator.Type
+	) -> CollectionDelta<Self> where KeyGenerator.Element == Iterator.Element, Comparator.Element == Iterator.Element, View.Iterator.Element == Iterator.Element, View.Index == View.Indices.Iterator.Element {
 		var table: [KeyGenerator.Key: DiffEntry] = Dictionary(minimumCapacity: Int(current.count))
 		var oldReferences: [DiffReference] = []
 		var newReferences: [DiffReference] = []
@@ -515,16 +538,20 @@ extension Collection where Index == Indices.Iterator.Element {
 				diff.removals.insert(position)
 
 			case let .remote(newPosition):
-				if newPosition == position {
-					// Same line
-					let oldIndex = previous.index(previous.startIndex, offsetBy: View.IndexDistance(position))
-					let newIndex = current.index(current.startIndex, offsetBy: View.IndexDistance(newPosition))
+				let previousIndex = previous.index(previous.startIndex, offsetBy: View.IndexDistance(position))
+				let currentIndex = current.index(current.startIndex, offsetBy: View.IndexDistance(position))
+				let areEqual = Comparator.isEqual(previous[previousIndex], current[currentIndex])
+				let isInPlace = newPosition == position
 
-					if KeyGenerator.key(for: previous[oldIndex]) != KeyGenerator.key(for: current[newIndex]) {
-						diff.mutations.insert(position)
-					}
-				} else {
-					diff.moves.append((previous: position, current: newPosition))
+				switch (areEqual, isInPlace) {
+				case (false, true):
+					diff.mutations.insert(position)
+
+				case (_, false):
+					diff.moves.append((previous: position, current: newPosition, mutated: !areEqual))
+
+				case (true, true):
+					break
 				}
 			}
 		}
