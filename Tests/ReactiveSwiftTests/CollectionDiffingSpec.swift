@@ -23,18 +23,23 @@ class CollectionDiffingSpec: QuickSpec {
 					let newNumbers = Array(oldNumbers.dropLast(8) + (128 ..< 168)).shuffled()
 
 					var delta: CollectionDelta<[Int]>?
-					deltas.observeValues { delta = $0 }
+					var cachedPrevious: [Int]?
+
+					deltas.observeValues {
+						cachedPrevious = delta?.current
+						delta = $0
+					}
 					expect(delta).to(beNil())
 
 					snapshotObserver.send(value: oldNumbers)
 					expect(delta).toNot(beNil())
-					expect(delta?.previous).to(beNil())
+					expect(cachedPrevious).to(beNil())
 
 					snapshotObserver.send(value: newNumbers)
 					expect(delta).toNot(beNil())
-					expect(delta?.previous).toNot(beNil())
+					expect(cachedPrevious).toNot(beNil())
 
-					if let delta = delta, let previous = delta.previous {
+					if let delta = delta, let previous = cachedPrevious {
 						var numbers = previous
 						expect(numbers) == oldNumbers
 
@@ -63,18 +68,23 @@ class CollectionDiffingSpec: QuickSpec {
 					newCharacters = newCharacters.shuffled()
 
 					var delta: CollectionDelta<String.CharacterView>?
-					deltas.observeValues { delta = $0 }
+					var cachedPrevious: String.CharacterView?
+
+					deltas.observeValues {
+						cachedPrevious = delta?.current
+						delta = $0
+					}
 					expect(delta).to(beNil())
 
 					snapshotObserver.send(value: oldCharacters)
 					expect(delta).toNot(beNil())
-					expect(delta?.previous).to(beNil())
+					expect(cachedPrevious).to(beNil())
 
 					snapshotObserver.send(value: newCharacters)
 					expect(delta).toNot(beNil())
-					expect(delta?.previous).toNot(beNil())
+					expect(cachedPrevious).toNot(beNil())
 
-					if let delta = delta, let previous = delta.previous {
+					if let delta = delta, let previous = cachedPrevious {
 						var characters = previous
 						expect(characters.elementsEqual(oldCharacters)) == true
 
@@ -115,18 +125,23 @@ class CollectionDiffingSpec: QuickSpec {
 					let newObjects = Array(oldObjects.dropLast(8) + (0 ..< 32).map { _ in ObjectValue() }).shuffled()
 
 					var delta: CollectionDelta<[ObjectValue]>?
-					deltas.observeValues { delta = $0 }
+					var cachedPrevious: [ObjectValue]?
+
+					deltas.observeValues {
+						cachedPrevious = delta?.current
+						delta = $0
+					}
 					expect(delta).to(beNil())
 
 					snapshotObserver.send(value: oldObjects)
 					expect(delta).toNot(beNil())
-					expect(delta?.previous).to(beNil())
+					expect(cachedPrevious).to(beNil())
 
 					snapshotObserver.send(value: newObjects)
 					expect(delta).toNot(beNil())
-					expect(delta?.previous).toNot(beNil())
+					expect(cachedPrevious).toNot(beNil())
 
-					if let delta = delta, let previous = delta.previous {
+					if let delta = delta, let previous = cachedPrevious {
 						var objects = previous
 						expect(objects.elementsEqual(oldObjects, by: ===)) == true
 

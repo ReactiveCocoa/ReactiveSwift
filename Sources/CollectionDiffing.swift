@@ -13,6 +13,10 @@ import Result
 /// is generally irrelevant. Observations should special case the first delta as a
 /// complete replacement, or whatever semantic that fits their purpose.
 ///
+/// `CollectionDelta` does not provide any snapshot of previous values. If the history is
+/// relevant for delta consumption, it is up to the observers to cache the history on
+/// their own.
+///
 /// The family of collection delta operators guarantees that a reference to the previous
 /// state of the collection, via `previous`, is always available in the second and later
 /// delta received by any given observation.
@@ -27,13 +31,6 @@ public struct CollectionDelta<Elements: Collection> {
 			(self.source, self.destination, self.isMutated) = (source, destination, isMutated)
 		}
 	}
-
-	/// The collection prior to the changes, or `nil` if the collection has not ever been
-	/// changed before.
-	///
-	/// - important: `previous` is guaranteed not to be `nil` if `self` is the second or
-	///              later delta that you have received for a given observation.
-	public let previous: Elements?
 
 	/// The collection with the changes applied.
 	public let current: Elements
@@ -71,9 +68,8 @@ public struct CollectionDelta<Elements: Collection> {
 	///              method on either `previous` or `current` as appropriate.
 	public var moves = [Move]()
 
-	public init(previous: Elements?, current: Elements) {
+	public init(current: Elements) {
 		self.current = current
-		self.previous = previous
 	}
 }
 
@@ -204,7 +200,7 @@ extension Signal where Value: Collection, Value.Indices.Iterator.Element == Valu
 					if let previous = previous {
 						observer.send(value: Value.diff(previous: previous, current: elements, identifier: identifier, areEqual: areEqual))
 					} else {
-						observer.send(value: CollectionDelta(previous: nil, current: elements))
+						observer.send(value: CollectionDelta(current: elements))
 					}
 					previous = elements
 				case .completed:
@@ -428,7 +424,7 @@ extension Collection where Index == Indices.Iterator.Element {
 				return ContiguousArray(current).withUnsafeBufferPointer { currentBuffer in
 					return diff(previous: previousBuffer,
 								current: currentBuffer,
-								delta: CollectionDelta(previous: previous, current: current),
+								delta: CollectionDelta(current: current),
 								identifier: identifier,
 								areEqual: areEqual)
 				}
@@ -437,7 +433,7 @@ extension Collection where Index == Indices.Iterator.Element {
 		default:
 			return diff(previous: previous,
 						current: current,
-						delta: CollectionDelta(previous: previous, current: current),
+						delta: CollectionDelta(current: current),
 						identifier: identifier,
 						areEqual: areEqual)
 		}
