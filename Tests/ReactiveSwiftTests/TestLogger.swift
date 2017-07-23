@@ -11,7 +11,7 @@ import Foundation
 
 final class TestLogger {
 	fileprivate var expectations: [(String) -> Void]
-	
+
 	init(expectations: [(String) -> Void]) {
 		self.expectations = expectations
 	}

@@ -192,11 +192,11 @@ public final class QueueScheduler: DateScheduler {
 	}
 
 	public let queue: DispatchQueue
-	
+
 	internal init(internalQueue: DispatchQueue) {
 		queue = internalQueue
 	}
-	
+
 	/// Initializes a scheduler that will target the given queue with its
 	/// work.
 	///
@@ -544,7 +544,7 @@ public final class TestScheduler: DateScheduler {
 	public func run() {
 		advance(to: Date.distantFuture)
 	}
-	
+
 	/// Rewinds the virtualized clock by the given interval.
 	/// This simulates that user changes device date.
 	///
@@ -552,12 +552,12 @@ public final class TestScheduler: DateScheduler {
 	///   - interval: An interval by which the current date will be retreated.
 	public func rewind(by interval: DispatchTimeInterval) {
 		lock.lock()
-		
+
 		let newDate = currentDate.addingTimeInterval(-interval)
 		assert(currentDate.compare(newDate) != .orderedAscending)
 		_currentDate = newDate
-		
+
 		lock.unlock()
-		
+
 	}
 }
