@@ -510,7 +510,7 @@ extension Collection where Index == Indices.Iterator.Element {
 
 			case let .remote(newPosition):
 				let previousIndex = previous.index(previous.startIndex, offsetBy: View.IndexDistance(position))
-				let currentIndex = current.index(current.startIndex, offsetBy: View.IndexDistance(position))
+				let currentIndex = current.index(current.startIndex, offsetBy: View.IndexDistance(newPosition))
 				let areEqual = areEqual(previous[previousIndex], current[currentIndex])
 				let isInPlace = newPosition == position
 
