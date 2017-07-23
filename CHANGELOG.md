@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Addressed the exceptionally high build time. (#495)
+
 # 2.0.0
 # 2.0.0-rc.3
 1. `Lifetime.+=` which ties a `Disposable` to a `Lifetime`, is now part of the public API and is no longer deprecated.
