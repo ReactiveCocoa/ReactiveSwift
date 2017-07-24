@@ -1,85 +1,94 @@
 import Foundation
 import Result
 
-/// Represents an atomic batch of changes made to a collection.
+/// Represents a snapshot of a collection.
 ///
-/// A collection delta contains relative positions of elements within the collection. It
-/// is safe to use these offsets directly as indices when `Elements` is statically known
-/// to be container types like `Array` and `ContiguousArray`. However, the offsets should
-/// not be used directly in a generic context. Refer to the documentations of these
-/// offsets for how they should be consumed correctly.
-///
-/// The change history associated with the first delta received by any given observation
-/// is generally irrelevant. Observations should special case the first delta as a
+/// The changeset associated with the first snapshot received by any given observation
+/// is generally irrelevant. Observations should special case the first snapshot as a
 /// complete replacement, or whatever semantic that fits their purpose.
 ///
-/// `CollectionDelta` does not provide any snapshot of previous values. If the history is
-/// relevant for delta consumption, it is up to the observers to cache the history on
-/// their own.
+/// `Snapshot` does not include a reference to the previous snapshot. If the
+/// history is relevant for delta consumption, it is up to the observers to cache the
+/// history on their own.
 ///
-/// The family of collection delta operators guarantees that a reference to the previous
-/// state of the collection, via `previous`, is always available in the second and later
-/// delta received by any given observation.
-public struct CollectionDelta<Elements: Collection> {
-	/// The collection with the changes applied.
-	public let current: Elements
+/// While the protocol does not bind the `Changeset` associated type with any constraint,
+/// it is expected to be either a `Changeset`, or a composite of `Changeset`s for a nested
+/// collection.
+public struct Snapshot<Elements: Collection, Changeset>: SnapshotProtocol {
+	public let elements: Elements
+	public let changeset: Changeset
 
-	/// The relative positions of inserted elements **after** the removals were applied.
-	/// These are valid only with the `current` snapshot.
+	public init(elements: Elements, changeset: Changeset) {
+		(self.elements, self.changeset) = (elements, changeset)
+	}
+}
+
+public protocol SnapshotProtocol {
+	associatedtype Elements: Collection
+	associatedtype Changeset
+
+	var elements: Elements { get }
+	var changeset: Changeset { get }
+}
+
+/// Represents an atomic batch of changes made to a collection.
+///
+/// A `Changeset` represents changes as **offsets** of elements. You may
+/// subscript a collection of zero-based indexing with the offsets, e.g. `Array`. You must
+/// otherwise convert the offsets into indices before subscripting.
+public struct Changeset {
+	/// Represents the context of a move operation applied to a collection.
+	public struct Move {
+		public let source: Int
+		public let isMutated: Bool
+
+		public init(source: Int, isMutated: Bool) {
+			(self.source, self.isMutated) = (source, isMutated)
+		}
+	}
+
+	/// The offsets of inserted elements **after** the removals were applied.
 	///
-	/// - important: To obtain the actual index, you must query the `index(_:offsetBy:)`
-	///              method on `current`.
+	/// - important: To obtain the actual index, you must apply
+	///              `Collection.index(self:_:offsetBy:)` on the current snapshot, the
+	///              start index and the offset.
 	public var inserts = IndexSet()
 
-	/// The relative positions of removed elements **prior to** any changes being applied.
-	/// These are valid only with the `previous` snapshot.
+	/// The offsets of removed elements **prior to** any changes being applied.
 	///
-	/// - important: To obtain the actual index, you must query the `index(_:offsetBy:)`
-	///              method on `previous`.
+	/// - important: To obtain the actual index, you must apply
+	///              `Collection.index(self:_:offsetBy:)` on the previous snapshot, the
+	///              start index and the offset.
 	public var removals = IndexSet()
 
-	/// The relative positions of mutations. These are valid with both the `previous` and
-	/// the `current` snapshot.
+	/// The offsets of position-invariant mutations.
 	///
-	/// Mutations imply the same relative position, but the actual indexes could be
-	/// different after the changes were applied.
+	/// `mutations` only implies an invariant relative position. The actual indexes can
+	/// be different, depending on the collection type.
 	///
-	/// - important: To obtain the actual index, you must query the `index(_:offsetBy:)`
-	///              method on either `previous` or `current`, depending on whether the
-	///              old value or the new value is the interest.
+	/// If an element has both changed and moved, it would be included in `moves` with an
+	/// asserted mutation flag.
+	///
+	/// - important: To obtain the actual index, you must apply
+	///              `Collection.index(self:_:offsetBy:)` on the relevant snapshot, the
+	///              start index and the offset.
 	public var mutations = IndexSet()
 
-	/// The relative movements of elements. They are recorded as a `Dictionary` keyed by
-	/// the destination offset, with the source offset and a mutation flag as the
-	/// associated value.
+	/// The offset pairs of moves.
 	///
-	/// The source offsets are valid with the `previous` snapshot, and the destination
-	/// offsets are valid with the `current` snapshot.
+	/// The offset pairs are recorded as a `Dictionary` keyed by the destination offset,
+	/// with the source offset and a mutation flag as the associated value.
 	///
-	/// - important: To obtain the actual index, you must query the `index(_:offsetBy:)`
-	///              method on either `previous` or `current` as appropriate.
-	public var moves = [Int: CollectionMove]()
+	/// - important: To obtain the actual index, you must apply
+	///              `Collection.index(self:_:offsetBy:)` on the relevant snapshot, the
+	///              start index and the offset.
+	public var moves = [Int: Move]()
 
-	public init(current: Elements) {
-		self.current = current
+	public init() {}
+
+	public init<C: Collection>(initial: C) {
+		inserts = IndexSet(integersIn: 0 ..< Int(initial.count))
 	}
-}
-
-/// Represents the source of a move operation applied to a collection.
-public struct CollectionMove {
-	public let source: Int
-	public let isMutated: Bool
-
-	public init(source: Int, isMutated: Bool) {
-		(self.source, self.isMutated) = (source, isMutated)
-	}
-}
-
-/// A protocol that can be used to constrain associated types as collection deltas.
-public protocol CollectionDeltaProtocol {
-	associatedtype Elements: Collection
-
-	var event: CollectionDelta<Elements> { get }
 }
 
 /// The comparison strategies used by the collection diffing operators on collections
@@ -115,7 +124,7 @@ extension Signal where Value: Collection, Value.Iterator.Element: Hashable, Valu
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff() -> Signal<CollectionDelta<Value>, Error> {
+	public func diff() -> Signal<Snapshot<Value, Changeset>, Error> {
 		return diff(identifier: { $0 }, areEqual: ==)
 	}
 }
@@ -126,7 +135,7 @@ extension Signal where Value: Collection, Value.Iterator.Element: AnyObject, Val
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff() -> Signal<CollectionDelta<Value>, Error> {
+	public func diff() -> Signal<Snapshot<Value, Changeset>, Error> {
 		return diff(identifier: ObjectIdentifier.init, areEqual: ===)
 	}
 }
@@ -141,7 +150,7 @@ extension Signal where Value: Collection, Value.Iterator.Element: AnyObject & Eq
 	///   - strategy: The comparing strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> Signal<CollectionDelta<Value>, Error> {
+	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> Signal<Snapshot<Value, Changeset>, Error> {
 		switch strategy.kind {
 		case .value:
 			return diff(identifier: ObjectIdentifier.init, areEqual: ==)
@@ -162,7 +171,7 @@ extension Signal where Value: Collection, Value.Iterator.Element: AnyObject & Ha
 	///   - comparingStrategy: The comparingStrategy strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> Signal<CollectionDelta<Value>, Error> {
+	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> Signal<Snapshot<Value, Changeset>, Error> {
 		switch (identifyingStrategy.kind, comparingStrategy.kind) {
 		case (.value, .value):
 			return diff(identifier: { $0 }, areEqual: ==)
@@ -192,18 +201,22 @@ extension Signal where Value: Collection, Value.Indices.Iterator.Element == Valu
 	///   - comparator: A comparator that evaluates two elements for equality.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff<Identifier: Hashable>(identifier: @escaping (Value.Iterator.Element) -> Identifier, areEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool) -> Signal<CollectionDelta<Value>, Error> {
-		return Signal<CollectionDelta<Value>, Error> { observer in
+	public func diff<Identifier: Hashable>(identifier: @escaping (Value.Iterator.Element) -> Identifier, areEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool) -> Signal<Snapshot<Value, Changeset>, Error> {
+		return Signal<Snapshot<Value, Changeset>, Error> { observer in
 			var previous: Value?
 
 			return self.observe { event in
 				switch event {
 				case let .value(elements):
+					let changeset: Changeset
+
 					if let previous = previous {
-						observer.send(value: Value.diff(previous: previous, current: elements, identifier: identifier, areEqual: areEqual))
+						changeset = Value.diff(previous: previous, current: elements, identifier: identifier, areEqual: areEqual)
 					} else {
-						observer.send(value: CollectionDelta(current: elements))
+						changeset = Changeset(initial: elements)
 					}
+
+					observer.send(value: Snapshot(elements: elements, changeset: changeset))
 					previous = elements
 				case .completed:
 					observer.sendCompleted()
@@ -229,7 +242,7 @@ extension SignalProducer where Value: Collection, Value.Iterator.Element: Hashab
 	/// - precondition: The collection type must exhibit array semantics.	
 	///
 	/// - complexity: O(n) time and space.
-	public func diff() -> SignalProducer<CollectionDelta<Value>, Error> {
+	public func diff() -> SignalProducer<Snapshot<Value, Changeset>, Error> {
 		return lift { $0.diff() }
 	}
 }
@@ -240,7 +253,7 @@ extension SignalProducer where Value: Collection, Value.Iterator.Element: AnyObj
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff() -> SignalProducer<CollectionDelta<Value>, Error> {
+	public func diff() -> SignalProducer<Snapshot<Value, Changeset>, Error> {
 		return lift { $0.diff() }
 	}
 }
@@ -255,7 +268,7 @@ extension SignalProducer where Value: Collection, Value.Iterator.Element: AnyObj
 	///   - strategy: The comparing strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> SignalProducer<CollectionDelta<Value>, Error> {
+	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> SignalProducer<Snapshot<Value, Changeset>, Error> {
 		return lift { $0.diff(comparingBy: strategy) }
 	}
 }
@@ -271,7 +284,7 @@ extension SignalProducer where Value: Collection, Value.Iterator.Element: AnyObj
 	///   - comparingStrategy: The comparingStrategy strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> SignalProducer<CollectionDelta<Value>, Error> {
+	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> SignalProducer<Snapshot<Value, Changeset>, Error> {
 		return lift { $0.diff(identifyingBy: identifyingStrategy, comparingBy: comparingStrategy) }
 	}
 }
@@ -292,7 +305,7 @@ extension SignalProducer where Value: Collection, Value.Indices.Iterator.Element
 	///   - comparator: A comparator that evaluates two elements for equality.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff<Identifier: Hashable>(identifier: @escaping (Value.Iterator.Element) -> Identifier, areEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool) -> SignalProducer<CollectionDelta<Value>, Error> {
+	public func diff<Identifier: Hashable>(identifier: @escaping (Value.Iterator.Element) -> Identifier, areEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool) -> SignalProducer<Snapshot<Value, Changeset>, Error> {
 		return lift { $0.diff(identifier: identifier, areEqual: areEqual) }
 	}
 }
@@ -309,7 +322,7 @@ extension PropertyProtocol where Value: Collection, Value.Iterator.Element: Hash
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff() -> Property<CollectionDelta<Value>> {
+	public func diff() -> Property<Snapshot<Value, Changeset>> {
 		return lift { $0.diff() }
 	}
 }
@@ -322,7 +335,7 @@ extension _PropertyProtocol where Value: Collection, Value.Iterator.Element: Any
 	/// - precondition: The collection type must exhibit array semantics.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff() -> Property<CollectionDelta<Value>> {
+	public func diff() -> Property<Snapshot<Value, Changeset>> {
 		return lift { $0.diff() }
 	}
 }
@@ -339,7 +352,7 @@ extension _PropertyProtocol where Value: Collection, Value.Iterator.Element: Any
 	///   - strategy: The comparing strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> Property<CollectionDelta<Value>> {
+	public func diff(comparingBy strategy: ObjectDiffStrategy = .value) -> Property<Snapshot<Value, Changeset>> {
 		return lift { $0.diff(comparingBy: strategy) }
 	}
 }
@@ -357,7 +370,7 @@ extension _PropertyProtocol where Value: Collection, Value.Iterator.Element: Any
 	///   - comparingStrategy: The comparingStrategy strategy to use.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> Property<CollectionDelta<Value>> {
+	public func diff(identifyingBy identifyingStrategy: ObjectDiffStrategy = .identity, comparingBy comparingStrategy: ObjectDiffStrategy = .value) -> Property<Snapshot<Value, Changeset>> {
 		return lift { $0.diff(identifyingBy: identifyingStrategy, comparingBy: comparingStrategy) }
 	}
 }
@@ -378,7 +391,7 @@ extension PropertyProtocol where Value: Collection, Value.Indices.Iterator.Eleme
 	///   - comparator: A comparator that evaluates two elements for equality.
 	///
 	/// - complexity: O(n) time and space.
-	public func diff<Identifier: Hashable>(identifier: @escaping (Value.Iterator.Element) -> Identifier, areEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool) -> Property<CollectionDelta<Value>> {
+	public func diff<Identifier: Hashable>(identifier: @escaping (Value.Iterator.Element) -> Identifier, areEqual: @escaping (Value.Iterator.Element, Value.Iterator.Element) -> Bool) -> Property<Snapshot<Value, Changeset>> {
 		return lift { $0.diff(identifier: identifier, areEqual: areEqual) }
 	}
 }
@@ -404,14 +417,15 @@ private enum DiffReference {
 }
 
 // FIXME: Swift 4 Associated type constraints
-// extension CollectionDiffer {
+// extension Collection {
 extension Collection where Index == Indices.Iterator.Element {
-	public static func diff<Identifier: Hashable>(
+	// @testable
+	internal static func diff<Identifier: Hashable>(
 		previous: Self,
 		current: Self,
 		identifier: (Iterator.Element) -> Identifier,
 		areEqual: (Iterator.Element, Iterator.Element) -> Bool
-	) -> CollectionDelta<Self> {
+	) -> Changeset {
 		switch Self.self {
 		case is Array<Iterator.Element>.Type:
 			fallthrough
@@ -424,30 +438,27 @@ extension Collection where Index == Indices.Iterator.Element {
 			// start index that needs to be taken care of.
 			return ContiguousArray(previous).withUnsafeBufferPointer { previousBuffer in
 				return ContiguousArray(current).withUnsafeBufferPointer { currentBuffer in
-					return diff(previous: previousBuffer,
-								current: currentBuffer,
-								delta: CollectionDelta(current: current),
-								identifier: identifier,
-								areEqual: areEqual)
+					return _diff(previous: previousBuffer,
+					             current: currentBuffer,
+					             identifier: identifier,
+					             areEqual: areEqual)
 				}
 			}
 
 		default:
-			return diff(previous: previous,
-						current: current,
-						delta: CollectionDelta(current: current),
-						identifier: identifier,
-						areEqual: areEqual)
+			return _diff(previous: previous,
+			             current: current,
+			             identifier: identifier,
+			             areEqual: areEqual)
 		}
 	}
 
-	private static func diff<View: Collection, Identifier: Hashable>(
+	private static func _diff<View: Collection, Identifier: Hashable>(
 		previous: View,
 		current: View,
-		delta: CollectionDelta<Self>,
 		identifier: (Iterator.Element) -> Identifier,
 		areEqual: (Iterator.Element, Iterator.Element) -> Bool
-	) -> CollectionDelta<Self> where View.Iterator.Element == Iterator.Element, View.Index == View.Indices.Iterator.Element {
+	) -> Changeset where View.Iterator.Element == Iterator.Element, View.Index == View.Indices.Iterator.Element {
 		var table: [Identifier: DiffEntry] = Dictionary(minimumCapacity: Int(current.count))
 		var oldReferences: [DiffReference] = []
 		var newReferences: [DiffReference] = []
@@ -499,14 +510,14 @@ extension Collection where Index == Indices.Iterator.Element {
 			}
 		}
 
-		var diff = delta
+		var changeset = Changeset()
 
 		// Final Pass: Compute diff.
 		for position in oldReferences.indices {
 			switch oldReferences[position] {
 			case .table:
 				// Deleted
-				diff.removals.insert(position)
+				changeset.removals.insert(position)
 
 			case let .remote(newPosition):
 				let previousIndex = previous.index(previous.startIndex, offsetBy: View.IndexDistance(position))
@@ -516,10 +527,10 @@ extension Collection where Index == Indices.Iterator.Element {
 
 				switch (areEqual, isInPlace) {
 				case (false, true):
-					diff.mutations.insert(position)
+					changeset.mutations.insert(position)
 
 				case (_, false):
-					diff.moves[newPosition] = CollectionMove(source: position, isMutated: !areEqual)
+					changeset.moves[newPosition] = Changeset.Move(source: position, isMutated: !areEqual)
 
 				case (true, true):
 					break
@@ -529,11 +540,11 @@ extension Collection where Index == Indices.Iterator.Element {
 
 		for position in newReferences.indices {
 			if case .table = newReferences[position] {
-				diff.inserts.insert(position)
+				changeset.inserts.insert(position)
 			}
 		}
 
-		return diff
+		return changeset
 	}
 }
 
