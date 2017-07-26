@@ -23,23 +23,21 @@ class CollectionDiffingSpec: QuickSpec {
 					let newNumbers = Array(oldNumbers.dropLast(8) + (128 ..< 168)).shuffled()
 
 					var snapshot: Snapshot<[Int], Changeset>?
-					var cachedPrevious: [Int]?
 
 					deltas.observeValues {
-						cachedPrevious = snapshot?.elements
 						snapshot = $0
 					}
 					expect(snapshot).to(beNil())
 
 					snapshotObserver.send(value: oldNumbers)
 					expect(snapshot).toNot(beNil())
-					expect(cachedPrevious).to(beNil())
+					expect(snapshot?.previous).to(beNil())
 
 					snapshotObserver.send(value: newNumbers)
 					expect(snapshot).toNot(beNil())
-					expect(cachedPrevious).toNot(beNil())
+					expect(snapshot?.previous).toNot(beNil())
 
-					if let snapshot = snapshot, let previous = cachedPrevious {
+					if let snapshot = snapshot, let previous = snapshot.previous {
 						var numbers = previous
 						expect(numbers) == oldNumbers
 
@@ -48,11 +46,11 @@ class CollectionDiffingSpec: QuickSpec {
 							.reversed()
 							.forEach { numbers.remove(at: $0) }
 
-						snapshot.changeset.mutations.forEach { numbers[$0] = snapshot.elements[$0] }
+						snapshot.changeset.mutations.forEach { numbers[$0] = snapshot.current[$0] }
 
 						snapshot.changeset.inserts
 							.union(IndexSet(snapshot.changeset.moves.keys))
-							.forEach { numbers.insert(snapshot.elements[$0], at: $0) }
+							.forEach { numbers.insert(snapshot.current[$0], at: $0) }
 
 						expect(numbers) == newNumbers
 					}
@@ -68,23 +66,21 @@ class CollectionDiffingSpec: QuickSpec {
 					newCharacters = newCharacters.shuffled()
 
 					var snapshot: Snapshot<String.CharacterView, Changeset>?
-					var cachedPrevious: String.CharacterView?
 
 					deltas.observeValues {
-						cachedPrevious = snapshot?.elements
 						snapshot = $0
 					}
 					expect(snapshot).to(beNil())
 
 					snapshotObserver.send(value: oldCharacters)
 					expect(snapshot).toNot(beNil())
-					expect(cachedPrevious).to(beNil())
+					expect(snapshot?.previous).to(beNil())
 
 					snapshotObserver.send(value: newCharacters)
 					expect(snapshot).toNot(beNil())
-					expect(cachedPrevious).toNot(beNil())
+					expect(snapshot?.previous).toNot(beNil())
 
-					if let snapshot = snapshot, let previous = cachedPrevious {
+					if let snapshot = snapshot, let previous = snapshot.previous {
 						var characters = previous
 						expect(characters.elementsEqual(oldCharacters)) == true
 
@@ -98,17 +94,17 @@ class CollectionDiffingSpec: QuickSpec {
 
 						snapshot.changeset.mutations.forEach { offset in
 							let index = characters.index(characters.startIndex, offsetBy: offset)
-							let index2 = snapshot.elements.index(snapshot.elements.startIndex, offsetBy: offset)
+							let index2 = snapshot.current.index(snapshot.current.startIndex, offsetBy: offset)
 							characters.replaceSubrange(index ..< characters.index(after: index),
-													   with: CollectionOfOne(snapshot.elements[index2]))
+													   with: CollectionOfOne(snapshot.current[index2]))
 						}
 
 						snapshot.changeset.inserts
 							.union(IndexSet(snapshot.changeset.moves.keys))
 							.forEach { offset in
 								let index = characters.index(characters.startIndex, offsetBy: offset)
-								let index2 = snapshot.elements.index(snapshot.elements.startIndex, offsetBy: offset)
-								characters.insert(snapshot.elements[index2], at: index)
+								let index2 = snapshot.current.index(snapshot.current.startIndex, offsetBy: offset)
+								characters.insert(snapshot.current[index2], at: index)
 							}
 
 						expect(characters.elementsEqual(newCharacters)) == true
@@ -125,23 +121,21 @@ class CollectionDiffingSpec: QuickSpec {
 					let newObjects = Array(oldObjects.dropLast(8) + (0 ..< 32).map { _ in ObjectValue() }).shuffled()
 
 					var snapshot: Snapshot<[ObjectValue], Changeset>?
-					var cachedPrevious: [ObjectValue]?
 
 					deltas.observeValues {
-						cachedPrevious = snapshot?.elements
 						snapshot = $0
 					}
 					expect(snapshot).to(beNil())
 
 					snapshotObserver.send(value: oldObjects)
 					expect(snapshot).toNot(beNil())
-					expect(cachedPrevious).to(beNil())
+					expect(snapshot?.previous).to(beNil())
 
 					snapshotObserver.send(value: newObjects)
 					expect(snapshot).toNot(beNil())
-					expect(cachedPrevious).toNot(beNil())
+					expect(snapshot?.previous).toNot(beNil())
 
-					if let snapshot = snapshot, let previous = cachedPrevious {
+					if let snapshot = snapshot, let previous = snapshot.previous {
 						var objects = previous
 						expect(objects.elementsEqual(oldObjects, by: ===)) == true
 
@@ -150,11 +144,11 @@ class CollectionDiffingSpec: QuickSpec {
 							.reversed()
 							.forEach { objects.remove(at: $0) }
 
-						snapshot.changeset.mutations.forEach { objects[$0] = snapshot.elements[$0] }
+						snapshot.changeset.mutations.forEach { objects[$0] = snapshot.current[$0] }
 
 						snapshot.changeset.inserts
 							.union(IndexSet(snapshot.changeset.moves.keys))
-							.forEach { objects.insert(snapshot.elements[$0], at: $0) }
+							.forEach { objects.insert(snapshot.current[$0], at: $0) }
 
 						expect(objects.elementsEqual(newObjects, by: ===)) == true
 					}

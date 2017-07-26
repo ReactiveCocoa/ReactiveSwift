@@ -126,7 +126,7 @@ extension Signal where Value: Collection, Value.Indices.Iterator.Element == Valu
 						changeset = Changeset(initial: elements)
 					}
 
-					observer.send(value: Snapshot(elements: elements, changeset: changeset))
+					observer.send(value: Snapshot(previous: previous, current: elements, changeset: changeset))
 					previous = elements
 				case .completed:
 					observer.sendCompleted()
