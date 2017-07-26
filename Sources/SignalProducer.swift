@@ -250,23 +250,6 @@ extension SignalProducer where Error == NoError {
 		}
 	}
 
-	/// Creates a producer for a `Signal` that immediately sends one value, then
-	/// completes.
-	///
-	/// This initializer differs from `init(value:)` in that its sole `value`
-	/// event is constructed lazily by invoking the supplied `action` when
-	/// the `SignalProducer` is started.
-	///
-	/// - parameters:
-	///   - action: A action that yields a value to be sent by the `Signal` as
-	///             a `value` event.
-	public init(_ action: @escaping () -> Value) {
-		self.init { observer, _ in
-			observer.send(value: action())
-			observer.sendCompleted()
-		}
-	}
-
 	/// Creates a producer for a Signal that will immediately send the values
 	/// from the given sequence, then complete.
 	///
