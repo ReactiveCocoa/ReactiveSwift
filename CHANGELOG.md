@@ -1,6 +1,16 @@
 # master
 *Please add new entries at the top.*
 
+1. New operator: `diff`. (#444, kudos to @andersio)
+
+   `diff` computes the differences between two instances of a collection based on [Paul Heckel's diffing algorithm](http://documents.scribd.com/docs/10ro9oowpo1h81pgh1as.pdf) that generally takes linear time and O(n) space.
+
+   The differences are packed as a `CollectionDelta`, which contains relative positions of elements to which collection operations have been applied.
+
+   `diff` is available on `Signal`, `SignalProducer` and properties of collection.
+
+1. Addressed the exceptionally high build time. (#495)
+
 # 2.0.0
 # 2.0.0-rc.3
 1. `Lifetime.+=` which ties a `Disposable` to a `Lifetime`, is now part of the public API and is no longer deprecated.
