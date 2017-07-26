@@ -229,12 +229,11 @@ class SignalProducerSpec: QuickSpec {
 				let resultAction2: () -> Result<String, AnyError> = { .success("") }
 				let throwableResultAction: () throws -> Result<String, NoError> = { .success("") }
 
-				expect(type(of: SignalProducer(action))) == SignalProducer<String, AnyError>.self
-				expect(type(of: SignalProducer<String, NoError>(action))) == SignalProducer<String, NoError>.self
-				expect(type(of: SignalProducer<String, TestError>(action))) == SignalProducer<String, TestError>.self
+				expect(type(of: SignalProducer(action))) == SignalProducer<String, NoError>.self
+				expect(type(of: SignalProducer<String, AnyError>(action))) == SignalProducer<String, AnyError>.self
 
-				expect(type(of: SignalProducer(resultAction1))) == SignalProducer<String, NoError>.self
-				expect(type(of: SignalProducer(resultAction2))) == SignalProducer<String, AnyError>.self
+				expect(type(of: SignalProducer<String, NoError>(resultAction1))) == SignalProducer<String, NoError>.self
+				expect(type(of: SignalProducer<String, AnyError>(resultAction2))) == SignalProducer<String, AnyError>.self
 
 				expect(type(of: SignalProducer(throwableAction))) == SignalProducer<String, AnyError>.self
 				expect(type(of: SignalProducer(throwableResultAction))) == SignalProducer<Result<String, NoError>, AnyError>.self
@@ -367,8 +366,8 @@ class SignalProducerSpec: QuickSpec {
 					return .success("OperationValue")
 				}
 
-				SignalProducer(operation).start()
-				SignalProducer(operation).start()
+				SignalProducer<String, NSError>(operation).start()
+				SignalProducer<String, NSError>(operation).start()
 
 				expect(operationRunTimes) == 2
 			}
@@ -379,7 +378,7 @@ class SignalProducerSpec: QuickSpec {
 					return .success(operationReturnValue)
 				}
 
-				let signalProducer = SignalProducer(operation)
+				let signalProducer = SignalProducer<String, NSError>(operation)
 
 				expect(signalProducer).to(sendValue(operationReturnValue, sendError: nil, complete: true))
 			}
@@ -390,7 +389,7 @@ class SignalProducerSpec: QuickSpec {
 					return .failure(operationError)
 				}
 
-				let signalProducer = SignalProducer(operation)
+				let signalProducer = SignalProducer<String, NSError>(operation)
 
 				expect(signalProducer).to(sendValue(nil, sendError: operationError, complete: false))
 			}
@@ -400,7 +399,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should send a successful value then complete") {
 				let operationReturnValue = "OperationValue"
 
-				let signalProducer = SignalProducer { () throws -> String in
+				let signalProducer = SignalProducer<String, AnyError> { () throws -> String in
 					operationReturnValue
 				}
 
@@ -415,7 +414,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should send the error") {
 				let operationError = TestError.default
 
-				let signalProducer = SignalProducer { () throws -> String in
+				let signalProducer = SignalProducer<String, AnyError> { () throws -> String in
 					throw operationError
 				}
 
