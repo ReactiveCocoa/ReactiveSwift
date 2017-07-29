@@ -1837,16 +1837,16 @@ extension SignalProducer {
 		var retries = count
 		
 		return flatMapError { error in
-			// The final attempt shouldn't defer the error if it fails
-			var producer = SignalProducer<Value, Error>(error: error)
-			if retries > 0 {
-				producer = SignalProducer.empty
-					.delay(interval, on: scheduler)
-					.concat(producer)
-			}
+				// The final attempt shouldn't defer the error if it fails
+				var producer = SignalProducer<Value, Error>(error: error)
+				if retries > 0 {
+					producer = SignalProducer.empty
+						.delay(interval, on: scheduler)
+						.concat(producer)
+				}
 			
-			retries -= 1
-			return producer
+				retries -= 1
+				return producer
 		}
 		.retry(upTo: count)
 	}
