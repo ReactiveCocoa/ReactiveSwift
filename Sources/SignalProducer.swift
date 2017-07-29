@@ -1847,7 +1847,8 @@ extension SignalProducer {
 			
 			retries -= 1
 			return producer
-		}.retry(upTo: count)
+		}
+		.retry(upTo: count)
 	}
 	
 	/// Wait for completion of `self`, *then* forward all events from
