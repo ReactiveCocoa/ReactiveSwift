@@ -1,8 +1,11 @@
 language: objective-c
 osx_image: xcode8.3
 before_install:
-  - brew uninstall carthage
-  - HOMEBREW_NO_AUTO_UPDATE=1 brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/6ae4f69a652fb0ecb102b0c9216378679a4f1b92/Formula/carthage.rb # 0.22.0
+  - >
+     if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+         brew uninstall carthage;
+         HOMEBREW_NO_AUTO_UPDATE=1 brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/6ae4f69a652fb0ecb102b0c9216378679a4f1b92/Formula/carthage.rb; # 0.22.0
+     fi
 install: true
 branches:
   only:
@@ -71,8 +74,11 @@ jobs:
         - XCODE_ACTION=build
         - XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
     - script:
-      - pod repo update --silent
-      - pod lib lint ReactiveSwift.podspec
+      - >
+         if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+             pod repo update --silent;
+             pod lib lint ReactiveSwift.podspec;
+         fi
       env:
         - JOB=PODSPEC
     - script:
@@ -124,16 +130,32 @@ jobs:
         - JOB=SWIFTPM_SWIFT_4_LINUX
         - SWIFT_VERSION=DEVELOPMENT-SNAPSHOT-2017-07-13-a
     - stage: prepare carthage cache
-      script: carthage build --cache-builds
+      script:
+        - >
+           if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+               carthage build --cache-builds;
+           fi
     - stage: carthage
       script:
-        - carthage build --cache-builds --no-skip-current --platform mac
+        - >
+           if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+               carthage build --cache-builds --no-skip-current --platform mac;
+           fi
     - script:
-        - carthage build --cache-builds --no-skip-current --platform iOS
+        - >
+           if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+               carthage build --cache-builds --no-skip-current --platform iOS;
+           fi
     - script:
-        - carthage build --cache-builds --no-skip-current --platform tvOS
+        - >
+           if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+               carthage build --cache-builds --no-skip-current --platform tvOS;
+           fi
     - script:
-        - carthage build --cache-builds --no-skip-current --platform watchOS
+        - >
+           if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+               carthage build --cache-builds --no-skip-current --platform watchOS;
+           fi
     - stage: deploy
       before_install: true
       script: skip
