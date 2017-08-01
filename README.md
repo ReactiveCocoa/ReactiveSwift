@@ -131,6 +131,9 @@ While the development would be Swift 3.2 and Swift 4.0 aware, ReactiveSwift 2.0 
 The official release for Swift 3.2 and Swift 4.0 is expected to be a minor 2.x release with full API compatibility.
 
 ### Plan of Record
+#### ReactiveCollections
+Collection support in ReactiveSwift is currently being iterated in [ReactiveCollections](https://github.com/RACCommunity/ReactiveCollections/). Contributions are welcomed.
+
 #### ReactiveSwift 3.0
 ReactiveSwift 3.0 is expected to declare library ABI stability as it adopts generics features arriving in a later Swift 4 release, e.g. conditional conformance. There is no ETA for now.
 
