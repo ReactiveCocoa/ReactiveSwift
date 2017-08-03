@@ -2020,6 +2020,7 @@ class SignalProducerSpec: QuickSpec {
 					let scheduler = TestScheduler()
 					var count = 0
 					var values: [Int] = []
+					var errors: [TestError] = []
 					
 					let original = SignalProducer<Int, TestError> { observer, _ in
 						scheduler.schedule { observer.send(value: count) }
@@ -2032,6 +2033,8 @@ class SignalProducerSpec: QuickSpec {
 							switch event {
 							case let .value(value):
 								values.append(value)
+							case let .failed(error):
+								errors.append(error)
 							default:
 								break
 							}
@@ -2040,18 +2043,22 @@ class SignalProducerSpec: QuickSpec {
 					scheduler.advance()
 					expect(count) == 1
 					expect(values) == [1]
+					expect(errors) == []
 					
 					scheduler.advance(by: .seconds(1))
 					expect(count) == 2
 					expect(values) == [1, 2]
+					expect(errors) == []
 					
 					scheduler.advance(by: .seconds(1))
 					expect(count) == 3
 					expect(values) == [1, 2, 3]
+					expect(errors) == [.default]
 					
 					scheduler.advance(by: .seconds(1))
 					expect(count) == 3
 					expect(values) == [1, 2, 3]
+					expect(errors) == [.default]
 				}
 
 			}
