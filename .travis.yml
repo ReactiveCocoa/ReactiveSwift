@@ -14,7 +14,9 @@ script:
   - script/build
 xcode_workspace: ReactiveSwift.xcworkspace
 cache:
-  directories: Carthage/Build
+  directories:
+    - $HOME/Library/Caches/org.carthage.CarthageKit/dependencies
+    - Carthage/Build
 jobs:
   include:
     # Xcode 8
