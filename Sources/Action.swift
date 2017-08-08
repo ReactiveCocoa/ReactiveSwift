@@ -70,6 +70,10 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// Whether the action is currently enabled.
 	public let isEnabled: Property<Bool>
 
+	public var input: ActionInput<Input> {
+		return ActionInput(self)
+	}
+
 	/// Initializes an `Action` that would be conditionally enabled depending on its
 	/// state.
 	///
@@ -310,6 +314,44 @@ extension Action where Input == Void {
 		self.init(state: state) { state, _ in
 			execute(state)
 		}
+	}
+}
+
+public final class ActionInput<Value>: BindingTargetProvider {
+	public let isEnabled: Property<Bool>
+	public let isExecuting: Property<Bool>
+	public let bindingTarget: BindingTarget<Value>
+
+	private let _apply: (Value) -> SignalProducer<Bool, NoError>
+
+	fileprivate init<Output, Error>(_ action: Action<Value, Output, Error>) {
+		isEnabled = action.isEnabled
+		isExecuting = action.isExecuting
+		bindingTarget = action.bindingTarget
+		_apply = { input in
+			return SignalProducer { observer, lifetime in
+				let disposable = action.apply(input).start { event in
+					switch event {
+					case .value:
+						return
+
+					case .interrupted, .failed:
+						observer.send(value: false)
+
+					case .completed:
+						observer.send(value: true)
+					}
+
+					observer.sendCompleted()
+				}
+
+				lifetime.observeEnded(disposable.dispose)
+			}
+		}
+	}
+
+	public func apply(_ input: Value) -> SignalProducer<Bool, NoError> {
+		return _apply(input)
 	}
 }
 
