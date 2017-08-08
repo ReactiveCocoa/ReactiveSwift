@@ -53,6 +53,18 @@ public final class Lifetime {
 	public func observeEnded(_ action: @escaping () -> Void) -> Disposable? {
 		return disposables += action
 	}
+
+	/// Add the given disposable as an observer of `self`.
+	///
+	/// - parameters:
+	///   - disposable: The disposable to be disposed of when `self` ends.
+	///
+	/// - returns: A disposable that detaches `disposable` from the lifetime, or `nil`
+	///            if `lifetime` has already ended.
+	@discardableResult
+	public static func += (lifetime: Lifetime, disposable: Disposable?) -> Disposable? {
+		return (disposable?.dispose).flatMap(lifetime.observeEnded)
+	}
 }
 
 extension Lifetime {

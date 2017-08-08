@@ -62,19 +62,19 @@ class ActionSpec: QuickSpec {
 			it("should retain the state property") {
 				var property: MutableProperty<Bool>? = MutableProperty(false)
 				weak var weakProperty = property
-				
+
 				var action: Action<(), (), NoError>? = Action(state: property!, enabledIf: { _ in true }) { _, _ in
 					return .empty
 				}
-				
+
 				expect(weakProperty).toNot(beNil())
-				
+
 				property = nil
 				expect(weakProperty).toNot(beNil())
-				
+
 				action = nil
 				expect(weakProperty).to(beNil())
-				
+
 				// Mute "unused variable" warning.
 				_ = action
 			}
@@ -126,6 +126,39 @@ class ActionSpec: QuickSpec {
 				expect(action.isExecuting.value) == true
 
 				disposable.dispose()
+				expect(enabled.value) == true
+				expect(action.isEnabled.value) == true
+				expect(action.isExecuting.value) == false
+			}
+
+			it("should not deadlock when its enabled state affects its state property without constituting a feedback loop") {
+				// Emulate control binding: When a UITextField is the first responder and
+				// is being disabled by an `Action`, the control events emitted might
+				// feedback into the availability of the `Action` synchronously, e.g.
+				// via a `MutableProperty` or `ValidatingProperty`.
+				var isFirstResponder = false
+
+				action.isEnabled.producer
+					.filterMap { isActionEnabled in !isActionEnabled && isFirstResponder ? () : nil }
+					.startWithValues { _ in enabled.value = false }
+
+				enabled.value = true
+				expect(enabled.value) == true
+				expect(action.isEnabled.value) == true
+				expect(action.isExecuting.value) == false
+
+				isFirstResponder = true
+				let disposable = action.apply(0).start()
+				expect(enabled.value) == false
+				expect(action.isEnabled.value) == false
+				expect(action.isExecuting.value) == true
+
+				disposable.dispose()
+				expect(enabled.value) == false
+				expect(action.isEnabled.value) == false
+				expect(action.isExecuting.value) == false
+
+				enabled.value = true
 				expect(enabled.value) == true
 				expect(action.isEnabled.value) == true
 				expect(action.isExecuting.value) == false
@@ -323,13 +356,60 @@ class ActionSpec: QuickSpec {
 				expect(values) == [1, 2, 3]
 			}
 
+			it("allows a non-void input type") {
+				let state = MutableProperty(1)
+
+				let add = Action<Int, Int, NoError>(state: state) { state, input in
+					SignalProducer(value: state + input)
+				}
+
+				var values: [Int] = []
+				add.values.observeValues { values.append($0) }
+
+				add.apply(2).start()
+				add.apply(3).start()
+
+				state.value = -1
+				add.apply(-10).start()
+
+				expect(values) == [3, 4, -11]
+			}
+
 			it("is disabled if the property is nil") {
 				let input = MutableProperty<Int?>(1)
-				let action = Action(state: input, execute: echo)
+				let action = Action(unwrapping: input, execute: echo)
 
 				expect(action.isEnabled.value) == true
 				input.value = nil
 				expect(action.isEnabled.value) == false
+			}
+
+			it("allows a different input type while unwrapping an optional state property") {
+				let state = MutableProperty<Int?>(nil)
+
+				let add = Action<String, Int?, NoError>(unwrapping: state) { state, input -> SignalProducer<Int?, NoError> in
+					guard let input = Int(input) else { return SignalProducer(value: nil) }
+					return SignalProducer(value: state + input)
+				}
+
+				var values: [Int] = []
+				add.values.observeValues { output in
+					if let output = output {
+						values.append(output)
+					}
+				}
+
+				expect(add.isEnabled.value) == false
+				state.value = 1
+				expect(add.isEnabled.value) == true
+
+				add.apply("2").start()
+				add.apply("3").start()
+
+				state.value = -1
+				add.apply("-10").start()
+
+				expect(values) == [3, 4, -11]
 			}
 		}
 	}

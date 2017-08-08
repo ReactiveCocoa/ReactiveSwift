@@ -1,3 +1,17 @@
+/*:
+ > ## IMPORTANT: To use `ReactiveSwift-UIExamples.playground`, please:
+
+ 1. Retrieve the project dependencies using one of the following terminal commands from the ReactiveSwift project root directory:
+ - `git submodule update --init`
+ **OR**, if you have [Carthage](https://github.com/Carthage/Carthage) installed
+ - `carthage checkout --no-use-binaries`
+ 1. Open `ReactiveSwift.xcworkspace`
+ 1. Build `Result-iOS` scheme
+ 1. Build `ReactiveSwift-iOS` scheme
+ 1. Finally open the `ReactiveSwift-UIExamples.playground` through the workspace.
+ 1. Choose `View > Assistant Editor > Show Assistant Editor`
+ 1. If you cannot see the playground live view, make sure the Timeline view has been selected for the Assistant Editor.
+ */
 import ReactiveSwift
 import Result
 import UIKit
@@ -21,14 +35,17 @@ final class ViewModel {
 	let reasons: Signal<String, NoError>
 
 	init(userService: UserService) {
-		email = ValidatingProperty<String, FormError>("") { input in
+        // email: ValidatingProperty<String, FormError>
+		email = ValidatingProperty("") { input in
 			return input.hasSuffix("@reactivecocoa.io") ? .valid : .invalid(.invalidEmail)
 		}
 
-		emailConfirmation = ValidatingProperty<String, FormError>("", with: email) { input, email in
+        // emailConfirmation: ValidatingProperty<String, FormError>
+		emailConfirmation = ValidatingProperty("", with: email) { input, email in
 			return input == email ? .valid : .invalid(.mismatchEmail)
 		}
 
+        // termsAccepted: MutableProperty<Bool>
 		termsAccepted = MutableProperty(false)
 
 		// `validatedEmail` is a property which holds the validated email address if
@@ -37,9 +54,9 @@ final class ViewModel {
 		// The condition used in the `map` transform is:
 		// 1. `emailConfirmation` passes validation: `!email.isInvalid`; and
 		// 2. `termsAccepted` is asserted: `accepted`.
-		let validatedEmail: Property<String?> = Property.combineLatest(emailConfirmation.result,
-		                                                               termsAccepted)
-			.map { (email: ValidationResult<String, FormError>, accepted: Bool) -> String? in
+        let validatedEmail: Property<String?> = Property
+            .combineLatest(emailConfirmation.result, termsAccepted)
+			.map { email, accepted -> String? in
 			      return !email.isInvalid && accepted ? email.value! : nil
 			}
 
@@ -49,11 +66,11 @@ final class ViewModel {
 		// `Action` provides a special initializer in this case: `init(state:)`.
 		// It takes a property of optionals — in our case, `validatedEmail` — and
 		// would disable whenever the property holds `nil`.
-		submit = Action(state: validatedEmail) { (email: String) in
+		submit = Action(unwrapping: validatedEmail) { (email: String) in
 			let username = email.stripSuffix("@reactivecocoa.io")!
 
 			return userService.canUseUsername(username)
-				.promoteErrors(FormError.self)
+				.promoteError(FormError.self)
 				.attemptMap { Result<(), FormError>($0 ? () : nil, failWith: .usernameUnavailable) }
 		}
 

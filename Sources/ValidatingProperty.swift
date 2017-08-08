@@ -23,7 +23,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	private let setter: (Value) -> Void
 
 	/// The result of the last attempted edit of the root property.
-	public let result: Property<ValidationResult<Value, ValidationError>>
+	public let result: Property<Result>
 
 	/// The current value of the property.
 	///
@@ -59,7 +59,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	///   - validator: The closure to invoke for any proposed value to `self`.
 	public init<Inner: ComposableMutablePropertyProtocol>(
 		_ inner: Inner,
-		_ validator: @escaping (Value) -> ValidatorOutput<Value, ValidationError>
+		_ validator: @escaping (Value) -> Decision
 	) where Inner.Value == Value {
 		getter = { inner.value }
 		producer = inner.producer
@@ -71,18 +71,18 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 		var isSettingInnerValue = false
 
 		(result, setter) = inner.withValue { initial in
-			let mutableResult = MutableProperty(ValidationResult(initial, validator(initial)))
+			let mutableResult = MutableProperty(Result(initial, validator(initial)))
 
 			mutableResult <~ inner.signal
 				.filter { _ in !isSettingInnerValue }
-				.map { ValidationResult($0, validator($0)) }
+				.map { Result($0, validator($0)) }
 
 			return (Property(capturing: mutableResult), { input in
 				// Acquire the lock of `inner` to ensure no modification happens until
 				// the validation logic here completes.
 				inner.withValue { _ in
 					let writebackValue: Value? = mutableResult.modify { result in
-						result = ValidationResult(input, validator(input))
+						result = Result(input, validator(input))
 						return result.value
 					}
 
@@ -108,7 +108,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	///   - validator: The closure to invoke for any proposed value to `self`.
 	public convenience init(
 		_ initial: Value,
-		_ validator: @escaping (Value) -> ValidatorOutput<Value, ValidationError>
+		_ validator: @escaping (Value) -> Decision
 	) {
 		self.init(MutableProperty(initial), validator)
 	}
@@ -128,7 +128,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	public convenience init<Other: PropertyProtocol>(
 		_ inner: MutableProperty<Value>,
 		with other: Other,
-		_ validator: @escaping (Value, Other.Value) -> ValidatorOutput<Value, ValidationError>
+		_ validator: @escaping (Value, Other.Value) -> Decision
 	) {
 		// Capture a copy that reflects `other` without influencing the lifetime of
 		// `other`.
@@ -173,7 +173,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	public convenience init<Other: PropertyProtocol>(
 		_ initial: Value,
 		with other: Other,
-		_ validator: @escaping (Value, Other.Value) -> ValidatorOutput<Value, ValidationError>
+		_ validator: @escaping (Value, Other.Value) -> Decision
 	) {
 		self.init(MutableProperty(initial), with: other, validator)
 	}
@@ -193,7 +193,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	public convenience init<U, E>(
 		_ inner: MutableProperty<Value>,
 		with other: ValidatingProperty<U, E>,
-		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
+		_ validator: @escaping (Value, U) -> Decision
 	) {
 		self.init(inner, with: other, validator)
 	}
@@ -212,7 +212,7 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	public convenience init<U, E>(
 		_ initial: Value,
 		with other: ValidatingProperty<U, E>,
-		_ validator: @escaping (Value, U) -> ValidatorOutput<Value, ValidationError>
+		_ validator: @escaping (Value, U) -> Decision
 	) {
 		// Capture only `other.result` but not `other`.
 		let otherValidations = other.result
@@ -254,74 +254,74 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 				}
 			}
 	}
-}
 
-/// Represents a decision of a validator of a validating property made on a
-/// proposed value.
-public enum ValidatorOutput<Value, Error: Swift.Error> {
-	/// The proposed value is valid.
-	case valid
+	/// Represents a decision of a validator of a validating property made on a
+	/// proposed value.
+	public enum Decision {
+		/// The proposed value is valid.
+		case valid
 
-	/// The proposed value is invalid, but the validator coerces it into a
-	/// replacement which it deems valid.
-	case coerced(Value, Error?)
+		/// The proposed value is invalid, but the validator coerces it into a
+		/// replacement which it deems valid.
+		case coerced(Value, ValidationError?)
 
-	/// The proposed value is invalid.
-	case invalid(Error)
-}
-
-/// Represents the result of the validation performed by a validating property.
-public enum ValidationResult<Value, Error: Swift.Error> {
-	/// The proposed value is valid.
-	case valid(Value)
-
-	/// The proposed value is invalid, but the validator was able to coerce it
-	/// into a replacement which it deemed valid.
-	case coerced(replacement: Value, proposed: Value, error: Error?)
-
-	/// The proposed value is invalid.
-	case invalid(Value, Error)
-
-	/// Whether the value is invalid.
-	public var isInvalid: Bool {
-		if case .invalid = self {
-			return true
-		} else {
-			return false
-		}
+		/// The proposed value is invalid.
+		case invalid(ValidationError)
 	}
 
-	/// Extract the valid value, or `nil` if the value is invalid.
-	public var value: Value? {
-		switch self {
-		case let .valid(value):
-			return value
-		case let .coerced(value, _, _):
-			return value
-		case .invalid:
-			return nil
+	/// Represents the result of the validation performed by a validating property.
+	public enum Result {
+		/// The proposed value is valid.
+		case valid(Value)
+
+		/// The proposed value is invalid, but the validator was able to coerce it
+		/// into a replacement which it deemed valid.
+		case coerced(replacement: Value, proposed: Value, error: ValidationError?)
+
+		/// The proposed value is invalid.
+		case invalid(Value, ValidationError)
+
+		/// Whether the value is invalid.
+		public var isInvalid: Bool {
+			if case .invalid = self {
+				return true
+			} else {
+				return false
+			}
 		}
-	}
 
-	/// Extract the error if the value is invalid.
-	public var error: Error? {
-		if case let .invalid(_, error) = self {
-			return error
-		} else {
-			return nil
+		/// Extract the valid value, or `nil` if the value is invalid.
+		public var value: Value? {
+			switch self {
+			case let .valid(value):
+				return value
+			case let .coerced(value, _, _):
+				return value
+			case .invalid:
+				return nil
+			}
 		}
-	}
 
-	fileprivate init(_ value: Value, _ output: ValidatorOutput<Value, Error>) {
-		switch output {
-		case .valid:
-			self = .valid(value)
+		/// Extract the error if the value is invalid.
+		public var error: ValidationError? {
+			if case let .invalid(_, error) = self {
+				return error
+			} else {
+				return nil
+			}
+		}
 
-		case let .coerced(replacement, error):
-			self = .coerced(replacement: replacement, proposed: value, error: error)
+		fileprivate init(_ value: Value, _ decision: Decision) {
+			switch decision {
+			case .valid:
+				self = .valid(value)
 
-		case let .invalid(error):
-			self = .invalid(value, error)
+			case let .coerced(replacement, error):
+				self = .coerced(replacement: replacement, proposed: value, error: error)
+
+			case let .invalid(error):
+				self = .invalid(value, error)
+			}
 		}
 	}
 }

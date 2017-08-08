@@ -211,7 +211,7 @@ Schedulers are also somewhat similar to `NSOperationQueue`, but schedulers
 do not allow tasks to be reordered or depend on one another.
 
 
-[Design Guidelines]: DesignGuidelines.md
+[Design Guidelines]: APIContracts.md
 [BasicOperators]: BasicOperators.md
 [README]: ../README.md
 [ReactiveCocoa]: https://github.com/ReactiveCocoa/

@@ -46,82 +46,31 @@ public final class Signal<Value, Error: Swift.Error> {
 	private let core: Core
 
 	private final class Core {
-		private enum OperationResult {
-			case shouldDispose
-			case shouldTryCommitTermination
-			case none
-		}
-
 		/// The disposable associated with the signal.
+		///
+		/// Disposing of `disposable` is assumed to remove the generator
+		/// observer from its attached `Signal`, so that the generator observer
+		/// as the last +1 retain of the `Signal` core may deinitialize.
 		private let disposable: SerialDisposable
 
 		/// The state of the signal.
-		///
-		/// `state` synchronizes using Read-Copy-Update. Reads on the event delivery
-		/// routine are thus wait-free. But modifications, e.g. inserting observers,
-		/// still have to be serialized, and are required not to mutate in place.
-		///
-		/// This suits `Signal` as reads to `status` happens on the critical path of
-		/// event delivery, while observers bag manipulation or termination generally
-		/// has a constant occurrence.
-		///
-		/// As `SignalState` is a packed object reference (a tagged pointer) that is
-		/// naturally aligned, reads to are guaranteed to be atomic on all supported
-		/// hardware architectures of Swift (ARM and x86).
-		///
-		/// # Thread Safety Notes
-		///
-		/// - Check if the signal is at a specific state.
-		///   * Read directly.
-		///
-		/// - Deliver `value` events with the alive state.
-		///   * `sendLock` must be acquired.
-		///
-		/// - Replace the alive state with another. (e.g. observers bag manipulation)
-		///   * `updateLock` must be acquired.
-		///
-		/// - Transition from `alive` to `terminating` as a result of receiving
-		///   a termination event.
-		///   * `updateLock` must be acquired, and should fail gracefully if the
-		///     signal has terminated.
-		///
-		/// - Check if the signal is terminating. If it is, invoke `tryTerminate`
-		///   which transitions the state from `terminating` to `terminated`, and
-		///   delivers the termination event.
-		///   * Both `sendLock` and `updateLock` must be acquired. The check can be
-		///     relaxed, but the state must be checked again after the locks are
-		///     acquired. Fail gracefully if the state has changed since the relaxed
-		///     read, i.e. a concurrent sender has already handled the termination
-		///     event.
-		///
-		/// Exploiting the relaxation of reads, please note that false positives
-		/// are intentionally allowed in the `terminating` checks below. As a
-		/// result, normal event deliveries need not acquire `updateLock`.
-		/// Nevertheless, this should not cause the termination event being
-		/// sent multiple times, since `tryTerminate` would not respond to false
-		/// positives.
 		private var state: State
 
-		/// Used to ensure that state updates are serialized.
-		private let updateLock: Lock
+		/// Used to ensure that all state accesses are serialized.
+		private let stateLock: Lock
 
 		/// Used to ensure that events are serialized during delivery to observers.
 		private let sendLock: Lock
 
-		/// Used to indicate if the `Signal` has deinitialized.
-		private var hasDeinitialized: Bool
-
 		fileprivate init(_ generator: (Observer) -> Disposable?) {
-			state = .alive(AliveState())
+			state = .alive(Bag(), hasDeinitialized: false)
 
-			updateLock = Lock.make()
+			stateLock = Lock.make()
 			sendLock = Lock.make()
-
-			hasDeinitialized = false
 			disposable = SerialDisposable()
 
 			// The generator observer retains the `Signal` core.
-			disposable.inner = generator(Observer(self.send))
+			disposable.inner = generator(Observer(action: self.send, interruptsOnDeinit: true))
 		}
 
 		private func send(_ event: Event) {
@@ -145,69 +94,52 @@ public final class Signal<Value, Error: Swift.Error> {
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
 
-				self.updateLock.lock()
+				self.stateLock.lock()
 
-				if case let .alive(state) = self.state {
-					let newSnapshot = TerminatingState(observers: state.observers, event: event)
-					self.state = .terminating(newSnapshot)
-					self.updateLock.unlock()
-
-					// Check whether the terminating state has been handled by a
-					// concurrent sender. If not, handle it.
-					if self.tryToCommitTermination() == .shouldDispose {
-						self.disposable.dispose()
-					}
+				if case let .alive(observers, _) = state {
+					self.state = .terminating(observers, .init(event))
+					self.stateLock.unlock()
 				} else {
-					self.updateLock.unlock()
+					self.stateLock.unlock()
 				}
+
+				tryToCommitTermination()
 			} else {
-				var result = OperationResult.none
-
-				// The `terminating` status check is performed twice for two different
-				// purposes:
-				//
-				// 1. Within the main protected section
-				//    It guarantees that a recursive termination event sent by a
-				//    downstream consumer, is immediately processed and need not compete
-				//    with concurrent pending senders (if any).
-				//
-				//    Termination events sent concurrently may also be caught here, but
-				//    not necessarily all of them due to data races.
-				//
-				// 2. After the main protected section
-				//    It ensures the termination event sent concurrently that are not
-				//    caught by (1) due to data races would still be processed.
-				//
-				// The related PR on the race conditions:
-				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
-
 				self.sendLock.lock()
+				self.stateLock.lock()
 
-				if case let .alive(state) = self.state {
-					for observer in state.observers {
+				if case let .alive(observers, _) = self.state {
+					self.stateLock.unlock()
+
+					for observer in observers {
 						observer.action(event)
 					}
-
-					// Check if the status has been bumped to `terminating` due to a
-					// concurrent or a recursive termination event.
-					if case .terminating = self.state {
-						result = self.tryToCommitTermination(acquired: self.sendLock)
-					}
+				} else {
+					self.stateLock.unlock()
 				}
 
 				self.sendLock.unlock()
 
 				// Check if the status has been bumped to `terminating` due to a
-				// concurrent termination event that has not been caught in the main
-				// protected section.
-				if result == .none, case .terminating = self.state {
-					result = self.tryToCommitTermination()
-				}
-
-				// Dispose only after notifying observers, so disposal
-				// logic is consistently the last thing to run.
-				if result == .shouldDispose {
-					self.disposable.dispose()
+				// terminal event being sent concurrently or recursively.
+				//
+				// The check is deliberately made outside of the `sendLock` so that it
+				// covers also any potential concurrent terminal event in one shot.
+				//
+				// Related PR:
+				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
+				//
+				// While calling `tryToCommitTermination` is sufficient, this is a fast
+				// path for the recurring value delivery.
+				//
+				// Note that this cannot be `try` since any concurrent observer bag
+				// manipulation might then cause the terminating state being missed.
+				stateLock.lock()
+				if case .terminating = state {
+					stateLock.unlock()
+					tryToCommitTermination()
+				} else {
+					stateLock.unlock()
 				}
 			}
 		}
@@ -222,13 +154,15 @@ public final class Signal<Value, Error: Swift.Error> {
 		fileprivate func observe(_ observer: Observer) -> Disposable? {
 			var token: Bag<Observer>.Token?
 
-			updateLock.lock()
+			stateLock.lock()
 
-			if case let .alive(state) = state {
-				token = state.observers.insert(observer)
+			if case let .alive(observers, hasDeinitialized) = state {
+				var newObservers = observers
+				token = newObservers.insert(observer)
+				self.state = .alive(newObservers, hasDeinitialized: hasDeinitialized)
 			}
 
-			updateLock.unlock()
+			stateLock.unlock()
 
 			if let token = token {
 				return AnyDisposable { [weak self] in
@@ -245,37 +179,22 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// - parameters:
 		///   - token: The token of the observer to remove.
 		private func removeObserver(with token: Bag<Observer>.Token) {
-			updateLock.lock()
+			stateLock.lock()
 
-			if case let .alive(state) = state {
-				var observers = state.observers
-				let observer = observers.remove(using: token)
-				state.observers = observers
+			if case let .alive(observers, hasDeinitialized) = state {
+				var newObservers = observers
+				let observer = newObservers.remove(using: token)
+				self.state = .alive(newObservers, hasDeinitialized: hasDeinitialized)
 
-				var result = OperationResult.none
-
-				// Ensure `observer` is deallocated after `updateLock` is
+				// Ensure `observer` is deallocated after `stateLock` is
 				// released to avoid deadlocks.
 				withExtendedLifetime(observer) {
 					// Start the disposal of the `Signal` core if the `Signal` has
 					// deinitialized and there is no active observer.
-					result = tryToDisposeSilentlyIfQualified()
-
-					updateLock.unlock()
-				}
-
-				if result == .shouldTryCommitTermination {
-					result = tryToCommitTermination()
-				}
-
-				if result == .shouldDispose {
-					// Disposing of `disposable` is assumed to remove the generator
-					// observer from its attached `Signal`, so that the generator observer
-					// as the last +1 retain of the `Signal` core may deinitialize.
-					disposable.dispose()
+					tryToDisposeSilentlyIfQualified(unlocking: stateLock)
 				}
 			} else {
-				updateLock.unlock()
+				stateLock.unlock()
 			}
 		}
 
@@ -285,51 +204,32 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// It fails gracefully if the signal is alive or has terminated. Calling this
 		/// method as a result of a false positive `terminating` check is permitted.
 		///
-		/// - precondition: `updateLock` must not be acquired by the caller.
-		///
-		/// - parameters:
-		///   - sendLock: `sendLock` if the caller has acquired it. If not specified,
-		///               `tryTerminate` would attempt to acquire the `sendLock`.
-		///
-		/// - returns: `.shouldDispose` if the attempt succeeds. `.none` otherwise.
-		private func tryToCommitTermination(acquired sendLock: Lock? = nil) -> OperationResult {
-			assert(sendLock == nil || sendLock === self.sendLock,
-			       "`tryTerminate` receives a lock that is not the `sendLock` of the signal.")
-			func commit() -> OperationResult {
-				// Acquire `updateLock`. If the termination has still not yet been
-				// handled, take it over and bump the status to `terminated`.
-				self.updateLock.lock()
+		/// - precondition: `stateLock` must not be acquired by the caller.
+		private func tryToCommitTermination() {
+			// Acquire `stateLock`. If the termination has still not yet been
+			// handled, take it over and bump the status to `terminated`.
+			stateLock.lock()
 
-				if case let .terminating(state) = self.state {
-					self.state = .terminated
-					self.updateLock.unlock()
+			if case let .terminating(observers, terminationKind) = state {
+				// Try to acquire the `sendLock`, and fail gracefully since the current
+				// lock holder would attempt to commit after it is done anyway.
+				if sendLock.try() {
+					state = .terminated
+					stateLock.unlock()
 
-					if let event = state.event {
-						for observer in state.observers {
+					if let event = terminationKind.materialize() {
+						for observer in observers {
 							observer.action(event)
 						}
 					}
 
-					return .shouldDispose
+					sendLock.unlock()
+					disposable.dispose()
+					return
 				}
-
-				self.updateLock.unlock()
-				return .none
 			}
 
-			// If the caller declares prior acquisition of `sendLock`, go straight to
-			// the termination committing routine.
-			guard sendLock == nil else {
-				return commit()
-			}
-
-			guard self.sendLock.try() else {
-				// The current sender would commit the termination anyway.
-				return .none
-			}
-
-			defer { self.sendLock.unlock() }
-			return commit()
+			stateLock.unlock()
 		}
 
 		/// Try to dispose of the signal silently if the `Signal` has deinitialized and
@@ -338,50 +238,46 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// It fails gracefully if the signal is terminating or terminated, has one or
 		/// more observers, or has not deinitialized.
 		///
-		/// - precondition: `updateLock` must have been acquired by the caller.
+		/// - precondition: `stateLock` must have been acquired by the caller.
 		///
-		/// - returns: `.shouldDispose` if the signal has terminated immediately.
-		///            `.shouldTryCommitTermination` if the signal has transitioned to
-		///            `terminating` state, and the caller should try to commit the
-		///            termination with `tryToCommitTermination`. `.none` otherwise.
-		private func tryToDisposeSilentlyIfQualified() -> OperationResult {
-			assert(!updateLock.try(), "Calling `unconditionallyTerminate` without acquiring `updateLock`.")
+		/// - parameters:
+		///   - stateLock: The `stateLock` acquired by the caller.
+		private func tryToDisposeSilentlyIfQualified(unlocking stateLock: Lock) {
+			assert(!stateLock.try(), "Calling `unconditionallyTerminate` without acquiring `stateLock`.")
 
-			if hasDeinitialized, case let .alive(state) = state, state.observers.isEmpty {
+			if case let .alive(observers, true) = state, observers.isEmpty {
 				// Transition to `terminated` directly only if there is no event delivery
 				// on going.
 				if sendLock.try() {
-					defer { sendLock.unlock() }
 					self.state = .terminated
-					return .shouldDispose
+					stateLock.unlock()
+					sendLock.unlock()
+
+					disposable.dispose()
+					return
 				}
 
-				self.state = .terminating(TerminatingState(observers: Bag(), event: nil))
-				return .shouldTryCommitTermination
+				self.state = .terminating(Bag(), .silent)
+				stateLock.unlock()
+
+				tryToCommitTermination()
+				return
 			}
 
-			return .none
+			stateLock.unlock()
 		}
 
 		/// Acknowledge the deinitialization of the `Signal`.
 		fileprivate func signalDidDeinitialize() {
-			updateLock.lock()
+			stateLock.lock()
 
 			// Mark the `Signal` has now deinitialized.
-			hasDeinitialized = true
+			if case let .alive(observers, false) = state {
+				state = .alive(observers, hasDeinitialized: true)
+			}
 
 			// Attempt to start the disposal of the signal if it has no active observer.
-			var result = tryToDisposeSilentlyIfQualified()
-
-			updateLock.unlock()
-
-			if result == .shouldTryCommitTermination {
-				result = tryToCommitTermination()
-			}
-
-			if result == .shouldDispose {
-				disposable.dispose()
-			}
+			tryToDisposeSilentlyIfQualified(unlocking: stateLock)
 		}
 
 		deinit {
@@ -430,61 +326,61 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// The Swift compiler has also an optimization for enums with payloads that are
 	/// all reference counted, and at most one no-payload case.
 	private enum State {
+		// `TerminationKind` is constantly pointer-size large to keep `Signal.Core`
+		// allocation size independent of the actual `Value` and `Error` types.
+		enum TerminationKind {
+			case completed
+			case interrupted
+			case failed(Swift.Error)
+			case silent
+
+			init(_ event: Event) {
+				switch event {
+				case .value:
+					fatalError()
+				case .interrupted:
+					self = .interrupted
+				case let .failed(error):
+					self = .failed(error)
+				case .completed:
+					self = .completed
+				}
+			}
+
+			func materialize() -> Event? {
+				switch self {
+				case .completed:
+					return .completed
+				case .interrupted:
+					return .interrupted
+				case let .failed(error):
+					return .failed(error as! Error)
+				case .silent:
+					return nil
+				}
+			}
+		}
+
 		/// The `Signal` is alive.
-		case alive(AliveState)
+		case alive(Bag<Observer>, hasDeinitialized: Bool)
 
 		/// The `Signal` has received a termination event, and is about to be
 		/// terminated.
-		case terminating(TerminatingState)
+		case terminating(Bag<Observer>, TerminationKind)
 
 		/// The `Signal` has terminated.
 		case terminated
-	}
-
-	// As the amount of state would definitely span over a cache line,
-	// `AliveState` and `TerminatingState` is set to be a reference type so
-	// that we can atomically update the reference instead.
-
-	/// The state of a `Signal` that is alive. It contains a bag of observers and
-	/// an optional self-retaining reference.
-	private final class AliveState {
-		/// The observers of the `Signal`.
-		///
-		/// - note: Since `Bag` is a copy-on-write collection, writes can be done safety
-		///         as long as `updateLock` is acquired.
-		fileprivate var observers: Bag<Observer>
-
-		/// Create an alive state.
-		init() {
-			self.observers = Bag()
-		}
-	}
-
-	/// The state of a terminating `Signal`. It contains a bag of observers and the
-	/// termination event.
-	private final class TerminatingState {
-		/// The observers of the `Signal`.
-		fileprivate let observers: Bag<Observer>
-
-		///  The termination event.
-		fileprivate let event: Event?
-
-		/// Create a terminating state.
-		///
-		/// - parameters:
-		///   - observers: The latest bag of observers.
-		///   - event: The termination event.
-		init(observers: Bag<Observer>, event: Event?) {
-			self.observers = observers
-			self.event = event
-		}
 	}
 }
 
 extension Signal {
 	/// A Signal that never sends any events to its observers.
 	public static var never: Signal {
-		return self.init { _ in nil }
+		return self.init { observer in
+			// If `observer` deinitializes, the `Signal` would interrupt which is
+			// undesirable for `Signal.never`.
+			return AnyDisposable { _ = observer }
+		}
 	}
 
 	/// A Signal that completes immediately without emitting any value.
@@ -587,7 +483,7 @@ extension Signal {
 	public func observeCompleted(_ action: @escaping () -> Void) -> Disposable? {
 		return observe(Observer(completed: action))
 	}
-	
+
 	/// Observe `self` for its failure.
 	///
 	/// - parameters:
@@ -600,7 +496,7 @@ extension Signal {
 	public func observeFailed(_ action: @escaping (Error) -> Void) -> Disposable? {
 		return observe(Observer(failed: action))
 	}
-	
+
 	/// Observe `self` for its interruption.
 	///
 	/// - note: If `self` has terminated, the closure would be invoked immediately.
@@ -716,7 +612,7 @@ extension Signal {
 			}
 		}
 	}
-	
+
 	/// Applies `transform` to values from `signal` and forwards values with non `nil` results unwrapped.
 	/// - parameters:
 	///   - transform: A closure that accepts a value from the `value` event and
@@ -834,7 +730,7 @@ extension Signal {
 	/// - returns: A signal that will yield an array of values when `self`
 	///            completes.
 	public func collect() -> Signal<[Value], Error> {
-		return collect { _,_ in false }
+		return collect { _, _ in false }
 	}
 
 	/// Collect at most `count` values from `self`, forward them as a single
@@ -1168,7 +1064,9 @@ extension Signal {
 		return Signal { observer in
 			let disposable = CompositeDisposable()
 
-			_ = disposed.map(disposable.add)
+			if let action = disposed {
+				disposable.add(action)
+			}
 
 			disposable += self.observe { receivedEvent in
 				event?(receivedEvent)
@@ -1200,7 +1098,7 @@ extension Signal {
 }
 
 private struct SampleState<Value> {
-	var latestValue: Value? = nil
+	var latestValue: Value?
 	var isSignalCompleted: Bool = false
 	var isSamplerCompleted: Bool = false
 }
@@ -1240,7 +1138,7 @@ extension Signal {
 						$0.isSignalCompleted = true
 						return $0.isSamplerCompleted
 					}
-					
+
 					if shouldComplete {
 						observer.sendCompleted()
 					}
@@ -1249,7 +1147,7 @@ extension Signal {
 					observer.sendInterrupted()
 				}
 			}
-			
+
 			disposable += sampler.observe { event in
 				switch event {
 				case .value(let samplerValue):
@@ -1262,7 +1160,7 @@ extension Signal {
 						$0.isSamplerCompleted = true
 						return $0.isSignalCompleted
 					}
-					
+
 					if shouldComplete {
 						observer.sendCompleted()
 					}
@@ -1278,7 +1176,7 @@ extension Signal {
 			return disposable
 		}
 	}
-	
+
 	/// Forward the latest value from `self` whenever `sampler` sends a `value`
 	/// event.
 	///
@@ -1427,17 +1325,17 @@ extension Signal {
 	public func skip(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
 		return Signal { observer in
 			let disposable = SerialDisposable()
-			
+
 			disposable.inner = trigger.observe { event in
 				switch event {
 				case .value, .completed:
 					disposable.inner = self.observe(observer)
-					
+
 				case .failed, .interrupted:
 					break
 				}
 			}
-			
+
 			return disposable
 		}
 	}
@@ -1454,11 +1352,47 @@ extension Signal {
 	/// - returns: A signal that sends tuples that contain previous and current
 	///            sent values of `self`.
 	public func combinePrevious(_ initial: Value) -> Signal<(Value, Value), Error> {
-		return scan((initial, initial)) { previousCombinedValues, newValue in
-			return (previousCombinedValues.1, newValue)
-		}
+		return combinePrevious(initial: initial)
 	}
 
+	/// Forward events from `self` with history: values of the returned signal
+	/// are a tuples whose first member is the previous value and whose second member
+	/// is the current value.
+	///
+	/// The returned `Signal` would not emit any tuple until it has received at least two
+	/// values.
+	///
+	/// - returns: A signal that sends tuples that contain previous and current
+	///            sent values of `self`.
+	public func combinePrevious() -> Signal<(Value, Value), Error> {
+		return combinePrevious(initial: nil)
+	}
+
+	/// Implementation detail of `combinePrevious`. A default argument of a `nil` initial
+	/// is deliberately avoided, since in the case of `Value` being an optional, the
+	/// `nil` literal would be materialized as `Optional<Value>.none` instead of `Value`,
+	/// thus changing the semantic.
+	private func combinePrevious(initial: Value?) -> Signal<(Value, Value), Error> {
+		return Signal<(Value, Value), Error> { observer in
+			var previous = initial
+
+			return self.observe { event in
+				switch event {
+				case let .value(value):
+					if let previous = previous {
+						observer.send(value: (previous, value))
+					}
+					previous = value
+				case .completed:
+					observer.sendCompleted()
+				case let .failed(error):
+					observer.send(error: error)
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
+		}
+	}
 
 	/// Combine all values from `self`, and forward only the final accumuated result.
 	///
@@ -1682,13 +1616,13 @@ extension Signal {
 					while (buffer.count + 1) > count {
 						buffer.remove(at: 0)
 					}
-					
+
 					buffer.append(value)
 				case let .failed(error):
 					observer.send(error: error)
 				case .completed:
 					buffer.forEach(observer.send(value:))
-					
+
 					observer.sendCompleted()
 				case .interrupted:
 					observer.sendInterrupted()
@@ -1729,7 +1663,7 @@ extension Signal {
 	public func zip<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal.zip(self, other)
 	}
-	
+
 	/// Forward the latest value on `scheduler` after at least `interval`
 	/// seconds have passed since *the returned signal* last sent a value.
 	///
@@ -1808,7 +1742,7 @@ extension Signal {
 						}
 						return state.pendingValue
 					}
-					
+
 					if let pendingValue = pendingValue {
 						observer.send(value: pendingValue)
 					}
@@ -1908,7 +1842,7 @@ extension Signal {
 			return disposable
 		}
 	}
-	
+
 	/// Forward the latest value on `scheduler` after at least `interval`
 	/// seconds have passed since `self` last sent a value.
 	///
@@ -1939,7 +1873,7 @@ extension Signal {
 		precondition(interval >= 0)
 
 		let d = SerialDisposable()
-		
+
 		return Signal { observer in
 			return self.observe { event in
 				switch event {
@@ -1974,7 +1908,7 @@ extension Signal {
 	public func uniqueValues<Identity: Hashable>(_ transform: @escaping (Value) -> Identity) -> Signal<Value, Error> {
 		return Signal { observer in
 			var seenValues: Set<Identity> = []
-			
+
 			return self
 				.observe { event in
 					switch event {
@@ -1984,7 +1918,7 @@ extension Signal {
 						if inserted {
 							fallthrough
 						}
-						
+
 					case .failed, .completed, .interrupted:
 						observer.action(event)
 					}
@@ -2008,8 +1942,8 @@ extension Signal where Value: Hashable {
 }
 
 private struct ThrottleState<Value> {
-	var previousDate: Date? = nil
-	var pendingValue: Value? = nil
+	var previousDate: Date?
+	var pendingValue: Value?
 }
 
 private enum ThrottleWhileState<Value> {
@@ -2027,42 +1961,48 @@ private enum ThrottleWhileState<Value> {
 	}
 }
 
-private protocol SignalAggregateStrategy {
+private protocol SignalAggregateStrategy: class {
 	/// Update the latest value of the signal at `position` to be `value`.
 	///
 	/// - parameters:
 	///   - value: The latest value emitted by the signal at `position`.
 	///   - position: The position of the signal.
-	///
-	/// - returns: `true` if the aggregating signal should terminate as a result of the
-	///            update. `false` otherwise.
-	mutating func update(_ value: Any, at position: Int) -> Bool
+	func update(_ value: Any, at position: Int)
 
 	/// Record the completion of the signal at `position`.
 	///
 	/// - parameters:
 	///   - position: The position of the signal.
-	///
-	/// - returns: `true` if the aggregating signal should terminate as a result of the
-	///            completion. `false` otherwise.
-	mutating func complete(at position: Int) -> Bool
+	func complete(at position: Int)
 
-	init(count: Int, action: @escaping (ContiguousArray<Any>) -> Void)
+	init(count: Int, action: @escaping (AggregateStrategyEvent) -> Void)
+}
+
+private enum AggregateStrategyEvent {
+	case value(ContiguousArray<Any>)
+	case completed
 }
 
 extension Signal {
-	private struct CombineLatestStrategy: SignalAggregateStrategy {
+	// Threading of `CombineLatestStrategy` and `ZipStrategy`.
+	//
+	// The threading models of these strategies mirror that of `Signal.Core` to allow
+	// recursive termial event from the upstreams that is triggered by the combined
+	// values.
+	//
+	// The strategies do not unique the delivery of `completed`, since `Signal` already
+	// guarantees that no event would ever be delivered after a terminal event.
+
+	private final class CombineLatestStrategy: SignalAggregateStrategy {
 		private enum Placeholder {
 			case none
 		}
 
-		private var values: ContiguousArray<Any>
-		private var completionCount: Int
-		private let action: (ContiguousArray<Any>) -> Void
+		var values: ContiguousArray<Any>
 
 		private var _haveAllSentInitial: Bool
 		private var haveAllSentInitial: Bool {
-			mutating get {
+			get {
 				if _haveAllSentInitial {
 					return true
 				}
@@ -2072,47 +2012,74 @@ extension Signal {
 			}
 		}
 
-		mutating func update(_ value: Any, at position: Int) -> Bool {
+		private let count: Int
+		private let lock: Lock
+
+		private let completion: Atomic<Int>
+		private let action: (AggregateStrategyEvent) -> Void
+
+		func update(_ value: Any, at position: Int) {
+			lock.lock()
 			values[position] = value
 
 			if haveAllSentInitial {
-				action(values)
+				action(.value(values))
 			}
 
-			return false
+			lock.unlock()
+
+			if completion.value == self.count, lock.try() {
+				action(.completed)
+				lock.unlock()
+			}
 		}
 
-		mutating func complete(at position: Int) -> Bool {
-			completionCount += 1
-			return completionCount == values.count
+		func complete(at position: Int) {
+			let count: Int = completion.modify { count in
+				count += 1
+				return count
+			}
+
+			if count == self.count, lock.try() {
+				action(.completed)
+				lock.unlock()
+			}
 		}
 
-		init(count: Int, action: @escaping (ContiguousArray<Any>) -> Void) {
-			values = ContiguousArray(repeating: Placeholder.none, count: count)
-			completionCount = 0
-			_haveAllSentInitial = false
+		init(count: Int, action: @escaping (AggregateStrategyEvent) -> Void) {
+			self.count = count
+			self.lock = Lock.make()
+			self.values = ContiguousArray(repeating: Placeholder.none, count: count)
+			self._haveAllSentInitial = false
+			self.completion = Atomic(0)
 			self.action = action
 		}
 	}
 
-	private struct ZipStrategy: SignalAggregateStrategy {
+	private final class ZipStrategy: SignalAggregateStrategy {
+		private let stateLock: Lock
+		private let sendLock: Lock
+
 		private var values: ContiguousArray<[Any]>
+		private var canEmit: Bool {
+			return values.reduce(true) { $0 && !$1.isEmpty }
+		}
+
+		private var hasConcurrentlyCompleted: Bool
 		private var isCompleted: ContiguousArray<Bool>
-		private let action: (ContiguousArray<Any>) -> Void
 
 		private var hasCompletedAndEmptiedSignal: Bool {
 			return Swift.zip(values, isCompleted).contains(where: { $0.0.isEmpty && $0.1 })
-		}
-
-		private var canEmit: Bool {
-			return values.reduce(true) { $0 && !$1.isEmpty }
 		}
 
 		private var areAllCompleted: Bool {
 			return isCompleted.reduce(true) { $0 && $1 }
 		}
 
-		mutating func update(_ value: Any, at position: Int) -> Bool {
+		private let action: (AggregateStrategyEvent) -> Void
+
+		func update(_ value: Any, at position: Int) {
+			stateLock.lock()
 			values[position].append(value)
 
 			if canEmit {
@@ -2123,33 +2090,61 @@ extension Signal {
 					buffer.append(values[index].removeFirst())
 				}
 
-				action(buffer)
+				let shouldComplete = areAllCompleted || hasCompletedAndEmptiedSignal
+				sendLock.lock()
+				stateLock.unlock()
 
-				if hasCompletedAndEmptiedSignal {
-					return true
+				action(.value(buffer))
+
+				if shouldComplete {
+					action(.completed)
+				}
+
+				sendLock.unlock()
+
+				stateLock.lock()
+
+				if hasConcurrentlyCompleted {
+					sendLock.lock()
+					action(.completed)
+					sendLock.unlock()
 				}
 			}
 
-			return false
+			stateLock.unlock()
 		}
 
-		mutating func complete(at position: Int) -> Bool {
+		func complete(at position: Int) {
+			stateLock.lock()
 			isCompleted[position] = true
 
-			// `zip` completes when all signals has completed, or any of the signals
-			// has completed without any buffered value.
-			return hasCompletedAndEmptiedSignal || areAllCompleted
+			if hasConcurrentlyCompleted || areAllCompleted || hasCompletedAndEmptiedSignal {
+				if sendLock.try() {
+					stateLock.unlock()
+
+					action(.completed)
+					sendLock.unlock()
+					return
+				}
+
+				hasConcurrentlyCompleted = true
+			}
+
+			stateLock.unlock()
 		}
 
-		init(count: Int, action: @escaping (ContiguousArray<Any>) -> Void) {
-			values = ContiguousArray(repeating: [], count: count)
-			isCompleted = ContiguousArray(repeating: false, count: count)
+		init(count: Int, action: @escaping (AggregateStrategyEvent) -> Void) {
+			self.values = ContiguousArray(repeating: [], count: count)
+			self.hasConcurrentlyCompleted = false
+			self.isCompleted = ContiguousArray(repeating: false, count: count)
 			self.action = action
+			self.sendLock = Lock.make()
+			self.stateLock = Lock.make()
 		}
 	}
 
 	private final class AggregateBuilder<Strategy: SignalAggregateStrategy> {
-		fileprivate var startHandlers: [(_ index: Int, _ strategy: Atomic<Strategy>, _ action: @escaping (Signal<Never, Error>.Event) -> Void) -> Disposable?]
+		fileprivate var startHandlers: [(_ index: Int, _ strategy: Strategy, _ action: @escaping (Signal<Never, Error>.Event) -> Void) -> Disposable?]
 
 		init() {
 			self.startHandlers = []
@@ -2161,22 +2156,10 @@ extension Signal {
 				return signal.observe { event in
 					switch event {
 					case let .value(value):
-						let shouldComplete = strategy.modify {
-							return $0.update(value, at: index)
-						}
-
-						if shouldComplete {
-							action(.completed)
-						}
+						strategy.update(value, at: index)
 
 					case .completed:
-						let shouldComplete = strategy.modify {
-							return $0.complete(at: index)
-						}
-
-						if shouldComplete {
-							action(.completed)
-						}
+						strategy.complete(at: index)
 
 					case .interrupted:
 						action(.interrupted)
@@ -2194,17 +2177,20 @@ extension Signal {
 	private convenience init<Strategy: SignalAggregateStrategy>(_ builder: AggregateBuilder<Strategy>, _ transform: @escaping (ContiguousArray<Any>) -> Value) {
 		self.init { observer in
 			let disposables = CompositeDisposable()
-			let strategy = Atomic(Strategy(count: builder.startHandlers.count) { observer.send(value: transform($0)) })
+			let strategy = Strategy(count: builder.startHandlers.count) { event in
+				switch event {
+				case let .value(value):
+					observer.send(value: transform(value))
+				case .completed:
+					observer.sendCompleted()
+				}
+			}
 
 			for (index, action) in builder.startHandlers.enumerated() where !disposables.isDisposed {
 				disposables += action(index, strategy) { observer.action($0.map { _ in fatalError() }) }
 			}
 
-			return AnyDisposable {
-				strategy.modify { _ in
-					disposables.dispose()
-				}
-			}
+			return disposables
 		}
 	}
 
@@ -2533,7 +2519,7 @@ extension Signal where Value == Bool {
 	public func negate() -> Signal<Value, Error> {
 		return self.map(!)
 	}
-	
+
 	/// Create a signal that computes a logical AND between the latest values of `self`
 	/// and `signal`.
 	///
@@ -2544,7 +2530,7 @@ extension Signal where Value == Bool {
 	public func and(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
 		return self.combineLatest(with: signal).map { $0.0 && $0.1 }
 	}
-	
+
 	/// Create a signal that computes a logical OR between the latest values of `self`
 	/// and `signal`.
 	///

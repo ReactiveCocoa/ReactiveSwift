@@ -1,6 +1,37 @@
 # master
 *Please add new entries at the top.*
 
+1. New method ``retry(upTo:interval:on:)``. This delays retrying on failure by `interval` until hitting the `upTo` limitation.
+
+
+# 2.0.0
+# 2.0.0-rc.3
+1. `Lifetime.+=` which ties a `Disposable` to a `Lifetime`, is now part of the public API and is no longer deprecated.
+
+1. Feedbacks from `isEnabled` to the state of the same `Action` no longer deadlocks if it does not constitute an infinite feedback loop. (#481, kudos to @andersio)
+
+   Note that `isExecuting` already supports `Action` state feedback, and legitimate feedback loops would still deadlock.
+
+# 2.0.0-rc.2
+1. Fixed a deadlock upon disposal when combining operators, i.e. `zip` and `combineLatest`, are used. (#471, kudos to @stevebrambilla for catching the bug)
+
+# 2.0.0-rc.1
+1. If the input observer of a `Signal` deinitializes while the `Signal` has not yet terminated, an `interrupted` event would now be automatically sent. (#463, kudos to @andersio)
+
+1. `ValidationResult` and `ValidatorOutput` have been renamed to `ValidatingProperty.Result` and `ValidatingProperty.Decision`, respectively. (#443)
+
+1. Mitigated a race condition related to ARC in the `Signal` internal. (#456, kudos to @andersio)
+
+1. Added new convenience initialisers to `Action` that make creating actions with state input properties easier. When creating an `Action` that is conditionally enabled based on an optional property, use the renamed `Action.init(unwrapping:execute:)` initialisers. (#455, kudos to @sharplet)
+
+# 2.0.0-alpha.3
+1. `combinePrevious` for `Signal` and `SignalProducer` no longer requires an initial value. The first tuple would be emitted as soon as the second value is received by the operator if no initial value is given. (#445, kudos to @andersio)
+
+1. Fixed an impedance mismatch in the `Signal` internals that caused heap corruptions. (#449, kudos to @gparker42)
+
+1. In Swift 3.2 or later, you may create `BindingTarget` for a key path of a specific object. (#440, kudos to @andersio)
+
+# 2.0.0-alpha.2
 1. In Swift 3.2 or later, you can use `map()` with the new Smart Key Paths. (#435, kudos to @sharplet)
 
 1. When composing `Signal` and `SignalProducer` of inhabitable types, e.g. `Never` or `NoError`, ReactiveSwift now warns about operators that are illogical to use, and traps at runtime when such operators attempt to instantiate an instance. (#429, kudos to @andersio)

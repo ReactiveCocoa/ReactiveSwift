@@ -25,7 +25,7 @@ A `Signal` may have any arbitrary number of events carrying a value, following b
 
 It is like a frame in a one-time live feed — seas of data frames carry the visual and audio data, but the feed would eventually be terminated with a special frame to indicate "end of stream".
 
-*See also: [The `Event` overview](FrameworkOverview.md#events), [The `Signal` contract](APIContracts.md#the-event-contract), [The `Event` API reference](http://reactivecocoa.io/reactiveswift/docs/latest/Enums/Event.html)*
+*See also: [The `Event` overview](FrameworkOverview.md#events), [The `Event` contract](APIContracts.md#the-event-contract), [The `Event` API reference](http://reactivecocoa.io/reactiveswift/docs/latest/Classes/Signal/Event.html)*
 
 #### `SignalProducer`: deferred work that creates a stream of values.
 `SignalProducer` defers work — of which the output is represented as a stream of values — until it is started. For every invocation to start the `SignalProducer`, a new `Signal` is created and the deferred work is subsequently invoked.
