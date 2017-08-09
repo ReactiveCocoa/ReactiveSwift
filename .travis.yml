@@ -96,7 +96,7 @@ jobs:
         submodules: false
       env:
         - JOB=SWIFT_4
-        - SWIFT_VERSION=DEVELOPMENT-SNAPSHOT-2017-07-13-a
+        - SWIFT_VERSION=4.0-DEVELOPMENT-SNAPSHOT-2017-08-04-a
     - os: linux
       language: generic
       sudo: required
@@ -124,7 +124,7 @@ jobs:
         submodules: false
       env: 
         - JOB=SWIFTPM_SWIFT_4_LINUX
-        - SWIFT_VERSION=DEVELOPMENT-SNAPSHOT-2017-07-13-a
+        - SWIFT_VERSION=4.0-DEVELOPMENT-SNAPSHOT-2017-08-04-a
     - stage: prepare carthage cache
       script: carthage build --cache-builds
     - stage: carthage
