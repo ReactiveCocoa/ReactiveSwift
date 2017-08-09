@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. The `SignalProducer` internals have undergone a significant refactoring, which bootstraps the effort to reduce the overhead of constant producers and producer compositions. (#487, kudos to @andersio)
+
 1. New method ``retry(upTo:interval:on:)``. This delays retrying on failure by `interval` until hitting the `upTo` limitation.
 
 
