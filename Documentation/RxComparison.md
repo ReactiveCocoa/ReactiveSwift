@@ -78,11 +78,11 @@ Unlike ReactiveUI, which unfortunately cannot directly change Rx to make it more
 friendly for UI programming, **ReactiveSwift has been improved many times
 specifically for this purpose**—even when it means diverging further from Rx.
 
-[Actions]: Documentation/FrameworkOverview.md#actions
-[Events]: Documentation/FrameworkOverview.md#events
-[Schedulers]: Documentation/FrameworkOverview.md#schedulers
-[SignalProducer]: Documentation/FrameworkOverview.md#signal-producers
-[Signal]: Documentation/FrameworkOverview.md#signals
+[Actions]: FrameworkOverview.md#actions
+[Events]: FrameworkOverview.md#events
+[Schedulers]: FrameworkOverview.md#schedulers
+[SignalProducer]: FrameworkOverview.md#signal-producers
+[Signal]: FrameworkOverview.md#signals
 [functional reactive programming]: https://en.wikipedia.org/wiki/Functional_reactive_programming
 [ReactiveX]: https://reactivex.io/
 [RxSwift]: https://github.com/ReactiveX/RxSwift/#readme

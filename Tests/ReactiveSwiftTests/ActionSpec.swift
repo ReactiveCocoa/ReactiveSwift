@@ -62,19 +62,19 @@ class ActionSpec: QuickSpec {
 			it("should retain the state property") {
 				var property: MutableProperty<Bool>? = MutableProperty(false)
 				weak var weakProperty = property
-				
+
 				var action: Action<(), (), NoError>? = Action(state: property!, enabledIf: { _ in true }) { _, _ in
 					return .empty
 				}
-				
+
 				expect(weakProperty).toNot(beNil())
-				
+
 				property = nil
 				expect(weakProperty).toNot(beNil())
-				
+
 				action = nil
 				expect(weakProperty).to(beNil())
-				
+
 				// Mute "unused variable" warning.
 				_ = action
 			}

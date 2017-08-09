@@ -256,7 +256,7 @@ public final class Atomic<Value> {
 
 		return try action(&_value)
 	}
-	
+
 	/// Atomically perform an arbitrary action using the current value of the
 	/// variable.
 	///

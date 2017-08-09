@@ -377,7 +377,7 @@ extension PropertyProtocol where Value == Bool {
 	public func negate() -> Property<Value> {
 		return self.lift { $0.negate() }
 	}
-	
+
 	/// Create a property that computes a logical AND between the latest values of `self`
 	/// and `property`.
 	///
@@ -388,7 +388,7 @@ extension PropertyProtocol where Value == Bool {
 	public func and<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.and)(property)
 	}
-	
+
 	/// Create a property that computes a logical OR between the latest values of `self`
 	/// and `property`.
 	///
