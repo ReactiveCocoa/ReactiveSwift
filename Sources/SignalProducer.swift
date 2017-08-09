@@ -178,7 +178,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			}
 		})
 	}
-	
+
 	/// Creates a producer for a Signal that will immediately send the values
 	/// from the given sequence, then complete.
 	///
@@ -458,7 +458,7 @@ extension SignalProducer {
 	public func startWithCompleted(_ action: @escaping () -> Void) -> Disposable {
 		return start(Signal.Observer(completed: action))
 	}
-	
+
 	/// Create a `Signal` from `self`, and observe its failure.
 	///
 	/// - parameters:
@@ -470,7 +470,7 @@ extension SignalProducer {
 	public func startWithFailed(_ action: @escaping (Error) -> Void) -> Disposable {
 		return start(Signal.Observer(failed: action))
 	}
-	
+
 	/// Create a `Signal` from `self`, and observe its interruption.
 	///
 	/// - parameters:
@@ -481,7 +481,7 @@ extension SignalProducer {
 	public func startWithInterrupted(_ action: @escaping () -> Void) -> Disposable {
 		return start(Signal.Observer(interrupted: action))
 	}
-	
+
 	/// Creates a `Signal` from the producer.
 	///
 	/// This is equivalent to `SignalProducer.startWithSignal`, but it has 
@@ -494,7 +494,7 @@ extension SignalProducer {
 		self.startWithSignal { signal, _ in
 			result = signal
 		}
-		
+
 		return result
 	}
 
@@ -796,7 +796,7 @@ extension SignalProducer {
 	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.filterMap(transform))
 	}
-	
+
 	/// Yield the first `count` values from the input producer.
 	///
 	/// - precondition: `count` must be non-negative number.
@@ -1699,7 +1699,7 @@ extension SignalProducer {
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
-	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value), Error> where A.Value == Value, A.Error == Error , B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error {
+	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> SignalProducer<(Value, B.Value, C.Value, D.Value, E.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error, C.Error == Error, D.Error == Error, E.Error == Error {
 		return .init { observer, lifetime in
 			flattenStart(lifetime, a.producer, b.producer, c.producer, d.producer, e.producer) { Signal.combineLatest($0, $1, $2, $3, $4).observe(observer) }
 		}
@@ -1931,6 +1931,40 @@ extension SignalProducer {
 		}
 	}
 
+	/// Delays retrying on failure by `interval` up to `count` attempts.
+	///
+	/// - precondition: `count` must be non-negative integer.
+	///
+	/// - parameters:
+	///   - count: Number of retries.
+	///   - interval: An interval between invocations.
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A signal producer that restarts up to `count` times.
+	public func retry(upTo count: Int, interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
+		precondition(count >= 0)
+		
+		if count == 0 {
+			return producer
+		}
+		
+		var retries = count
+		
+		return flatMapError { error in
+				// The final attempt shouldn't defer the error if it fails
+				var producer = SignalProducer<Value, Error>(error: error)
+				if retries > 0 {
+					producer = SignalProducer.empty
+						.delay(interval, on: scheduler)
+						.concat(producer)
+				}
+			
+				retries -= 1
+				return producer
+			}
+			.retry(upTo: count)
+	}
+	
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`. Any failure or interruption sent from `self` is
 	/// forwarded immediately, in which case `replacement` will not be started,
@@ -2206,7 +2240,7 @@ extension SignalProducer where Value == Bool {
 	public func negate() -> SignalProducer<Value, Error> {
 		return self.lift { $0.negate() }
 	}
-	
+
 	/// Create a producer that computes a logical AND between the latest values of `self`
 	/// and `producer`.
 	///

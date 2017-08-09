@@ -483,7 +483,7 @@ extension Signal {
 	public func observeCompleted(_ action: @escaping () -> Void) -> Disposable? {
 		return observe(Observer(completed: action))
 	}
-	
+
 	/// Observe `self` for its failure.
 	///
 	/// - parameters:
@@ -496,7 +496,7 @@ extension Signal {
 	public func observeFailed(_ action: @escaping (Error) -> Void) -> Disposable? {
 		return observe(Observer(failed: action))
 	}
-	
+
 	/// Observe `self` for its interruption.
 	///
 	/// - note: If `self` has terminated, the closure would be invoked immediately.
@@ -609,7 +609,7 @@ extension Signal {
 	public func filter(_ isIncluded: @escaping (Value) -> Bool) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.filter(isIncluded))
 	}
-	
+
 	/// Applies `transform` to values from `signal` and forwards values with non `nil` results unwrapped.
 	/// - parameters:
 	///   - transform: A closure that accepts a value from the `value` event and
@@ -712,7 +712,7 @@ extension Signal {
 	/// - returns: A signal that will yield an array of values when `self`
 	///            completes.
 	public func collect() -> Signal<[Value], Error> {
-		return collect { _,_ in false }
+		return collect { _, _ in false }
 	}
 
 	/// Collect at most `count` values from `self`, forward them as a single
@@ -1046,7 +1046,9 @@ extension Signal {
 		return Signal { observer in
 			let disposable = CompositeDisposable()
 
-			_ = disposed.map(disposable.add)
+			if let action = disposed {
+				disposable.add(action)
+			}
 
 			disposable += self.observe { receivedEvent in
 				event?(receivedEvent)
@@ -1078,7 +1080,7 @@ extension Signal {
 }
 
 private struct SampleState<Value> {
-	var latestValue: Value? = nil
+	var latestValue: Value?
 	var isSignalCompleted: Bool = false
 	var isSamplerCompleted: Bool = false
 }
@@ -1118,7 +1120,7 @@ extension Signal {
 						$0.isSignalCompleted = true
 						return $0.isSamplerCompleted
 					}
-					
+
 					if shouldComplete {
 						observer.sendCompleted()
 					}
@@ -1127,7 +1129,7 @@ extension Signal {
 					observer.sendInterrupted()
 				}
 			}
-			
+
 			disposable += sampler.observe { event in
 				switch event {
 				case .value(let samplerValue):
@@ -1140,7 +1142,7 @@ extension Signal {
 						$0.isSamplerCompleted = true
 						return $0.isSignalCompleted
 					}
-					
+
 					if shouldComplete {
 						observer.sendCompleted()
 					}
@@ -1156,7 +1158,7 @@ extension Signal {
 			return disposable
 		}
 	}
-	
+
 	/// Forward the latest value from `self` whenever `sampler` sends a `value`
 	/// event.
 	///
@@ -1305,17 +1307,17 @@ extension Signal {
 	public func skip(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
 		return Signal { observer in
 			let disposable = SerialDisposable()
-			
+
 			disposable.inner = trigger.observe { event in
 				switch event {
 				case .value, .completed:
 					disposable.inner = self.observe(observer)
-					
+
 				case .failed, .interrupted:
 					break
 				}
 			}
-			
+
 			return disposable
 		}
 	}
@@ -1596,13 +1598,13 @@ extension Signal {
 					while (buffer.count + 1) > count {
 						buffer.remove(at: 0)
 					}
-					
+
 					buffer.append(value)
 				case let .failed(error):
 					observer.send(error: error)
 				case .completed:
 					buffer.forEach(observer.send(value:))
-					
+
 					observer.sendCompleted()
 				case .interrupted:
 					observer.sendInterrupted()
@@ -1643,7 +1645,7 @@ extension Signal {
 	public func zip<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal.zip(self, other)
 	}
-	
+
 	/// Forward the latest value on `scheduler` after at least `interval`
 	/// seconds have passed since *the returned signal* last sent a value.
 	///
@@ -1722,7 +1724,7 @@ extension Signal {
 						}
 						return state.pendingValue
 					}
-					
+
 					if let pendingValue = pendingValue {
 						observer.send(value: pendingValue)
 					}
@@ -1822,7 +1824,7 @@ extension Signal {
 			return disposable
 		}
 	}
-	
+
 	/// Forward the latest value on `scheduler` after at least `interval`
 	/// seconds have passed since `self` last sent a value.
 	///
@@ -1853,7 +1855,7 @@ extension Signal {
 		precondition(interval >= 0)
 
 		let d = SerialDisposable()
-		
+
 		return Signal { observer in
 			return self.observe { event in
 				switch event {
@@ -1888,7 +1890,7 @@ extension Signal {
 	public func uniqueValues<Identity: Hashable>(_ transform: @escaping (Value) -> Identity) -> Signal<Value, Error> {
 		return Signal { observer in
 			var seenValues: Set<Identity> = []
-			
+
 			return self
 				.observe { event in
 					switch event {
@@ -1898,7 +1900,7 @@ extension Signal {
 						if inserted {
 							fallthrough
 						}
-						
+
 					case .failed, .completed, .interrupted:
 						observer.action(event)
 					}
@@ -1922,8 +1924,8 @@ extension Signal where Value: Hashable {
 }
 
 private struct ThrottleState<Value> {
-	var previousDate: Date? = nil
-	var pendingValue: Value? = nil
+	var previousDate: Date?
+	var pendingValue: Value?
 }
 
 private enum ThrottleWhileState<Value> {
@@ -2499,7 +2501,7 @@ extension Signal where Value == Bool {
 	public func negate() -> Signal<Value, Error> {
 		return self.map(!)
 	}
-	
+
 	/// Create a signal that computes a logical AND between the latest values of `self`
 	/// and `signal`.
 	///
@@ -2510,7 +2512,7 @@ extension Signal where Value == Bool {
 	public func and(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
 		return self.combineLatest(with: signal).map { $0.0 && $0.1 }
 	}
-	
+
 	/// Create a signal that computes a logical OR between the latest values of `self`
 	/// and `signal`.
 	///

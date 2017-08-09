@@ -393,7 +393,7 @@ extension SignalProducer {
 	public func concat(_ next: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return SignalProducer<SignalProducer<Value, Error>, Error>([ self.producer, next ]).flatten(.concat)
 	}
-	
+
 	/// `concat`s `value` onto `self`.
 	///
 	/// - parameters:
@@ -404,7 +404,7 @@ extension SignalProducer {
 	public func concat(value: Value) -> SignalProducer<Value, Error> {
 		return self.concat(SignalProducer(value: value))
 	}
-	
+
 	/// `concat`s `self` onto initial `previous`.
 	///
 	/// - parameters:
@@ -415,7 +415,7 @@ extension SignalProducer {
 	public func prefix(_ previous: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return previous.concat(self)
 	}
-	
+
 	/// `concat`s `self` onto initial `value`.
 	///
 	/// - parameters:
@@ -433,10 +433,10 @@ private final class ConcurrentFlattenState<Value, Error: Swift.Error> {
 
 	/// The limit of active producers.
 	let limit: UInt
-	
+
 	/// The number of active producers.
 	var activeCount: UInt = 0
-	
+
 	/// The producers waiting to be started.
 	var queue: [Producer] = []
 
@@ -451,7 +451,7 @@ private final class ConcurrentFlattenState<Value, Error: Swift.Error> {
 	init(limit: UInt) {
 		self.limit = limit
 	}
-	
+
 	/// Dequeue the next producer if one should be started.
 	///
 	/// - returns: The `Producer` to start or `nil` if no producer should be
@@ -489,7 +489,7 @@ extension Signal {
 			.flatten(.merge)
 			.startAndRetrieveSignal()
 	}
-	
+
 	/// Merges the given signals into a single `Signal` that will emit all
 	/// values from each of them, and complete when all of them have completed.
 	///
@@ -511,7 +511,7 @@ extension SignalProducer {
 	{
 		return SignalProducer<Seq.Iterator.Element, NoError>(producers).flatten(.merge)
 	}
-	
+
 	/// Merges the given producers into a single `SignalProducer` that will emit
 	/// all values from each of them, and complete when all of them have
 	/// completed.
@@ -645,7 +645,7 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 private struct LatestState<Value, Error: Swift.Error> {
 	var outerSignalComplete: Bool = false
 	var innerSignalComplete: Bool = true
-	
+
 	var replacingInnerSignal: Bool = false
 }
 
@@ -790,7 +790,7 @@ extension Signal {
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> Signal<Inner.Value, Error> where Inner.Error == Error {
 		return map(transform).flatten(strategy)
 	}
-	
+
 	/// Maps each event from `signal` to a new signal, then flattens the
 	/// resulting producers (into a signal of values), according to the
 	/// semantics of the given strategy.
@@ -822,7 +822,7 @@ extension Signal where Error == NoError {
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> Signal<Inner.Value, Inner.Error> {
 		return map(transform).flatten(strategy)
 	}
-	
+
 	/// Maps each event from `signal` to a new signal, then flattens the
 	/// resulting signals (into a signal of values), according to the
 	/// semantics of the given strategy.
@@ -851,7 +851,7 @@ extension SignalProducer {
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> SignalProducer<Inner.Value, Error> where Inner.Error == Error {
 		return map(transform).flatten(strategy)
 	}
-	
+
 	/// Maps each event from `self` to a new producer, then flattens the
 	/// resulting producers (into a producer of values), according to the
 	/// semantics of the given strategy.
@@ -880,7 +880,7 @@ extension SignalProducer where Error == NoError {
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> SignalProducer<Inner.Value, Error> where Inner.Error == Error {
 		return map(transform).flatten(strategy)
 	}
-	
+
 	/// Maps each event from `self` to a new producer, then flattens the
 	/// resulting producers (into a producer of values), according to the
 	/// semantics of the given strategy.
@@ -896,7 +896,6 @@ extension SignalProducer where Error == NoError {
 		return map(transform).flatten(strategy)
 	}
 }
-
 
 extension Signal {
 	/// Catches any failure that may occur on the input signal, mapping to a new
