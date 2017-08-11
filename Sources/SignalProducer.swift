@@ -357,6 +357,52 @@ private final class EventGeneratingCore<Value, Error: Swift.Error>: SignalProduc
 	}
 }
 
+extension SignalProducer where Error == NoError {
+	/// Creates a producer for a `Signal` that will immediately send one value
+	/// then complete.
+	///
+	/// - parameters:
+	///   - value: A value that should be sent by the `Signal` in a `value`
+	///            event.
+	public init(value: Value) {
+		self.init { observer, _ in
+			observer.send(value: value)
+			observer.sendCompleted()
+		}
+	}
+
+	/// Creates a producer for a Signal that will immediately send the values
+	/// from the given sequence, then complete.
+	///
+	/// - parameters:
+	///   - values: A sequence of values that a `Signal` will send as separate
+	///             `value` events and then complete.
+	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
+		self.init { observer, lifetime in
+			for value in values {
+				observer.send(value: value)
+
+				if lifetime.hasEnded {
+					break
+				}
+			}
+
+			observer.sendCompleted()
+		}
+	}
+
+	/// Creates a producer for a Signal that will immediately send the values
+	/// from the given sequence, then complete.
+	///
+	/// - parameters:
+	///   - first: First value for the `Signal` to send.
+	///   - second: Second value for the `Signal` to send.
+	///   - tail: Rest of the values to be sent by the `Signal`.
+	public init(values first: Value, _ second: Value, _ tail: Value...) {
+		self.init([ first, second ] + tail)
+	}
+}
+
 extension SignalProducer where Error == AnyError {
 	/// Create a `SignalProducer` that will attempt the given failable operation once for
 	/// each invocation of `start()`.
