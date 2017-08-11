@@ -1,8 +1,9 @@
 # master
 *Please add new entries at the top.*
 
-1. New method ``retry(upTo:interval:on:)``. This delays retrying on failure by `interval` until hitting the `upTo` limitation.
+1. Addressed the exceptionally high build time. (#495)
 
+1. New method ``retry(upTo:interval:on:)``. This delays retrying on failure by `interval` until hitting the `upTo` limitation.
 
 # 2.0.0
 # 2.0.0-rc.3
