@@ -400,7 +400,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should send a successful value then complete") {
 				let operationReturnValue = "OperationValue"
 
-				let signalProducer = SignalProducer { () throws -> String in
+				let signalProducer = SignalProducer<String, AnyError> { () throws -> String in
 					operationReturnValue
 				}
 
@@ -415,7 +415,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should send the error") {
 				let operationError = TestError.default
 
-				let signalProducer = SignalProducer { () throws -> String in
+				let signalProducer = SignalProducer<String, AnyError> { () throws -> String in
 					throw operationError
 				}
 
