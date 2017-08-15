@@ -23,7 +23,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// of:
 	///
 	/// 1. handling the single-observer `start`; and
-	/// 2. building `Signal`s on demand via its `make()` method, which produces a
+	/// 2. building `Signal`s on demand via its `makeInstance()` method, which produces a
 	///    `Signal` with the associated side effect and interrupt handle.
 	fileprivate let core: SignalProducerCore<Value, Error>
 
@@ -69,7 +69,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
 			let interruptHandle = AnyDisposable(observer.sendInterrupted)
 
-			return SignalProducerCore.ProducedSignalReceipt(signal: signal,
+			return SignalProducerCore.Instance(signal: signal,
 			                                                observerDidSetup: observerDidSetup,
 			                                                interruptHandle: interruptHandle)
 		})
@@ -90,7 +90,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - value: A value that should be sent by the `Signal` in a `value`
 	///            event.
 	public init(value: Value) {
-		self.init(EventGeneratingCore { observer, _ in
+		self.init(GeneratorCore { observer, _ in
 			observer.send(value: value)
 			observer.sendCompleted()
 		})
@@ -107,7 +107,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - action: A action that yields a value to be sent by the `Signal` as
 	///             a `value` event.
 	public init(_ action: @escaping () -> Value) {
-		self.init(EventGeneratingCore { observer, _ in
+		self.init(GeneratorCore { observer, _ in
 			observer.send(value: action())
 			observer.sendCompleted()
 		})
@@ -123,7 +123,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - action: A closure that returns instance of `Result`.
 	public init(_ action: @escaping () -> Result<Value, Error>) {
-		self.init(EventGeneratingCore { observer, _ in
+		self.init(GeneratorCore { observer, _ in
 			switch action() {
 			case let .success(value):
 				observer.send(value: value)
@@ -141,7 +141,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - error: An error that should be sent by the `Signal` in a `failed`
 	///            event.
 	public init(error: Error) {
-		self.init(EventGeneratingCore { observer, _ in observer.send(error: error) })
+		self.init(GeneratorCore { observer, _ in observer.send(error: error) })
 	}
 
 	/// Creates a producer for a Signal that will immediately send one value
@@ -168,7 +168,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
 	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
-		self.init(EventGeneratingCore(isDisposable: true) { observer, disposable in
+		self.init(GeneratorCore(isDisposable: true) { observer, disposable in
 			for value in values {
 				observer.send(value: value)
 
@@ -195,7 +195,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// A producer for a Signal that will immediately complete without sending
 	/// any values.
 	public static var empty: SignalProducer {
-		return SignalProducer(EventGeneratingCore { observer, _ in observer.sendCompleted() })
+		return SignalProducer(GeneratorCore { observer, _ in observer.sendCompleted() })
 	}
 
 	/// A producer for a Signal that never sends any events to its observers.
@@ -213,7 +213,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///            `Signal` commences. Both the produced `Signal` and an interrupt handle
 	///            of the signal would be passed to the closure.
 	public func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interruptHandle: Disposable) -> Void) {
-		let receipt = core.make()
+		let receipt = core.makeInstance()
 		setup(receipt.signal, receipt.interruptHandle)
 		guard !receipt.interruptHandle.isDisposed else { return }
 		receipt.observerDidSetup()
@@ -226,20 +226,20 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 /// instances of `Signal`s, the abstraction enables room of optimization for common
 /// compositional and single-observer use cases.
 internal class SignalProducerCore<Value, Error: Swift.Error> {
-	/// `ProducedSignalReceipt` represents an instance of `Signal` created from a
+	/// `Instance` represents an instance of `Signal` created from a
 	/// `SignalProducer`. In addition to the `Signal` itself, it includes also the
 	/// starting side effect and an interrupt handle for this particular instance.
 	///
-	/// It is the responsibility of the `ProducedSignalReceipt` consumer to ensure the
+	/// It is the responsibility of the `Instance` consumer to ensure the
 	/// starting side effect is invoked exactly once, and is invoked after observations
 	/// has properly setup.
-	struct ProducedSignalReceipt {
+	struct Instance {
 		let signal: Signal<Value, Error>
 		let observerDidSetup: () -> Void
 		let interruptHandle: Disposable
 	}
 
-	func make() -> ProducedSignalReceipt {
+	func makeInstance() -> Instance {
 		fatalError()
 	}
 
@@ -258,30 +258,30 @@ internal class SignalProducerCore<Value, Error: Swift.Error> {
 	///
 	/// - returns: A producer that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
-		return SignalProducer<U, E>(EventTransformingCore(source: self, transform: transform))
+		return SignalProducer<U, E>(TransformerCore(source: self, transform: transform))
 	}
 }
 
 private final class SignalCore<Value, Error: Swift.Error>: SignalProducerCore<Value, Error> {
-	private let _make: () -> ProducedSignalReceipt
+	private let _make: () -> Instance
 
-	init(_ action: @escaping () -> ProducedSignalReceipt) {
+	init(_ action: @escaping () -> Instance) {
 		self._make = action
 	}
 
 	override func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
-		let instance = make()
+		let instance = makeInstance()
 		instance.signal.observe(observer)
 		instance.observerDidSetup()
 		return instance.interruptHandle
 	}
 
-	override func make() -> ProducedSignalReceipt {
+	override func makeInstance() -> Instance {
 		return _make()
 	}
 }
 
-/// `EventTransformingCore` composes event transforms, and is intended to back synchronous
+/// `TransformerCore` composes event transforms, and is intended to back synchronous
 /// `SignalProducer` operators in general via the core-level operator `Core.flatMapEvent`.
 ///
 /// It takes advantage of the deferred, single-observer nature of SignalProducer. For
@@ -295,11 +295,11 @@ private final class SignalCore<Value, Error: Swift.Error>: SignalProducerCore<Va
 /// chain of streams, each with a _single and persistent_ observer to its upstream. The
 /// multicasting & detaching capabilities of Signal is useless in these scenarios.
 ///
-/// So EventTransformingCore builds on top of this very fact, and composes directly at the
+/// So TransformerCore builds on top of this very fact, and composes directly at the
 /// level of event transforms, without any `Signal` in between.
 ///
-/// - note: This core does not use Signal unless it is requested via `make()`.
-private final class EventTransformingCore<Value, Error: Swift.Error, SourceValue, SourceError: Swift.Error>: SignalProducerCore<Value, Error> {
+/// - note: This core does not use `Signal` unless it is requested via `makeInstance()`.
+private final class TransformerCore<Value, Error: Swift.Error, SourceValue, SourceError: Swift.Error>: SignalProducerCore<Value, Error> {
 	private let source: SignalProducerCore<SourceValue, SourceError>
 	private let transform: (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void
 
@@ -313,30 +313,32 @@ private final class EventTransformingCore<Value, Error: Swift.Error, SourceValue
 	}
 
 	internal override func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
-		return SignalProducer<U, E>(EventTransformingCore<U, E, SourceValue, SourceError>(source: source) { [innerTransform = self.transform] action in
+		return SignalProducer<U, E>(TransformerCore<U, E, SourceValue, SourceError>(source: source) { [innerTransform = self.transform] action in
 			return innerTransform(transform(action))
 		})
 	}
 
-	internal override func make() -> ProducedSignalReceipt {
-		let product = source.make()
+	internal override func makeInstance() -> Instance {
+		let product = source.makeInstance()
 		let signal = Signal<Value, Error> { observer in
 			return product.signal.observe(.init(observer, transform))
 		}
 
-		return ProducedSignalReceipt(signal: signal,
+		return Instance(signal: signal,
 		                             observerDidSetup: product.observerDidSetup,
 		                             interruptHandle: product.interruptHandle)
 	}
 }
 
-/// `EventGeneratingCore` wraps a generator closure that would be invoked upon a produced
+/// `GeneratorCore` wraps a generator closure that would be invoked upon a produced
 /// `Signal` when started. The generator closure is passed only the input observer and the
 /// cancel disposable.
 ///
 /// It is intended for constant `SignalProducers`s that synchronously emits all events
 /// without escaping the `Observer`.
-private final class EventGeneratingCore<Value, Error: Swift.Error>: SignalProducerCore<Value, Error> {
+///
+/// - note: This core does not use `Signal` unless it is requested via `makeInstance()`.
+private final class GeneratorCore<Value, Error: Swift.Error>: SignalProducerCore<Value, Error> {
 	private let isDisposable: Bool
 	private let generator: (Signal<Value, Error>.Observer, Disposable) -> Void
 
@@ -353,11 +355,11 @@ private final class EventGeneratingCore<Value, Error: Swift.Error>: SignalProduc
 		return d
 	}
 
-	internal override func make() -> ProducedSignalReceipt {
+	internal override func makeInstance() -> Instance {
 		let (signal, observer) = Signal<Value, Error>.pipe()
 		let d = AnyDisposable(observer.sendInterrupted)
 
-		return ProducedSignalReceipt(signal: signal,
+		return Instance(signal: signal,
 		                             observerDidSetup: { self.generator(observer, d) },
 		                             interruptHandle: d)
 	}
@@ -371,7 +373,7 @@ extension SignalProducer where Error == NoError {
 	///   - value: A value that should be sent by the `Signal` in a `value`
 	///            event.
 	public init(value: Value) {
-		self.init(EventGeneratingCore { observer, _ in
+		self.init(GeneratorCore { observer, _ in
 			observer.send(value: value)
 			observer.sendCompleted()
 		})
@@ -384,7 +386,7 @@ extension SignalProducer where Error == NoError {
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
 	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
-		self.init(EventGeneratingCore(isDisposable: true) { observer, disposable in
+		self.init(GeneratorCore(isDisposable: true) { observer, disposable in
 			for value in values {
 				observer.send(value: value)
 
@@ -594,30 +596,33 @@ extension SignalProducer {
 		return SignalProducer<U, F>(SignalCore {
 			// Transform the `Signal`, and pass through the `didCreate` side effect and
 			// the interruptHandle.
-			let receipt = self.core.make()
+			let receipt = self.core.makeInstance()
 			return .init(signal: transform(receipt.signal),
 			             observerDidSetup: receipt.observerDidSetup,
 			             interruptHandle: receipt.interruptHandle)
-			})
+		})
 	}
 
 	private func lift<U, F, V, G>(leftFirst: Bool, _ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
 			return SignalProducer<V, G>(SignalCore {
-				let left = self.core.make()
-				let right = otherProducer.core.make()
+				let left = self.core.makeInstance()
+				let right = otherProducer.core.makeInstance()
 
-				return .init(signal: transform(left.signal)(right.signal),
-				             observerDidSetup: {
-								if leftFirst {
-									left.observerDidSetup()
-									right.observerDidSetup()
-								} else {
-									right.observerDidSetup()
-									left.observerDidSetup()
-								}},
-				             interruptHandle: CompositeDisposable([left.interruptHandle, right.interruptHandle]))
-				})
+				return .init(
+					signal: transform(left.signal)(right.signal),
+					observerDidSetup: {
+						if leftFirst {
+							left.observerDidSetup()
+							right.observerDidSetup()
+						} else {
+							right.observerDidSetup()
+							left.observerDidSetup()
+						}
+					},
+					interruptHandle: CompositeDisposable([left.interruptHandle, right.interruptHandle])
+				)
+			})
 		}
 	}
 
@@ -1684,7 +1689,7 @@ extension SignalProducer {
 		value: ((Value) -> Void)? = nil
 	) -> SignalProducer<Value, Error> {
 		return SignalProducer(SignalCore {
-			let instance = self.core.make()
+			let instance = self.core.makeInstance()
 			let signal = instance.signal.on(event: event,
 			                                failed: failed,
 			                                completed: completed,
