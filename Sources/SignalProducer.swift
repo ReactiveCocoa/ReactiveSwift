@@ -63,7 +63,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - startHandler: A closure that accepts observer and a disposable.
 	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
-		core = SignalCore {
+		self.init(SignalCore {
 			let disposable = CompositeDisposable()
 			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
 			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
@@ -72,7 +72,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			return SignalProducerCore.ProducedSignalReceipt(signal: signal,
 			                                                observerDidSetup: observerDidSetup,
 			                                                interruptHandle: interruptHandle)
-		}
+		})
 	}
 
 	/// Create a SignalProducer.
@@ -168,14 +168,16 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
 	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
-		self.init(EventGeneratingCore { observer, disposable in
-			for value in values where !disposable.isDisposed {
+		self.init(EventGeneratingCore(isDisposable: true) { observer, disposable in
+			for value in values {
 				observer.send(value: value)
+
+				if disposable.isDisposed {
+					break
+				}
 			}
 
-			if !disposable.isDisposed {
-				observer.sendCompleted()
-			}
+			observer.sendCompleted()
 		})
 	}
 
@@ -335,14 +337,18 @@ private final class EventTransformingCore<Value, Error: Swift.Error, SourceValue
 /// It is intended for constant `SignalProducers`s that synchronously emits all events
 /// without escaping the `Observer`.
 private final class EventGeneratingCore<Value, Error: Swift.Error>: SignalProducerCore<Value, Error> {
+	private let isDisposable: Bool
 	private let generator: (Signal<Value, Error>.Observer, Disposable) -> Void
 
-	init(_ generator: @escaping (Signal<Value, Error>.Observer, Disposable) -> Void) {
+	init(isDisposable: Bool = false, _ generator: @escaping (Signal<Value, Error>.Observer, Disposable) -> Void) {
+		self.isDisposable = isDisposable
 		self.generator = generator
 	}
 
 	internal override func start(_ observer: Signal<Value, Error>.Observer) -> Disposable {
-		let d = NopDisposable.shared
+		// Object allocation is a considerable overhead. So unless the core is configured
+		// to be disposable, we would reuse the already-disposed, shared `NopDisposable`.
+		let d: Disposable = isDisposable ? _SimpleDisposable() : NopDisposable.shared
 		generator(observer, d)
 		return d
 	}
@@ -365,10 +371,10 @@ extension SignalProducer where Error == NoError {
 	///   - value: A value that should be sent by the `Signal` in a `value`
 	///            event.
 	public init(value: Value) {
-		self.init { observer, _ in
+		self.init(EventGeneratingCore { observer, _ in
 			observer.send(value: value)
 			observer.sendCompleted()
-		}
+		})
 	}
 
 	/// Creates a producer for a Signal that will immediately send the values
@@ -378,17 +384,17 @@ extension SignalProducer where Error == NoError {
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
 	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
-		self.init { observer, lifetime in
+		self.init(EventGeneratingCore(isDisposable: true) { observer, disposable in
 			for value in values {
 				observer.send(value: value)
 
-				if lifetime.hasEnded {
+				if disposable.isDisposed {
 					break
 				}
 			}
 
 			observer.sendCompleted()
-		}
+		})
 	}
 
 	/// Creates a producer for a Signal that will immediately send the values
