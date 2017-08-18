@@ -2,7 +2,9 @@ import Foundation
 import PackageDescription
 
 var isSwiftPackagerManagerTest: Bool {
-    return ProcessInfo.processInfo.environment["SWIFTPM_TEST_ReactiveSwift"] == "YES"
+    let environment = ProcessInfo.processInfo.environment
+    guard let value = environment["SWIFTPM_TEST_ReactiveSwift"] else { return false }
+    return NSString(string: value).boolValue
 }
 
 let package = Package(
