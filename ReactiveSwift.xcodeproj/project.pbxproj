@@ -646,7 +646,7 @@
 			dependencies = (
 			);
 			name = "ReactiveSwift-tvOS";
-			productName = ReactiveCocoa;
+			productName = "ReactiveSwift-tvOS";
 			productReference = 57A4D2411BA13D7A00F7D4B1 /* ReactiveSwift.framework */;
 			productType = "com.apple.product-type.framework";
 		};
@@ -665,7 +665,7 @@
 				7DFBED0A1CDB8C9500EE435B /* PBXTargetDependency */,
 			);
 			name = "ReactiveSwift-tvOSTests";
-			productName = "ReactiveCocoa-tvOSTests";
+			productName = "ReactiveSwift-tvOSTests";
 			productReference = 7DFBED031CDB8C9500EE435B /* ReactiveSwiftTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
@@ -683,7 +683,7 @@
 			dependencies = (
 			);
 			name = "ReactiveSwift-watchOS";
-			productName = ReactiveCocoa;
+			productName = "ReactiveSwift-watchOS";
 			productReference = A9B315541B3940610001CB9C /* ReactiveSwift.framework */;
 			productType = "com.apple.product-type.framework";
 		};
@@ -701,7 +701,7 @@
 			dependencies = (
 			);
 			name = "ReactiveSwift-macOS";
-			productName = ReactiveCocoa;
+			productName = "ReactiveSwift-macOS";
 			productReference = D04725EA19E49ED7006002AA /* ReactiveSwift.framework */;
 			productType = "com.apple.product-type.framework";
 		};
@@ -719,7 +719,7 @@
 				D04725F819E49ED7006002AA /* PBXTargetDependency */,
 			);
 			name = "ReactiveSwift-macOSTests";
-			productName = ReactiveCocoaTests;
+			productName = "ReactiveSwift-macOSTests";
 			productReference = D04725F519E49ED7006002AA /* ReactiveSwiftTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
@@ -737,7 +737,7 @@
 			dependencies = (
 			);
 			name = "ReactiveSwift-iOS";
-			productName = ReactiveCocoa;
+			productName = "ReactiveSwift-iOS";
 			productReference = D047260C19E49F82006002AA /* ReactiveSwift.framework */;
 			productType = "com.apple.product-type.framework";
 		};
@@ -756,7 +756,7 @@
 				D047261919E49F82006002AA /* PBXTargetDependency */,
 			);
 			name = "ReactiveSwift-iOSTests";
-			productName = ReactiveCocoaTests;
+			productName = "ReactiveSwift-iOSTests";
 			productReference = D047261619E49F82006002AA /* ReactiveSwiftTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
