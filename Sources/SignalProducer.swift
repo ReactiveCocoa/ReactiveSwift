@@ -213,10 +213,10 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///            `Signal` commences. Both the produced `Signal` and an interrupt handle
 	///            of the signal would be passed to the closure.
 	public func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interruptHandle: Disposable) -> Void) {
-		let receipt = core.makeInstance()
-		setup(receipt.signal, receipt.interruptHandle)
-		guard !receipt.interruptHandle.isDisposed else { return }
-		receipt.observerDidSetup()
+		let instance = core.makeInstance()
+		setup(instance.signal, instance.interruptHandle)
+		guard !instance.interruptHandle.isDisposed else { return }
+		instance.observerDidSetup()
 	}
 }
 
@@ -596,10 +596,10 @@ extension SignalProducer {
 		return SignalProducer<U, F>(SignalCore {
 			// Transform the `Signal`, and pass through the `didCreate` side effect and
 			// the interruptHandle.
-			let receipt = self.core.makeInstance()
-			return .init(signal: transform(receipt.signal),
-			             observerDidSetup: receipt.observerDidSetup,
-			             interruptHandle: receipt.interruptHandle)
+			let instance = self.core.makeInstance()
+			return .init(signal: transform(instance.signal),
+			             observerDidSetup: instance.observerDidSetup,
+			             interruptHandle: instance.interruptHandle)
 		})
 	}
 
