@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. The `SignalProducer` internals have undergone a significant refactoring, which bootstraps the effort to reduce the overhead of constant producers and producer compositions. (#487, kudos to @andersio)
+
 # 2.0.1
 1. Addressed the exceptionally high build time. (#495)
 
