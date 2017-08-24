@@ -263,4 +263,28 @@ extension Signal.Event {
 			}
 		}
 	}
+
+	internal static func take(first count: Int) -> (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+		assert(count >= 1)
+
+		return { action in
+			var taken = 0
+
+			return { event in
+				guard let value = event.value else {
+					action(event)
+					return
+				}
+
+				if taken < count {
+					taken += 1
+					action(.value(value))
+				}
+
+				if taken == count {
+					action(.completed)
+				}
+			}
+		}
+	}
 }

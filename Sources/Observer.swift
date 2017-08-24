@@ -30,8 +30,27 @@ extension Signal {
 		/// - parameters:
 		///   - observer: The observer to transform.
 		///   - transform: The transform.
-		internal init<U, E: Swift.Error>(_ observer: Signal<U, E>.Observer, _ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> Action) {
-			self.action = transform(observer.action)
+		///   - disposable: The disposable to be disposed of when the transformation
+		///                 yields any terminal event that is not originated from the
+		///                 upstream.
+		internal init<U, E: Swift.Error>(
+			_ observer: Signal<U, E>.Observer,
+			_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> Action,
+			_ disposable: Disposable
+		) {
+			var hasDeliveredTerminalEvent = false
+
+			self.action = transform { event in
+				if !hasDeliveredTerminalEvent {
+					observer.action(event)
+
+					if event.isTerminating {
+						hasDeliveredTerminalEvent = true
+						disposable.dispose()
+					}
+				}
+			}
+
 			self.wrapped = observer.interruptsOnDeinit ? observer : nil
 			self.interruptsOnDeinit = false
 		}
