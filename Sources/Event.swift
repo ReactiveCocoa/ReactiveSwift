@@ -180,7 +180,9 @@ extension Signal.Event: EventProtocol {
 }
 
 extension Signal.Event {
-	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+	internal typealias Transformation<U, E: Swift.Error> = (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void
+
+	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
 		return { action in
 			return { event in
 				switch event {
@@ -202,7 +204,7 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func filterMap<U>(_ transform: @escaping (Value) -> U?) -> (@escaping Signal<U, Error>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+	internal static func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Transformation<U, Error> {
 		return { action in
 			return { event in
 				switch event {
@@ -224,7 +226,7 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func map<U>(_ transform: @escaping (Value) -> U) -> (@escaping Signal<U, Error>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+	internal static func map<U>(_ transform: @escaping (Value) -> U) -> Transformation<U, Error> {
 		return { action in
 			return { event in
 				switch event {
@@ -244,7 +246,7 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func mapError<E>(_ transform: @escaping (Error) -> E) -> (@escaping Signal<Value, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+	internal static func mapError<E>(_ transform: @escaping (Error) -> E) -> Transformation<Value, E> {
 		return { action in
 			return { event in
 				switch event {
@@ -264,7 +266,7 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func take(first count: Int) -> (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void {
+	internal static func take(first count: Int) -> Transformation<Value, Error> {
 		assert(count >= 1)
 
 		return { action in

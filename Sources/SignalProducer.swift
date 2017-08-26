@@ -272,7 +272,7 @@ internal class SignalProducerCore<Value, Error: Swift.Error> {
 	///                closure.
 	///
 	/// - returns: A producer that forwards events yielded by the action.
-	internal func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
+	internal func flatMapEvent<U, E>(_ transform: @escaping Signal<Value, Error>.Event.Transformation<U, E>) -> SignalProducer<U, E> {
 		return SignalProducer<U, E>(TransformerCore(source: self, transform: transform))
 	}
 }
@@ -316,9 +316,9 @@ private final class SignalCore<Value, Error: Swift.Error>: SignalProducerCore<Va
 /// - note: This core does not use `Signal` unless it is requested via `makeInstance()`.
 private final class TransformerCore<Value, Error: Swift.Error, SourceValue, SourceError: Swift.Error>: SignalProducerCore<Value, Error> {
 	private let source: SignalProducerCore<SourceValue, SourceError>
-	private let transform: (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void
+	private let transform: Signal<SourceValue, SourceError>.Event.Transformation<Value, Error>
 
-	init(source: SignalProducerCore<SourceValue, SourceError>, transform: @escaping (@escaping Signal<Value, Error>.Observer.Action) -> (Signal<SourceValue, SourceError>.Event) -> Void) {
+	init(source: SignalProducerCore<SourceValue, SourceError>, transform: @escaping Signal<SourceValue, SourceError>.Event.Transformation<Value, Error>) {
 		self.source = source
 		self.transform = transform
 	}
@@ -327,7 +327,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 		return source.start { Signal.Observer(generator($0), transform, $0) }
 	}
 
-	internal override func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void) -> SignalProducer<U, E> {
+	internal override func flatMapEvent<U, E>(_ transform: @escaping Signal<Value, Error>.Event.Transformation<U, E>) -> SignalProducer<U, E> {
 		return SignalProducer<U, E>(TransformerCore<U, E, SourceValue, SourceError>(source: source) { [innerTransform = self.transform] action in
 			return innerTransform(transform(action))
 		})

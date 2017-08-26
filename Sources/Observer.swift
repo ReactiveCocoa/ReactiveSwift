@@ -35,7 +35,7 @@ extension Signal {
 		///                 upstream.
 		internal init<U, E: Swift.Error>(
 			_ observer: Signal<U, E>.Observer,
-			_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> Action,
+			_ transform: @escaping Event.Transformation<U, E>,
 			_ disposable: Disposable
 		) {
 			var hasDeliveredTerminalEvent = false
