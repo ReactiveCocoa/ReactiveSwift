@@ -30,13 +30,13 @@ extension Signal {
 		/// - parameters:
 		///   - observer: The observer to transform.
 		///   - transform: The transform.
-		///   - disposable: The disposable to be disposed of when the transformation
-		///                 yields any terminal event that is not originated from the
-		///                 upstream.
+		///   - disposable: The disposable to be disposed of when the `TransformerCore`
+		///                 yields any terminal event. If `observer` is a `Signal` input
+		///                 observer, this can be omitted.
 		internal init<U, E: Swift.Error>(
 			_ observer: Signal<U, E>.Observer,
 			_ transform: @escaping Event.Transformation<U, E>,
-			_ disposable: Disposable
+			_ disposable: Disposable? = nil
 		) {
 			var hasDeliveredTerminalEvent = false
 
@@ -46,7 +46,7 @@ extension Signal {
 
 					if event.isTerminating {
 						hasDeliveredTerminalEvent = true
-						disposable.dispose()
+						disposable?.dispose()
 					}
 				}
 			}

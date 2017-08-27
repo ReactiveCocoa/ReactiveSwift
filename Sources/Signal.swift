@@ -539,7 +539,7 @@ extension Signal {
 	/// - returns: A signal that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
 		return Signal<U, E> { observer in
-			return self.observe(.init(observer, transform, NopDisposable.shared))
+			return self.observe(Signal.Observer(observer, transform))
 		}
 	}
 
