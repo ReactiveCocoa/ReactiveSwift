@@ -627,7 +627,7 @@ extension Signal where Value: OptionalProtocol {
 	///
 	/// - returns: A signal that sends only non-nil values.
 	public func skipNil() -> Signal<Value.Wrapped, Error> {
-		return filterMap { $0.optional }
+		return flatMapEvent(Signal.Event.skipNil)
 	}
 }
 
@@ -647,38 +647,6 @@ extension Signal {
 	}
 }
 
-/// A reference type which wraps an array to auxiliate the collection of values
-/// for `collect` operator.
-private final class CollectState<Value> {
-	var values: [Value] = []
-
-	/// Collects a new value.
-	func append(_ value: Value) {
-		values.append(value)
-	}
-
-	/// Check if there are any items remaining.
-	///
-	/// - note: This method also checks if there weren't collected any values
-	///         and, in that case, it means an empty array should be sent as the
-	///         result of collect.
-	var isEmpty: Bool {
-		/// We use capacity being zero to determine if we haven't collected any
-		/// value since we're keeping the capacity of the array to avoid
-		/// unnecessary and expensive allocations). This also guarantees
-		/// retro-compatibility around the original `collect()` operator.
-		return values.isEmpty && values.capacity > 0
-	}
-
-	/// Removes all values previously collected if any.
-	func flush() {
-		// Minor optimization to avoid consecutive allocations. Can
-		// be useful for sequences of regular or similar size and to
-		// track if any value was ever collected.
-		values.removeAll(keepingCapacity: true)
-	}
-}
-
 extension Signal {
 	/// Collect all values sent by the signal then forward them as a single
 	/// array and complete.
@@ -689,7 +657,7 @@ extension Signal {
 	/// - returns: A signal that will yield an array of values when `self`
 	///            completes.
 	public func collect() -> Signal<[Value], Error> {
-		return collect { _, _ in false }
+		return flatMapEvent(Signal.Event.collect)
 	}
 
 	/// Collect at most `count` values from `self`, forward them as a single
@@ -705,8 +673,7 @@ extension Signal {
 	/// - precondition: `count` should be greater than zero.
 	///
 	public func collect(count: Int) -> Signal<[Value], Error> {
-		precondition(count > 0)
-		return collect { values in values.count == count }
+		return flatMapEvent(Signal.Event.collect(count: count))
 	}
 
 	/// Collect values from `self`, and emit them if the predicate passes.
@@ -747,29 +714,7 @@ extension Signal {
 	/// - returns: A signal of arrays of values, as instructed by the `shouldEmit`
 	///            closure.
 	public func collect(_ shouldEmit: @escaping (_ collectedValues: [Value]) -> Bool) -> Signal<[Value], Error> {
-		return Signal<[Value], Error> { observer in
-			let state = CollectState<Value>()
-
-			return self.observe { event in
-				switch event {
-				case let .value(value):
-					state.append(value)
-					if shouldEmit(state.values) {
-						observer.send(value: state.values)
-						state.flush()
-					}
-				case .completed:
-					if !state.isEmpty {
-						observer.send(value: state.values)
-					}
-					observer.sendCompleted()
-				case let .failed(error):
-					observer.send(error: error)
-				case .interrupted:
-					observer.sendInterrupted()
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.collect(shouldEmit))
 	}
 
 	/// Collect values from `self`, and emit them if the predicate passes.
@@ -810,29 +755,7 @@ extension Signal {
 	/// - returns: A signal of arrays of values, as instructed by the `shouldEmit`
 	///            closure.
 	public func collect(_ shouldEmit: @escaping (_ collected: [Value], _ latest: Value) -> Bool) -> Signal<[Value], Error> {
-		return Signal<[Value], Error> { observer in
-			let state = CollectState<Value>()
-
-			return self.observe { event in
-				switch event {
-				case let .value(value):
-					if shouldEmit(state.values, value) {
-						observer.send(value: state.values)
-						state.flush()
-					}
-					state.append(value)
-				case .completed:
-					if !state.isEmpty {
-						observer.send(value: state.values)
-					}
-					observer.sendCompleted()
-				case let .failed(error):
-					observer.send(error: error)
-				case .interrupted:
-					observer.sendInterrupted()
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.collect(shouldEmit))
 	}
 
 	/// Forward all events onto the given scheduler, instead of whichever
@@ -843,13 +766,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will yield `self` values on provided scheduler.
 	public func observe(on scheduler: Scheduler) -> Signal<Value, Error> {
-		return Signal { observer in
-			return self.observe { event in
-				scheduler.schedule {
-					observer.action(event)
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.observe(on: scheduler))
 	}
 }
 
@@ -890,24 +807,7 @@ extension Signal {
 	/// - returns: A signal that will delay `value` and `completed` events and
 	///            will yield them on given scheduler.
 	public func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
-		precondition(interval >= 0)
-
-		return Signal { observer in
-			return self.observe { event in
-				switch event {
-				case .failed, .interrupted:
-					scheduler.schedule {
-						observer.action(event)
-					}
-
-				case .value, .completed:
-					let date = scheduler.currentDate.addingTimeInterval(interval)
-					scheduler.schedule(after: date) {
-						observer.action(event)
-					}
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.delay(interval, on: scheduler))
 	}
 
 	/// Skip first `count` number of values then act as usual.
@@ -920,23 +820,8 @@ extension Signal {
 	/// - returns:  A signal that will skip the first `count` values, then
 	///             forward everything afterward.
 	public func skip(first count: Int) -> Signal<Value, Error> {
-		precondition(count >= 0)
-
-		if count == 0 {
-			return self
-		}
-
-		return Signal { observer in
-			var skipped = 0
-
-			return self.observe { event in
-				if case .value = event, skipped < count {
-					skipped += 1
-				} else {
-					observer.action(event)
-				}
-			}
-		}
+		guard count != 0 else { return self }
+		return flatMapEvent(Signal.Event.skip(first: count))
 	}
 
 	/// Treat all Events from `self` as plain values, allowing them to be
@@ -951,22 +836,7 @@ extension Signal {
 	///
 	/// - returns: A signal that sends events as its values.
 	public func materialize() -> Signal<Event, NoError> {
-		return Signal<Event, NoError> { observer in
-			return self.observe { event in
-				observer.send(value: event)
-
-				switch event {
-				case .interrupted:
-					observer.sendInterrupted()
-
-				case .completed, .failed:
-					observer.sendCompleted()
-
-				case .value:
-					break
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.materialize)
 	}
 }
 
@@ -976,23 +846,7 @@ extension Signal where Value: EventProtocol, Error == NoError {
 	///
 	/// - returns: A signal that sends values carried by `self` events.
 	public func dematerialize() -> Signal<Value.Value, Value.Error> {
-		return Signal<Value.Value, Value.Error> { observer in
-			return self.observe { event in
-				switch event {
-				case let .value(innerEvent):
-					observer.action(innerEvent.event)
-
-				case .failed:
-					fatalError("NoError is impossible to construct")
-
-				case .completed:
-					observer.sendCompleted()
-
-				case .interrupted:
-					observer.sendInterrupted()
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.dematerialize)
 	}
 }
 

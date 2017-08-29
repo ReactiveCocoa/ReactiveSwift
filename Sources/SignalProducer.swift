@@ -891,7 +891,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, will yield an array of values
 	///            when `self` completes.
 	public func collect() -> SignalProducer<[Value], Error> {
-		return lift { $0.collect() }
+		return core.flatMapEvent(Signal.Event.collect)
 	}
 
 	/// Yield an array of values until it reaches a certain count.
@@ -909,8 +909,7 @@ extension SignalProducer {
 	///            values from `self`, forwards them as a single array and
 	///            completes.
 	public func collect(count: Int) -> SignalProducer<[Value], Error> {
-		precondition(count > 0)
-		return lift { $0.collect(count: count) }
+		return core.flatMapEvent(Signal.Event.collect(count: count))
 	}
 
 	/// Collect values from `self`, and emit them if the predicate passes.
@@ -950,7 +949,7 @@ extension SignalProducer {
 	/// - returns: A signal of arrays of values, as instructed by the `shouldEmit`
 	///            closure.
 	public func collect(_ shouldEmit: @escaping (_ values: [Value]) -> Bool) -> SignalProducer<[Value], Error> {
-		return lift { $0.collect(shouldEmit) }
+		return core.flatMapEvent(Signal.Event.collect(shouldEmit))
 	}
 
 	/// Collect values from `self`, and emit them if the predicate passes.
@@ -991,7 +990,7 @@ extension SignalProducer {
 	/// - returns: A producer of arrays of values, as instructed by the `shouldEmit`
 	///            closure.
 	public func collect(_ shouldEmit: @escaping (_ collected: [Value], _ latest: Value) -> Bool) -> SignalProducer<[Value], Error> {
-		return lift { $0.collect(shouldEmit) }
+		return core.flatMapEvent(Signal.Event.collect(shouldEmit))
 	}
 
 	/// Forward all events onto the given scheduler, instead of whichever
@@ -1003,7 +1002,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, will yield `self` values on
 	///            provided scheduler.
 	public func observe(on scheduler: Scheduler) -> SignalProducer<Value, Error> {
-		return lift { $0.observe(on: scheduler) }
+		return core.flatMapEvent(Signal.Event.observe(on: scheduler))
 	}
 
 	/// Combine the latest value of the receiver with the latest value from the
@@ -1040,7 +1039,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, will delay `value` and
 	///            `completed` events and will yield them on given scheduler.
 	public func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
-		return lift { $0.delay(interval, on: scheduler) }
+		return core.flatMapEvent(Signal.Event.delay(interval, on: scheduler))
 	}
 
 	/// Skip the first `count` values, then forward everything afterward.
@@ -1051,7 +1050,8 @@ extension SignalProducer {
 	/// - returns:  A producer that, when started, will skip the first `count`
 	///             values, then forward everything afterward.
 	public func skip(first count: Int) -> SignalProducer<Value, Error> {
-		return lift { $0.skip(first: count) }
+		guard count != 0 else { return self }
+		return core.flatMapEvent(Signal.Event.skip(first: count))
 	}
 
 	/// Treats all Events from the input producer as plain values, allowing them
@@ -1066,7 +1066,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that sends events as its values.
 	public func materialize() -> SignalProducer<ProducedSignal.Event, NoError> {
-		return lift { $0.materialize() }
+		return core.flatMapEvent(Signal.Event.materialize)
 	}
 
 	/// Forward the latest value from `self` with the value from `sampler` as a
@@ -1481,7 +1481,7 @@ extension SignalProducer where Value: OptionalProtocol {
 	///
 	/// - returns: A producer that sends only non-nil values.
 	public func skipNil() -> SignalProducer<Value.Wrapped, Error> {
-		return lift { $0.skipNil() }
+		return core.flatMapEvent(Signal.Event.skipNil)
 	}
 }
 
@@ -1491,7 +1491,7 @@ extension SignalProducer where Value: EventProtocol, Error == NoError {
 	///
 	/// - returns: A producer that sends values carried by `self` events.
 	public func dematerialize() -> SignalProducer<Value.Value, Value.Error> {
-		return lift { $0.dematerialize() }
+		return core.flatMapEvent(Signal.Event.dematerialize)
 	}
 }
 
