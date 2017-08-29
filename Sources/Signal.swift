@@ -537,9 +537,9 @@ extension Signal {
 	///                closure.
 	///
 	/// - returns: A signal that forwards events yielded by the action.
-	internal func flatMapEvent<U, E>(_ transform: @escaping (@escaping Signal<U, E>.Observer.Action) -> (Event) -> Void) -> Signal<U, E> {
+	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
 		return Signal<U, E> { observer in
-			return self.observe(.init(observer, transform))
+			return self.observe(Signal.Observer(observer, transform))
 		}
 	}
 
@@ -642,31 +642,8 @@ extension Signal {
 	/// - returns: A signal that will yield the first `count` values from `self`
 	public func take(first count: Int) -> Signal<Value, Error> {
 		precondition(count >= 0)
-
-		return Signal { observer in
-			if count == 0 {
-				observer.sendCompleted()
-				return nil
-			}
-
-			var taken = 0
-
-			return self.observe { event in
-				guard let value = event.value else {
-					observer.action(event)
-					return
-				}
-
-				if taken < count {
-					taken += 1
-					observer.send(value: value)
-				}
-
-				if taken == count {
-					observer.sendCompleted()
-				}
-			}
-		}
+		guard count >= 1 else { return .empty }
+		return flatMapEvent(Signal.Event.take(first: count))
 	}
 }
 
