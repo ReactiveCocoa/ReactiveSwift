@@ -5,16 +5,16 @@ extension SignalProducer where Value == Never {
 	@discardableResult
 	@available(*, deprecated, message:"`Result.success` is never delivered - `Value` is inhabitable (Instantiation at runtime would trap)")
 	public func startWithResult(_ action: @escaping (Result<Value, Error>) -> Void) -> Disposable { observingInhabitableTypeError() }
-
-	@discardableResult
-	@available(*, deprecated, message:"Observer is never called - `Value` is inhabitable (Instantiation at runtime would trap)")
-	public func startWithValues(_ action: @escaping (Value) -> Void) -> Disposable { observingInhabitableTypeError() }
 }
 
 extension SignalProducer where Value == Never, Error == NoError {
 	@discardableResult
 	@available(*, deprecated, message:"Observer is never called - `Value` and `Error` are inhabitable (Instantiation at runtime would trap)")
 	public func startWithResult(_ action: @escaping (Result<Value, Error>) -> Void) -> Disposable { observingInhabitableTypeError() }
+
+	@discardableResult
+	@available(*, deprecated, message:"Observer is never called - `Value` is inhabitable (Instantiation at runtime would trap)")
+	public func startWithValues(_ action: @escaping (Value) -> Void) -> Disposable { observingInhabitableTypeError() }
 }
 
 extension SignalProducer where Error == NoError {
@@ -27,16 +27,16 @@ extension Signal where Value == Never {
 	@discardableResult
 	@available(*, deprecated, message:"`Result.success` is never delivered - `Value` is inhabitable (Instantiation at runtime would trap)")
 	public func observeResult(_ action: @escaping (Result<Value, Error>) -> Void) -> Disposable? { observingInhabitableTypeError() }
-
-	@discardableResult
-	@available(*, deprecated, message:"Observer is never called - `Value` is inhabitable (Instantiation at runtime would trap)")
-	public func observeValues(_ action: @escaping (Value) -> Void) -> Disposable? { observingInhabitableTypeError() }
 }
 
 extension Signal where Value == Never, Error == NoError {
 	@discardableResult
 	@available(*, deprecated, message:"Observer is never called - `Value` and `Error` are inhabitable (Instantiation at runtime would trap)")
 	public func observeResult(_ action: @escaping (Result<Value, Error>) -> Void) -> Disposable? { observingInhabitableTypeError() }
+	
+	@discardableResult
+	@available(*, deprecated, message:"Observer is never called - `Value` is inhabitable (Instantiation at runtime would trap)")
+	public func observeValues(_ action: @escaping (Value) -> Void) -> Disposable? { observingInhabitableTypeError() }
 }
 
 extension Signal where Error == NoError {
