@@ -1,10 +1,5 @@
-//
-//  Event.swift
-//  ReactiveSwift
-//
-//  Created by Justin Spahr-Summers on 2015-01-16.
-//  Copyright (c) 2015 GitHub. All rights reserved.
-//
+import Result
+import Foundation
 
 extension Signal {
 	/// Represents a signal event.
@@ -266,6 +261,25 @@ extension Signal.Event {
 		}
 	}
 
+	internal static var materialize: Transformation<Signal<Value, Error>.Event, NoError> {
+		return { action in
+			return { event in
+				action(.value(event))
+
+				switch event {
+				case .interrupted:
+					action(.interrupted)
+
+				case .completed, .failed:
+					action(.completed)
+
+				case .value:
+					break
+				}
+			}
+		}
+	}
+
 	internal static func take(first count: Int) -> Transformation<Value, Error> {
 		assert(count >= 1)
 
@@ -285,6 +299,176 @@ extension Signal.Event {
 
 				if taken == count {
 					action(.completed)
+				}
+			}
+		}
+	}
+
+	internal static func skip(first count: Int) -> Transformation<Value, Error> {
+		precondition(count > 0)
+
+		return { action in
+			var skipped = 0
+
+			return { event in
+				if case .value = event, skipped < count {
+					skipped += 1
+				} else {
+					action(event)
+				}
+			}
+		}
+	}
+}
+
+extension Signal.Event where Value: EventProtocol {
+	internal static var dematerialize: Transformation<Value.Value, Value.Error> {
+		return { action in
+			return { event in
+				switch event {
+				case let .value(innerEvent):
+					action(innerEvent.event)
+
+				case .failed:
+					fatalError("NoError is impossible to construct")
+
+				case .completed:
+					action(.completed)
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+}
+
+extension Signal.Event where Value: OptionalProtocol {
+	internal static var skipNil: Transformation<Value.Wrapped, Error> {
+		return filterMap { $0.optional }
+	}
+}
+
+/// A reference type which wraps an array to auxiliate the collection of values
+/// for `collect` operator.
+private final class CollectState<Value> {
+	var values: [Value] = []
+
+	/// Collects a new value.
+	func append(_ value: Value) {
+		values.append(value)
+	}
+
+	/// Check if there are any items remaining.
+	///
+	/// - note: This method also checks if there weren't collected any values
+	///         and, in that case, it means an empty array should be sent as the
+	///         result of collect.
+	var isEmpty: Bool {
+		/// We use capacity being zero to determine if we haven't collected any
+		/// value since we're keeping the capacity of the array to avoid
+		/// unnecessary and expensive allocations). This also guarantees
+		/// retro-compatibility around the original `collect()` operator.
+		return values.isEmpty && values.capacity > 0
+	}
+
+	/// Removes all values previously collected if any.
+	func flush() {
+		// Minor optimization to avoid consecutive allocations. Can
+		// be useful for sequences of regular or similar size and to
+		// track if any value was ever collected.
+		values.removeAll(keepingCapacity: true)
+	}
+}
+
+extension Signal.Event {
+	internal static var collect: Transformation<[Value], Error> {
+		return collect { _, _ in false }
+	}
+
+	internal static func collect(count: Int) -> Transformation<[Value], Error> {
+		precondition(count > 0)
+		return collect { values in values.count == count }
+	}
+
+	internal static func collect(_ shouldEmit: @escaping (_ collectedValues: [Value]) -> Bool) -> Transformation<[Value], Error> {
+		return { action in
+			let state = CollectState<Value>()
+
+			return { event in
+				switch event {
+				case let .value(value):
+					state.append(value)
+					if shouldEmit(state.values) {
+						action(.value(state.values))
+						state.flush()
+					}
+				case .completed:
+					if !state.isEmpty {
+						action(.value(state.values))
+					}
+					action(.completed)
+				case let .failed(error):
+					action(.failed(error))
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
+	internal static func collect(_ shouldEmit: @escaping (_ collected: [Value], _ latest: Value) -> Bool) -> Transformation<[Value], Error> {
+		return { action in
+			let state = CollectState<Value>()
+
+			return { event in
+				switch event {
+				case let .value(value):
+					if shouldEmit(state.values, value) {
+						action(.value(state.values))
+						state.flush()
+					}
+					state.append(value)
+				case .completed:
+					if !state.isEmpty {
+						action(.value(state.values))
+					}
+					action(.completed)
+				case let .failed(error):
+					action(.failed(error))
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
+	internal static func observe(on scheduler: Scheduler) -> Transformation<Value, Error> {
+		return { action in
+			return { event in
+				scheduler.schedule {
+					action(event)
+				}
+			}
+		}
+	}
+
+	internal static func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
+		precondition(interval >= 0)
+
+		return { action in
+			return { event in
+				switch event {
+				case .failed, .interrupted:
+					scheduler.schedule {
+						action(event)
+					}
+
+				case .value, .completed:
+					let date = scheduler.currentDate.addingTimeInterval(interval)
+					scheduler.schedule(after: date) {
+						action(event)
+					}
 				}
 			}
 		}
