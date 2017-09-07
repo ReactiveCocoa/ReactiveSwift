@@ -280,6 +280,51 @@ extension Signal.Event {
 		}
 	}
 
+	internal static func attemptMap<U>(_ transform: @escaping (Value) -> Result<U, Error>) -> Transformation<U, Error> {
+		return { action in
+			return { event in
+				switch event {
+				case let .value(value):
+					switch transform(value) {
+					case let .success(value):
+						action(.value(value))
+					case let .failure(error):
+						action(.failed(error))
+					}
+				case let .failed(error):
+					action(.failed(error))
+				case .completed:
+					action(.completed)
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
+	internal static func attempt(_ action: @escaping (Value) -> Result<(), Error>) -> Transformation<Value, Error> {
+		return attemptMap { value -> Result<Value, Error> in
+			return action(value).map { _ in value }
+		}
+	}
+}
+
+extension Signal.Event where Error == AnyError {
+	internal static func attempt(_ action: @escaping (Value) throws -> Void) -> Transformation<Value, AnyError> {
+		return attemptMap { value in
+			try action(value)
+			return value
+		}
+	}
+
+	internal static func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Transformation<U, AnyError> {
+		return attemptMap { value in
+			ReactiveSwift.materialize { try transform(value) }
+		}
+	}
+}
+
+extension Signal.Event {
 	internal static func take(first count: Int) -> Transformation<Value, Error> {
 		assert(count >= 1)
 
@@ -304,6 +349,46 @@ extension Signal.Event {
 		}
 	}
 
+	internal static func take(last count: Int) -> Transformation<Value, Error> {
+		return { action in
+			var buffer: [Value] = []
+			buffer.reserveCapacity(count)
+
+			return { event in
+				switch event {
+				case let .value(value):
+					// To avoid exceeding the reserved capacity of the buffer,
+					// we remove then add. Remove elements until we have room to
+					// add one more.
+					while (buffer.count + 1) > count {
+						buffer.remove(at: 0)
+					}
+
+					buffer.append(value)
+				case let .failed(error):
+					action(.failed(error))
+				case .completed:
+					buffer.forEach { action(.value($0)) }
+					action(.completed)
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
+	internal static func take(while shouldContinue: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
+		return { action in
+			return { event in
+				if let value = event.value, !shouldContinue(value) {
+					action(.completed)
+				} else {
+					action(event)
+				}
+			}
+		}
+	}
+
 	internal static func skip(first count: Int) -> Transformation<Value, Error> {
 		precondition(count > 0)
 
@@ -314,6 +399,25 @@ extension Signal.Event {
 				if case .value = event, skipped < count {
 					skipped += 1
 				} else {
+					action(event)
+				}
+			}
+		}
+	}
+
+	internal static func skip(while shouldContinue: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
+		return { action in
+			var isSkipping = true
+
+			return { event in
+				switch event {
+				case let .value(value):
+					isSkipping = isSkipping && shouldContinue(value)
+					if !isSkipping {
+						fallthrough
+					}
+
+				case .failed, .completed, .interrupted:
 					action(event)
 				}
 			}
@@ -443,6 +547,112 @@ extension Signal.Event {
 		}
 	}
 
+	/// Implementation detail of `combinePrevious`. A default argument of a `nil` initial
+	/// is deliberately avoided, since in the case of `Value` being an optional, the
+	/// `nil` literal would be materialized as `Optional<Value>.none` instead of `Value`,
+	/// thus changing the semantic.
+	internal static func combinePrevious(initial: Value?) -> Transformation<(Value, Value), Error> {
+		return { action in
+			var previous = initial
+
+			return { event in
+				switch event {
+				case let .value(value):
+					if let previous = previous {
+						action(.value((previous, value)))
+					}
+					previous = value
+				case .completed:
+					action(.completed)
+				case let .failed(error):
+					action(.failed(error))
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
+	internal static func skipRepeats(_ isEquivalent: @escaping (Value, Value) -> Bool) -> Transformation<Value, Error> {
+		return { action in
+			var previous: Value?
+
+			return { event in
+				switch event {
+				case let .value(value):
+					if let previous = previous, isEquivalent(previous, value) {
+						return
+					}
+					previous = value
+					fallthrough
+				case .completed, .interrupted, .failed:
+					action(event)
+				}
+			}
+		}
+	}
+
+	internal static func uniqueValues<Identity: Hashable>(_ transform: @escaping (Value) -> Identity) -> Transformation<Value, Error> {
+		return { action in
+			var seenValues: Set<Identity> = []
+
+			return { event in
+				switch event {
+				case let .value(value):
+					let identity = transform(value)
+					let (inserted, _) = seenValues.insert(identity)
+					if inserted {
+						fallthrough
+					}
+
+				case .failed, .completed, .interrupted:
+					action(event)
+				}
+			}
+		}
+	}
+
+	internal static func scan<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Transformation<U, Error> {
+		return { action in
+			var accumulator = initialResult
+
+			return { event in
+				action(event.map { value in
+					nextPartialResult(&accumulator, value)
+					return accumulator
+				})
+			}
+		}
+	}
+
+	internal static func scan<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Transformation<U, Error> {
+		return scan(into: initialResult) { $0 = nextPartialResult($0, $1) }
+	}
+
+	internal static func reduce<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Transformation<U, Error> {
+		return { action in
+			var accumulator = initialResult
+
+			return { event in
+				switch event {
+				case let .value(value):
+					nextPartialResult(&accumulator, value)
+				case .completed:
+					action(.value(accumulator))
+					action(.completed)
+				case .interrupted:
+					action(.interrupted)
+				case let .failed(error):
+					action(.failed(error))
+				}
+			}
+		}
+	}
+
+	internal static func reduce<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Transformation<U, Error> {
+		return reduce(into: initialResult) { $0 = nextPartialResult($0, $1) }
+	}
+
 	internal static func observe(on scheduler: Scheduler) -> Transformation<Value, Error> {
 		return { action in
 			return { event in
@@ -469,6 +679,44 @@ extension Signal.Event {
 					scheduler.schedule(after: date) {
 						action(event)
 					}
+				}
+			}
+		}
+	}
+}
+
+extension Signal.Event where Error == NoError {
+	internal static func promoteError<F>(_: F.Type) -> Transformation<Value, F> {
+		return { action in
+			return { event in
+				switch event {
+				case let .value(value):
+					action(.value(value))
+				case .failed:
+					fatalError("NoError is impossible to construct")
+				case .completed:
+					action(.completed)
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+}
+
+extension Signal.Event where Value == Never {
+	internal static func promoteValue<U>(_: U.Type) -> Transformation<U, Error> {
+		return { action in
+			return { event in
+				switch event {
+				case .value:
+					fatalError("Never is impossible to construct")
+				case let .failed(error):
+					action(.failed(error))
+				case .completed:
+					action(.completed)
+				case .interrupted:
+					action(.interrupted)
 				}
 			}
 		}
