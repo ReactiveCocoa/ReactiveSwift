@@ -106,7 +106,7 @@ public final class AnyDisposable: Disposable {
 
 	/// Create a disposable.
 	public init() {
-		base = ActionDisposable(nil)
+		base = _SimpleDisposable()
 	}
 
 	/// Create a disposable which wraps the given disposable.
