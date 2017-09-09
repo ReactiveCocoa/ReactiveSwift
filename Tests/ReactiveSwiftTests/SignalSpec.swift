@@ -2226,6 +2226,222 @@ class SignalSpec: QuickSpec {
 				otherObserver.sendCompleted()
 				expect(completed) == true
 			}
+
+			it("should acknowledge the supplied initial value for the second signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int)?
+
+				Signal.combineLatest(signal, .never,
+				                     providesDefault: true,
+				                     second: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 100
+			}
+
+			it("should acknowledge the supplied initial value for the first signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int)?
+
+				Signal.combineLatest(.never, signal,
+				                     providesDefault: true,
+				                     first: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 100
+				expect(value?.1) == 1
+			}
+
+			it("should acknowledge the supplied initial value for the third signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int, Int)?
+
+				Signal.combineLatest(signal, signal, .never,
+				                     providesDefault: true,
+				                     third: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 1
+				expect(value?.2) == 100
+			}
+
+			it("should acknowledge the supplied initial value for the forth signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int, Int, Int)?
+
+				Signal.combineLatest(signal, signal, signal, .never,
+				                     providesDefault: true,
+				                     forth: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 1
+				expect(value?.2) == 1
+				expect(value?.3) == 100
+			}
+
+			it("should acknowledge the supplied initial value for the fifth signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int, Int, Int, Int)?
+
+				Signal.combineLatest(signal, signal, signal, signal, .never,
+				                     providesDefault: true,
+				                     fifth: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 1
+				expect(value?.2) == 1
+				expect(value?.3) == 1
+				expect(value?.4) == 100
+			}
+
+			it("should acknowledge the supplied initial value for the sixth signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int, Int, Int, Int, Int)?
+
+				Signal.combineLatest(signal, signal, signal, signal, signal, .never,
+				                     providesDefault: true,
+				                     sixth: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 1
+				expect(value?.2) == 1
+				expect(value?.3) == 1
+				expect(value?.4) == 1
+				expect(value?.5) == 100
+			}
+
+			it("should acknowledge the supplied initial value for the seventh signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int, Int, Int, Int, Int, Int)?
+
+				Signal.combineLatest(signal, signal, signal, signal, signal, signal, .never,
+				                     providesDefault: true,
+				                     seventh: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 1
+				expect(value?.2) == 1
+				expect(value?.3) == 1
+				expect(value?.4) == 1
+				expect(value?.5) == 1
+				expect(value?.6) == 100
+			}
+
+			it("should acknowledge the supplied initial value for the eighth signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int, Int, Int, Int, Int, Int, Int)?
+
+				Signal.combineLatest(signal, signal, signal, signal, signal, signal, signal, .never,
+				                     providesDefault: true,
+				                     eighth: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 1
+				expect(value?.2) == 1
+				expect(value?.3) == 1
+				expect(value?.4) == 1
+				expect(value?.5) == 1
+				expect(value?.6) == 1
+				expect(value?.7) == 100
+			}
+
+			it("should acknowledge the supplied initial value for the ninth signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int, Int, Int, Int, Int, Int, Int, Int)?
+
+				Signal.combineLatest(signal, signal, signal, signal, signal, signal, signal, signal, .never,
+				                     providesDefault: true,
+				                     ninth: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 1
+				expect(value?.2) == 1
+				expect(value?.3) == 1
+				expect(value?.4) == 1
+				expect(value?.5) == 1
+				expect(value?.6) == 1
+				expect(value?.7) == 1
+				expect(value?.8) == 100
+			}
+
+			it("should acknowledge the supplied initial value for the tenth signal") {
+				typealias TestSignal = Signal<Int, NoError>
+
+				let (signal, observer) = TestSignal.pipe()
+				var value: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)?
+
+				Signal.combineLatest(signal, signal, signal, signal, signal, signal, signal, signal, signal, .never,
+				                     providesDefault: true,
+				                     tenth: 100)
+					.observeValues { value = $0 }
+
+				expect(value).to(beNil())
+
+				observer.send(value: 1)
+				expect(value?.0) == 1
+				expect(value?.1) == 1
+				expect(value?.2) == 1
+				expect(value?.3) == 1
+				expect(value?.4) == 1
+				expect(value?.5) == 1
+				expect(value?.6) == 1
+				expect(value?.7) == 1
+				expect(value?.8) == 1
+				expect(value?.9) == 100
+			}
 		}
 
 		describe("zipWith") {

@@ -1657,7 +1657,7 @@ private protocol SignalAggregateStrategy: class {
 	///   - position: The position of the signal.
 	func complete(at position: Int)
 
-	init(count: Int, action: @escaping (AggregateStrategyEvent) -> Void)
+	init(count: Int, defaults: [Any?]?, action: @escaping (AggregateStrategyEvent) -> Void)
 }
 
 private enum AggregateStrategyEvent {
@@ -1728,10 +1728,17 @@ extension Signal {
 			}
 		}
 
-		init(count: Int, action: @escaping (AggregateStrategyEvent) -> Void) {
+		init(count: Int, defaults: [Any?]?, action: @escaping (AggregateStrategyEvent) -> Void) {
+			precondition(defaults?.count ?? count == count)
+
+			if let defaults = defaults {
+				self.values = ContiguousArray(defaults.map { $0 ?? Placeholder.none })
+			} else {
+				self.values = ContiguousArray(repeating: Placeholder.none, count: count)
+			}
+
 			self.count = count
 			self.lock = Lock.make()
-			self.values = ContiguousArray(repeating: Placeholder.none, count: count)
 			self._haveAllSentInitial = false
 			self.completion = Atomic(0)
 			self.action = action
@@ -1815,7 +1822,8 @@ extension Signal {
 			stateLock.unlock()
 		}
 
-		init(count: Int, action: @escaping (AggregateStrategyEvent) -> Void) {
+		init(count: Int, defaults _: [Any?]?, action: @escaping (AggregateStrategyEvent) -> Void) {
+			// NOTE: `ZipStrategy` ignores the defaults.
 			self.values = ContiguousArray(repeating: [], count: count)
 			self.hasConcurrentlyCompleted = false
 			self.isCompleted = ContiguousArray(repeating: false, count: count)
@@ -1856,10 +1864,10 @@ extension Signal {
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy>(_ builder: AggregateBuilder<Strategy>, _ transform: @escaping (ContiguousArray<Any>) -> Value) {
+	private convenience init<Strategy: SignalAggregateStrategy>(_ builder: AggregateBuilder<Strategy>, defaults: [Any?]?, _ transform: @escaping (ContiguousArray<Any>) -> Value) {
 		self.init { observer in
 			let disposables = CompositeDisposable()
-			let strategy = Strategy(count: builder.startHandlers.count) { event in
+			let strategy = Strategy(count: builder.startHandlers.count, defaults: defaults) { event in
 				switch event {
 				case let .value(value):
 					observer.send(value: transform(value))
@@ -1877,59 +1885,59 @@ extension Signal {
 	}
 
 	private convenience init<Strategy: SignalAggregateStrategy, U, S: Sequence>(_ strategy: Strategy.Type, _ signals: S) where Value == [U], S.Iterator.Element == Signal<U, Error> {
-		self.init(signals.reduce(AggregateBuilder<Strategy>()) { $0.add($1) }) { $0.map { $0 as! U } }
+		self.init(signals.reduce(AggregateBuilder<Strategy>()) { $0.add($1) }, defaults: nil) { $0.map { $0 as! U } }
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>) where Value == (A, B) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ defaults: [Any?]? = nil) where Value == (A, B) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B)
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B, C>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>) where Value == (A, B, C) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B, C>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ defaults: [Any?]? = nil) where Value == (A, B, C) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B, $0[2] as! C)
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>) where Value == (A, B, C, D) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ defaults: [Any?]? = nil) where Value == (A, B, C, D) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D)
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>) where Value == (A, B, C, D, E) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ defaults: [Any?]? = nil) where Value == (A, B, C, D, E) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E)
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>) where Value == (A, B, C, D, E, F) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ defaults: [Any?]? = nil) where Value == (A, B, C, D, E, F) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F)
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F, G>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>) where Value == (A, B, C, D, E, F, G) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F, G>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ defaults: [Any?]? = nil) where Value == (A, B, C, D, E, F, G) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G)
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F, G, H>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>) where Value == (A, B, C, D, E, F, G, H) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F, G, H>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ defaults: [Any?]? = nil) where Value == (A, B, C, D, E, F, G, H) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H)
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F, G, H, I>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>) where Value == (A, B, C, D, E, F, G, H, I) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F, G, H, I>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ defaults: [Any?]? = nil) where Value == (A, B, C, D, E, F, G, H, I) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H, $0[8] as! I)
 		}
 	}
 
-	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F, G, H, I, J>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>) where Value == (A, B, C, D, E, F, G, H, I, J) {
-		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i).add(j)) {
+	private convenience init<Strategy: SignalAggregateStrategy, A, B, C, D, E, F, G, H, I, J>(_ strategy: Strategy.Type, _ a: Signal<A, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>, _ defaults: [Any?]? = nil) where Value == (A, B, C, D, E, F, G, H, I, J) {
+		self.init(AggregateBuilder<Strategy>().add(a).add(b).add(c).add(d).add(e).add(f).add(g).add(h).add(i).add(j), defaults: defaults) {
 			return ($0[0] as! A, $0[1] as! B, $0[2] as! C, $0[3] as! D, $0[4] as! E, $0[5] as! F, $0[6] as! G, $0[7] as! H, $0[8] as! I, $0[9] as! J)
 		}
 	}
@@ -1986,6 +1994,69 @@ extension Signal {
 	/// `combineLatest(with:)`.
 	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>) -> Signal<(Value, B, C, D, E, F, G, H, I, J), Error> {
 		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g, h, i, j)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil) -> Signal<(Value, B), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second] : nil
+		return .init(CombineLatestStrategy.self, a, b, defaults)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B, C>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil, third: C? = nil) -> Signal<(Value, B, C), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second, third] : nil
+		return .init(CombineLatestStrategy.self, a, b, c, defaults)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B, C, D>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil, third: C? = nil, forth: D? = nil) -> Signal<(Value, B, C, D), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second, third, forth] : nil
+		return .init(CombineLatestStrategy.self, a, b, c, d, defaults)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B, C, D, E>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil, third: C? = nil, forth: D? = nil, fifth: E? = nil) -> Signal<(Value, B, C, D, E), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second, third, forth, fifth] : nil
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, defaults)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B, C, D, E, F>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil, third: C? = nil, forth: D? = nil, fifth: E? = nil, sixth: F? = nil) -> Signal<(Value, B, C, D, E, F), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second, third, forth, fifth, sixth] : nil
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, defaults)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B, C, D, E, F, G>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil, third: C? = nil, forth: D? = nil, fifth: E? = nil, sixth: F? = nil, seventh: G? = nil) -> Signal<(Value, B, C, D, E, F, G), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second, third, forth, fifth, sixth, seventh] : nil
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g, defaults)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B, C, D, E, F, G, H>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil, third: C? = nil, forth: D? = nil, fifth: E? = nil, sixth: F? = nil, seventh: G? = nil, eighth: H? = nil) -> Signal<(Value, B, C, D, E, F, G, H), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second, third, forth, fifth, sixth, seventh, eighth] : nil
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g, h, defaults)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B, C, D, E, F, G, H, I>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil, third: C? = nil, forth: D? = nil, fifth: E? = nil, sixth: F? = nil, seventh: G? = nil, eighth: H? = nil, ninth: I? = nil) -> Signal<(Value, B, C, D, E, F, G, H, I), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second, third, forth, fifth, sixth, seventh, eighth, ninth] : nil
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g, h, i, defaults)
+	}
+
+	/// Combines the values of all the given signals, in the manner described by
+	/// `combineLatest(with:)`.
+	public static func combineLatest<B, C, D, E, F, G, H, I, J>(_ a: Signal<Value, Error>, _ b: Signal<B, Error>, _ c: Signal<C, Error>, _ d: Signal<D, Error>, _ e: Signal<E, Error>, _ f: Signal<F, Error>, _ g: Signal<G, Error>, _ h: Signal<H, Error>, _ i: Signal<I, Error>, _ j: Signal<J, Error>, providesDefault: Bool, first: Value? = nil, second: B? = nil, third: C? = nil, forth: D? = nil, fifth: E? = nil, sixth: F? = nil, seventh: G? = nil, eighth: H? = nil, ninth: I? = nil, tenth: J? = nil) -> Signal<(Value, B, C, D, E, F, G, H, I, J), Error> {
+		let defaults: [Any?]? = providesDefault ? [first, second, third, forth, fifth, sixth, seventh, eighth, ninth, tenth] : nil
+		return .init(CombineLatestStrategy.self, a, b, c, d, e, f, g, h, i, j, defaults)
 	}
 
 	/// Combines the values of all the given signals, in the manner described by
