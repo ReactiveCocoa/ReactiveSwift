@@ -1978,7 +1978,7 @@ extension SignalProducer {
 								observer.sendCompleted()
 							}
 						} else {
-							observer.action(event)
+							observer.send(event)
 						}
 					}
 				}
@@ -2271,7 +2271,7 @@ extension SignalProducer {
 						defer { state.enqueue(event) }
 						return state.observers
 					}
-					observers?.forEach { $0.action(event) }
+					observers?.forEach { $0.send(event) }
 				}
 		}
 
@@ -2420,7 +2420,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 		}
 
 		if let event = terminationEvent {
-			observer.action(event)
+			observer.send(event)
 		}
 
 		return .success(observers?.insert(observer))

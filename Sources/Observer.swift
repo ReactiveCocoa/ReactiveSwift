@@ -123,7 +123,7 @@ extension Signal {
 			self.init { event in
 				switch event {
 				case .value, .completed, .failed:
-					observer.action(event)
+					observer.send(event)
 				case .interrupted:
 					observer.sendCompleted()
 				}
