@@ -112,7 +112,7 @@ public final class Signal<Value, Error: Swift.Error> {
 					self.stateLock.unlock()
 
 					for observer in observers {
-						observer.action(event)
+						observer.send(event)
 					}
 				} else {
 					self.stateLock.unlock()
@@ -219,7 +219,7 @@ public final class Signal<Value, Error: Swift.Error> {
 
 					if let event = terminationKind.materialize() {
 						for observer in observers {
-							observer.action(event)
+							observer.send(event)
 						}
 					}
 
@@ -902,7 +902,7 @@ extension Signal {
 					terminated?()
 				}
 
-				observer.action(receivedEvent)
+				observer.send(receivedEvent)
 			}
 
 			return disposable
@@ -1312,14 +1312,14 @@ extension Signal {
 					break
 
 				case .value, .failed, .interrupted:
-					observer.action(event)
+					observer.send(event)
 				}
 			}
 
 			disposable += signalDisposable
 			disposable += signal.observe { event in
 				signalDisposable?.dispose()
-				observer.action(event)
+				observer.send(event)
 			}
 
 			return disposable
@@ -1405,7 +1405,7 @@ extension Signal {
 			disposable += self.observe { event in
 				guard let value = event.value else {
 					schedulerDisposable.inner = scheduler.schedule {
-						observer.action(event)
+						observer.send(event)
 					}
 					return
 				}
@@ -1533,7 +1533,7 @@ extension Signal {
 
 				if let event = eventToSend {
 					schedulerDisposable.inner = scheduler.schedule {
-						observer.action(event)
+						observer.send(event)
 					}
 				}
 			}
@@ -1584,7 +1584,7 @@ extension Signal {
 
 				case .completed, .failed, .interrupted:
 					d.inner = scheduler.schedule {
-						observer.action(event)
+						observer.send(event)
 					}
 				}
 			}
@@ -1869,7 +1869,7 @@ extension Signal {
 			}
 
 			for (index, action) in builder.startHandlers.enumerated() where !disposables.isDisposed {
-				disposables += action(index, strategy) { observer.action($0.map { _ in fatalError() }) }
+				disposables += action(index, strategy) { observer.send($0.map { _ in fatalError() }) }
 			}
 
 			return disposables

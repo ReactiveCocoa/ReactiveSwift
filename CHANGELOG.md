@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. `Signal.Observer.action` has been deprecated. Use `Signal.Observer.send` instead. (#515)
+
 1. Workaround an unexpected EGAGIN error being returned by pthread in 32-bit ARM debug builds. (#508)
 
 1. The `SignalProducer` internals have undergone a significant refactoring, which bootstraps the effort to reduce the overhead of constant producers and producer compositions. (#487, kudos to @andersio)
