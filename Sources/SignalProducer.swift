@@ -1145,7 +1145,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that will deliver events until `trigger` sends
 	///            `value` or `completed` events.
-	public func take<Trigger: SignalProducerConvertible>(until trigger: Trigger) -> SignalProducer<Value, Error> where Trigger.Value == (), Trigger.Error == NoError {
+	public func take<Trigger: SignalProducerConvertible>(until trigger: Trigger) -> SignalProducer<Value, Error> where Trigger.Error == NoError {
 		return liftRight(Signal.take(until:))(trigger.producer)
 	}
 
