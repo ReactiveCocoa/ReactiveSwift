@@ -1106,12 +1106,12 @@ extension Signal {
 	///
 	/// - returns: A signal that will deliver events until `trigger` sends
 	///            `value` or `completed` events.
-	public func take(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
+	public func take<Trigger: SignalProtocol>(until trigger: Trigger) -> Signal<Value, Error> where Trigger.Error == NoError {
 		return Signal<Value, Error> { observer in
 			let disposable = CompositeDisposable()
 			disposable += self.observe(observer)
 
-			disposable += trigger.observe { event in
+			disposable += trigger.signal.observe { event in
 				switch event {
 				case .value, .completed:
 					observer.sendCompleted()
