@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+# 2.1.0-alpha.1
 1. `Signal.Observer.action` has been deprecated. Use `Signal.Observer.send` instead. (#515)
 
 1. Workaround an unexpected EGAGIN error being returned by pthread in 32-bit ARM debug builds. (#508)
