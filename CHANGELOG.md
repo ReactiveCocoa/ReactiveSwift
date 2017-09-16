@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Disabled code coverage data to allow app submissions with Xcode 9.0 (see https://github.com/Carthage/Carthage/issues/2056, kudos to @NachoSoto)
+
 # 2.1.0-alpha.1
 1. `Signal.Observer.action` has been deprecated. Use `Signal.Observer.send` instead. (#515)
 
