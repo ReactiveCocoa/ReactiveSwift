@@ -1181,7 +1181,7 @@ extension Signal {
 		return flatMapEvent(Signal.Event.combinePrevious(initial: nil))
 	}
 
-	/// Combine all values from `self`, and forward only the final accumuated result.
+	/// Combine all values from `self`, and forward only the final accumulated result.
 	///
 	/// See `scan(_:_:)` if the resulting producer needs to forward also the partial
 	/// results.
@@ -1198,7 +1198,7 @@ extension Signal {
 		return flatMapEvent(Signal.Event.reduce(initialResult, nextPartialResult))
 	}
 
-	/// Combine all values from `self`, and forward only the final accumuated result.
+	/// Combine all values from `self`, and forward only the final accumulated result.
 	///
 	/// See `scan(into:_:)` if the resulting producer needs to forward also the partial
 	/// results.
