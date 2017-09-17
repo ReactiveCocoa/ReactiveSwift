@@ -38,6 +38,31 @@ extension UnsafeAtomicState where State == DisposableState {
 	}
 }
 
+/// A disposable that does not have side effect upon disposal.
+internal final class _SimpleDisposable: Disposable {
+	private let state = UnsafeAtomicState<DisposableState>(.active)
+
+	var isDisposed: Bool {
+		return state.is(.disposed)
+	}
+
+	func dispose() {
+		_ = state.tryDispose()
+	}
+
+	deinit {
+		state.deinitialize()
+	}
+}
+
+/// A disposable that has already been disposed.
+internal final class NopDisposable: Disposable {
+	static let shared = NopDisposable()
+	var isDisposed = true
+	func dispose() {}
+	private init() {}
+}
+
 /// A type-erased disposable that forwards operations to an underlying disposable.
 public final class AnyDisposable: Disposable {
 	private final class ActionDisposable: Disposable {
@@ -81,7 +106,7 @@ public final class AnyDisposable: Disposable {
 
 	/// Create a disposable.
 	public init() {
-		base = ActionDisposable(nil)
+		base = _SimpleDisposable()
 	}
 
 	/// Create a disposable which wraps the given disposable.
