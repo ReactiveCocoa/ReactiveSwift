@@ -652,8 +652,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	///   - initialValue: Starting value for the mutable property.
 	public init(_ initialValue: Value) {
 		(signal, observer) = Signal.pipe()
-		token = Lifetime.Token()
-		lifetime = Lifetime(token)
+		(lifetime, token) = Lifetime.make()
 
 		/// Need a recursive lock around `value` to allow recursive access to
 		/// `value`. Note that recursive sets will still deadlock because the
