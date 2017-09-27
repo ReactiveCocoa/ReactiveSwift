@@ -125,17 +125,8 @@ jobs:
       env: 
         - JOB=SWIFTPM_SWIFT_4_LINUX
         - SWIFT_VERSION=4.0-DEVELOPMENT-SNAPSHOT-2017-08-04-a
-    - stage: prepare carthage cache
-      script: carthage build --cache-builds
     - stage: carthage
-      script:
-        - carthage build --cache-builds --no-skip-current --platform mac
-    - script:
-        - carthage build --cache-builds --no-skip-current --platform iOS
-    - script:
-        - carthage build --cache-builds --no-skip-current --platform tvOS
-    - script:
-        - carthage build --cache-builds --no-skip-current --platform watchOS
+      script: carthage build --cache-builds --no-skip-current
     - stage: deploy
       before_install: true
       script: skip
