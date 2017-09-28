@@ -1768,7 +1768,7 @@ extension Signal {
 				var buffer = ContiguousArray<Any>()
 				buffer.reserveCapacity(values.count)
 
-				for index in values.startIndex ..< values.endIndex {
+				for index in values.indices {
 					buffer.append(values[index].removeFirst())
 				}
 
