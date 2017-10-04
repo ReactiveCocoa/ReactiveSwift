@@ -10,71 +10,67 @@ branches:
     # Credit: @Omnikron13, https://github.com/mojombo/semver/issues/32
     - /^(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
     - /^hotfix-(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
-script:
-  - script/build
-xcode_workspace: ReactiveSwift.xcworkspace
 cache:
   directories:
     - $HOME/Library/Caches/org.carthage.CarthageKit/dependencies
     - Carthage/Build
+
 jobs:
   include:
     # Xcode 8
-    - xcode_scheme: ReactiveSwift-macOS
-      env:
-        - XCODE_SDK=macosx
-        - XCODE_ACTION="build test"
-        - XCODE_DESTINATION="arch=x86_64"
-        - XCODE_PLAYGROUND_TARGET="x86_64-apple-macosx10.10"
-    - xcode_scheme: ReactiveSwift-iOS
-      env:
-        - XCODE_SDK=iphonesimulator
-        - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
-    - xcode_scheme: ReactiveSwift-iOS
-      env:
-        - XCODE_SDK=iphonesimulator
-        - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 5"
-    - xcode_scheme: ReactiveSwift-tvOS
-      env:
-        - XCODE_SDK=appletvsimulator
-        - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV 1080p"
-    - xcode_scheme: ReactiveSwift-watchOS
-      env:
-        - XCODE_SDK=watchsimulator
-        - XCODE_ACTION=build
-        - XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
-    # Xcode 9
-    - xcode_scheme: ReactiveSwift-macOS
-      osx_image: xcode9
-      env:
-        - XCODE_SDK=macosx
-        - XCODE_ACTION="build test"
-        - XCODE_DESTINATION="arch=x86_64"
-        #- XCODE_PLAYGROUND_TARGET="x86_64-apple-macosx10.10"
-    - xcode_scheme: ReactiveSwift-iOS
-      osx_image: xcode9
-      env:
-        - XCODE_SDK=iphonesimulator
-        - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
-    - xcode_scheme: ReactiveSwift-tvOS
-      osx_image: xcode9
-      env:
-        - XCODE_SDK=appletvsimulator
-        - XCODE_ACTION="build-for-testing test-without-building"
-        - XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV 1080p"
-    - xcode_scheme: ReactiveSwift-watchOS
-      osx_image: xcode9
-      env:
-        - XCODE_SDK=watchsimulator
-        - XCODE_ACTION=build
-        - XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
     - script:
-      - pod repo update --silent
-      - pod lib lint ReactiveSwift.podspec
+        - XCODE_SCHEME=ReactiveSwift-macOS
+          XCODE_SDK=macosx
+          XCODE_ACTION="build test"
+          XCODE_DESTINATION="arch=x86_64"
+          XCODE_PLAYGROUND_TARGET="x86_64-apple-macosx10.10"
+          script/build
+        - XCODE_SCHEME=ReactiveSwift-iOS
+          XCODE_SDK=iphonesimulator
+          XCODE_ACTION="build-for-testing test-without-building"
+          XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
+          script/build
+        - XCODE_SCHEME=ReactiveSwift-iOS
+          XCODE_SDK=iphonesimulator
+          XCODE_ACTION="build-for-testing test-without-building"
+          XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 5"
+          script/build
+        - XCODE_SCHEME=ReactiveSwift-tvOS
+          XCODE_SDK=appletvsimulator
+          XCODE_ACTION="build-for-testing test-without-building"
+          XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV 1080p"
+          script/build
+        - XCODE_SCHEME=ReactiveSwift-watchOS
+          XCODE_SDK=watchsimulator
+          XCODE_ACTION=build
+          XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
+          script/build
+    # Xcode 9
+    - osx_image: xcode9
+      script:
+        - XCODE_SCHEME=ReactiveSwift-macOS
+          XCODE_SDK=macosx
+          XCODE_ACTION="build test"
+          XCODE_DESTINATION="arch=x86_64"
+          script/build
+        - XCODE_SCHEME=ReactiveSwift-iOS
+          XCODE_SDK=iphonesimulator
+          XCODE_ACTION="build-for-testing test-without-building"
+          XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
+          script/build
+        - XCODE_SCHEME=ReactiveSwift-tvOS
+          XCODE_SDK=appletvsimulator
+          XCODE_ACTION="build-for-testing test-without-building"
+          XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV 1080p"
+          script/build
+        - XCODE_SCHEME=ReactiveSwift-watchOS
+          XCODE_SDK=watchsimulator
+          XCODE_ACTION=build
+          XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
+          script/build
+    - script:
+        - pod repo update --silent
+        - pod lib lint ReactiveSwift.podspec
       env:
         - JOB=PODSPEC
     - script:
@@ -140,6 +136,7 @@ jobs:
         - JOB=JAZZY_DOCS_GEN
         - secure: "FZmWA8jEF1nNYEeolK+bDT/n+AJtQGa9/s5SXYg05Zs4GWReDimqo41y2UBJxdeaeixHab4N14sR5OL6R2pf4ZE0LVq4Ln17nsIPTRvMQeH74apJ/+d8y9pzQuyw8MsPeV9VwWAbhie+fjOKFEoqwo98junGJFFqNVKhZX3AdDgB50jNffEqzG7qedwHX5oM+Me8T7oq0UWblGe4CppCXEvDshIKPXxIC1foiVyJoK31WRLIX7c1m99ECFjfqqopal5EUtvgCabZkRBilsYB8rAngrpTg5NpHSPxV3VAiheCmXs12txHek8fPUNIjPf8dhP5QfwK3VUUCS4VcSOJSoTP3HzAn1OirYOhpnmrymLw2TCo4kzPGhpF+58cQQcjbO7TxA1KgLvTtLfSc2MSQTUniPC0jOzl42q5PVttxkE2wDcGBiraxVa++uGWGbjyfJBXVXNz2KnvmVmxn9YMNw2kGbptZrBQw73tHuA0w8cfK+AqckpuY2XDZEzjcumTb5Tr1AC2KWNP3sjsVVlE0yShQDyqVrHE2XP2UPKux04ZgaEciVnBisAN9c4Tm5RjbDw7EOqpy583bxtIvWkAY1rkf4+SXyfNWcHqGWkANGcgeSe9k7C6hwEWb9v90iMrD/D7hzvhioUBfgRhlrbvnAtA9K3fH2VvKGIkTj/blcY="
         - secure: "sisLYdFh8r7WHW3c5sPhuIuuQucAeH66Hx/D8M9Ax9bZthITrw4JGyC+sfnLRLM4rCYrVSBAj6kiJTxK5aWjYEijKZoMf1o5/6s6IkKZv7ocaoIbIF8tVCf9uEIwzoQlStz7wRngz5Qi2PDoeuB9j/p98GV24+/09BVPSnDQ968bPrze1hJTj6xjOz3/A891rNp43g3+mA+mtnEDPmF57f51LWoJRMSdv/IlYKbJxNjKH/xWTufCfHkyKWoPWiSHiloaqWWj0MU8QNxhGHFl/gLa2ljNgSE0cEO1769v6uFK/3PJugjRAqZCs8ssbmtRBikV56LUKcF9TqQVMn5Pu08aHexnsa5P9S2+LAHGjA54rhHiJJaQB58y9UXRUTpZIx7BSajZi1+D507stWfrNB6dl1rt6txNidXDNGPF27WiViwYuET9eLrraPpzdMQzxBn0QYSfbadORwDwUP0hDOS9LC8HQMN8ECRc4mOHgoXfC2qYeKfadFpwBlRYgWKH2S+O3AcwCPUdvxe98EGLR7U5/YeHawu32qm3M1QJHeW0lvHIEnRzV7vQzrOFPO6JjKCpsObsHniy0PSfaLL3NajXBQiiYiR+qTAOT5fRuUNV6ZR648w+y1dto1Bykb+h2Z2B0/sgXQNsl4IcAfJjo7xUNh2F75PQeh7u55aDXyY="
+
 notifications:
   email: false
   slack:
