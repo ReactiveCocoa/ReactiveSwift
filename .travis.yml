@@ -1,5 +1,5 @@
 language: objective-c
-osx_image: xcode8.3
+osx_image: xcode9
 before_install:
   - brew uninstall carthage
   - HOMEBREW_NO_AUTO_UPDATE=1 brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/6ae4f69a652fb0ecb102b0c9216378679a4f1b92/Formula/carthage.rb # 0.22.0
@@ -17,35 +17,6 @@ cache:
 
 jobs:
   include:
-    # Xcode 8
-    - script:
-        - XCODE_SCHEME=ReactiveSwift-macOS
-          XCODE_SDK=macosx
-          XCODE_ACTION="build test"
-          XCODE_DESTINATION="arch=x86_64"
-          XCODE_PLAYGROUND_TARGET="x86_64-apple-macosx10.10"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-iOS
-          XCODE_SDK=iphonesimulator
-          XCODE_ACTION="build-for-testing test-without-building"
-          XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-iOS
-          XCODE_SDK=iphonesimulator
-          XCODE_ACTION="build-for-testing test-without-building"
-          XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 5"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-tvOS
-          XCODE_SDK=appletvsimulator
-          XCODE_ACTION="build-for-testing test-without-building"
-          XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV 1080p"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-watchOS
-          XCODE_SDK=watchsimulator
-          XCODE_ACTION=build
-          XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch - 38mm,OS=2.2"
-          script/build
-    # Xcode 9
     - osx_image: xcode9
       script:
         - XCODE_SCHEME=ReactiveSwift-macOS
@@ -73,26 +44,13 @@ jobs:
         - pod lib lint ReactiveSwift.podspec
       env:
         - JOB=PODSPEC
-    - script:
-        - swift --version
-        - swift build
-        - SWIFTPM_TEST_ReactiveSwift=YES swift test
-      git:
-        submodules: false
-      env:
-        - JOB=SWIFTPM_DARWIN
     - osx_image: xcode9
-      before_install:
-        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
       script:
         - swift --version
         - swift build
         - SWIFTPM_TEST_ReactiveSwift=YES swift test
       git:
         submodules: false
-      env:
-        - JOB=SWIFT_4
-        - SWIFT_VERSION=4.0
     - os: linux
       language: generic
       sudo: required
@@ -105,22 +63,6 @@ jobs:
         - SWIFTPM_TEST_ReactiveSwift=YES swift test
       git:
         submodules: false
-      env: JOB=SWIFTPM_LINUX
-    - os: linux
-      language: generic
-      sudo: required
-      dist: trusty
-      before_install:
-        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
-      script:
-        - swift --version
-        - swift build
-        - SWIFTPM_TEST_ReactiveSwift=YES swift test
-      git:
-        submodules: false
-      env: 
-        - JOB=SWIFTPM_SWIFT_4_LINUX
-        - SWIFT_VERSION=4.0
     - stage: carthage
       script: carthage build --cache-builds --no-skip-current
     - stage: deploy
