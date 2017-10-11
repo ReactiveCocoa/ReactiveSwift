@@ -217,11 +217,15 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - setup: A closure to be invoked before the work associated with the produced
 	///            `Signal` commences. Both the produced `Signal` and an interrupt handle
 	///            of the signal would be passed to the closure.
-	public func startWithSignal(_ setup: (_ signal: Signal<Value, Error>, _ interruptHandle: Disposable) -> Void) {
+	/// - returns: The return value of the given setup closure.
+	@discardableResult
+	public func startWithSignal<Result>(_ setup: (_ signal: Signal<Value, Error>, _ interruptHandle: Disposable) -> Result) -> Result {
 		let instance = core.makeInstance()
-		setup(instance.signal, instance.interruptHandle)
-		guard !instance.interruptHandle.isDisposed else { return }
-		instance.observerDidSetup()
+		let result = setup(instance.signal, instance.interruptHandle)
+		if !instance.interruptHandle.isDisposed {
+			instance.observerDidSetup()
+		}
+		return result
 	}
 }
 

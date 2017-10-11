@@ -594,6 +594,11 @@ class SignalProducerSpec: QuickSpec {
 				expect(disposed) == true
 				expect(addedDisposable.isDisposed) == true
 			}
+
+			it("should return whatever value is returned by the setup closure") {
+				let producer = SignalProducer<Never, NoError>.empty
+				expect(producer.startWithSignal { _, _ in "Hello" }) == "Hello"
+			}
 		}
 
 		describe("start") {
