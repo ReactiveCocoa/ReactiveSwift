@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. `SignalProducer.startWithSignal` now returns the value of the setup closure.
+
 # 2.1.0-alpha.2
 1. Disabled code coverage data to allow app submissions with Xcode 9.0 (see https://github.com/Carthage/Carthage/issues/2056, kudos to @NachoSoto)
 
