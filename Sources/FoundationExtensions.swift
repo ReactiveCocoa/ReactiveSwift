@@ -30,12 +30,12 @@ extension Reactive where Base: NotificationCenter {
 	/// - note: The signal does not terminate naturally. Observers must be
 	///         explicitly disposed to avoid leaks.
 	public func notifications(forName name: Notification.Name?, object: AnyObject? = nil) -> Signal<Notification, NoError> {
-		return Signal { [base = self.base] observer in
+		return Signal { [base = self.base] observer, lifetime in
 			let notificationObserver = base.addObserver(forName: name, object: object, queue: nil) { notification in
 				observer.send(value: notification)
 			}
 
-			return AnyDisposable {
+			lifetime.observeEnded {
 				base.removeObserver(notificationObserver)
 			}
 		}

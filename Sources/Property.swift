@@ -543,6 +543,7 @@ public final class Property<Value>: PropertyProtocol {
 			// A composed property tracks its active consumers through its relay signal, and
 			// interrupts `unsafeProducer` if the relay signal terminates.
 			let (signal, _observer) = Signal<Value, NoError>.pipe(disposable: interruptHandle)
+
 			let observer = transform?(_observer) ?? _observer
 			relay = signal
 

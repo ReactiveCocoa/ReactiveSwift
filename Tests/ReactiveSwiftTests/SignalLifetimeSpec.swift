@@ -28,9 +28,11 @@ class SignalLifetimeSpec: QuickSpec {
 
 				func scope() {
 					let (signal, observer) = Signal<Never, NoError>.pipe(disposable: disposable)
-					outerSignal = signal
 
-					expect(disposable.isDisposed) == false
+					withExtendedLifetime(observer) {
+						outerSignal = signal
+						expect(disposable.isDisposed) == false
+					}
 				}
 
 				scope()
@@ -44,14 +46,17 @@ class SignalLifetimeSpec: QuickSpec {
 
 				func scope() {
 					let (signal, observer) = Signal<Never, NoError>.pipe(disposable: disposable)
-					outerSignal = signal
 
-					signal.observeInterrupted {
-						isInterrupted = true
+					withExtendedLifetime(observer) {
+						outerSignal = signal
+
+						signal.observeInterrupted {
+							isInterrupted = true
+						}
+
+						expect(isInterrupted) == false
+						expect(disposable.isDisposed) == false
 					}
-
-					expect(isInterrupted) == false
-					expect(disposable.isDisposed) == false
 				}
 
 				scope()
@@ -63,7 +68,7 @@ class SignalLifetimeSpec: QuickSpec {
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }
+					let signal: Signal<AnyObject, NoError> = .never
 					return signal.on(disposed: { isDisposed = true })
 				}()
 				expect(signal).to(beNil())
@@ -72,11 +77,11 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should be disposed of if no one retains it") {
 				var isDisposed = false
+
 				var observer: Signal<AnyObject, NoError>.Observer!
 				var signal: Signal<AnyObject, NoError>? = Signal
-					.init { innerObserver in
+					.init { innerObserver, _ in
 						observer = innerObserver
-						return nil
 					}
 					.on(disposed: { isDisposed = true })
 
@@ -102,9 +107,9 @@ class SignalLifetimeSpec: QuickSpec {
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal: Signal<AnyObject, NoError> = Signal { innerObserver in
+					let signal: Signal<AnyObject, NoError> = Signal { innerObserver, _ in
 						observer = innerObserver
-						return nil
+
 					}
 					return signal.on(disposed: { isDisposed = true })
 				}()
@@ -115,18 +120,23 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should be disposed of when the generator observer has deinitialized even if it has an observer") {
 				var isDisposed = false
+				var inputObserver: Signal<AnyObject, NoError>.Observer?
 
 				var disposable: Disposable? = nil
 				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }
-					disposable = signal.on(disposed: { isDisposed = true }).observe(Signal.Observer())
+					let signal = Signal<AnyObject, NoError> { observer, lifetime in
+						inputObserver = observer
+						lifetime.observeEnded { isDisposed = true }
+					}
+
+					disposable = signal.observe(Signal.Observer())
 					return signal
 				}()
-				expect(signal).to(beNil())
-				expect(isDisposed) == true
 
-				disposable?.dispose()
 				expect(signal).to(beNil())
+				expect(isDisposed) == false
+
+				inputObserver = nil
 				expect(isDisposed) == true
 			}
 
@@ -135,11 +145,10 @@ class SignalLifetimeSpec: QuickSpec {
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, TestError>? = {
-					let signal = Signal<AnyObject, TestError> { observer in
+					let signal = Signal<AnyObject, TestError> { observer, _ in
 						testScheduler.schedule {
 							observer.send(error: TestError.default)
 						}
-						return nil
 					}
 					signal.on(disposed: { isDisposed = true }).observeFailed { _ in errored = true }
 					return signal
@@ -161,11 +170,10 @@ class SignalLifetimeSpec: QuickSpec {
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal = Signal<AnyObject, NoError> { observer in
+					let signal = Signal<AnyObject, NoError> { observer, _ in
 						testScheduler.schedule {
 							observer.sendCompleted()
 						}
-						return nil
 					}
 					signal.on(disposed: { isDisposed = true }).observeCompleted { completed = true }
 					return signal
@@ -187,12 +195,10 @@ class SignalLifetimeSpec: QuickSpec {
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal = Signal<AnyObject, NoError> { observer in
+					let signal = Signal<AnyObject, NoError> { observer, _ in
 						testScheduler.schedule {
 							observer.sendInterrupted()
 						}
-
-						return nil
 					}
 					signal.on(disposed: { isDisposed = true }).observeInterrupted { interrupted = true }
 					return signal
@@ -212,7 +218,10 @@ class SignalLifetimeSpec: QuickSpec {
 
 		describe("Signal.pipe") {
 			it("should deallocate") {
-				weak var signal = Signal<(), NoError>.pipe().0
+				weak var signal: AnyObject? = {
+					let (signal, _) = Signal<(), NoError>.pipe()
+					return signal
+				}()
 
 				expect(signal).to(beNil())
 			}
@@ -311,7 +320,7 @@ class SignalLifetimeSpec: QuickSpec {
 		describe("testTransform") {
 			it("should be disposed of") {
 				var isDisposed = false
-				weak var signal: Signal<AnyObject, NoError>? = Signal { _ in nil }
+				weak var signal: Signal<AnyObject, NoError>? = Signal.never
 					.testTransform()
 					.on(disposed: { isDisposed = true })
 
@@ -321,14 +330,24 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should be disposed of if it is not explicitly retained and its generator observer is not retained") {
 				var disposable: Disposable? = nil
+				var inputObserver: Signal<AnyObject, NoError>.Observer?
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal: Signal<AnyObject, NoError> = Signal { _ in nil }.testTransform()
-					disposable = signal.on(disposed: { isDisposed = true }).observe(Signal.Observer())
-					return signal
+					let signal = Signal<AnyObject, NoError> { observer, lifetime in
+						inputObserver = observer
+						lifetime.observeEnded { isDisposed = true }
+					}
+
+					let transformed = signal.testTransform()
+					disposable = transformed.observe(Signal.Observer())
+					return transformed
 				}()
+
 				expect(signal).to(beNil())
+				expect(isDisposed) == false
+
+				inputObserver = nil
 				expect(isDisposed) == true
 			}
 
@@ -480,8 +499,8 @@ class SignalLifetimeSpec: QuickSpec {
 
 private extension Signal {
 	func testTransform() -> Signal<Value, Error> {
-		return Signal { observer in
-			return self.observe(observer.send)
+		return Signal { observer, lifetime in
+			lifetime += self.observe(observer.send)
 		}
 	}
 }

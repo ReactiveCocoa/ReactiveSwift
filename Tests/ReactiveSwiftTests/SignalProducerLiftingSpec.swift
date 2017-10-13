@@ -1433,6 +1433,9 @@ class SignalProducerLiftingSpec: QuickSpec {
 				var samplerObserver: Signal<(), NoError>.Observer!
 				var observer: Signal<Payload, NoError>.Observer!
 
+				// Mitigate the "was written to, but never read" warning.
+				_ = samplerObserver
+
 				beforeEach {
 					let (producer, incomingObserver) = SignalProducer<Payload, NoError>.pipe()
 					let (sampler, _samplerObserver) = Signal<(), NoError>.pipe()
