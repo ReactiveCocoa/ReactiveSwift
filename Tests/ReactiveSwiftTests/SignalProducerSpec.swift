@@ -1634,6 +1634,23 @@ class SignalProducerSpec: QuickSpec {
 					let result = producer.take(first: 1).last()
 					expect(result?.value) == 10
 				}
+
+				it("should dispose of the current producer before starting the new one") {
+					var events: [String] = []
+
+					let producer = SignalProducer([0, 1, 2])
+						.flatMap(.latest) { value in
+							return SignalProducer<Never, NoError>.never
+								.logEvents(identifier: "",
+								           events: [.terminated, .disposed, .starting, .started],
+								           logger: { _, event, _, _, _ in events.append("\(value)-" + event) })
+					}
+
+					let disposable = producer.collect().start()
+					expect(events) == ["0-starting", "0-started", "0-terminated", "0-disposed", "1-starting", "1-started", "1-terminated", "1-disposed", "2-starting", "2-started"]
+
+					disposable.dispose()
+				}
 			}
 
 			describe("FlattenStrategy.race") {
