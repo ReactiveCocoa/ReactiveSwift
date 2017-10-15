@@ -11,20 +11,22 @@ precedencegroup BindingPrecedence {
 
 infix operator <~ : BindingPrecedence
 
-// FIXME: Swift 4 - associated type arbitrary requirements
+// FIXME: Swift 4.x - Conditional Conformance
 // public protocol BindingSource: SignalProducerConvertible where Error == NoError {}
+// extension Signal: BindingSource where Error == NoError {}
+// extension SignalProducer: BindingSource where Error == NoError {}
 
 /// Describes a source which can be bound.
 public protocol BindingSource: SignalProducerConvertible {
 	// FIXME: Swift 4 compiler regression.
 	// All requirements are replicated to workaround the type checker issue.
 	// https://bugs.swift.org/browse/SR-5090
-
 	associatedtype Value
-	associatedtype Error
+	associatedtype Error: Swift.Error
 
 	var producer: SignalProducer<Value, Error> { get }
 }
+
 extension Signal: BindingSource {}
 extension SignalProducer: BindingSource {}
 

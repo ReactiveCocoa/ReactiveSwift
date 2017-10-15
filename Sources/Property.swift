@@ -9,9 +9,7 @@ import enum Result.NoError
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: class, BindingSource {
-	associatedtype Value
-
+public protocol PropertyProtocol: class, BindingSource where Error == NoError {
 	/// The current value of the property.
 	var value: Value { get }
 
@@ -92,7 +90,7 @@ extension PropertyProtocol {
 	}
 }
 
-extension PropertyProtocol where Error == NoError {
+extension PropertyProtocol {
 	/// Maps the current value and all subsequent values to a new property.
 	///
 	/// - parameters:
@@ -125,7 +123,7 @@ extension PropertyProtocol where Error == NoError {
 	///
 	/// - returns: A property that holds a tuple containing values of `self` and
 	///            the given property.
-	public func combineLatest<P: PropertyProtocol>(with other: P) -> Property<(Value, P.Value)> where P.Error == NoError {
+	public func combineLatest<P: PropertyProtocol>(with other: P) -> Property<(Value, P.Value)> {
 		return Property.combineLatest(self, other)
 	}
 
@@ -137,7 +135,7 @@ extension PropertyProtocol where Error == NoError {
 	///
 	/// - returns: A property that holds a tuple containing values of `self` and
 	///            the given property.
-	public func zip<P: PropertyProtocol>(with other: P) -> Property<(Value, P.Value)> where P.Error == NoError {
+	public func zip<P: PropertyProtocol>(with other: P) -> Property<(Value, P.Value)> {
 		return Property.zip(self, other)
 	}
 
@@ -241,55 +239,55 @@ extension PropertyProtocol where Value: Hashable {
 extension PropertyProtocol {
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol>(_ a: A, _ b: B) -> Property<(A.Value, B.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol>(_ a: A, _ b: B) -> Property<(A.Value, B.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b) }
 	}
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol>(_ a: A, _ b: B, _ c: C) -> Property<(Value, B.Value, C.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol>(_ a: A, _ b: B, _ c: C) -> Property<(Value, B.Value, C.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b, c) }
 	}
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D) -> Property<(Value, B.Value, C.Value, D.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D) -> Property<(Value, B.Value, C.Value, D.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b, c, d) }
 	}
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> Property<(Value, B.Value, C.Value, D.Value, E.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> Property<(Value, B.Value, C.Value, D.Value, E.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b, c, d, e) }
 	}
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b, c, d, e, f) }
 	}
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error, A.Error == G.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b, c, d, e, f, g) }
 	}
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error, A.Error == G.Error, A.Error == H.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b, c, d, e, f, g, h) }
 	}
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error, A.Error == G.Error, A.Error == H.Error, A.Error == I.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b, c, d, e, f, g, h, i) }
 	}
 
 	/// Combines the values of all the given properties, in the manner described
 	/// by `combineLatest(with:)`.
-	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol, J: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value, J.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error, A.Error == G.Error, A.Error == H.Error, A.Error == I.Error, A.Error == J.Error {
+	public static func combineLatest<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol, J: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value, J.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.combineLatest($0, b, c, d, e, f, g, h, i, j) }
 	}
 
@@ -306,55 +304,55 @@ extension PropertyProtocol {
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol>(_ a: A, _ b: B) -> Property<(Value, B.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol>(_ a: A, _ b: B) -> Property<(Value, B.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b) }
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol>(_ a: A, _ b: B, _ c: C) -> Property<(Value, B.Value, C.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol>(_ a: A, _ b: B, _ c: C) -> Property<(Value, B.Value, C.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b, c) }
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D) -> Property<(Value, B.Value, C.Value, D.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D) -> Property<(Value, B.Value, C.Value, D.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b, c, d) }
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> Property<(Value, B.Value, C.Value, D.Value, E.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> Property<(Value, B.Value, C.Value, D.Value, E.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b, c, d, e) }
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b, c, d, e, f) }
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error, A.Error == G.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b, c, d, e, f, g) }
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error, A.Error == G.Error, A.Error == H.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b, c, d, e, f, g, h) }
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error, A.Error == G.Error, A.Error == H.Error, A.Error == I.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b, c, d, e, f, g, h, i) }
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`.
-	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol, J: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value, J.Value)> where A.Value == Value, A.Error == NoError, A.Error == B.Error, A.Error == C.Error, A.Error == D.Error, A.Error == E.Error, A.Error == F.Error, A.Error == G.Error, A.Error == H.Error, A.Error == I.Error, A.Error == J.Error {
+	public static func zip<A: PropertyProtocol, B: PropertyProtocol, C: PropertyProtocol, D: PropertyProtocol, E: PropertyProtocol, F: PropertyProtocol, G: PropertyProtocol, H: PropertyProtocol, I: PropertyProtocol, J: PropertyProtocol>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> Property<(Value, B.Value, C.Value, D.Value, E.Value, F.Value, G.Value, H.Value, I.Value, J.Value)> where A.Value == Value {
 		return a.lift { SignalProducer.zip($0, b, c, d, e, f, g, h, i, j) }
 	}
 
