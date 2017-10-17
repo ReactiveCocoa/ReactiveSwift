@@ -289,8 +289,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 		precondition(limit > 0, "The concurrent limit must be greater than zero.")
 
 		return Signal<Value.Value, Error> { relayObserver, lifetime in
-			let disposable = self.observeConcurrent(relayObserver, limit, lifetime)
-			_ = (disposable?.dispose).map(lifetime.observeEnded)
+			lifetime += self.observeConcurrent(relayObserver, limit, lifetime)
 		}
 	}
 
@@ -528,10 +527,8 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	fileprivate func switchToLatest() -> Signal<Value.Value, Error> {
 		return Signal<Value.Value, Error> { observer, lifetime in
 			let serial = SerialDisposable()
-			lifetime.observeEnded(serial.dispose)
-
-			let disposable = self.observeSwitchToLatest(observer, serial)
-			_ = (disposable?.dispose).map(lifetime.observeEnded)
+			lifetime += serial
+			lifetime += self.observeSwitchToLatest(observer, serial)
 		}
 	}
 
@@ -651,10 +648,8 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	fileprivate func race() -> Signal<Value.Value, Error> {
 		return Signal<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
-			lifetime.observeEnded(relayDisposable.dispose)
-
-			let disposable = self.observeRace(observer, relayDisposable)
-			_ = (disposable?.dispose).map(lifetime.observeEnded)
+			lifetime += relayDisposable
+			lifetime += self.observeRace(observer, relayDisposable)
 		}
 	}
 
@@ -895,8 +890,7 @@ extension Signal {
 	///                producer with a different type of error.
 	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> Signal<Value, F> {
 		return Signal<Value, F> { observer, lifetime in
-			let disposable = self.observeFlatMapError(transform, observer, SerialDisposable())
-			_ = (disposable?.dispose).map(lifetime.observeEnded)
+			lifetime += self.observeFlatMapError(transform, observer, SerialDisposable())
 		}
 	}
 

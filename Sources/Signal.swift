@@ -1293,13 +1293,11 @@ extension Signal {
 				}
 			}
 
-			let replacementDisposable = signal.observe { event in
+			lifetime += signalDisposable
+			lifetime += signal.observe { event in
 				signalDisposable?.dispose()
 				observer.send(event)
 			}
-
-			_ = (signalDisposable?.dispose).map(lifetime.observeEnded)
-			_ = (replacementDisposable?.dispose).map(lifetime.observeEnded)
 		}
 	}
 
@@ -1375,9 +1373,9 @@ extension Signal {
 		return Signal { observer, lifetime in
 			let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState())
 			let schedulerDisposable = SerialDisposable()
-			lifetime.observeEnded(schedulerDisposable.dispose)
+			lifetime += schedulerDisposable
 
-			let disposable = self.observe { event in
+			lifetime += self.observe { event in
 				guard let value = event.value else {
 					schedulerDisposable.inner = scheduler.schedule {
 						observer.send(event)
@@ -1422,8 +1420,6 @@ extension Signal {
 					}
 				}
 			}
-
-			_ = (disposable?.dispose).map(lifetime.observeEnded)
 		}
 	}
 
@@ -1456,9 +1452,9 @@ extension Signal {
 			let initial: ThrottleWhileState<Value> = .resumed
 			let state = Atomic(initial)
 			let schedulerDisposable = SerialDisposable()
-			lifetime.observeEnded(schedulerDisposable.dispose)
+			lifetime += schedulerDisposable
 
-			let propertyDisposable = shouldThrottle.producer
+			lifetime += shouldThrottle.producer
 				.skipRepeats()
 				.startWithValues { shouldThrottle in
 					let valueToSend = state.modify { state -> Value? in
@@ -1484,7 +1480,7 @@ extension Signal {
 					}
 				}
 
-			let disposable = self.observe { event in
+			lifetime += self.observe { event in
 				let eventToSend = state.modify { state -> Event? in
 					switch event {
 					case let .value(value):
@@ -1510,9 +1506,6 @@ extension Signal {
 					}
 				}
 			}
-
-			lifetime.observeEnded(propertyDisposable.dispose)
-			_ = (disposable?.dispose).map(lifetime.observeEnded)
 		}
 	}
 
