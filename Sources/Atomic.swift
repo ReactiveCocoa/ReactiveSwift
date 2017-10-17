@@ -155,13 +155,26 @@ internal class Lock {
 				attr.deallocate(capacity: 1)
 			}
 
-			// Darwin pthread for 32-bit ARM somehow returns `EAGAIN` when
-			// using `trylock` on a `PTHREAD_MUTEX_ERRORCHECK` mutex.
-			#if DEBUG && !arch(arm)
-			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_ERRORCHECK))
-			#else
-			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL))
-			#endif
+			let type: Int32
+			
+			if recursive {
+				type = PTHREAD_MUTEX_RECURSIVE
+			} else {
+				#if DEBUG && !arch(arm)
+				// Darwin pthread for 32-bit ARM, and 64-bit ARM on some earlier
+				// versions of iOS, somehow returns `EAGAIN` when using `trylock`
+				// on a `PTHREAD_MUTEX_ERRORCHECK` mutex.
+				if #available(iOS 8.3, *) {
+					type = PTHREAD_MUTEX_ERRORCHECK	
+				} else {
+					type = PTHREAD_MUTEX_NORMAL
+				}
+				#else
+				type = PTHREAD_MUTEX_NORMAL
+				#endif
+			}
+			
+			pthread_mutexattr_settype(attr, type)
 
 			let status = pthread_mutex_init(_lock, attr)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
