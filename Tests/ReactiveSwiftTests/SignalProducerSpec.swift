@@ -599,6 +599,30 @@ class SignalProducerSpec: QuickSpec {
 				let producer = SignalProducer<Never, NoError>.empty
 				expect(producer.startWithSignal { _, _ in "Hello" }) == "Hello"
 			}
+
+			it("should dispose of the upstream when the downstream producer terminates") {
+				var iterationCount = 0
+
+				let loop = SignalProducer<Int, NoError> { observer, lifetime in
+					for i in 0 ..< 100 where !lifetime.hasEnded {
+						observer.send(value: i)
+						iterationCount += 1
+					}
+					observer.sendCompleted()
+				}
+
+				var results: [Int] = []
+
+				waitUntil { done in
+					loop
+						.lift { $0.take(first: 5) }
+						.on(disposed: done)
+						.startWithValues { results.append($0) }
+				}
+
+				expect(iterationCount) == 5
+				expect(results) == [0, 1, 2, 3, 4]
+			}
 		}
 
 		describe("start") {
