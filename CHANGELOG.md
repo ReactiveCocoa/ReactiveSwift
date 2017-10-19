@@ -1,7 +1,23 @@
 # master
 *Please add new entries at the top.*
 
-1. `SignalProducer.startWithSignal` now returns the value of the setup closure.
+1. `Signal` now uses `Lifetime` for resource management. (#404, kudos to @andersio)
+
+   The `Signal` initialzer now accepts a generator closure that is passed with the input `Observer` and the `Lifetime` as its arguments. The original variant accepting a single-argument generator closure is now obselete. This is a source breaking change.
+   
+   ```swift
+   // New: Add `Disposable`s to the `Lifetime`.
+   let candies = Signal<U, E> { (observer: Signal<U, E>.Observer, lifetime: Lifetime) in
+      lifetime += trickOrTreat.observe(observer)
+   }
+   
+   // Obsolete: Returning a `Disposable`.
+   let candies = Signal { (observer: Signal<U, E>.Observer) -> Disposable? in
+      return trickOrTreat.observe(observer)
+   }
+   ```
+
+1. `SignalProducer.startWithSignal` now returns the value of the setup closure. (#533, kudos to @Burgestrand)
 
 # 2.1.0-alpha.2
 1. Disabled code coverage data to allow app submissions with Xcode 9.0 (see https://github.com/Carthage/Carthage/issues/2056, kudos to @NachoSoto)

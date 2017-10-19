@@ -288,18 +288,12 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	fileprivate func concurrent(limit: UInt) -> Signal<Value.Value, Error> {
 		precondition(limit > 0, "The concurrent limit must be greater than zero.")
 
-		return Signal<Value.Value, Error> { relayObserver in
-			let disposable = CompositeDisposable()
-			let relayDisposable = CompositeDisposable()
-
-			disposable += relayDisposable
-			disposable += self.observeConcurrent(relayObserver, limit, relayDisposable)
-
-			return disposable
+		return Signal<Value.Value, Error> { relayObserver, lifetime in
+			lifetime += self.observeConcurrent(relayObserver, limit, lifetime)
 		}
 	}
 
-	fileprivate func observeConcurrent(_ observer: Signal<Value.Value, Error>.Observer, _ limit: UInt, _ disposable: CompositeDisposable) -> Disposable? {
+	fileprivate func observeConcurrent(_ observer: Signal<Value.Value, Error>.Observer, _ limit: UInt, _ lifetime: Lifetime) -> Disposable? {
 		let state = Atomic(ConcurrentFlattenState<Value.Value, Error>(limit: limit))
 
 		func startNextIfNeeded() {
@@ -308,7 +302,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 				let deinitializer = ScopedDisposable(AnyDisposable(producerState.deinitialize))
 
 				producer.startWithSignal { signal, inner in
-					let handle = disposable.add(inner)
+					let handle = lifetime.observeEnded(inner.dispose)
 
 					signal.observe { event in
 						switch event {
@@ -371,12 +365,10 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 		precondition(limit > 0, "The concurrent limit must be greater than zero.")
 
 		return SignalProducer<Value.Value, Error> { relayObserver, lifetime in
-			self.startWithSignal { signal, signalDisposable in
-				let disposables = CompositeDisposable()
-				lifetime.observeEnded(signalDisposable.dispose)
-				lifetime.observeEnded(disposables.dispose)
+			self.startWithSignal { signal, interruptHandle in
+				lifetime.observeEnded(interruptHandle.dispose)
 
-				_ = signal.observeConcurrent(relayObserver, limit, disposables)
+				_ = signal.observeConcurrent(relayObserver, limit, lifetime)
 			}
 		}
 	}
@@ -533,14 +525,10 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	/// - note: The returned signal completes when `signal` and the latest inner
 	///         signal have both completed.
 	fileprivate func switchToLatest() -> Signal<Value.Value, Error> {
-		return Signal<Value.Value, Error> { observer in
-			let composite = CompositeDisposable()
+		return Signal<Value.Value, Error> { observer, lifetime in
 			let serial = SerialDisposable()
-
-			composite += serial
-			composite += self.observeSwitchToLatest(observer, serial)
-
-			return composite
+			lifetime += serial
+			lifetime += self.observeSwitchToLatest(observer, serial)
 		}
 	}
 
@@ -658,14 +646,10 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	///
 	/// The returned signal completes when `self` and the winning inner signal have both completed.
 	fileprivate func race() -> Signal<Value.Value, Error> {
-		return Signal<Value.Value, Error> { observer in
-			let composite = CompositeDisposable()
+		return Signal<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
-
-			composite += relayDisposable
-			composite += self.observeRace(observer, relayDisposable)
-
-			return composite
+			lifetime += relayDisposable
+			lifetime += self.observeRace(observer, relayDisposable)
 		}
 	}
 
@@ -905,8 +889,8 @@ extension Signal {
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
 	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> Signal<Value, F> {
-		return Signal<Value, F> { observer in
-			self.observeFlatMapError(transform, observer, SerialDisposable())
+		return Signal<Value, F> { observer, lifetime in
+			lifetime += self.observeFlatMapError(transform, observer, SerialDisposable())
 		}
 	}
 

@@ -1629,6 +1629,10 @@ class PropertySpec: QuickSpec {
 					var isDisposed = false
 
 					var outerObserver: Signal<String, NoError>.Observer!
+
+					// Mitigate the "was written to, but never read" warning.
+					_ = outerObserver
+
 					var signal: Signal<String, NoError>? = {
 						let (signal, observer) = Signal<String, NoError>.pipe()
 						outerObserver = observer

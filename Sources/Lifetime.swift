@@ -11,8 +11,8 @@ public final class Lifetime {
 	/// - note: Consider using `Lifetime.observeEnded` if only a closure observer
 	///         is to be attached.
 	public var ended: Signal<Never, NoError> {
-		return Signal { observer in
-			return disposables += observer.sendCompleted
+		return Signal { observer, lifetime in
+			lifetime += (disposables += observer.sendCompleted)
 		}
 	}
 
@@ -63,7 +63,8 @@ public final class Lifetime {
 	///            if `lifetime` has already ended.
 	@discardableResult
 	public static func += (lifetime: Lifetime, disposable: Disposable?) -> Disposable? {
-		return (disposable?.dispose).flatMap(lifetime.observeEnded)
+		guard let dispose = disposable?.dispose else { return nil }
+		return lifetime.observeEnded(dispose)
 	}
 }
 

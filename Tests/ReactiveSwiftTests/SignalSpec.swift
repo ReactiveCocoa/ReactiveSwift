@@ -25,9 +25,8 @@ class SignalSpec: QuickSpec {
 
 			it("should run the generator immediately") {
 				var didRunGenerator = false
-				_ = Signal<AnyObject, NoError> { _ in
+				_ = Signal<AnyObject, NoError> { observer, _ in
 					didRunGenerator = true
-					return nil
 				}
 
 				expect(didRunGenerator) == true
@@ -36,14 +35,13 @@ class SignalSpec: QuickSpec {
 			it("should forward events to observers") {
 				let numbers = [ 1, 2, 5 ]
 
-				let signal: Signal<Int, NoError> = Signal { observer in
+				let signal: Signal<Int, NoError> = Signal { observer, _ in
 					testScheduler.schedule {
 						for number in numbers {
 							observer.send(value: number)
 						}
 						observer.sendCompleted()
 					}
-					return nil
 				}
 
 				var fromSignal: [Int] = []
@@ -72,11 +70,11 @@ class SignalSpec: QuickSpec {
 			it("should dispose of returned disposable upon error") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<AnyObject, TestError> = Signal { observer in
+				let signal: Signal<AnyObject, TestError> = Signal { observer, lifetime in
 					testScheduler.schedule {
 						observer.send(error: TestError.default)
 					}
-					return disposable
+					lifetime.observeEnded(disposable.dispose)
 				}
 
 				var errored = false
@@ -94,12 +92,12 @@ class SignalSpec: QuickSpec {
 
 			it("should dispose of returned disposable upon completion") {
 				let disposable = AnyDisposable()
-
-				let signal: Signal<AnyObject, NoError> = Signal { observer in
+				
+				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
 					testScheduler.schedule {
 						observer.sendCompleted()
 					}
-					return disposable
+					lifetime.observeEnded(disposable.dispose)
 				}
 
 				var completed = false
@@ -118,11 +116,11 @@ class SignalSpec: QuickSpec {
 			it("should dispose of returned disposable upon interrupted") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<AnyObject, NoError> = Signal { observer in
+				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
 					testScheduler.schedule {
 						observer.sendInterrupted()
 					}
-					return disposable
+					lifetime.observeEnded(disposable.dispose)
 				}
 
 				var interrupted = false
@@ -142,10 +140,10 @@ class SignalSpec: QuickSpec {
 			it("should dispose of the returned disposable if the signal has interrupted in the generator") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<AnyObject, NoError> = Signal { observer in
+				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
 					observer.sendInterrupted()
 					expect(disposable.isDisposed) == false
-					return disposable
+					lifetime.observeEnded(disposable.dispose)
 				}
 
 				expect(disposable.isDisposed) == true
@@ -154,10 +152,10 @@ class SignalSpec: QuickSpec {
 			it("should dispose of the returned disposable if the signal has completed in the generator") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<AnyObject, NoError> = Signal { observer in
+				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
 					observer.sendCompleted()
 					expect(disposable.isDisposed) == false
-					return disposable
+					lifetime.observeEnded(disposable.dispose)
 				}
 
 				expect(disposable.isDisposed) == true
@@ -166,10 +164,10 @@ class SignalSpec: QuickSpec {
 			it("should dispose of the returned disposable if the signal has failed in the generator") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<AnyObject, TestError> = Signal { observer in
+				let signal: Signal<AnyObject, TestError> = Signal { observer, lifetime in
 					observer.send(error: .default)
 					expect(disposable.isDisposed) == false
-					return disposable
+					lifetime.observeEnded(disposable.dispose)
 				}
 
 				expect(disposable.isDisposed) == true
@@ -368,7 +366,7 @@ class SignalSpec: QuickSpec {
 			it("should stop forwarding events when disposed") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<Int, NoError> = Signal { observer in
+				let signal: Signal<Int, NoError> = Signal { observer, lifetime in
 					testScheduler.schedule {
 						for number in [ 1, 2 ] {
 							observer.send(value: number)
@@ -376,7 +374,7 @@ class SignalSpec: QuickSpec {
 						observer.sendCompleted()
 						observer.send(value: 4)
 					}
-					return disposable
+					lifetime += disposable
 				}
 
 				var fromSignal: [Int] = []
@@ -395,9 +393,8 @@ class SignalSpec: QuickSpec {
 
 			it("should not trigger side effects") {
 				var runCount = 0
-				let signal: Signal<(), NoError> = Signal { _ in
+				let signal: Signal<(), NoError> = Signal { observer, _ in
 					runCount += 1
-					return nil
 				}
 
 				expect(runCount) == 1
@@ -1214,13 +1211,12 @@ class SignalSpec: QuickSpec {
 				let numbers = [ 1, 2, 4, 4, 5 ]
 				let testScheduler = TestScheduler()
 
-				var signal: Signal<Int, NoError> = Signal { observer in
+				var signal: Signal<Int, NoError> = Signal { observer, _ in
 					testScheduler.schedule {
 						for number in numbers {
 							observer.send(value: number)
 						}
 					}
-					return nil
 				}
 
 				var completed = false
@@ -1237,13 +1233,12 @@ class SignalSpec: QuickSpec {
 				let numbers = [ 1, 2, 4, 4, 5 ]
 				let testScheduler = TestScheduler()
 
-				let signal: Signal<Int, NoError> = Signal { observer in
+				let signal: Signal<Int, NoError> = Signal { observer, _ in
 					testScheduler.schedule {
 						for number in numbers {
 							observer.send(value: number)
 						}
 					}
-					return nil
 				}
 
 				var result: [Int] = []
@@ -1608,7 +1603,7 @@ class SignalSpec: QuickSpec {
 		describe("delay") {
 			it("should send events on the given scheduler after the interval") {
 				let testScheduler = TestScheduler()
-				let signal: Signal<Int, NoError> = Signal { observer in
+				let signal: Signal<Int, NoError> = Signal { observer, _ in
 					testScheduler.schedule {
 						observer.send(value: 1)
 					}
@@ -1616,7 +1611,6 @@ class SignalSpec: QuickSpec {
 						observer.send(value: 2)
 						observer.sendCompleted()
 					}
-					return nil
 				}
 
 				var result: [Int] = []
@@ -1649,11 +1643,10 @@ class SignalSpec: QuickSpec {
 
 			it("should schedule errors immediately") {
 				let testScheduler = TestScheduler()
-				let signal: Signal<Int, TestError> = Signal { observer in
+				let signal: Signal<Int, TestError> = Signal { observer, _ in
 					testScheduler.schedule {
 						observer.send(error: TestError.default)
 					}
-					return nil
 				}
 
 				var errored = false

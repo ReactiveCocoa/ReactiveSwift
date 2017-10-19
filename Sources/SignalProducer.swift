@@ -339,8 +339,8 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 	internal override func makeInstance() -> Instance {
 		let product = source.makeInstance()
-		let signal = Signal<Value, Error> { observer in
-			return product.signal.observe(Signal.Observer(observer, transform))
+		let signal = Signal<Value, Error> { observer, lifetime in
+			lifetime += product.signal.observe(Signal.Observer(observer, transform))
 		}
 
 		return Instance(signal: signal,

@@ -11,6 +11,9 @@ extension AnyDisposable {
 extension Signal {
 	@available(*, unavailable, renamed:"promoteError")
 	public func promoteErrors<F>(_: F.Type) -> Signal<Value, F> { fatalError() }
+
+	@available(*, unavailable, message:"Use the `Signal.init` that accepts a two-argument generator.")
+	public convenience init(_ generator: (Observer) -> Disposable?) { fatalError() }
 }
 
 extension SignalProducer {
