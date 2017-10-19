@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+# 3.0.0-alpha.1
+# 3.0.0-alpha.1
 1. `Signal` now uses `Lifetime` for resource management. (#404, kudos to @andersio)
 
    The `Signal` initialzer now accepts a generator closure that is passed with the input `Observer` and the `Lifetime` as its arguments. The original variant accepting a single-argument generator closure is now obselete. This is a source breaking change.
