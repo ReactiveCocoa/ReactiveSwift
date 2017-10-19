@@ -56,6 +56,9 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// The state of the signal.
 		private var state: State
 
+		/// The buffered values.
+		private var buffer: [(Bag<Observer>, Value)]
+
 		/// Used to ensure that all state accesses are serialized.
 		private let stateLock: Lock
 
@@ -64,6 +67,7 @@ public final class Signal<Value, Error: Swift.Error> {
 
 		fileprivate init(_ generator: (Observer, Lifetime) -> Void) {
 			state = .alive(Bag(), hasDeinitialized: false)
+			buffer = []
 
 			stateLock = Lock.make()
 			sendLock = Lock.make()
@@ -105,7 +109,17 @@ public final class Signal<Value, Error: Swift.Error> {
 
 				tryToCommitTermination()
 			} else {
-				self.sendLock.lock()
+				guard self.sendLock.try() else {
+					self.stateLock.lock()
+					defer { self.stateLock.unlock() }
+
+					if case let .alive(observers, _) = self.state {
+						self.buffer.append((observers, event.value!))
+					}
+
+					return
+				}
+
 				self.stateLock.lock()
 
 				if case let .alive(observers, _) = self.state {
@@ -116,6 +130,22 @@ public final class Signal<Value, Error: Swift.Error> {
 					}
 				} else {
 					self.stateLock.unlock()
+				}
+
+				while true {
+					self.stateLock.lock()
+
+					guard case .alive = self.state, !self.buffer.isEmpty else {
+						self.stateLock.unlock()
+						break
+					}
+
+					let (observers, value) = self.buffer.removeFirst()
+					self.stateLock.unlock()
+
+					for observer in observers {
+						observer.send(value: value)
+					}
 				}
 
 				self.sendLock.unlock()
