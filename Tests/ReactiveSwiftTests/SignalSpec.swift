@@ -506,7 +506,6 @@ class SignalSpec: QuickSpec {
 				expect(lastValue) == "2"
 			}
 
-#if swift(>=3.2)
 			it("should support key paths") {
 				let (signal, observer) = Signal<String, NoError>.pipe()
 				let mappedSignal = signal.map(\String.count)
@@ -524,7 +523,6 @@ class SignalSpec: QuickSpec {
 				observer.send(value: "foobar")
 				expect(lastValue) == 6
 			}
-#endif
 		}
 
 		describe("mapError") {

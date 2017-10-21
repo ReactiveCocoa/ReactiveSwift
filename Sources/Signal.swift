@@ -554,7 +554,6 @@ extension Signal {
 		return flatMapEvent(Signal.Event.map(transform))
 	}
 
-#if swift(>=3.2)
 	/// Map each value in the signal to a new value by applying a key path.
 	///
 	/// - parameters:
@@ -564,7 +563,6 @@ extension Signal {
 	public func map<U>(_ keyPath: KeyPath<Value, U>) -> Signal<U, Error> {
 		return map { $0[keyPath: keyPath] }
 	}
-#endif
 
 	/// Map errors in the signal to a new error.
 	///
