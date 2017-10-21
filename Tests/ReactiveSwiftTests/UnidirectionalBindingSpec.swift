@@ -80,7 +80,6 @@ class UnidirectionalBindingSpec: QuickSpec {
 				}
 			}
 
-			#if swift(>=3.2)
 			describe("key path binding target") {
 				var target: BindingTarget<Int>!
 				var object: Object!
@@ -112,7 +111,6 @@ class UnidirectionalBindingSpec: QuickSpec {
 					expect(object.value) == 2
 				}
 			}
-			#endif
 
 			it("should not deadlock on the same queue") {
 				var value: Int?

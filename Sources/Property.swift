@@ -102,7 +102,6 @@ extension PropertyProtocol {
 		return lift { $0.map(transform) }
 	}
 
-#if swift(>=3.2)
 	/// Maps the current value and all subsequent values to a new property
 	/// by applying a key path.
 	///
@@ -113,7 +112,6 @@ extension PropertyProtocol {
 	public func map<U>(_ keyPath: KeyPath<Value, U>) -> Property<U> {
 		return lift { $0.map(keyPath) }
 	}
-#endif
 
 	/// Combines the current value and the subsequent values of two `Property`s in
 	/// the manner described by `Signal.combineLatest(with:)`.

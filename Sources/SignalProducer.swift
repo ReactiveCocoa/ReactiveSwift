@@ -809,7 +809,6 @@ extension SignalProducer {
 		return core.flatMapEvent(Signal.Event.map(transform))
 	}
 
-#if swift(>=3.2)
 	/// Map each value in the producer to a new value by applying a key path.
 	///
 	/// - parameters:
@@ -819,7 +818,6 @@ extension SignalProducer {
 	public func map<U>(_ keyPath: KeyPath<Value, U>) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.filterMap { $0[keyPath: keyPath] })
 	}
-#endif
 
 	/// Map errors in the producer to a new error.
 	///
