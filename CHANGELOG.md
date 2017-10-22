@@ -1,6 +1,6 @@
 # master
 *Please add new entries at the top.*
-Fixed integer overflow for `DispatchTimeInterval` in FoundationExtensions.swift (#506)
+1. Fixed integer overflow for `DispatchTimeInterval` in FoundationExtensions.swift (#506)
 
 # 3.0.0-alpha.1
 # 3.0.0-alpha.1
