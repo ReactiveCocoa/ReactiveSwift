@@ -93,7 +93,7 @@ extension DispatchTimeInterval {
 		case let .milliseconds(ms):
 			return TimeInterval(TimeInterval(ms) / 1000.0)
 		case let .microseconds(us):
-			return TimeInterval(Int64(us) * Int64(NSEC_PER_USEC)) / TimeInterval(NSEC_PER_SEC)
+			return TimeInterval(Int64(us)) * TimeInterval(NSEC_PER_USEC) / TimeInterval(NSEC_PER_SEC)
 		case let .nanoseconds(ns):
 			return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
 		case .never:
@@ -120,23 +120,19 @@ extension DispatchTimeInterval {
 
 	/// Scales a time interval by the given scalar specified in `rhs`.
 	///
-	/// - note: This method is only used internally to "scale down" a time 
-	///			interval. Specifically it's used only to scale intervals to 10% 
-	///			of their original value for the default `leeway` parameter in 
-	///			`Scheduler.schedule(after:action:)` schedule and similar
-	///			other methods.
-	///
-	///			If seconds is over 200,000, 10% is ~2,000, and hence we end up
-	///			with a value of ~2,000,000,000. Not quite overflowing a signed
-	///			integer on 32-bit platforms, but close.
-	///
-	///			Even still, 200,000 seconds should be a rarely (if ever)
-	///			specified interval for our APIs. And even then, folks should be
-	///			smart and specify their own `leeway` parameter.
-	///
-	/// - returns: Scaled interval in microseconds
+	/// - returns: Scaled interval in minimal appropriate unit
 	internal static func *(lhs: DispatchTimeInterval, rhs: Double) -> DispatchTimeInterval {
 		let seconds = lhs.timeInterval * rhs
-		return .microseconds(Int(seconds * 1000 * 1000))
+		var result: DispatchTimeInterval = .never
+		if let integerTimeInterval = Int(exactly: (seconds * 1000 * 1000 * 1000).rounded()) {
+			result = .nanoseconds(integerTimeInterval)
+		} else if let integerTimeInterval = Int(exactly: (seconds * 1000 * 1000).rounded()) {
+			result = .microseconds(integerTimeInterval)
+		} else if let integerTimeInterval = Int(exactly: (seconds * 1000).rounded()) {
+			result = .milliseconds(integerTimeInterval)
+		} else if let integerTimeInterval = Int(exactly: (seconds).rounded()) {
+			result = .seconds(integerTimeInterval)
+		}
+		return result
 	}
 }
