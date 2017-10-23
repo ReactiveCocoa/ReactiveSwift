@@ -99,7 +99,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				expect((DispatchTimeInterval.seconds(Int.max) * 0.01).timeInterval).to(beCloseTo(10 * DispatchTimeInterval.milliseconds(Int.max).timeInterval, within: 1))
 				expect((DispatchTimeInterval.milliseconds(Int.max) * 0.01).timeInterval).to(beCloseTo(10 * DispatchTimeInterval.microseconds(Int.max).timeInterval, within: 1))
 				expect((DispatchTimeInterval.microseconds(Int.max) * 0.01).timeInterval).to(beCloseTo(10 * DispatchTimeInterval.nanoseconds(Int.max).timeInterval, within: 1))
-				expect((DispatchTimeInterval.seconds(Int.max) * 10).timeInterval).to(equal(Double.infinity))
+				expect((DispatchTimeInterval.seconds(Int.max) * 10).timeInterval) == Double.infinity
 			}
 
 			it("should produce the expected TimeInterval values") {
@@ -110,7 +110,7 @@ class FoundationExtensionsSpec: QuickSpec {
 
 				expect(DispatchTimeInterval.milliseconds(500).timeInterval).to(beCloseTo(0.5))
 				expect(DispatchTimeInterval.milliseconds(250).timeInterval).to(beCloseTo(0.25))
-				expect(DispatchTimeInterval.never.timeInterval).to(equal(Double.infinity))
+				expect(DispatchTimeInterval.never.timeInterval) == Double.infinity
 			}
 
 			it("should negate as you'd hope") {
@@ -118,7 +118,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				expect((-DispatchTimeInterval.milliseconds(1)).timeInterval).to(beCloseTo(-0.001))
 				expect((-DispatchTimeInterval.microseconds(1)).timeInterval).to(beCloseTo(-0.000001, within: 0.0000001))
 				expect((-DispatchTimeInterval.nanoseconds(1)).timeInterval).to(beCloseTo(-0.000000001, within: 0.0000000001))
-				expect((-DispatchTimeInterval.never).timeInterval).to(equal(Double.infinity))
+				expect((-DispatchTimeInterval.never).timeInterval) == Double.infinity
 			}
 		}
 	}
