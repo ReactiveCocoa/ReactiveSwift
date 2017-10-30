@@ -1,9 +1,10 @@
 # master
 *Please add new entries at the top.*
 
-# 3.0.0-rc.11. Fixed integer overflow for `DispatchTimeInterval` in FoundationExtensions.swift (#506)
+# 3.0.0-rc.1
+1. Fixed integer overflow for `DispatchTimeInterval` in FoundationExtensions.swift (#506)
 
-# 3.0.0-alpha.1
+# 3.0.0
 # 3.0.0-alpha.1
 1. `Signal` now uses `Lifetime` for resource management. (#404, kudos to @andersio)
 
