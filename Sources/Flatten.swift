@@ -923,18 +923,17 @@ extension Signal {
 	///                producer with a different type of error.
 	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> Signal<Value, F> {
 		return Signal<Value, F> { observer, lifetime in
-			lifetime += self.observeFlatMapError(transform, observer, SerialDisposable())
+			lifetime += self.observe(Signal.observeFlatMapError(transform, observer, lifetime))
 		}
 	}
 
-	fileprivate func observeFlatMapError<F>(_ handler: @escaping (Error) -> SignalProducer<Value, F>, _ observer: Signal<Value, F>.Observer, _ serialDisposable: SerialDisposable) -> Disposable? {
-		return self.observe { event in
+	fileprivate static func observeFlatMapError<F>(_ handler: @escaping (Error) -> SignalProducer<Value, F>, _ observer: Signal<Value, F>.Observer, _ lifetime: Lifetime) -> Observer {
+		return Observer { event in
 			switch event {
 			case let .value(value):
 				observer.send(value: value)
 			case let .failed(error):
-				serialDisposable.dispose()
-				handler(error).start(observer)
+				lifetime += handler(error).start(observer)
 			case .completed:
 				observer.sendCompleted()
 			case .interrupted:
@@ -953,14 +952,7 @@ extension SignalProducer {
 	///                producer with a different type of error.
 	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> SignalProducer<Value, F> {
 		return SignalProducer<Value, F> { observer, lifetime in
-			let serialDisposable = SerialDisposable()
-			lifetime += serialDisposable
-
-			self.startWithSignal { signal, signalDisposable in
-				serialDisposable.inner = signalDisposable
-
-				_ = signal.observeFlatMapError(transform, observer, serialDisposable)
-			}
+			lifetime += self.start(Signal.observeFlatMapError(transform, observer, lifetime))
 		}
 	}
 }
