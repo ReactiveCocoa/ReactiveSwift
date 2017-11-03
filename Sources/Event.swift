@@ -174,6 +174,34 @@ extension Signal.Event: EventProtocol {
 	}
 }
 
+// Event Transformations
+//
+// Operators backed by event transformations have such characteristics:
+//
+// 1. Unary
+//    The operator applies to only one stream.
+//
+// 2. Serial
+//    The outcome need not be synchronously emitted, but all events must be delivered in
+//    serial order.
+//
+// 3. No side effect upon interruption.
+//    The operator must not perform any side effect upon receving `interrupted`.
+//
+// Examples of ineligible operators (for now):
+//
+// 1. `timeout`
+//    This operator forwards the `failed` event on a different scheduler.
+//
+// 2. `combineLatest`
+//    This operator applies to two or more streams.
+//
+// 3. `SignalProducer.then`
+//    This operator starts a second stream when the first stream completes.
+//
+// 4. `on`
+//    This operator performs side effect upon interruption.
+
 extension Signal.Event {
 	internal typealias Transformation<U, E: Swift.Error> = (@escaping Signal<U, E>.Observer.Action) -> (Signal<Value, Error>.Event) -> Void
 
@@ -683,6 +711,88 @@ extension Signal.Event {
 			}
 		}
 	}
+
+	internal static func throttle(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
+		precondition(interval >= 0)
+
+		return { action in
+			let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState())
+			let schedulerDisposable = SerialDisposable()
+
+			return { event in
+				guard let value = event.value else {
+					schedulerDisposable.inner = scheduler.schedule {
+						action(event)
+					}
+					return
+				}
+
+				let scheduleDate: Date = state.modify { state in
+					state.pendingValue = value
+
+					let proposedScheduleDate: Date
+					if let previousDate = state.previousDate, previousDate.compare(scheduler.currentDate) != .orderedDescending {
+						proposedScheduleDate = previousDate.addingTimeInterval(interval)
+					} else {
+						proposedScheduleDate = scheduler.currentDate
+					}
+
+					switch proposedScheduleDate.compare(scheduler.currentDate) {
+					case .orderedAscending:
+						return scheduler.currentDate
+
+					case .orderedSame: fallthrough
+					case .orderedDescending:
+						return proposedScheduleDate
+					}
+				}
+
+				schedulerDisposable.inner = scheduler.schedule(after: scheduleDate) {
+					let pendingValue: Value? = state.modify { state in
+						defer {
+							if state.pendingValue != nil {
+								state.pendingValue = nil
+								state.previousDate = scheduleDate
+							}
+						}
+						return state.pendingValue
+					}
+
+					if let pendingValue = pendingValue {
+						action(.value(pendingValue))
+					}
+				}
+			}
+		}
+	}
+
+	internal static func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
+		precondition(interval >= 0)
+
+		return { action in
+			let d = SerialDisposable()
+
+			return { event in
+				switch event {
+				case let .value(value):
+					let date = scheduler.currentDate.addingTimeInterval(interval)
+					d.inner = scheduler.schedule(after: date) {
+						action(.value(value))
+					}
+
+				case .completed, .failed, .interrupted:
+					d.inner = scheduler.schedule {
+						action(event)
+					}
+				}
+			}
+		}
+	}
+}
+
+private struct ThrottleState<Value> {
+	var previousDate: Date?
+	var pendingValue: Value?
 }
 
 extension Signal.Event where Error == NoError {

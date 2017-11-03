@@ -1366,59 +1366,7 @@ extension Signal {
 	/// - returns: A signal that sends values at least `interval` seconds 
 	///            appart on a given scheduler.
 	public func throttle(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
-		precondition(interval >= 0)
-
-		return Signal { observer, lifetime in
-			let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState())
-			let schedulerDisposable = SerialDisposable()
-			lifetime += schedulerDisposable
-
-			lifetime += self.observe { event in
-				guard let value = event.value else {
-					schedulerDisposable.inner = scheduler.schedule {
-						observer.send(event)
-					}
-					return
-				}
-
-				var scheduleDate: Date!
-				state.modify {
-					$0.pendingValue = value
-
-					let proposedScheduleDate: Date
-					if let previousDate = $0.previousDate, previousDate.compare(scheduler.currentDate) != .orderedDescending {
-						proposedScheduleDate = previousDate.addingTimeInterval(interval)
-					} else {
-						proposedScheduleDate = scheduler.currentDate
-					}
-
-					switch proposedScheduleDate.compare(scheduler.currentDate) {
-					case .orderedAscending:
-						scheduleDate = scheduler.currentDate
-
-					case .orderedSame: fallthrough
-					case .orderedDescending:
-						scheduleDate = proposedScheduleDate
-					}
-				}
-
-				schedulerDisposable.inner = scheduler.schedule(after: scheduleDate) {
-					let pendingValue: Value? = state.modify { state in
-						defer {
-							if state.pendingValue != nil {
-								state.pendingValue = nil
-								state.previousDate = scheduleDate
-							}
-						}
-						return state.pendingValue
-					}
-
-					if let pendingValue = pendingValue {
-						observer.send(value: pendingValue)
-					}
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.throttle(interval, on: scheduler))
 	}
 
 	/// Conditionally throttles values sent on the receiver whenever
@@ -1534,26 +1482,7 @@ extension Signal {
 	/// - returns: A signal that sends values that are sent from `self` at least
 	///            `interval` seconds apart.
 	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
-		precondition(interval >= 0)
-
-		return Signal { observer, lifetime in
-			let d = SerialDisposable()
-
-			lifetime += self.observe { event in
-				switch event {
-				case let .value(value):
-					let date = scheduler.currentDate.addingTimeInterval(interval)
-					d.inner = scheduler.schedule(after: date) {
-						observer.send(value: value)
-					}
-
-				case .completed, .failed, .interrupted:
-					d.inner = scheduler.schedule {
-						observer.send(event)
-					}
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.debounce(interval, on: scheduler))
 	}
 }
 
@@ -1586,11 +1515,6 @@ extension Signal where Value: Hashable {
 	public func uniqueValues() -> Signal<Value, Error> {
 		return uniqueValues { $0 }
 	}
-}
-
-private struct ThrottleState<Value> {
-	var previousDate: Date?
-	var pendingValue: Value?
 }
 
 private enum ThrottleWhileState<Value> {
