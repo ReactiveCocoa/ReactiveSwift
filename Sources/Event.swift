@@ -788,11 +788,78 @@ extension Signal.Event {
 			}
 		}
 	}
+
+		internal static func bottlenecked(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
+		precondition(interval >= 0)
+		
+		return { action in
+			let state: Atomic<BottleneckedState<Value>> = Atomic(BottleneckedState<Value>())
+			let schedulerDisposable = CompositeDisposable()
+			
+			return { event in
+				guard let value = event.value else {
+					schedulerDisposable += scheduler.schedule {
+						action(event)
+					}
+					return
+				}
+				
+				var scheduleDate: Date!
+				state.modify {
+					if $0.enqueuedValues != nil {
+						$0.enqueuedValues?.append(value)
+					} else {
+						$0.enqueuedValues = [value]
+					}
+					
+					let proposedScheduleDate: Date
+					if let previousDate = $0.previousDate, previousDate.compare(scheduler.currentDate) != .orderedDescending {
+						proposedScheduleDate = previousDate.addingTimeInterval(interval)
+					} else {
+						proposedScheduleDate = scheduler.currentDate
+					}
+					
+					switch proposedScheduleDate.compare(scheduler.currentDate) {
+					case .orderedAscending:
+						scheduleDate = scheduler.currentDate
+					case .orderedSame: fallthrough
+					case .orderedDescending:
+						scheduleDate = proposedScheduleDate
+					}
+					
+					if let enqueuedValues = $0.enqueuedValues, enqueuedValues.count > 1 {
+						scheduleDate = scheduleDate.addingTimeInterval(interval * TimeInterval(enqueuedValues.count - 1))
+					}
+				}
+				
+				schedulerDisposable += scheduler.schedule(after: scheduleDate) {
+					let enqueuedValue: Value? = state.modify { state in
+						defer {
+							if state.enqueuedValues?.first != nil, let arraySlice: ArraySlice<Value> = state.enqueuedValues?.dropFirst() {
+								state.enqueuedValues = Array(arraySlice)
+								state.previousDate = scheduleDate
+							}
+						}
+						return state.enqueuedValues?.first
+					}
+					
+					if let enqueuedValue = enqueuedValue {
+						action(.value(enqueuedValue))
+					}
+				}
+			}
+		}
+	}
 }
 
 private struct ThrottleState<Value> {
 	var previousDate: Date?
 	var pendingValue: Value?
+}
+
+private struct BottleneckedState<Value> {
+	var previousDate: Date?
+	var enqueuedValues: [Value]?
 }
 
 extension Signal.Event where Error == NoError {

@@ -1484,6 +1484,32 @@ extension Signal {
 	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.debounce(interval, on: scheduler))
 	}
+
+	/// Starts delaying values on `scheduler` if not enough `interval`
+	/// seconds have passed since `self` last sent a value.
+	///
+	/// If at least `interval` seconds have passed since `self` last sent a
+	/// value, then the value is going to be forwarded on the given scheduler
+	/// without any delay. You can look at it as a minimum outgoing rate.
+	///
+	/// - seealso: `throttle`, `delay`
+	///
+	/// - note: If multiple values are received before the `interval` has
+	///         elapsed, these values are going to be delayed one by one until
+	///         the `interval` value elapses, until there's no more queued
+	///         values to be sent.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	/// - parameters:
+	///   - interval: Number of seconds to enqueue sent values.
+	///   - scheduler: A scheduler to send values on.
+	///
+	/// - returns: A signal that sends values with a minimun of `interval`
+	///            seconds appart from each other on a given scheduler.
+	public func bottlenecked(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
+		return flatMapEvent(Signal.Event.bottlenecked(interval, on: scheduler))
+	}
 }
 
 extension Signal {

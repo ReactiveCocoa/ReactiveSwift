@@ -1936,6 +1936,127 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("bottlenecked") {
+			var scheduler: TestScheduler!
+			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<Int, NoError>!
+			
+			beforeEach {
+				scheduler = TestScheduler()
+				
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				observer = baseObserver
+				
+				signal = baseSignal.bottlenecked(1, on: scheduler)
+				expect(signal).notTo(beNil())
+			}
+			
+			it("should send values on the given scheduler once the interval has passed since the last value was sent") {
+				var values: [Int] = []
+				signal.observeValues { value in
+					values.append(value)
+				}
+				
+				expect(values) == []
+				
+				observer.send(value: 0)
+				expect(values) == []
+				
+				scheduler.advance()
+				expect(values) == [ 0 ]
+				
+				observer.send(value: 1)
+				expect(values) == [ 0 ]
+				
+				scheduler.advance(by: .milliseconds(500))
+				expect(values) == [ 0 ]
+				
+				scheduler.advance(by: .milliseconds(500))
+				expect(values) == [ 0, 1 ]
+				
+				observer.send(value: 2)
+				expect(values) == [ 0, 1 ]
+				
+				// Append after 1 second interval
+				scheduler.advance(by: .milliseconds(500))
+				expect(values) == [ 0, 1 ]
+				scheduler.advance(by: .milliseconds(500))
+				expect(values) == [ 0, 1, 2 ]
+				
+				// Advance 2 seconds to check if the next value is sent immediatly
+				scheduler.advance(by: .seconds(2))
+				expect(values) == [ 0, 1, 2 ]
+				observer.send(value: 3)
+				scheduler.advance()
+				expect(values) == [ 0, 1, 2, 3 ]
+				
+				// Advance 0.5 secs and send three values
+				scheduler.advance(by: .milliseconds(500))
+				observer.send(value: 4)
+				expect(values) == [ 0, 1, 2, 3 ]
+				observer.send(value: 5)
+				expect(values) == [ 0, 1, 2, 3 ]
+				observer.send(value: 6)
+				expect(values) == [ 0, 1, 2, 3 ]
+				
+				// After more 0.5 should append one of the values
+				scheduler.advance(by: .milliseconds(500))
+				expect(values) == [ 0, 1, 2, 3, 4 ]
+				
+				// Inside the interval should remain the same
+				scheduler.advance(by: .milliseconds(500))
+				expect(values) == [ 0, 1, 2, 3, 4 ]
+				
+				// Should append after the interval has passed since the last sent value
+				scheduler.advance(by: .milliseconds(500))
+				expect(values) == [ 0, 1, 2, 3, 4, 5 ]
+				
+				// Confirm if the last value isnt sent before the interval
+				scheduler.advance(by: .milliseconds(999))
+				expect(values) == [ 0, 1, 2, 3, 4, 5 ]
+				
+				// Confirm if the last value isnt sent after the interval
+				scheduler.advance(by: .milliseconds(1))
+				expect(values) == [ 0, 1, 2, 3, 4, 5, 6 ]
+				
+				scheduler.run()
+				expect(values) == [ 0, 1, 2, 3, 4, 5, 6 ]
+			}
+			
+			it("should schedule completion immediately") {
+				var values: [Int] = []
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.send(value: 0)
+				expect(values) == []
+				scheduler.advance()
+				expect(values) == [ 0 ]
+				
+				observer.send(value: 1)
+				observer.sendCompleted()
+				expect(completed) == false
+				
+				scheduler.advance()
+				expect(values) == [ 0 ]
+				expect(completed) == true
+				
+				scheduler.run()
+				expect(values) == [ 0 ]
+				expect(completed) == true
+			}
+		}
+
 		describe("sampleWith") {
 			var sampledSignal: Signal<(Int, String), NoError>!
 			var observer: Signal<Int, NoError>.Observer!
