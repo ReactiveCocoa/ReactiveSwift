@@ -789,7 +789,7 @@ extension Signal.Event {
 		}
 	}
 
-		internal static func bottlenecked(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
+	internal static func bottlenecked(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
 		precondition(interval >= 0)
 		
 		return { action in
@@ -806,11 +806,7 @@ extension Signal.Event {
 				
 				var scheduleDate: Date!
 				state.modify {
-					if $0.enqueuedValues != nil {
-						$0.enqueuedValues?.append(value)
-					} else {
-						$0.enqueuedValues = [value]
-					}
+					$0.enqueuedValues.append(value)
 					
 					let proposedScheduleDate: Date
 					if let previousDate = $0.previousDate, previousDate.compare(scheduler.currentDate) != .orderedDescending {
@@ -827,20 +823,21 @@ extension Signal.Event {
 						scheduleDate = proposedScheduleDate
 					}
 					
-					if let enqueuedValues = $0.enqueuedValues, enqueuedValues.count > 1 {
-						scheduleDate = scheduleDate.addingTimeInterval(interval * TimeInterval(enqueuedValues.count - 1))
+					if $0.enqueuedValues.count > 1 {
+						scheduleDate = scheduleDate.addingTimeInterval(interval * TimeInterval($0.enqueuedValues.count - 1))
 					}
 				}
 				
 				schedulerDisposable += scheduler.schedule(after: scheduleDate) {
 					let enqueuedValue: Value? = state.modify { state in
 						defer {
-							if state.enqueuedValues?.first != nil, let arraySlice: ArraySlice<Value> = state.enqueuedValues?.dropFirst() {
+							if state.enqueuedValues.first != nil {
+								let arraySlice: ArraySlice<Value> = state.enqueuedValues.dropFirst()
 								state.enqueuedValues = Array(arraySlice)
 								state.previousDate = scheduleDate
 							}
 						}
-						return state.enqueuedValues?.first
+						return state.enqueuedValues.first
 					}
 					
 					if let enqueuedValue = enqueuedValue {
@@ -859,7 +856,7 @@ private struct ThrottleState<Value> {
 
 private struct BottleneckedState<Value> {
 	var previousDate: Date?
-	var enqueuedValues: [Value]?
+	var enqueuedValues: [Value] = []
 }
 
 extension Signal.Event where Error == NoError {
