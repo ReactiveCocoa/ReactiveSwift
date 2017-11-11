@@ -1,7 +1,12 @@
 # master
 *Please add new entries at the top.*
 
-# 3.0.0-rc.11. Fixed integer overflow for `DispatchTimeInterval` in FoundationExtensions.swift (#506)
+1. Code Coverage is reenabled. (#553)
+   For Carthage users, version 0.26.0 and later is required for building App Store compatible binaries.
+
+# 3.0.0-rc.1
+
+1. Fixed integer overflow for `DispatchTimeInterval` in FoundationExtensions.swift (#506)
 
 # 3.0.0-alpha.1
 # 3.0.0-alpha.1
