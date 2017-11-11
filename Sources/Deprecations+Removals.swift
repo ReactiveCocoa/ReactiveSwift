@@ -14,4 +14,4 @@ extension Lifetime {
 	public func add(_ d: Disposable?) -> Disposable? { fatalError() }
 }
 
-// MARK: Deprecated types in ReactiveSwift 2.x.
+// MARK: Deprecated types
