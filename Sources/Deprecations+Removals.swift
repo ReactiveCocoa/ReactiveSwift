@@ -8,4 +8,10 @@ extension Signal {
 	public convenience init(_ generator: (Observer) -> Disposable?) { fatalError() }
 }
 
+extension Lifetime {
+	@discardableResult
+	@available(*, unavailable, message:"Use `observeEnded(_:)` with a method reference to `dispose()` instead.")
+	public func add(_ d: Disposable?) -> Disposable? { fatalError() }
+}
+
 // MARK: Deprecated types in ReactiveSwift 2.x.
