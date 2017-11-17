@@ -1395,7 +1395,7 @@ extension SignalProducer {
 	/// - returns: A producer that sends values at least `interval` seconds
 	///            appart on a given scheduler.
 	public func throttle(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
-		return lift { $0.throttle(interval, on: scheduler) }
+		return core.flatMapEvent(Signal.Event.throttle(interval, on: scheduler))
 	}
 
 	/// Conditionally throttles values sent on the receiver whenever
@@ -1455,7 +1455,7 @@ extension SignalProducer {
 	/// - returns: A producer that sends values that are sent from `self` at
 	///            least `interval` seconds apart.
 	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
-		return lift { $0.debounce(interval, on: scheduler) }
+		return core.flatMapEvent(Signal.Event.debounce(interval, on: scheduler))
 	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't
@@ -2319,7 +2319,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical NOT results.
 	public func negate() -> SignalProducer<Value, Error> {
-		return self.lift { $0.negate() }
+		return map(!)
 	}
 
 	/// Create a producer that computes a logical AND between the latest values of `self`
@@ -2330,7 +2330,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical AND results.
 	public func and<Booleans: SignalProducerConvertible>(_ booleans: Booleans) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error {
-		return self.liftLeft(Signal.and)(booleans.producer)
+		return combineLatest(with: booleans).map { $0.0 && $0.1 }
 	}
 
 	/// Create a producer that computes a logical OR between the latest values of `self`
@@ -2341,7 +2341,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical OR results.
 	public func or<Booleans: SignalProducerConvertible>(_ booleans: Booleans) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error {
-		return self.liftLeft(Signal.or)(booleans.producer)
+		return combineLatest(with: booleans).map { $0.0 || $0.1 }
 	}
 }
 

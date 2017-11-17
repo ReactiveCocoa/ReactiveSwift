@@ -48,7 +48,7 @@ jobs:
       script:
         - swift --version
         - swift build
-        - SWIFTPM_TEST_ReactiveSwift=YES swift test
+        - swift test
       git:
         submodules: false
     - os: linux
@@ -60,7 +60,7 @@ jobs:
       script:
         - swift --version
         - swift build
-        - SWIFTPM_TEST_ReactiveSwift=YES swift test
+        - swift test
       git:
         submodules: false
     - stage: carthage
