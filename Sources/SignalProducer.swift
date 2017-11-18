@@ -948,7 +948,7 @@ extension SignalProducer {
 	///   - shouldEmit: A closure to determine, when every time a new value is received,
 	///                 whether the collected values should be emitted.
 	///
-	/// - returns: A signal of arrays of values, as instructed by the `shouldEmit`
+	/// - returns: A producer of arrays of values, as instructed by the `shouldEmit`
 	///            closure.
 	public func collect(_ shouldEmit: @escaping (_ values: [Value]) -> Bool) -> SignalProducer<[Value], Error> {
 		return core.flatMapEvent(Signal.Event.collect(shouldEmit))
@@ -1118,7 +1118,7 @@ extension SignalProducer {
 	/// - parameters:
 	///   - samplee: A producer whose latest value is sampled by `self`.
 	///
-	/// - returns: A signal that will send values from `self` and `samplee`,
+	/// - returns: A producer that will send values from `self` and `samplee`,
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
@@ -1165,7 +1165,7 @@ extension SignalProducer {
 		return liftRight(Signal.skip(until:))(trigger.producer)
 	}
 
-	/// Forward events from `self` with history: values of the returned signal
+	/// Forward events from `self` with history: values of the returned producer
 	/// are a tuples whose first member is the previous value and whose second member
 	/// is the current value. `initial` is supplied as the first member when `self`
 	/// sends its first value.
@@ -1174,7 +1174,7 @@ extension SignalProducer {
 	///   - initial: A value that will be combined with the first value sent by
 	///              `self`.
 	///
-	/// - returns: A signal that sends tuples that contain previous and current
+	/// - returns: A producer that sends tuples that contain previous and current
 	///            sent values of `self`.
 	public func combinePrevious(_ initial: Value) -> SignalProducer<(Value, Value), Error> {
 		return core.flatMapEvent(Signal.Event.combinePrevious(initial: initial))
@@ -1609,28 +1609,28 @@ extension SignalProducer where Error == AnyError {
 }
 
 extension SignalProducer where Value == Never {
-	/// Promote a signal that does not generate values, as indicated by `Never`, to be
-	/// a signal of the given type of value.
+	/// Promote a producer that does not generate values, as indicated by `Never`,
+	/// to be a producer of the given type of value.
 	///
 	/// - note: The promotion does not result in any value being generated.
 	///
 	/// - parameters:
 	///   - _ The type of value to promote to.
 	///
-	/// - returns: A signal that forwards all terminal events from `self`.
+	/// - returns: A producer that forwards all terminal events from `self`.
 	public func promoteValue<U>(_: U.Type = U.self) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.promoteValue(U.self))
 	}
 
-	/// Promote a signal that does not generate values, as indicated by `Never`, to be
-	/// a signal of the given type of value.
+	/// Promote a producer that does not generate values, as indicated by `Never`,
+	/// to be a producer of the given type of value.
 	///
 	/// - note: The promotion does not result in any value being generated.
 	///
 	/// - parameters:
 	///   - _ The type of value to promote to.
 	///
-	/// - returns: A signal that forwards all terminal events from `self`.
+	/// - returns: A producer that forwards all terminal events from `self`.
 	public func promoteValue(_: Value.Type = Value.self) -> SignalProducer<Value, Error> {
 		return self
 	}
@@ -1642,7 +1642,7 @@ extension SignalProducer where Value: Equatable {
 	///
 	/// - note: The first value is always forwarded.
 	///
-	/// - returns: A property which conditionally forwards values from `self`.
+	/// - returns: A producer which conditionally forwards values from `self`.
 	public func skipRepeats() -> SignalProducer<Value, Error> {
 		return core.flatMapEvent(Signal.Event.skipRepeats(==))
 	}

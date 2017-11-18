@@ -606,14 +606,14 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 }
 
 extension SignalProducer where Value: SignalProducerConvertible, Error == Value.Error {
-	/// - warning: An error sent on `signal` or the latest inner signal will be
-	///            sent on the returned signal.
+	/// - warning: An error sent on `self` or the latest inner producer will be
+	///            sent on the returned producer.
 	///
-	/// - note: The returned signal completes when `signal` and the latest inner
-	///         signal have both completed.
+	/// - note: The returned producer completes when `self` and the latest inner
+	///         producer have both completed.
 	///
-	/// - returns: A signal that forwards values from the latest signal sent on
-	///            `signal`, ignoring values sent on previous inner signal.
+	/// - returns: A producer that forwards values from the latest producer sent
+	///            on `self`, ignoring values sent on previous inner producer.
 	fileprivate func switchToLatest() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { observer, lifetime in
 			let latestInnerDisposable = SerialDisposable()
