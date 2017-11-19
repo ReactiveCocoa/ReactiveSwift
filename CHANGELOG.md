@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Fix some documentation errors (#560, kudos to @ikesyo)
+
 # 3.0.0-rc.1
 1. Fixed integer overflow for `DispatchTimeInterval` in FoundationExtensions.swift (#506)
 
