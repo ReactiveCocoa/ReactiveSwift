@@ -3034,6 +3034,62 @@ class SignalProducerSpec: QuickSpec {
 				expect(combined is SignalProducer<(Int, Double, Float, UInt), TestError>) == true
 			}
 		}
+
+		describe("synchronous start with asynchronous interruption") {
+			let numbers = SignalProducer<Int, TestError>(0 ..< 1024)
+			var failure: (output: Signal<Int, TestError>, input: Signal<Int, TestError>.Observer)!
+
+			beforeEach {
+				failure = Signal.pipe()
+			}
+
+			func sharedTest(_ producers: [SignalProducer<Int, TestError>], expected: Int) {
+				let count = Atomic(0)
+
+				let semaphore1 = DispatchSemaphore(value: 0)
+
+				QueueScheduler().schedule {
+					semaphore1.wait()
+					failure.input.send(error: .default)
+				}
+
+				SignalProducer(producers)
+					.flatten(.merge)
+					.start { _ in
+						count.modify { value in
+							value += 1
+
+							if value == 1 {
+								semaphore1.signal()
+								// Sleep 1 usec so that practically the async
+								// interruption should happen first if it is
+								// already in flight.
+								usleep(1)
+							}
+						}
+					}
+
+				expect(count.value).toEventually(equal(expected))
+			}
+
+			it("should fail the producer") {
+				// Two events are expected: The first value, and `failed`.
+				sharedTest([SignalProducer(failure.output), numbers],
+						   expected: 2)
+			}
+
+			it("should not fail the producer") {
+				// 1025 events are expected: 1024 values from 0 to 1023, and
+				// finally `interrupted`.
+				//
+				// This is an expected behavior due to (1) the serial event
+				// order and (2) synchrony by default. `numbers` would first be
+				// evaluated, and since it is synchronous, the failure producer
+				// would start only after all values have been delivered.
+				sharedTest([numbers, SignalProducer(failure.output)],
+						   expected: 1025)
+			}
+		}
 	}
 }
 
