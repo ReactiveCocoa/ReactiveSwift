@@ -2916,6 +2916,39 @@ class SignalProducerSpec: QuickSpec {
 				expect(combined is SignalProducer<(Int, Double, Float, UInt), TestError>) == true
 			}
 		}
+
+		describe("interruption") {
+			it("should interrupt the signal") {
+				let failure = Signal<Int, TestError>.pipe()
+				let numbers = SignalProducer<Int, TestError>(0 ..< 1024)
+
+				let count = Atomic(0)
+
+				let semaphore1 = DispatchSemaphore(value: 0)
+				let semaphore2 = DispatchSemaphore(value: 0)
+
+				QueueScheduler().schedule {
+					semaphore1.wait()
+					failure.input.send(error: .default)
+					semaphore2.signal()
+				}
+
+				SignalProducer([numbers, SignalProducer(failure.output)])
+					.flatten(.merge)
+					.start { _ in
+						count.modify { value in
+							value += 1
+
+							if value == 1 {
+								semaphore1.signal()
+								semaphore2.wait()
+							}
+						}
+					}
+
+				expect(count.value) == 2
+			}
+		}
 	}
 }
 
