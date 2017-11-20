@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Fix some documentation errors (#560, kudos to @ikesyo)
+
 # 3.0.0
 1. Code Coverage is reenabled. (#553)
    For Carthage users, version 0.26.0 and later is required for building App Store compatible binaries.
