@@ -2916,6 +2916,53 @@ class SignalProducerSpec: QuickSpec {
 				expect(combined is SignalProducer<(Int, Double, Float, UInt), TestError>) == true
 			}
 		}
+
+		describe("interruption") {
+			let numbers = SignalProducer<Int, TestError>(0 ..< 1024)
+			var failure: (output: Signal<Int, TestError>, input: Signal<Int, TestError>.Observer)!
+
+			beforeEach {
+				failure = Signal.pipe()
+			}
+
+			func sharedTest(_ producers: [SignalProducer<Int, TestError>], expected: Int) {
+				let count = Atomic(0)
+
+				let semaphore1 = DispatchSemaphore(value: 0)
+				let semaphore2 = DispatchSemaphore(value: 0)
+
+				QueueScheduler().schedule {
+					semaphore1.wait()
+					failure.input.send(error: .default)
+					semaphore2.signal()
+				}
+
+				SignalProducer(producers)
+					.flatten(.merge)
+					.start { _ in
+						count.modify { value in
+							value += 1
+
+							if value == 1 {
+								semaphore1.signal()
+								semaphore2.wait()
+							}
+						}
+					}
+
+				expect(count.value) == expected
+			}
+
+			it("should fail the producer") {
+				sharedTest([SignalProducer(failure.output), numbers],
+						   expected: 2)
+			}
+
+			it("should not fail the producer") {
+				sharedTest([numbers, SignalProducer(failure.output)],
+						   expected: 1025)
+			}
+		}
 	}
 }
 
