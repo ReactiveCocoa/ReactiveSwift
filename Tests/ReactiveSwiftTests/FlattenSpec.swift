@@ -1011,6 +1011,28 @@ class FlattenSpec: QuickSpec {
 			}
 		}
 
+		describe("SignalProducer.concat(error:)") {
+			it("should emit final error") {
+				let (signal, observer) = SignalProducer<Int, TestError>.pipe()
+
+				let mergedSignals = signal.concat(error: TestError.default)
+
+				var results: [Result<Int, TestError>] = []
+				mergedSignals.startWithResult { results.append($0) }
+
+				observer.send(value: 1)
+				observer.send(value: 2)
+				observer.send(value: 3)
+				observer.sendCompleted()
+
+				expect(results).to(haveCount(4))
+				expect(results[0].value) == 1
+				expect(results[1].value) == 2
+				expect(results[2].value) == 3
+				expect(results[3].error) == .default
+			}
+		}
+
 		describe("FlattenStrategy.concurrent") {
 			func run(_ modifier: (SignalProducer<UInt, NoError>) -> SignalProducer<UInt, NoError>) {
 				let concurrentLimit: UInt = 4
