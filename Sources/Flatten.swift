@@ -302,7 +302,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 				let deinitializer = ScopedDisposable(AnyDisposable(producerState.deinitialize))
 
 				producer.startWithSignal { signal, inner in
-					let handle = lifetime.observeEnded(inner.dispose)
+					let handle = lifetime += inner
 
 					signal.observe { event in
 						switch event {
@@ -366,7 +366,7 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 
 		return SignalProducer<Value.Value, Error> { relayObserver, lifetime in
 			self.startWithSignal { signal, interruptHandle in
-				lifetime.observeEnded(interruptHandle.dispose)
+				lifetime += interruptHandle
 
 				_ = signal.observeConcurrent(relayObserver, limit, lifetime)
 			}
@@ -617,14 +617,11 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 	fileprivate func switchToLatest() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { observer, lifetime in
 			let latestInnerDisposable = SerialDisposable()
-			lifetime.observeEnded(latestInnerDisposable.dispose)
+			lifetime += latestInnerDisposable
 
 			self.startWithSignal { signal, signalDisposable in
-				lifetime.observeEnded(signalDisposable.dispose)
-
-				if let disposable = signal.observeSwitchToLatest(observer, latestInnerDisposable) {
-					lifetime.observeEnded(disposable.dispose)
-				}
+				lifetime += signalDisposable
+				lifetime += signal.observeSwitchToLatest(observer, latestInnerDisposable)
 			}
 		}
 	}
@@ -740,14 +737,11 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 	fileprivate func race() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
-			lifetime.observeEnded(relayDisposable.dispose)
+			lifetime += relayDisposable
 
 			self.startWithSignal { signal, signalDisposable in
-				lifetime.observeEnded(signalDisposable.dispose)
-
-				if let disposable = signal.observeRace(observer, relayDisposable) {
-					lifetime.observeEnded(disposable.dispose)
-				}
+				lifetime += signalDisposable
+				lifetime += signal.observeRace(observer, relayDisposable)
 			}
 		}
 	}
@@ -923,7 +917,7 @@ extension SignalProducer {
 	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> SignalProducer<Value, F> {
 		return SignalProducer<Value, F> { observer, lifetime in
 			let serialDisposable = SerialDisposable()
-			lifetime.observeEnded(serialDisposable.dispose)
+			lifetime += serialDisposable
 
 			self.startWithSignal { signal, signalDisposable in
 				serialDisposable.inner = signalDisposable
