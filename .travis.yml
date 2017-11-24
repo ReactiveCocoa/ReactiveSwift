@@ -9,7 +9,7 @@ branches:
     - master
     # Credit: @Omnikron13, https://github.com/mojombo/semver/issues/32
     - /^(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
-    - /^hotfix-(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
+    - /^(hotfix|release)(-|\/)(\d+\.\d+\.\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
 cache:
   directories:
     - $HOME/Library/Caches/org.carthage.CarthageKit/dependencies

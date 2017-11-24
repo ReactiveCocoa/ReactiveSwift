@@ -3,6 +3,10 @@
 
 1. Fix some documentation errors (#560, kudos to @ikesyo)
 
+# 3.0.0
+1. Code Coverage is reenabled. (#553)
+   For Carthage users, version 0.26.0 and later is required for building App Store compatible binaries.
+
 # 3.0.0-rc.1
 1. Fixed integer overflow for `DispatchTimeInterval` in FoundationExtensions.swift (#506)
 

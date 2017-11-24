@@ -49,19 +49,21 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		}
 	}
 
-	/// Initializes a SignalProducer that will invoke the given closure once for
-	/// each invocation of `start()`.
+	/// Initialize a `SignalProducer` which invokes the supplied starting side
+	/// effect once upon the creation of every produced `Signal`, or in other
+	/// words, for every invocation of `startWithSignal(_:)`, `start(_:)` and
+	/// their convenience shorthands.
 	///
-	/// The events that the closure puts into the given observer will become
-	/// the events sent by the started `Signal` to its observers.
+	/// The supplied starting side effect would be given (1) an input `Observer`
+	/// to emit events to the produced `Signal`; and (2) a `Lifetime` to bind
+	/// resources to the lifetime of the produced `Signal`.
 	///
-	/// - note: If the `Disposable` returned from `start()` is disposed or a
-	///         terminating event is sent to the observer, the given
-	///         `CompositeDisposable` will be disposed, at which point work
-	///         should be interrupted and any temporary resources cleaned up.
+	/// The `Lifetime` of a produced `Signal` ends when: (1) a terminal event is
+	/// sent to the input `Observer`; or (2) when the produced `Signal` is
+	/// interrupted via the disposable yielded at the starting call.
 	///
 	/// - parameters:
-	///   - startHandler: A closure that accepts observer and a disposable.
+	///   - startHandler: The starting side effect.
 	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
 		self.init(SignalCore {
 			let disposable = CompositeDisposable()
