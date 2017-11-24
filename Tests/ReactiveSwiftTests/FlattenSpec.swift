@@ -1012,7 +1012,7 @@ class FlattenSpec: QuickSpec {
 		}
 
 		describe("SignalProducer.concat(error:)") {
-			it("should emit final error") {
+			it("should emit concatenated error") {
 				let (signal, observer) = SignalProducer<Int, TestError>.pipe()
 
 				let mergedSignals = signal.concat(error: TestError.default)
@@ -1030,6 +1030,20 @@ class FlattenSpec: QuickSpec {
 				expect(results[1].value) == 2
 				expect(results[2].value) == 3
 				expect(results[3].error) == .default
+			}
+
+			it("should emit own error when present") {
+				let (signal, observer) = SignalProducer<Int, TestError>.pipe()
+
+				let mergedSignals = signal.concat(error: TestError.default)
+
+				var results: [Result<Int, TestError>] = []
+				mergedSignals.startWithResult { results.append($0) }
+
+				observer.send(error: TestError.error1)
+
+				expect(results).to(haveCount(1))
+				expect(results[0].error) == .error1
 			}
 		}
 
