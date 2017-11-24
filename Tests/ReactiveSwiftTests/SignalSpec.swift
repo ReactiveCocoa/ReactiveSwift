@@ -74,7 +74,7 @@ class SignalSpec: QuickSpec {
 					testScheduler.schedule {
 						observer.send(error: TestError.default)
 					}
-					lifetime.observeEnded(disposable.dispose)
+					lifetime += disposable
 				}
 
 				var errored = false
@@ -97,7 +97,7 @@ class SignalSpec: QuickSpec {
 					testScheduler.schedule {
 						observer.sendCompleted()
 					}
-					lifetime.observeEnded(disposable.dispose)
+					lifetime += disposable
 				}
 
 				var completed = false
@@ -120,7 +120,7 @@ class SignalSpec: QuickSpec {
 					testScheduler.schedule {
 						observer.sendInterrupted()
 					}
-					lifetime.observeEnded(disposable.dispose)
+					lifetime += disposable
 				}
 
 				var interrupted = false
@@ -143,7 +143,7 @@ class SignalSpec: QuickSpec {
 				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
 					observer.sendInterrupted()
 					expect(disposable.isDisposed) == false
-					lifetime.observeEnded(disposable.dispose)
+					lifetime += disposable
 				}
 
 				expect(disposable.isDisposed) == true
@@ -155,7 +155,7 @@ class SignalSpec: QuickSpec {
 				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
 					observer.sendCompleted()
 					expect(disposable.isDisposed) == false
-					lifetime.observeEnded(disposable.dispose)
+					lifetime += disposable
 				}
 
 				expect(disposable.isDisposed) == true
@@ -167,7 +167,7 @@ class SignalSpec: QuickSpec {
 				let signal: Signal<AnyObject, TestError> = Signal { observer, lifetime in
 					observer.send(error: .default)
 					expect(disposable.isDisposed) == false
-					lifetime.observeEnded(disposable.dispose)
+					lifetime += disposable
 				}
 
 				expect(disposable.isDisposed) == true

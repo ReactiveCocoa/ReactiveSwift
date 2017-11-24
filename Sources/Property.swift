@@ -488,8 +488,7 @@ public final class Property<Value>: PropertyProtocol {
 	public convenience init(initial: Value, then values: SignalProducer<Value, NoError>) {
 		self.init(unsafeProducer: SignalProducer { observer, lifetime in
 			observer.send(value: initial)
-			let disposable = values.start(Signal.Observer(mappingInterruptedToCompleted: observer))
-			lifetime.observeEnded(disposable.dispose)
+			lifetime += values.start(Signal.Observer(mappingInterruptedToCompleted: observer))
 		})
 	}
 
@@ -629,9 +628,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 		return SignalProducer { [box, signal] observer, lifetime in
 			box.withValue { value in
 				observer.send(value: value)
-				if let d = signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer)) {
-					lifetime.observeEnded(d.dispose)
-				}
+				lifetime += signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
 			}
 		}
 	}

@@ -1743,7 +1743,7 @@ extension SignalProducer {
 		return SignalProducer { observer, lifetime in
 			lifetime += scheduler.schedule {
 				self.startWithSignal { signal, signalDisposable in
-					lifetime.observeEnded(signalDisposable.dispose)
+					lifetime += signalDisposable
 					signal.observe(observer)
 				}
 			}
@@ -1925,7 +1925,7 @@ extension SignalProducer {
 				}
 
 				producers.removeLast().producer.startWithSignal { signal, interruptHandle in
-					lifetime.observeEnded(interruptHandle.dispose)
+					lifetime += interruptHandle
 					signals.append(signal)
 
 					start()
@@ -2518,11 +2518,12 @@ extension SignalProducer where Value == Date, Error == NoError {
 		precondition(leeway.timeInterval >= 0)
 
 		return SignalProducer { observer, lifetime in
-			let disposable = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval),
-			                                    interval: interval,
-			                                    leeway: leeway,
-			                                    action: { observer.send(value: scheduler.currentDate) })
-			if let d = disposable { lifetime.observeEnded(d.dispose)}
+			lifetime += scheduler.schedule(
+				after: scheduler.currentDate.addingTimeInterval(interval),
+				interval: interval,
+				leeway: leeway,
+				action: { observer.send(value: scheduler.currentDate) }
+			)
 		}
 	}
 }
