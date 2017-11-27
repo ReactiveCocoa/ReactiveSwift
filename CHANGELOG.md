@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. `concat` for `SignalProducer` now has an overload that accepts an error.
+
 1. Fix some documentation errors (#560, kudos to @ikesyo)
 
 # 3.0.0

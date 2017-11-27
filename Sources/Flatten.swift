@@ -397,6 +397,17 @@ extension SignalProducer {
 		return self.concat(SignalProducer(value: value))
 	}
 
+	/// `concat`s `error` onto `self`.
+	///
+	/// - parameters:
+	///   - error: An error to concat onto `self`.
+	///
+	/// - returns: A producer that, when started, will emit own values and on
+	///            completion will emit an `error`.
+	public func concat(error: Error) -> SignalProducer<Value, Error> {
+		return self.concat(SignalProducer(error: error))
+	}
+
 	/// `concat`s `self` onto initial `previous`.
 	///
 	/// - parameters:
