@@ -67,7 +67,7 @@ scopedExample("Creation") {
  ### Binding
  
  The `<~` operator can be used to bind properties in different ways. Note that in
- all cases, the target has to be a binding target, represented by the [`BindingTargetProtocol`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/UnidirectionalBinding.swift). All mutable property types, represented by the  [`MutablePropertyProtocol`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/Property.swift#L38), are inherently binding targets.
+ all cases, the target has to be a binding target, represented by the [`BindingTargetProvider`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/UnidirectionalBinding.swift). All mutable property types, represented by the  [`MutablePropertyProtocol`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/Property.swift#L38), are inherently binding targets.
  
  * `property <~ signal` binds a [signal](Signal) to the property, updating the
  property’s value to the latest value sent by the signal.
