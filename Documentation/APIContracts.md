@@ -502,16 +502,16 @@ For example:
 ```swift
 producer.start { event in
     switch event {
-    case let .Next(value):
+    case .value(let value):
         print("Next event: \(value)")
 
-    case let .Failed(error):
+    case .failed(let error):
         print("Failed event: \(error)")
 
-    case .Completed:
+    case .completed:
         print("Completed event")
 
-    case .Interrupted:
+    case .interrupted:
         print("Interrupted event")
     }
 }
