@@ -635,6 +635,23 @@ extension SignalProducer {
 			setup(signal)
 		}
 	}
+
+	/// Create a `Signal` from `self`, and observe it with the observer created
+	/// by the given setup closure.
+	///
+	/// The setup closure is passed with an interrupter for an early opportunity
+	/// to interrupt the produced `Signal` before the starting side effect is
+	/// evaluated.
+	///
+	/// - parameters:
+	///   - setup: A closure which creates an observer to observe the produced
+	///            `Signal`.
+	///
+	/// - returns: A disposable to interrupt the produced `Signal`.
+	@discardableResult
+	internal func startWithInterrupter(_ setup: (_ interrupter: Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+		return core.start(setup)
+	}
 }
 
 extension SignalProducer where Error == NoError {

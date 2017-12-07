@@ -301,27 +301,30 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 				let producerState = UnsafeAtomicState<ProducerState>(.starting)
 				let deinitializer = ScopedDisposable(AnyDisposable(producerState.deinitialize))
 
-				let handle = SerialDisposable()
-				handle.inner = lifetime += producer.start { event in
-					switch event {
-					case .completed, .interrupted:
-						handle.dispose()
+				producer.startWithInterrupter { interrupter in
+					let handle = lifetime += interrupter
 
-						let shouldComplete: Bool = state.modify { state in
-							state.activeCount -= 1
-							return state.shouldComplete
-						}
+					return Signal<Value.Value, Error>.Observer { event in
+						switch event {
+						case .completed, .interrupted:
+							handle?.dispose()
 
-						withExtendedLifetime(deinitializer) {
-							if shouldComplete {
-								observer.sendCompleted()
-							} else if producerState.is(.started) {
-								startNextIfNeeded()
+							let shouldComplete: Bool = state.modify { state in
+								state.activeCount -= 1
+								return state.shouldComplete
 							}
-						}
 
-					case .value, .failed:
-						observer.send(event)
+							withExtendedLifetime(deinitializer) {
+								if shouldComplete {
+									observer.sendCompleted()
+								} else if producerState.is(.started) {
+									startNextIfNeeded()
+								}
+							}
+
+						case .value, .failed:
+							observer.send(event)
+						}
 					}
 				}
 
@@ -594,35 +597,39 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 					$0.innerSignalComplete = false
 				}
 
-				latestInnerDisposable.inner = p.producer.start { event in
-					switch event {
-					case .interrupted:
-						// If interruption occurred as a result of a new
-						// producer arriving, we don't want to notify our
-						// observer.
-						let shouldComplete: Bool = state.modify { state in
-							if !state.replacingInnerSignal {
-								state.innerSignalComplete = true
+				p.producer.startWithInterrupter { interrupter in
+					latestInnerDisposable.inner = interrupter
+
+					return Signal<Value.Value, Error>.Observer { event in
+						switch event {
+						case .interrupted:
+							// If interruption occurred as a result of a new
+							// producer arriving, we don't want to notify our
+							// observer.
+							let shouldComplete: Bool = state.modify { state in
+								if !state.replacingInnerSignal {
+									state.innerSignalComplete = true
+								}
+								return !state.replacingInnerSignal && state.outerSignalComplete
 							}
-							return !state.replacingInnerSignal && state.outerSignalComplete
-						}
 
-						if shouldComplete {
-							observer.sendCompleted()
-						}
+							if shouldComplete {
+								observer.sendCompleted()
+							}
 
-					case .completed:
-						let shouldComplete: Bool = state.modify {
-							$0.innerSignalComplete = true
-							return $0.outerSignalComplete
-						}
+						case .completed:
+							let shouldComplete: Bool = state.modify {
+								$0.innerSignalComplete = true
+								return $0.outerSignalComplete
+							}
 
-						if shouldComplete {
-							observer.sendCompleted()
-						}
+							if shouldComplete {
+								observer.sendCompleted()
+							}
 
-					case .value, .failed:
-						observer.send(event)
+						case .value, .failed:
+							observer.send(event)
+						}
 					}
 				}
 
@@ -706,42 +713,45 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 					$0.innerSignalComplete = false
 				}
 
-				let handle = SerialDisposable()
 				var isWinningSignal = false
 
-				handle.inner = relayDisposable += p.producer.start { event in
-					if !isWinningSignal {
-						isWinningSignal = state.modify { state in
-							guard !state.isActivated else {
-								return false
+				p.producer.startWithInterrupter { interrupter in
+					let handle = relayDisposable += interrupter
+
+					return Signal<Value.Value, Error>.Observer { event in
+						if !isWinningSignal {
+							isWinningSignal = state.modify { state in
+								guard !state.isActivated else {
+									return false
+								}
+
+								state.isActivated = true
+								return true
 							}
 
-							state.isActivated = true
-							return true
+							// Ignore non-winning signals.
+							guard isWinningSignal else { return }
+
+							// The disposals would be run exactly once immediately after
+							// the winning signal flips `state.isActivated`.
+							handle?.dispose()
+							relayDisposable.dispose()
 						}
 
-						// Ignore non-winning signals.
-						guard isWinningSignal else { return }
+						switch event {
+						case .completed:
+							let shouldComplete: Bool = state.modify { state in
+								state.innerSignalComplete = true
+								return state.outerSignalComplete
+							}
 
-						// The disposals would be run exactly once immediately after
-						// the winning signal flips `state.isActivated`.
-						handle.dispose()
-						relayDisposable.dispose()
-					}
+							if shouldComplete {
+								observer.sendCompleted()
+							}
 
-					switch event {
-					case .completed:
-						let shouldComplete: Bool = state.modify { state in
-							state.innerSignalComplete = true
-							return state.outerSignalComplete
+						case .value, .failed, .interrupted:
+							observer.send(event)
 						}
-
-						if shouldComplete {
-							observer.sendCompleted()
-						}
-
-					case .value, .failed, .interrupted:
-						observer.send(event)
 					}
 				}
 
@@ -933,7 +943,10 @@ extension Signal {
 			case let .value(value):
 				observer.send(value: value)
 			case let .failed(error):
-				lifetime += handler(error).start(observer)
+				handler(error).startWithInterrupter { interrupter in
+					lifetime += interrupter
+					return observer
+				}
 			case .completed:
 				observer.sendCompleted()
 			case .interrupted:
@@ -952,7 +965,10 @@ extension SignalProducer {
 	///                producer with a different type of error.
 	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> SignalProducer<Value, F> {
 		return SignalProducer<Value, F> { observer, lifetime in
-			lifetime += self.start(Signal.observeFlatMapError(transform, observer, lifetime))
+			self.startWithInterrupter { interrupter in
+				lifetime += interrupter
+				return Signal.observeFlatMapError(transform, observer, lifetime)
+			}
 		}
 	}
 }
