@@ -1,8 +1,6 @@
 language: objective-c
-osx_image: xcode9.1
-before_install:
-  - brew uninstall carthage
-  - HOMEBREW_NO_AUTO_UPDATE=1 brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/6ae4f69a652fb0ecb102b0c9216378679a4f1b92/Formula/carthage.rb # 0.22.0
+osx_image: xcode9.2
+before_install: true
 install: true
 branches:
   only:
@@ -17,7 +15,7 @@ cache:
 
 jobs:
   include:
-    - osx_image: xcode9.1
+    - osx_image: xcode9.2
       script:
         - XCODE_SCHEME=ReactiveSwift-macOS
           XCODE_SDK=macosx
@@ -44,7 +42,7 @@ jobs:
         - pod lib lint ReactiveSwift.podspec
       env:
         - JOB=PODSPEC
-    - osx_image: xcode9.1
+    - osx_image: xcode9.2
       script:
         - swift --version
         - swift build
@@ -66,7 +64,6 @@ jobs:
     - stage: carthage
       script: carthage build --cache-builds --no-skip-current
     - stage: deploy
-      before_install: true
       script: skip
       deploy:
         provider: script
