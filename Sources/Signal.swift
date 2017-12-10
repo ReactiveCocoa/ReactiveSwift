@@ -18,6 +18,10 @@ import Result
 ///    1. its input observer receives a terminating event; or
 ///    2. it has no active observers, and is not being retained.
 public final class Signal<Value, Error: Swift.Error> {
+	internal var lifetime: Lifetime {
+		return Lifetime(core.disposable)
+	}
+
 	/// The `Signal` core which manages the event stream.
 	///
 	/// A `Signal` is the externally retained shell of the `Signal` core. The separation
@@ -51,7 +55,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// Disposing of `disposable` is assumed to remove the generator
 		/// observer from its attached `Signal`, so that the generator observer
 		/// as the last +1 retain of the `Signal` core may deinitialize.
-		private let disposable: CompositeDisposable
+		fileprivate let disposable: CompositeDisposable
 
 		/// The state of the signal.
 		private var state: State
@@ -539,7 +543,7 @@ extension Signal {
 	/// - returns: A signal that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
 		return Signal<U, E> { observer, lifetime in
-			lifetime += self.observe(Signal.Observer(observer, transform))
+			lifetime += self.observe(Signal.Observer(observer, transform, lifetime))
 		}
 	}
 
@@ -1073,10 +1077,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will deliver events until `lifetime` ends.
 	public func take(during lifetime: Lifetime) -> Signal<Value, Error> {
-		return Signal<Value, Error> { observer, innerLifetime in
-			innerLifetime += self.observe(observer)
-			innerLifetime += lifetime.observeEnded(observer.sendCompleted)
-		}
+		return flatMapEvent(Signal.Event.take(during: lifetime))
 	}
 
 	/// Forward events from `self` until `trigger` sends a `value` or
@@ -1089,18 +1090,7 @@ extension Signal {
 	/// - returns: A signal that will deliver events until `trigger` sends
 	///            `value` or `completed` events.
 	public func take(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
-		return Signal<Value, Error> { observer, lifetime in
-			lifetime += self.observe(observer)
-			lifetime += trigger.observe { event in
-				switch event {
-				case .value, .completed:
-					observer.sendCompleted()
-
-				case .failed, .interrupted:
-					break
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.take(until: trigger))
 	}
 
 	/// Do not forward any values from `self` until `trigger` sends a `value` or
