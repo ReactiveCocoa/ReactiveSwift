@@ -18,6 +18,10 @@ import Result
 ///    1. its input observer receives a terminating event; or
 ///    2. it has no active observers, and is not being retained.
 public final class Signal<Value, Error: Swift.Error> {
+	internal var lifetime: Lifetime {
+		return Lifetime(core.disposable)
+	}
+
 	/// The `Signal` core which manages the event stream.
 	///
 	/// A `Signal` is the externally retained shell of the `Signal` core. The separation
@@ -51,96 +55,46 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// Disposing of `disposable` is assumed to remove the generator
 		/// observer from its attached `Signal`, so that the generator observer
 		/// as the last +1 retain of the `Signal` core may deinitialize.
-		private let disposable: CompositeDisposable
+		fileprivate let disposable: CompositeDisposable
 
-		/// The state of the signal.
-		private var state: State
-
-		/// Used to ensure that all state accesses are serialized.
+		/// Lock for states.
 		private let stateLock: Lock
 
-		/// Used to ensure that events are serialized during delivery to observers.
-		private let sendLock: Lock
+		/// The observers of the `Signal`.
+		private var observers: Bag<Observer>?
+
+		/// Whether the `Signal` has been deinitialized and hence no any further
+		/// observer can ever be attached.
+		private var hasDeinitialized: Bool
 
 		fileprivate init(_ generator: (Observer, Lifetime) -> Void) {
-			state = .alive(Bag(), hasDeinitialized: false)
-
-			stateLock = Lock.make()
-			sendLock = Lock.make()
 			disposable = CompositeDisposable()
+			stateLock = Lock.make()
+			observers = Bag()
+			hasDeinitialized = false
 
 			// The generator observer retains the `Signal` core.
-			generator(Observer(action: self.send, interruptsOnDeinit: true), Lifetime(disposable))
+			let sink = Event.makeSynchronizing(self.send, disposable: disposable)
+			let inputObserver = Observer(action: sink, interruptsOnDeinit: true)
+			generator(inputObserver, Lifetime(disposable))
 		}
 
 		private func send(_ event: Event) {
+			stateLock.lock()
+
+			guard let observers = self.observers else {
+				stateLock.unlock()
+				return
+			}
+
 			if event.isTerminating {
-				// Recursive events are disallowed for `value` events, but are permitted
-				// for termination events. Specifically:
-				//
-				// - `interrupted`
-				// It can inadvertently be sent by downstream consumers as part of the
-				// `SignalProducer` mechanics.
-				//
-				// - `completed`
-				// If a downstream consumer weakly references an object, invocation of
-				// such consumer may cause a race condition with its weak retain against
-				// the last strong release of the object. If the `Lifetime` of the
-				// object is being referenced by an upstream `take(during:)`, a
-				// signal recursion might occur.
-				//
-				// So we would treat termination events specially. If it happens to
-				// occur while the `sendLock` is acquired, the observer call-out and
-				// the disposal would be delegated to the current sender, or
-				// occasionally one of the senders waiting on `sendLock`.
+				self.observers = nil
+			}
 
-				self.stateLock.lock()
+			stateLock.unlock()
 
-				if case let .alive(observers, _) = state {
-					self.state = .terminating(observers, .init(event))
-					self.stateLock.unlock()
-				} else {
-					self.stateLock.unlock()
-				}
-
-				tryToCommitTermination()
-			} else {
-				self.sendLock.lock()
-				self.stateLock.lock()
-
-				if case let .alive(observers, _) = self.state {
-					self.stateLock.unlock()
-
-					for observer in observers {
-						observer.send(event)
-					}
-				} else {
-					self.stateLock.unlock()
-				}
-
-				self.sendLock.unlock()
-
-				// Check if the status has been bumped to `terminating` due to a
-				// terminal event being sent concurrently or recursively.
-				//
-				// The check is deliberately made outside of the `sendLock` so that it
-				// covers also any potential concurrent terminal event in one shot.
-				//
-				// Related PR:
-				// https://github.com/ReactiveCocoa/ReactiveSwift/pull/112
-				//
-				// While calling `tryToCommitTermination` is sufficient, this is a fast
-				// path for the recurring value delivery.
-				//
-				// Note that this cannot be `try` since any concurrent observer bag
-				// manipulation might then cause the terminating state being missed.
-				stateLock.lock()
-				if case .terminating = state {
-					stateLock.unlock()
-					tryToCommitTermination()
-				} else {
-					stateLock.unlock()
-				}
+			for observer in observers {
+				observer.send(event)
 			}
 		}
 
@@ -152,16 +106,8 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// - returns: A `Disposable` which can be used to disconnect the observer,
 		///            or `nil` if the signal has already terminated.
 		fileprivate func observe(_ observer: Observer) -> Disposable? {
-			var token: Bag<Observer>.Token?
-
 			stateLock.lock()
-
-			if case let .alive(observers, hasDeinitialized) = state {
-				var newObservers = observers
-				token = newObservers.insert(observer)
-				self.state = .alive(newObservers, hasDeinitialized: hasDeinitialized)
-			}
-
+			let token = observers?.insert(observer)
 			stateLock.unlock()
 
 			if let token = token {
@@ -180,56 +126,15 @@ public final class Signal<Value, Error: Swift.Error> {
 		///   - token: The token of the observer to remove.
 		private func removeObserver(with token: Bag<Observer>.Token) {
 			stateLock.lock()
+			let observer = observers?.remove(using: token)
 
-			if case let .alive(observers, hasDeinitialized) = state {
-				var newObservers = observers
-				let observer = newObservers.remove(using: token)
-				self.state = .alive(newObservers, hasDeinitialized: hasDeinitialized)
-
-				// Ensure `observer` is deallocated after `stateLock` is
-				// released to avoid deadlocks.
-				withExtendedLifetime(observer) {
-					// Start the disposal of the `Signal` core if the `Signal` has
-					// deinitialized and there is no active observer.
-					tryToDisposeSilentlyIfQualified(unlocking: stateLock)
-				}
-			} else {
-				stateLock.unlock()
+			// Ensure `observer` is deallocated after `stateLock` is
+			// released to avoid deadlocks.
+			withExtendedLifetime(observer) {
+				// Start the disposal of the `Signal` core if the `Signal` has
+				// deinitialized and there is no active observer.
+				tryToDisposeSilentlyIfQualified(unlocking: stateLock)
 			}
-		}
-
-		/// Try to commit the termination, or in other words transition the signal from a
-		/// terminating state to a terminated state.
-		///
-		/// It fails gracefully if the signal is alive or has terminated. Calling this
-		/// method as a result of a false positive `terminating` check is permitted.
-		///
-		/// - precondition: `stateLock` must not be acquired by the caller.
-		private func tryToCommitTermination() {
-			// Acquire `stateLock`. If the termination has still not yet been
-			// handled, take it over and bump the status to `terminated`.
-			stateLock.lock()
-
-			if case let .terminating(observers, terminationKind) = state {
-				// Try to acquire the `sendLock`, and fail gracefully since the current
-				// lock holder would attempt to commit after it is done anyway.
-				if sendLock.try() {
-					state = .terminated
-					stateLock.unlock()
-
-					if let event = terminationKind.materialize() {
-						for observer in observers {
-							observer.send(event)
-						}
-					}
-
-					sendLock.unlock()
-					disposable.dispose()
-					return
-				}
-			}
-
-			stateLock.unlock()
 		}
 
 		/// Try to dispose of the signal silently if the `Signal` has deinitialized and
@@ -243,24 +148,17 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// - parameters:
 		///   - stateLock: The `stateLock` acquired by the caller.
 		private func tryToDisposeSilentlyIfQualified(unlocking stateLock: Lock) {
-			assert(!stateLock.try(), "Calling `unconditionallyTerminate` without acquiring `stateLock`.")
+			assert(!stateLock.try(), "Calling `tryToDisposeSilentlyIfQualified` without acquiring `stateLock`.")
 
-			if case let .alive(observers, true) = state, observers.isEmpty {
-				// Transition to `terminated` directly only if there is no event delivery
-				// on going.
-				if sendLock.try() {
-					self.state = .terminated
-					stateLock.unlock()
-					sendLock.unlock()
-
-					disposable.dispose()
-					return
-				}
-
-				self.state = .terminating(Bag(), .silent)
+			if hasDeinitialized, let observers = self.observers, observers.isEmpty {
+				var observers: Bag<Observer>? = nil
+				swap(&observers, &self.observers)
 				stateLock.unlock()
 
-				tryToCommitTermination()
+				withExtendedLifetime(observers) {
+					disposable.dispose()
+				}
+
 				return
 			}
 
@@ -272,9 +170,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			stateLock.lock()
 
 			// Mark the `Signal` has now deinitialized.
-			if case let .alive(observers, false) = state {
-				state = .alive(observers, hasDeinitialized: true)
-			}
+			hasDeinitialized = true
 
 			// Attempt to start the disposal of the signal if it has no active observer.
 			tryToDisposeSilentlyIfQualified(unlocking: stateLock)
@@ -316,60 +212,6 @@ public final class Signal<Value, Error: Swift.Error> {
 
 	deinit {
 		core.signalDidDeinitialize()
-	}
-
-	/// The state of a `Signal`.
-	///
-	/// `SignalState` is guaranteed to be laid out as a tagged pointer by the Swift
-	/// compiler in the support targets of the Swift 3.0.1 ABI.
-	///
-	/// The Swift compiler has also an optimization for enums with payloads that are
-	/// all reference counted, and at most one no-payload case.
-	private enum State {
-		// `TerminationKind` is constantly pointer-size large to keep `Signal.Core`
-		// allocation size independent of the actual `Value` and `Error` types.
-		enum TerminationKind {
-			case completed
-			case interrupted
-			case failed(Swift.Error)
-			case silent
-
-			init(_ event: Event) {
-				switch event {
-				case .value:
-					fatalError()
-				case .interrupted:
-					self = .interrupted
-				case let .failed(error):
-					self = .failed(error)
-				case .completed:
-					self = .completed
-				}
-			}
-
-			func materialize() -> Event? {
-				switch self {
-				case .completed:
-					return .completed
-				case .interrupted:
-					return .interrupted
-				case let .failed(error):
-					return .failed(error as! Error)
-				case .silent:
-					return nil
-				}
-			}
-		}
-
-		/// The `Signal` is alive.
-		case alive(Bag<Observer>, hasDeinitialized: Bool)
-
-		/// The `Signal` has received a termination event, and is about to be
-		/// terminated.
-		case terminating(Bag<Observer>, TerminationKind)
-
-		/// The `Signal` has terminated.
-		case terminated
 	}
 }
 
@@ -539,7 +381,7 @@ extension Signal {
 	/// - returns: A signal that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
 		return Signal<U, E> { observer, lifetime in
-			lifetime += self.observe(Signal.Observer(observer, transform))
+			lifetime += self.observe(Signal.Observer(observer, transform, lifetime))
 		}
 	}
 
@@ -1073,10 +915,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will deliver events until `lifetime` ends.
 	public func take(during lifetime: Lifetime) -> Signal<Value, Error> {
-		return Signal<Value, Error> { observer, innerLifetime in
-			innerLifetime += self.observe(observer)
-			innerLifetime += lifetime.observeEnded(observer.sendCompleted)
-		}
+		return flatMapEvent(Signal.Event.take(during: lifetime))
 	}
 
 	/// Forward events from `self` until `trigger` sends a `value` or
@@ -1089,18 +928,7 @@ extension Signal {
 	/// - returns: A signal that will deliver events until `trigger` sends
 	///            `value` or `completed` events.
 	public func take(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
-		return Signal<Value, Error> { observer, lifetime in
-			lifetime += self.observe(observer)
-			lifetime += trigger.observe { event in
-				switch event {
-				case .value, .completed:
-					observer.sendCompleted()
-
-				case .failed, .interrupted:
-					break
-				}
-			}
-		}
+		return flatMapEvent(Signal.Event.take(until: trigger))
 	}
 
 	/// Do not forward any values from `self` until `trigger` sends a `value` or

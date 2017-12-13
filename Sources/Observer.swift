@@ -28,26 +28,29 @@ extension Signal {
 		/// The target observer of `self`.
 		private let wrapped: AnyObject?
 
-		/// An initializer that transforms the action of the given observer with the
-		/// given transform.
+		/// Create an observer which applies the given transformation to every
+		/// event received, and directs the transformation output to the given
+		/// observer.
 		///
-		/// If the given observer would perform side effect on deinitialization, the
-		/// created observer would retain it.
+		/// If the given observer would perform side effect on deinitialization,
+		/// the created observer would retain it.
 		///
 		/// - parameters:
-		///   - observer: The observer to transform.
-		///   - transform: The transform.
+		///   - observer: The observer to receive transformed events.
+		///   - transform: The event transformation.
+		///   - lifetime: The lifetime of the event stream to be subscribed.
 		///   - disposable: The disposable to be disposed of when the `TransformerCore`
 		///                 yields any terminal event. If `observer` is a `Signal` input
 		///                 observer, this can be omitted.
 		internal init<U, E>(
 			_ observer: Signal<U, E>.Observer,
 			_ transform: @escaping Event.Transformation<U, E>,
+			_ lifetime: Lifetime,
 			_ disposable: Disposable? = nil
 		) {
 			var hasDeliveredTerminalEvent = false
 
-			self._send = transform { event in
+			let action: Signal<U, E>.Observer.Action = { event in
 				if !hasDeliveredTerminalEvent {
 					observer._send(event)
 
@@ -58,6 +61,7 @@ extension Signal {
 				}
 			}
 
+			self._send = transform(action, lifetime)
 			self.wrapped = observer.interruptsOnDeinit ? observer : nil
 			self.interruptsOnDeinit = false
 		}
