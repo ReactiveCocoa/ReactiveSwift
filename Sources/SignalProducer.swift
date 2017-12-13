@@ -251,66 +251,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			// variant which provides an output event sink that is thread safe
 			// & recursive termination safe like `Signal.Core`.
 			return core.flatMapEvent { action, lifetime in
-				return transform(SignalProducer<U, E>.makeSynchronizing(action), lifetime)
-			}
-		}
-	}
-
-	private static func makeSynchronizing(_ action: @escaping ProducedSignal.Observer.Action) -> ProducedSignal.Observer.Action {
-		let sendLock = Lock.make()
-		let termination = UnsafeAtomicState(TerminationState.idle)
-		let disposable = ScopedDisposable(AnyDisposable(termination.deinitialize))
-
-		// No one loves IUO, but logically speaking it is always available when
-		// termination state is `blocked`.
-		//
-		// This variable is only write once and subsequently read once. Unlike
-		// `Signal.Core.send` there is no concern in the observer bag being
-		// concurrently manipulated.
-		var terminalEvent: ProducedSignal.Event!
-
-		return { [disposable] event in
-			// All `sendLock` holders for delivering values must invoke
-			// `tryToCommitTermination` after releasing the lock. This ensures
-			// the terminal event would eventually be picked up.
-			@inline(__always)
-			func tryToCommitTermination() {
-				if termination.is(.blocked) && sendLock.try() {
-					// The transition CAS here acts as an acquire fence for
-					// `terminalEvent`.
-					if termination.tryTransition(from: .blocked, to: .terminated) {
-						action(terminalEvent)
-						_ = disposable
-					}
-					sendLock.unlock()
-				}
-			}
-
-			if case .value = event {
-				sendLock.lock()
-				action(event)
-				sendLock.unlock()
-
-				tryToCommitTermination()
-			} else {
-				// If the signal is terminating, we can gracefully ignore any
-				// other attempt.
-				if termination.tryTransition(from: .idle, to: .terminated) {
-					guard !sendLock.try() else {
-						action(event)
-						sendLock.unlock()
-						return
-					}
-
-					terminalEvent = event
-
-					// The transition CAS here acts as a release fence for
-					// `terminalEvent`.
-					let succeeds = termination.tryTransition(from: .terminated, to: .blocked)
-					assert(succeeds)
-
-					tryToCommitTermination()
-				}
+				return transform(Signal<U, E>.Event.makeSynchronizing(action), lifetime)
 			}
 		}
 	}
@@ -373,12 +314,6 @@ internal enum SynchronizationStrategy {
 	///
 	/// All n-ary operators must use this strategy.
 	case threadsafeOutput
-}
-
-private enum TerminationState: Int32 {
-	case idle
-	case terminated
-	case blocked
 }
 
 /// `SignalProducerCore` is the actual implementation of a `SignalProducer`.

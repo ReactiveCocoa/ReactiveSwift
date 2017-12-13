@@ -868,3 +868,95 @@ extension Signal.Event {
 		}
 	}
 }
+
+private enum TerminationState: Int32 {
+	case idle
+	case terminated
+	case blocked
+}
+
+extension Signal.Event {
+	// Recursive events are disallowed for `value` events, but are permitted
+	// for termination events. Specifically:
+	//
+	// - `interrupted`
+	// It can inadvertently be sent by downstream consumers as part of the
+	// `SignalProducer` mechanics.
+	//
+	// - `completed`
+	// If a downstream consumer weakly references an object, invocation of
+	// such consumer may cause a race condition with its weak retain against
+	// the last strong release of the object. If the `Lifetime` of the
+	// object is being referenced by an upstream `take(during:)`, a
+	// signal recursion might occur.
+	//
+	// So we would treat termination events specially. If it happens to
+	// occur while the `sendLock` is acquired, the observer call-out and
+	// the disposal would be delegated to the current sender, or
+	// occasionally one of the senders waiting on `sendLock`.
+
+	internal static func makeSynchronizing(_ action: @escaping Signal.Observer.Action, disposable: Disposable? = nil) -> Signal.Observer.Action {
+		let sendLock = Lock.make()
+		let termination = UnsafeAtomicState(TerminationState.idle)
+		let deallocator = ScopedDisposable(AnyDisposable(termination.deinitialize))
+
+		// No one loves IUO, but logically speaking it is always available when
+		// termination state is `blocked`.
+		//
+		// This variable is only write once and subsequently read once.
+		var terminalEvent: Signal.Event!
+
+		return { [deallocator] event in
+			// All `sendLock` holders for delivering values must invoke
+			// `tryToCommitTermination` after releasing the lock. This ensures
+			// the terminal event would eventually be picked up.
+			@inline(__always)
+			func tryToCommitTermination() {
+				if termination.is(.blocked) && sendLock.try() {
+					// The transition CAS here acts as an acquire fence for
+					// `terminalEvent`.
+					let shouldTerminate = termination.tryTransition(from: .blocked, to: .terminated)
+
+					if shouldTerminate {
+						action(terminalEvent)
+						_ = deallocator
+					}
+
+					sendLock.unlock()
+
+					if shouldTerminate {
+						disposable?.dispose()
+					}
+				}
+			}
+
+			if case .value = event {
+				sendLock.lock()
+				action(event)
+				sendLock.unlock()
+
+				tryToCommitTermination()
+			} else {
+				// If the signal is terminating, we can gracefully ignore any
+				// other attempt.
+				if termination.tryTransition(from: .idle, to: .terminated) {
+					guard !sendLock.try() else {
+						action(event)
+						sendLock.unlock()
+						disposable?.dispose()
+						return
+					}
+
+					terminalEvent = event
+
+					// The transition CAS here acts as a release fence for
+					// `terminalEvent`.
+					let succeeds = termination.tryTransition(from: .terminated, to: .blocked)
+					assert(succeeds)
+
+					tryToCommitTermination()
+				}
+			}
+		}
+	}
+}
