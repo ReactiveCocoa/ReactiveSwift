@@ -2416,9 +2416,10 @@ class SignalProducerSpec: QuickSpec {
 					upstreamLifetime = innerLifetime
 				}
 
+				let scheduler = TestScheduler()
 				var downstreamDisposable: Disposable!
 				producer
-					.observe(on: TestScheduler())
+					.observe(on: scheduler)
 					.startWithSignal { signal, innerDisposable in
 						signal.observe { _ in }
 						downstreamDisposable = innerDisposable
@@ -2427,6 +2428,9 @@ class SignalProducerSpec: QuickSpec {
 				expect(upstreamLifetime.hasEnded) == false
 
 				downstreamDisposable.dispose()
+				expect(upstreamLifetime.hasEnded) == false
+
+				scheduler.run()
 				expect(upstreamLifetime.hasEnded) == true
 			}
 		}

@@ -537,8 +537,11 @@ extension Signal {
 	///                closure.
 	///
 	/// - returns: A signal that forwards events yielded by the action.
-	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
-		return Signal<U, E> { observer, lifetime in
+	internal func flatMapEvent<Transformation: EventTransformation>(
+		_ transform: Transformation
+	) -> Signal<Transformation.DestValue, Transformation.DestError>
+	where Transformation.SourceValue == Value, Transformation.SourceError == Error {
+		return Signal<Transformation.DestValue, Transformation.DestError> { observer, lifetime in
 			lifetime += self.observe(Signal.Observer(observer, transform))
 		}
 	}

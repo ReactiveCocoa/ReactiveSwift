@@ -40,14 +40,14 @@ extension Signal {
 		///   - disposable: The disposable to be disposed of when the `TransformerCore`
 		///                 yields any terminal event. If `observer` is a `Signal` input
 		///                 observer, this can be omitted.
-		internal init<U, E>(
-			_ observer: Signal<U, E>.Observer,
-			_ transform: @escaping Event.Transformation<U, E>,
+		internal init<Transformation: EventTransformation>(
+			_ observer: Signal<Transformation.DestValue, Transformation.DestError>.Observer,
+			_ transform: Transformation,
 			_ disposable: Disposable? = nil
-		) {
+		) where Transformation.SourceValue == Value, Transformation.SourceError == Error {
 			var hasDeliveredTerminalEvent = false
 
-			self._send = transform { event in
+			self._send = transform.apply { event in
 				if !hasDeliveredTerminalEvent {
 					observer._send(event)
 

@@ -1191,6 +1191,31 @@ class SignalProducerLiftingSpec: QuickSpec {
 				testScheduler.advance()
 				expect(errored) == true
 			}
+
+			it("should interrupt ASAP and discard outstanding events") {
+				var valueCount = 0
+				var interruptCount = 0
+				var unexpectedEventCount = 0
+
+				let disposable = SignalProducer(0 ..< 128)
+					.delay(1.0, on: QueueScheduler.main)
+					.start { event in
+						switch event {
+						case .value:
+							valueCount += 1
+						case .interrupted:
+							interruptCount += 1
+						case .failed, .completed:
+							unexpectedEventCount += 1
+						}
+					}
+
+				disposable.dispose()
+
+				expect(interruptCount).toEventually(equal(1))
+				expect(unexpectedEventCount).toEventually(equal(0))
+				expect(valueCount).toEventuallyNot(beGreaterThan(0))
+			}
 		}
 
 		describe("throttle") {
