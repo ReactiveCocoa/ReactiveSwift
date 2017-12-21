@@ -13,20 +13,8 @@ extension Signal {
 		public typealias Action = (Event) -> Void
 		private let _send: Action
 
-		/// An action that will be performed upon arrival of the event.
-		@available(*, deprecated: 2.0, renamed:"send(_:)")
-		public var action: Action {
-			guard !interruptsOnDeinit && wrapped == nil else {
-				return { self._send($0) }
-			}
-			return _send
-		}
-
 		/// Whether the observer should send an `interrupted` event as it deinitializes.
 		private let interruptsOnDeinit: Bool
-
-		/// The target observer of `self`.
-		private let wrapped: AnyObject?
 
 		/// An initializer that transforms the action of the given observer with the
 		/// given transform.
@@ -37,28 +25,46 @@ extension Signal {
 		/// - parameters:
 		///   - observer: The observer to transform.
 		///   - transform: The transform.
-		///   - disposable: The disposable to be disposed of when the `TransformerCore`
-		///                 yields any terminal event. If `observer` is a `Signal` input
-		///                 observer, this can be omitted.
+		///   - disposables: The disposable to be disposed of upon termination.
 		internal init<U, E>(
-			_ observer: Signal<U, E>.Observer,
-			_ transform: @escaping Event.Transformation<U, E>,
-			_ disposable: Disposable? = nil
+			producerObserver: Signal<U, E>.Observer,
+			applying transform: @escaping Event.Transformation<U, E>,
+			disposables: CompositeDisposable
 		) {
 			var hasDeliveredTerminalEvent = false
 
-			self._send = transform { event in
+			let wrappedOutputSink: Signal<U, E>.Observer.Action = { event in
 				if !hasDeliveredTerminalEvent {
-					observer._send(event)
+					producerObserver._send(event)
 
 					if event.isTerminating {
 						hasDeliveredTerminalEvent = true
-						disposable?.dispose()
+						disposables.dispose()
 					}
 				}
 			}
 
-			self.wrapped = observer.interruptsOnDeinit ? observer : nil
+			self._send = transform(wrappedOutputSink, Lifetime(disposables))
+			self.interruptsOnDeinit = false
+		}
+
+		/// An initializer that transforms the action of the given observer with the
+		/// given transform.
+		///
+		/// If the given observer would perform side effect on deinitialization, the
+		/// created observer would retain it.
+		///
+		/// - parameters:
+		///   - observer: The observer to transform.
+		///   - transform: The transform.
+		///   - disposables: The disposable to be disposed of upon termination.
+		///                 Used by `SignalProducer` only, since `Signal` takes.
+		internal init<U, E>(
+			signalObserver: Signal<U, E>.Observer,
+			applying transform: @escaping Event.Transformation<U, E>,
+			lifetime: Lifetime
+		) {
+			self._send = transform({ signalObserver._send($0) }, lifetime)
 			self.interruptsOnDeinit = false
 		}
 
@@ -71,7 +77,6 @@ extension Signal {
 		///                         event as it deinitializes. `false` otherwise.
 		internal init(action: @escaping Action, interruptsOnDeinit: Bool) {
 			self._send = action
-			self.wrapped = nil
 			self.interruptsOnDeinit = interruptsOnDeinit
 		}
 
@@ -82,7 +87,6 @@ extension Signal {
 		///   - action: A closure to lift over received event.
 		public init(_ action: @escaping Action) {
 			self._send = action
-			self.wrapped = nil
 			self.interruptsOnDeinit = false
 		}
 
@@ -170,4 +174,12 @@ extension Signal {
 			_send(.interrupted)
 		}
 	}
+}
+
+/// FIXME: Cannot be placed in `Deprecations+Removal.swift` if compiling with
+///        Xcode 9.2.
+extension Signal.Observer {
+	/// An action that will be performed upon arrival of the event.
+	@available(*, unavailable, renamed:"send(_:)")
+	public var action: Action { fatalError() }
 }
