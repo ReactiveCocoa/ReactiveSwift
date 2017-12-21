@@ -333,15 +333,47 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 	@discardableResult
 	internal override func start(_ generator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+		// Collect all resources related to this transformed producer instance.
 		let disposables = CompositeDisposable()
 
 		source.start { upstreamInterrupter in
+			// Backpropagate the terminal event, if any, to the upstream.
 			disposables += upstreamInterrupter
-			return Signal.Observer(producerObserver: generator(disposables),
-								   applying: transform,
-								   disposables: disposables)
+
+			var hasDeliveredTerminalEvent = false
+
+			// Generate the output sink that receives transformed output.
+			let output = generator(disposables)
+
+			// Wrap the output sink to enforce the "no event beyond the terminal
+			// event" contract, and the disposal upon termination.
+			let wrappedOutput: Signal<Value, Error>.Observer.Action = { event in
+				if !hasDeliveredTerminalEvent {
+					output.send(event)
+
+					if event.isTerminating {
+						// Mark that a terminal event has already been
+						// delivered.
+						hasDeliveredTerminalEvent = true
+
+						// Disposed of all associated resources, and notify
+						// the upstream too.
+						disposables.dispose()
+					}
+				}
+			}
+
+			// Create an input sink whose events would go through the given
+			// event transformation, and have the resulting events propagated
+			// to the output sink above.
+			let input = transform(wrappedOutput, Lifetime(disposables))
+
+			// Return the input sink to the source producer core.
+			return Signal<SourceValue, SourceError>.Observer(input)
 		}
 
+		// Manual interruption disposes of `disposables`, which in turn notifies
+		// the event transformation side effects, and the upstream instance.
 		return disposables
 	}
 
@@ -352,19 +384,19 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 	}
 
 	internal override func makeInstance() -> Instance {
-		let product = source.makeInstance()
-		let disposables = CompositeDisposable()
-		disposables += product.interruptHandle
+		let disposable = SerialDisposable()
+		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
 
-		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposables)
-		let sourceObserver = Signal<SourceValue, SourceError>.Observer(producerObserver: observer,
-																	   applying: transform,
-																	   disposables: disposables)
-		product.signal.observe(sourceObserver)
+		func observerDidSetup() {
+			start { interrupter in
+				disposable.inner = interrupter
+				return observer
+			}
+		}
 
 		return Instance(signal: signal,
-		                observerDidSetup: product.observerDidSetup,
-		                interruptHandle: disposables)
+		                observerDidSetup: observerDidSetup,
+		                interruptHandle: disposable)
 	}
 }
 

@@ -16,58 +16,6 @@ extension Signal {
 		/// Whether the observer should send an `interrupted` event as it deinitializes.
 		private let interruptsOnDeinit: Bool
 
-		/// An initializer that transforms the action of the given observer with the
-		/// given transform.
-		///
-		/// If the given observer would perform side effect on deinitialization, the
-		/// created observer would retain it.
-		///
-		/// - parameters:
-		///   - observer: The observer to transform.
-		///   - transform: The transform.
-		///   - disposables: The disposable to be disposed of upon termination.
-		internal init<U, E>(
-			producerObserver: Signal<U, E>.Observer,
-			applying transform: @escaping Event.Transformation<U, E>,
-			disposables: CompositeDisposable
-		) {
-			var hasDeliveredTerminalEvent = false
-
-			let wrappedOutputSink: Signal<U, E>.Observer.Action = { event in
-				if !hasDeliveredTerminalEvent {
-					producerObserver._send(event)
-
-					if event.isTerminating {
-						hasDeliveredTerminalEvent = true
-						disposables.dispose()
-					}
-				}
-			}
-
-			self._send = transform(wrappedOutputSink, Lifetime(disposables))
-			self.interruptsOnDeinit = false
-		}
-
-		/// An initializer that transforms the action of the given observer with the
-		/// given transform.
-		///
-		/// If the given observer would perform side effect on deinitialization, the
-		/// created observer would retain it.
-		///
-		/// - parameters:
-		///   - observer: The observer to transform.
-		///   - transform: The transform.
-		///   - disposables: The disposable to be disposed of upon termination.
-		///                 Used by `SignalProducer` only, since `Signal` takes.
-		internal init<U, E>(
-			signalObserver: Signal<U, E>.Observer,
-			applying transform: @escaping Event.Transformation<U, E>,
-			lifetime: Lifetime
-		) {
-			self._send = transform({ signalObserver._send($0) }, lifetime)
-			self.interruptsOnDeinit = false
-		}
-
 		/// An initializer that accepts a closure accepting an event for the
 		/// observer.
 		///

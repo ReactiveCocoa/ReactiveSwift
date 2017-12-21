@@ -538,10 +538,12 @@ extension Signal {
 	///
 	/// - returns: A signal that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
-		return Signal<U, E> { observer, lifetime in
-			lifetime += self.observe(Signal.Observer(signalObserver: observer,
-													 applying: transform,
-													 lifetime: lifetime))
+		return Signal<U, E> { output, lifetime in
+			// Create an input sink whose events would go through the given
+			// event transformation, and have the resulting events propagated
+			// to the resulting `Signal`.
+			let input = transform(output.send, lifetime)
+			lifetime += self.observe(input)
 		}
 	}
 
