@@ -1,6 +1,26 @@
 # master
 *Please add new entries at the top.*
 
+1. Fixed a scenario of downstream interruptions being dropped. (#577, kudos to @andersio)
+
+   Manual interruption of time shifted producers, including `delay`, `observe(on:)`, `throttle`, `debounce` and `lazyMap`, should discard outstanding events at best effort ASAP.
+
+   But in ReactiveSwift 2.0 to 3.0, the manual interruption is ignored if the upstream producer has terminated. For example:
+
+   ```swift
+   // Completed upstream + `delay`.
+   SignalProducer.empty
+       .delay(10.0, on: QueueScheduler.main)
+       .startWithCompleted { print("Value should have been discarded!") }
+       .dispose()
+
+   // Console(t+10): Value should have been discarded!
+   ```
+
+   The expected behavior has now been restored.
+
+   Please note that, since ReactiveSwift 2.0, while the interruption is handled immediately, the `interrupted` event delivery is not synchronous — it generally respects the closest asynchronous operator applied, and delivers on that scheduler.
+
 1. `concat` for `SignalProducer` now has an overload that accepts an error.
 
 1. Fix some documentation errors (#560, kudos to @ikesyo)
