@@ -313,7 +313,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should interrupt ASAP and discard outstanding events") {
-				testAsyncASAPInterruption { $0.lazyMap(on: $1) { $0 } }
+				testAsyncASAPInterruption(op: "lazyMap") { $0.lazyMap(on: $1) { $0 } }
+			}
+
+			it("should interrupt on the given scheduler") {
+				testAsyncInterruptionScheduler(op: "lazyMap") { $0.lazyMap(on: $1) { $0 } }
 			}
 		}
 
@@ -1133,7 +1137,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should interrupt ASAP and discard outstanding events") {
-				testAsyncASAPInterruption { $0.observe(on: $1) }
+				testAsyncASAPInterruption(op: "observe(on:)") { $0.observe(on: $1) }
+			}
+
+			it("should interrupt on the given scheduler") {
+				testAsyncInterruptionScheduler(op: "observe(on:)") { $0.observe(on: $1) }
 			}
 		}
 
@@ -1200,7 +1208,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should interrupt ASAP and discard outstanding events") {
-				testAsyncASAPInterruption { $0.delay(10.0, on: $1) }
+				testAsyncASAPInterruption(op: "delay") { $0.delay(10.0, on: $1) }
+			}
+
+			it("should interrupt on the given scheduler") {
+				testAsyncInterruptionScheduler(op: "delay") { $0.delay(10.0, on: $1) }
 			}
 		}
 
@@ -1298,13 +1310,21 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should interrupt ASAP and discard outstanding events") {
-				testAsyncASAPInterruption { $0.throttle(10.0, on: $1) }
+				testAsyncASAPInterruption(op: "throttle") { $0.throttle(10.0, on: $1) }
+			}
+
+			it("should interrupt on the given scheduler") {
+				testAsyncInterruptionScheduler(op: "throttle") { $0.throttle(10.0, on: $1) }
 			}
 		}
 
 		describe("debounce") {
 			it("should interrupt ASAP and discard outstanding events") {
-				testAsyncASAPInterruption { $0.delay(10.0, on: $1) }
+				testAsyncASAPInterruption(op: "debounce") { $0.debounce(10.0, on: $1) }
+			}
+
+			it("should interrupt on the given scheduler") {
+				testAsyncInterruptionScheduler(op: "debounce") { $0.debounce(10.0, on: $1) }
 			}
 		}
 
@@ -2036,7 +2056,36 @@ class SignalProducerLiftingSpec: QuickSpec {
 	}
 }
 
+private func testAsyncInterruptionScheduler(
+	op: String,
+	file: FileString = #file,
+	line: UInt = #line,
+	transform: (SignalProducer<Int, NoError>, TestScheduler) -> SignalProducer<Int, NoError>
+) {
+	var isInterrupted = false
+
+	let scheduler = TestScheduler()
+	let producer = transform(SignalProducer(0 ..< 128), scheduler)
+
+	let failedExpectations = gatherFailingExpectations {
+		let disposable = producer.startWithInterrupted { isInterrupted = true }
+		expect(isInterrupted) == false
+
+		disposable.dispose()
+		expect(isInterrupted) == false
+
+		scheduler.run()
+		expect(isInterrupted) == true
+	}
+
+	if !failedExpectations.isEmpty {
+		fail("The async operator `\(op)` does not interrupt on the appropriate scheduler.",
+			 location: SourceLocation(file: file, line: line))
+	}
+}
+
 private func testAsyncASAPInterruption(
+	op: String,
 	file: FileString = #file,
 	line: UInt = #line,
 	transform: (SignalProducer<Int, NoError>, TestScheduler) -> SignalProducer<Int, NoError>
@@ -2073,7 +2122,7 @@ private func testAsyncASAPInterruption(
 	}
 
 	if !failedExpectations.isEmpty {
-		fail("The ASAP interruption test of the async operator has failed.",
+		fail("The ASAP interruption test of the async operator `\(op)` has failed.",
 			 location: SourceLocation(file: file, line: line))
 	}
 }
