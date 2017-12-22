@@ -918,8 +918,7 @@ extension Signal.Event {
 			@inline(__always)
 			func tryToCommitTermination() {
 				if status.is(.terminationBlocked) && sendLock.try() {
-					// The transition CAS here acts as an acquire fence for
-					// `terminalEvent`.
+					// status CAS with barrier - acquire fence for `terminalEvent`.
 					let shouldTerminate = status.tryTransition(from: .terminationBlocked, to: .terminated)
 
 					if shouldTerminate {
@@ -939,19 +938,27 @@ extension Signal.Event {
 				// `value` should not lead to an `alive -> terminated`
 				// transition. So the two conditions above and below cannot be
 				// merged together as one.
-				if status.is(.alive) {
-					sendLock.lock()
-					action(event)
-					sendLock.unlock()
 
-					tryToCommitTermination()
+				// `sendLock` lock - acquire fence for `status`.
+				sendLock.lock()
+
+				// `alive` must be checked after `sendLock` so that it sees the
+				// correct status if (*1) below has acquired the lock.
+				if status.is(.alive) {
+					action(event)
 				}
+
+				sendLock.unlock()
+				tryToCommitTermination()
 			} else if status.tryTransition(from: .alive, to: .terminated) {
 				// For every terminal event, try to transition to the
 				// `terminated` state. Any terminal event coming after the
 				// successful transition is gracefully ignored.
-				if sendLock.try() {
+
+				if sendLock.try() { // (*1)
 					action(event)
+
+					// `sendLock` unlock - release fence for `status`.
 					sendLock.unlock()
 					disposable?.dispose()
 					return
@@ -959,8 +966,7 @@ extension Signal.Event {
 
 				terminalEvent = event
 
-				// The transition CAS here acts as a release fence for
-				// `terminalEvent`.
+				// status CAS with barrier - release fence for `terminalEvent`.
 				let succeeds = status.tryTransition(from: .terminated, to: .terminationBlocked)
 				assert(succeeds)
 
