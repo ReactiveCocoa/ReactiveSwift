@@ -895,7 +895,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, sends values obtained using 
 	///            `transform` as this producer sends values.
 	public func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
-		return lift { $0.lazyMap(on: scheduler, transform: transform) }
+		return core.flatMapEvent(Signal.Event.lazyMap(on: scheduler, transform: transform))
 	}
 
 	/// Preserve only values which pass the given closure.

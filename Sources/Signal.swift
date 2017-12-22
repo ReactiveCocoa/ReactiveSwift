@@ -595,10 +595,7 @@ extension Signal {
 	/// - returns: A signal that sends values obtained using `transform` as this 
 	///            signal sends values.
 	public func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> Signal<U, Error> {
-		return flatMap(.latest) { value in
-			return SignalProducer({ transform(value) })
-				.start(on: scheduler)
-		}
+		return flatMapEvent(Signal.Event.lazyMap(on: scheduler, transform: transform))
 	}
 
 	/// Preserve only values which pass the given closure.
