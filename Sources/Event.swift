@@ -893,7 +893,14 @@ extension Signal.Event {
 	/// occur while the `sendLock` is acquired, the observer call-out and
 	/// the disposal would be delegated to the current sender, or
 	/// occasionally one of the senders waiting on `sendLock`.
-	internal static func makeSynchronizing(_ action: @escaping Signal.Observer.Action, disposable: Disposable? = nil) -> Signal.Observer.Action {
+	///
+	/// - parameters:
+	///   - action: The event sink to be wrapped.
+	///   - disposable: The disposable to be disposed of upon termination.
+	///
+	/// - returns: A wrapped, synchronizing event sink that propagates events
+	///            to the given event sink.
+	internal static func makeSynchronizing(disposable: Disposable? = nil, action: @escaping Signal.Observer.Action) -> Signal.Observer.Action {
 		let sendLock = Lock.make()
 		let status = UnsafeAtomicState(EventStreamStatus.alive)
 		let deallocator = ScopedDisposable(AnyDisposable(status.deinitialize))
@@ -929,17 +936,21 @@ extension Signal.Event {
 			}
 
 			if case .value = event {
-				guard status.is(.alive) else { return }
+				// `value` should not lead to an `alive -> terminated`
+				// transition. So the two conditions above and below cannot be
+				// merged together as one.
+				if status.is(.alive) {
+					sendLock.lock()
+					action(event)
+					sendLock.unlock()
 
-				sendLock.lock()
-				action(event)
-				sendLock.unlock()
-
-				tryToCommitTermination()
+					tryToCommitTermination()
+				}
 			} else if status.tryTransition(from: .alive, to: .terminated) {
-				// Gracefully ignore any terminal event other than the one
-				// transitions the event stream away from the `alive` status.
-				guard !sendLock.try() else {
+				// For every terminal event, try to transition to the
+				// `terminated` state. Any terminal event coming after the
+				// successful transition is gracefully ignored.
+				if sendLock.try() {
 					action(event)
 					sendLock.unlock()
 					disposable?.dispose()

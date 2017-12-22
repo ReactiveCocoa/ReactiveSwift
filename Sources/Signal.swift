@@ -87,7 +87,21 @@ public final class Signal<Value, Error: Swift.Error> {
 			}
 
 			// The generator observer retains the `Signal` core.
-			let sink = Event.makeSynchronizing(self.send, disposable: disposable)
+			let sink = Event.makeSynchronizing(disposable: disposable) { event in
+				self.stateLock.lock()
+
+				guard let observers = self.observers else {
+					self.stateLock.unlock()
+					return
+				}
+
+				self.stateLock.unlock()
+
+				for observer in observers {
+					observer.send(event)
+				}
+			}
+
 			let inputObserver = Observer(action: sink, interruptsOnDeinit: true)
 			generator(inputObserver, Lifetime(disposable))
 		}
