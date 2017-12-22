@@ -13,54 +13,8 @@ extension Signal {
 		public typealias Action = (Event) -> Void
 		private let _send: Action
 
-		/// An action that will be performed upon arrival of the event.
-		@available(*, deprecated: 2.0, renamed:"send(_:)")
-		public var action: Action {
-			guard !interruptsOnDeinit && wrapped == nil else {
-				return { self._send($0) }
-			}
-			return _send
-		}
-
 		/// Whether the observer should send an `interrupted` event as it deinitializes.
 		private let interruptsOnDeinit: Bool
-
-		/// The target observer of `self`.
-		private let wrapped: AnyObject?
-
-		/// An initializer that transforms the action of the given observer with the
-		/// given transform.
-		///
-		/// If the given observer would perform side effect on deinitialization, the
-		/// created observer would retain it.
-		///
-		/// - parameters:
-		///   - observer: The observer to transform.
-		///   - transform: The transform.
-		///   - disposable: The disposable to be disposed of when the `TransformerCore`
-		///                 yields any terminal event. If `observer` is a `Signal` input
-		///                 observer, this can be omitted.
-		internal init<U, E>(
-			_ observer: Signal<U, E>.Observer,
-			_ transform: @escaping Event.Transformation<U, E>,
-			_ disposable: Disposable? = nil
-		) {
-			var hasDeliveredTerminalEvent = false
-
-			self._send = transform { event in
-				if !hasDeliveredTerminalEvent {
-					observer._send(event)
-
-					if event.isTerminating {
-						hasDeliveredTerminalEvent = true
-						disposable?.dispose()
-					}
-				}
-			}
-
-			self.wrapped = observer.interruptsOnDeinit ? observer : nil
-			self.interruptsOnDeinit = false
-		}
 
 		/// An initializer that accepts a closure accepting an event for the
 		/// observer.
@@ -71,7 +25,6 @@ extension Signal {
 		///                         event as it deinitializes. `false` otherwise.
 		internal init(action: @escaping Action, interruptsOnDeinit: Bool) {
 			self._send = action
-			self.wrapped = nil
 			self.interruptsOnDeinit = interruptsOnDeinit
 		}
 
@@ -82,7 +35,6 @@ extension Signal {
 		///   - action: A closure to lift over received event.
 		public init(_ action: @escaping Action) {
 			self._send = action
-			self.wrapped = nil
 			self.interruptsOnDeinit = false
 		}
 
@@ -170,4 +122,12 @@ extension Signal {
 			_send(.interrupted)
 		}
 	}
+}
+
+/// FIXME: Cannot be placed in `Deprecations+Removal.swift` if compiling with
+///        Xcode 9.2.
+extension Signal.Observer {
+	/// An action that will be performed upon arrival of the event.
+	@available(*, unavailable, renamed:"send(_:)")
+	public var action: Action { fatalError() }
 }

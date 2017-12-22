@@ -264,6 +264,7 @@ internal class SignalProducerCore<Value, Error: Swift.Error> {
 	///   - generator: The closure to generate an observer.
 	///
 	/// - returns: A disposable to interrupt the started producer instance.
+	@discardableResult
 	func start(_ generator: (_ upstreamInterruptHandle: Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
 		fatalError()
 	}
@@ -290,6 +291,7 @@ private final class SignalCore<Value, Error: Swift.Error>: SignalProducerCore<Va
 		self._make = action
 	}
 
+	@discardableResult
 	override func start(_ generator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
 		let instance = makeInstance()
 		instance.signal.observe(generator(instance.interruptHandle))
@@ -329,25 +331,72 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 		self.transform = transform
 	}
 
+	@discardableResult
 	internal override func start(_ generator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
-		return source.start { Signal.Observer(generator($0), transform, $0) }
+		// Collect all resources related to this transformed producer instance.
+		let disposables = CompositeDisposable()
+
+		source.start { upstreamInterrupter in
+			// Backpropagate the terminal event, if any, to the upstream.
+			disposables += upstreamInterrupter
+
+			var hasDeliveredTerminalEvent = false
+
+			// Generate the output sink that receives transformed output.
+			let output = generator(disposables)
+
+			// Wrap the output sink to enforce the "no event beyond the terminal
+			// event" contract, and the disposal upon termination.
+			let wrappedOutput: Signal<Value, Error>.Observer.Action = { event in
+				if !hasDeliveredTerminalEvent {
+					output.send(event)
+
+					if event.isTerminating {
+						// Mark that a terminal event has already been
+						// delivered.
+						hasDeliveredTerminalEvent = true
+
+						// Disposed of all associated resources, and notify
+						// the upstream too.
+						disposables.dispose()
+					}
+				}
+			}
+
+			// Create an input sink whose events would go through the given
+			// event transformation, and have the resulting events propagated
+			// to the output sink above.
+			let input = transform(wrappedOutput, Lifetime(disposables))
+
+			// Return the input sink to the source producer core.
+			return Signal<SourceValue, SourceError>.Observer(input)
+		}
+
+		// Manual interruption disposes of `disposables`, which in turn notifies
+		// the event transformation side effects, and the upstream instance.
+		return disposables
 	}
 
 	internal override func flatMapEvent<U, E>(_ transform: @escaping Signal<Value, Error>.Event.Transformation<U, E>) -> SignalProducer<U, E> {
-		return SignalProducer<U, E>(TransformerCore<U, E, SourceValue, SourceError>(source: source) { [innerTransform = self.transform] action in
-			return innerTransform(transform(action))
+		return SignalProducer<U, E>(TransformerCore<U, E, SourceValue, SourceError>(source: source) { [innerTransform = self.transform] action, lifetime in
+			return innerTransform(transform(action, lifetime), lifetime)
 		})
 	}
 
 	internal override func makeInstance() -> Instance {
-		let product = source.makeInstance()
-		let signal = Signal<Value, Error> { observer, lifetime in
-			lifetime += product.signal.observe(Signal.Observer(observer, transform))
+		let disposable = SerialDisposable()
+		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+
+		func observerDidSetup() {
+			start { interrupter in
+				disposable.inner = interrupter
+				return observer
+			}
 		}
 
 		return Instance(signal: signal,
-		                observerDidSetup: product.observerDidSetup,
-		                interruptHandle: product.interruptHandle)
+		                observerDidSetup: observerDidSetup,
+		                interruptHandle: disposable)
 	}
 }
 
@@ -368,6 +417,7 @@ private final class GeneratorCore<Value, Error: Swift.Error>: SignalProducerCore
 		self.generator = generator
 	}
 
+	@discardableResult
 	internal override func start(_ observerGenerator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
 		// Object allocation is a considerable overhead. So unless the core is configured
 		// to be disposable, we would reuse the already-disposed, shared `NopDisposable`.
@@ -614,36 +664,11 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer<U, F>(SignalCore {
-			// Transform the `Signal`, and pass through the `didCreate` side effect and
-			// the interruptHandle.
-			let instance = self.core.makeInstance()
-			return .init(signal: transform(instance.signal),
-			             observerDidSetup: instance.observerDidSetup,
-			             interruptHandle: instance.interruptHandle)
-		})
-	}
-
-	private func lift<U, F, V, G>(leftFirst: Bool, _ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
-		return { otherProducer in
-			return SignalProducer<V, G>(SignalCore {
-				let left = self.core.makeInstance()
-				let right = otherProducer.core.makeInstance()
-
-				return .init(
-					signal: transform(left.signal)(right.signal),
-					observerDidSetup: {
-						if leftFirst {
-							left.observerDidSetup()
-							right.observerDidSetup()
-						} else {
-							right.observerDidSetup()
-							left.observerDidSetup()
-						}
-					},
-					interruptHandle: CompositeDisposable([left.interruptHandle, right.interruptHandle])
-				)
-			})
+		return SignalProducer<U, F> { observer, lifetime in
+			self.startWithSignal { signal, interrupter in
+				lifetime += interrupter
+				transform(signal).observe(observer)
+			}
 		}
 	}
 
@@ -656,7 +681,18 @@ extension SignalProducer {
 	///            applied. `self` would be the LHS, and the factory input would
 	///            be the RHS.
 	fileprivate func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
-		return lift(leftFirst: true, transform)
+		return { right in
+			return SignalProducer<V, G> { observer, lifetime in
+				right.startWithSignal { rightSignal, rightInterrupter in
+					lifetime += rightInterrupter
+
+					self.startWithSignal { leftSignal, leftInterrupter in
+						lifetime += leftInterrupter
+						transform(leftSignal)(rightSignal).observe(observer)
+					}
+				}
+			}
+		}
 	}
 
 	/// Lift a binary Signal operator to operate upon SignalProducers.
@@ -668,7 +704,18 @@ extension SignalProducer {
 	///            applied. `self` would be the LHS, and the factory input would
 	///            be the RHS.
 	fileprivate func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
-		return lift(leftFirst: false, transform)
+		return { right in
+			return SignalProducer<V, G> { observer, lifetime in
+				self.startWithSignal { leftSignal, leftInterrupter in
+					lifetime += leftInterrupter
+
+					right.startWithSignal { rightSignal, rightInterrupter in
+						lifetime += rightInterrupter
+						transform(leftSignal)(rightSignal).observe(observer)
+					}
+				}
+			}
+		}
 	}
 
 	/// Lift a binary Signal operator to operate upon SignalProducers instead.

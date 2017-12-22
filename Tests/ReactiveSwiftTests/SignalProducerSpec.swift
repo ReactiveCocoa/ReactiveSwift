@@ -124,25 +124,82 @@ class SignalProducerSpec: QuickSpec {
 				expect(addedDisposable.isDisposed) == true
 			}
 
-			it("should deliver the interrupted event with respect to the applied asynchronous operators") {
+			it("should deliver the interrupted event with respect to the asynchronous operator applied to an alive upstream with a signal product") {
 				let scheduler = TestScheduler()
-				var signalInterrupted = false
-				var observerInterrupted = false
+				var isInterrupted = false
 
 				let (signal, _) = Signal<Int, NoError>.pipe()
 
-				SignalProducer(signal)
+				let disposable = SignalProducer(signal)
 					.observe(on: scheduler)
-					.on(interrupted: { signalInterrupted = true })
-					.startWithInterrupted { observerInterrupted = true }
-					.dispose()
+					.startWithSignal { signal, disposable -> Disposable in
+						signal.observeInterrupted {
+							isInterrupted = true
+						}
+						return disposable
+					}
 
-				expect(signalInterrupted) == false
-				expect(observerInterrupted) == false
+				disposable.dispose()
+				expect(isInterrupted) == false
 
 				scheduler.run()
-				expect(signalInterrupted) == true
-				expect(observerInterrupted) == true
+				expect(isInterrupted) == true
+			}
+
+			it("should deliver the interrupted event with respect to the asynchronous operator applied to a terminated upstream with a signal product") {
+				let scheduler = TestScheduler()
+				var isInterrupted = false
+
+				let disposable: Disposable = SignalProducer<Int, NoError>.empty
+					.observe(on: scheduler)
+					.startWithSignal { signal, disposable in
+						signal.observeInterrupted {
+							isInterrupted = true
+						}
+						return disposable
+					}
+
+				disposable.dispose()
+				expect(isInterrupted) == false
+
+				scheduler.run()
+				expect(isInterrupted) == true
+			}
+
+			it("should deliver the interrupted event with respect to the asynchronous operator applied to an alive upstream with a direct observation") {
+				let scheduler = TestScheduler()
+				var isInterrupted = false
+
+				let (signal, _) = Signal<Int, NoError>.pipe()
+
+				let disposable = SignalProducer(signal)
+					.observe(on: scheduler)
+					.startWithInterrupted {
+						isInterrupted = true
+					}
+
+				disposable.dispose()
+				expect(isInterrupted) == false
+
+				scheduler.run()
+				expect(isInterrupted) == true
+			}
+
+			it("should deliver the interrupted event with respect to the asynchronous operator applied to a terminated upstream with a direct observation") {
+				let scheduler = TestScheduler()
+				var isInterrupted = false
+
+				let disposable = SignalProducer<Int, NoError>.empty
+					.observe(on: scheduler)
+					.startWithInterrupted {
+						isInterrupted = true
+					}
+
+				disposable.dispose()
+				expect(isInterrupted) == false
+
+				scheduler.run()
+				expect(isInterrupted) == true
 			}
 		}
 
