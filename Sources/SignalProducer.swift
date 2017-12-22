@@ -251,21 +251,30 @@ internal class SignalProducerCore<Value, Error: Swift.Error> {
 	}
 
 	func makeInstance() -> Instance {
-		fatalError()
+		let disposable = SerialDisposable()
+		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+
+		let (interrupter, didStart) = start(observer)
+		disposable.inner = interrupter
+
+		return Instance(signal: signal,
+						observerDidSetup: didStart,
+						interruptHandle: disposable)
 	}
 
-	/// Start the producer with an observer created by the given generator.
+	/// Start a new producer instance with the given observer.
 	///
-	/// The created observer **must** manaully dispose of the given upstream interrupt
-	/// handle iff it performs any event transformation that might result in a terminal
-	/// event.
+	/// - important: The callee must invoke the returned `didStart` side effect
+	///              to start the producer.
 	///
 	/// - parameters:
-	///   - generator: The closure to generate an observer.
+	///   - observer: The observer to receive events from the startped
+	///               producer instance.
 	///
-	/// - returns: A disposable to interrupt the started producer instance.
+	/// - returns: The interrupter of the producer instance, and a handle to
+	///            start the producer instance.
 	@discardableResult
-	func start(_ generator: (_ upstreamInterruptHandle: Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+	func start(_ observer: Signal<Value, Error>.Observer) -> (interrupter: Disposable, didStart: () -> Void) {
 		fatalError()
 	}
 
@@ -292,11 +301,11 @@ private final class SignalCore<Value, Error: Swift.Error>: SignalProducerCore<Va
 	}
 
 	@discardableResult
-	override func start(_ generator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+	override func start(_ observer: Signal<Value, Error>.Observer) -> (interrupter: Disposable, start: () -> Void) {
 		let instance = makeInstance()
-		instance.signal.observe(generator(instance.interruptHandle))
-		instance.observerDidSetup()
-		return instance.interruptHandle
+		instance.signal.observe(observer)
+		return (interrupter: instance.interruptHandle,
+				start: instance.observerDidSetup)
 	}
 
 	override func makeInstance() -> Instance {
@@ -332,71 +341,50 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 	}
 
 	@discardableResult
-	internal override func start(_ generator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+	override func start(_ observer: Signal<Value, Error>.Observer) -> (interrupter: Disposable, start: () -> Void) {
 		// Collect all resources related to this transformed producer instance.
 		let disposables = CompositeDisposable()
 
-		source.start { upstreamInterrupter in
-			// Backpropagate the terminal event, if any, to the upstream.
-			disposables += upstreamInterrupter
+		var hasDeliveredTerminalEvent = false
 
-			var hasDeliveredTerminalEvent = false
+		// Wrap the output sink to enforce the "no event beyond the terminal
+		// event" contract, and the disposal upon termination.
+		let output: Signal<Value, Error>.Observer.Action = { event in
+			if !hasDeliveredTerminalEvent {
+				observer.send(event)
 
-			// Generate the output sink that receives transformed output.
-			let output = generator(disposables)
+				if event.isTerminating {
+					// Mark that a terminal event has already been
+					// delivered.
+					hasDeliveredTerminalEvent = true
 
-			// Wrap the output sink to enforce the "no event beyond the terminal
-			// event" contract, and the disposal upon termination.
-			let wrappedOutput: Signal<Value, Error>.Observer.Action = { event in
-				if !hasDeliveredTerminalEvent {
-					output.send(event)
-
-					if event.isTerminating {
-						// Mark that a terminal event has already been
-						// delivered.
-						hasDeliveredTerminalEvent = true
-
-						// Disposed of all associated resources, and notify
-						// the upstream too.
-						disposables.dispose()
-					}
+					// Disposed of all associated resources, and notify
+					// the upstream too.
+					disposables.dispose()
 				}
 			}
-
-			// Create an input sink whose events would go through the given
-			// event transformation, and have the resulting events propagated
-			// to the output sink above.
-			let input = transform(wrappedOutput, Lifetime(disposables))
-
-			// Return the input sink to the source producer core.
-			return Signal<SourceValue, SourceError>.Observer(input)
 		}
+
+		// Create an input sink whose events would go through the given
+		// event transformation, and have the resulting events propagated
+		// to the output sink above.
+		let input = transform(output, Lifetime(disposables))
+
+		// Bootstrap the source producer core.
+		let (upstreamInterrupter, upstreamStart) = source.start(Signal.Observer(input))
+
+		// Backpropagate the terminal event, if any, to the upstream.
+		disposables += upstreamInterrupter
 
 		// Manual interruption disposes of `disposables`, which in turn notifies
 		// the event transformation side effects, and the upstream instance.
-		return disposables
+		return (interrupter: disposables, start: upstreamStart)
 	}
 
 	internal override func flatMapEvent<U, E>(_ transform: @escaping Signal<Value, Error>.Event.Transformation<U, E>) -> SignalProducer<U, E> {
 		return SignalProducer<U, E>(TransformerCore<U, E, SourceValue, SourceError>(source: source) { [innerTransform = self.transform] action, lifetime in
 			return innerTransform(transform(action, lifetime), lifetime)
 		})
-	}
-
-	internal override func makeInstance() -> Instance {
-		let disposable = SerialDisposable()
-		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
-
-		func observerDidSetup() {
-			start { interrupter in
-				disposable.inner = interrupter
-				return observer
-			}
-		}
-
-		return Instance(signal: signal,
-		                observerDidSetup: observerDidSetup,
-		                interruptHandle: disposable)
 	}
 }
 
@@ -418,21 +406,12 @@ private final class GeneratorCore<Value, Error: Swift.Error>: SignalProducerCore
 	}
 
 	@discardableResult
-	internal override func start(_ observerGenerator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+	override func start(_ observer: Signal<Value, Error>.Observer) -> (interrupter: Disposable, start: () -> Void) {
 		// Object allocation is a considerable overhead. So unless the core is configured
 		// to be disposable, we would reuse the already-disposed, shared `NopDisposable`.
 		let d: Disposable = isDisposable ? _SimpleDisposable() : NopDisposable.shared
-		generator(observerGenerator(d), d)
-		return d
-	}
-
-	internal override func makeInstance() -> Instance {
-		let (signal, observer) = Signal<Value, Error>.pipe()
-		let d = AnyDisposable(observer.sendInterrupted)
-
-		return Instance(signal: signal,
-		                             observerDidSetup: { self.generator(observer, d) },
-		                             interruptHandle: d)
+		return (interrupter: d,
+				start: { self.generator(observer, d) })
 	}
 }
 
@@ -540,7 +519,9 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func start(_ observer: Signal<Value, Error>.Observer = .init()) -> Disposable {
-		return core.start { _ in observer }
+		let (interrupter, didStart) = core.start(observer)
+		didStart()
+		return interrupter
 	}
 
 	/// Create a `Signal` from `self`, and observe the `Signal` for all events
