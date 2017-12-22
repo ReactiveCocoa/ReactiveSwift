@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+# 3.1.0-rc.1
 1. Fixed a scenario of downstream interruptions being dropped. (#577, kudos to @andersio)
 
    Manual interruption of time shifted producers, including `delay`, `observe(on:)`, `throttle`, `debounce` and `lazyMap`, should discard outstanding events at best effort ASAP.
@@ -21,7 +22,7 @@
 
    Please note that, since ReactiveSwift 2.0, while the interruption is handled immediately, the `interrupted` event delivery is not synchronous — it generally respects the closest asynchronous operator applied, and delivers on that scheduler.
 
-1. `concat` for `SignalProducer` now has an overload that accepts an error.
+1. `SignalProducer.concat` now has an overload that accepts an error. (#564, kudos to @nmccann)
 
 1. Fix some documentation errors (#560, kudos to @ikesyo)
 
