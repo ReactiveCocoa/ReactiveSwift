@@ -10,7 +10,7 @@ import Dispatch
 import Foundation
 
 import Result
-import Nimble
+@testable import Nimble
 import Quick
 @testable import ReactiveSwift
 
@@ -56,7 +56,6 @@ class SignalProducerLiftingSpec: QuickSpec {
 		}
 
 		describe("lazyMap") {
-
 			describe("with a scheduled binding") {
 				var token: Lifetime.Token!
 				var lifetime: Lifetime!
@@ -311,6 +310,10 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				expect(isOnTestQueue).toEventually(beTrue())
 				expect(output).toEventually(equal(["🎃"]))
+			}
+
+			it("should interrupt ASAP and discard outstanding events") {
+				testAsyncASAPInterruption { $0.lazyMap(on: $1) { $0 } }
 			}
 		}
 
@@ -1128,6 +1131,10 @@ class SignalProducerLiftingSpec: QuickSpec {
 				testScheduler.run()
 				expect(result) == [ 1, 2 ]
 			}
+
+			it("should interrupt ASAP and discard outstanding events") {
+				testAsyncASAPInterruption { $0.observe(on: $1) }
+			}
 		}
 
 		describe("delay") {
@@ -1190,6 +1197,10 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				testScheduler.advance()
 				expect(errored) == true
+			}
+
+			it("should interrupt ASAP and discard outstanding events") {
+				testAsyncASAPInterruption { $0.delay(10.0, on: $1) }
 			}
 		}
 
@@ -1284,6 +1295,16 @@ class SignalProducerLiftingSpec: QuickSpec {
 				scheduler.run()
 				expect(values) == [ 0 ]
 				expect(completed) == true
+			}
+
+			it("should interrupt ASAP and discard outstanding events") {
+				testAsyncASAPInterruption { $0.throttle(10.0, on: $1) }
+			}
+		}
+
+		describe("debounce") {
+			it("should interrupt ASAP and discard outstanding events") {
+				testAsyncASAPInterruption { $0.delay(10.0, on: $1) }
 			}
 		}
 
@@ -2012,5 +2033,47 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(latestValues?.1) == 2
 			}
 		}
+	}
+}
+
+private func testAsyncASAPInterruption(
+	file: FileString = #file,
+	line: UInt = #line,
+	transform: (SignalProducer<Int, NoError>, TestScheduler) -> SignalProducer<Int, NoError>
+) {
+	var valueCount = 0
+	var interruptCount = 0
+	var unexpectedEventCount = 0
+
+	let scheduler = TestScheduler()
+
+	let disposable = transform(SignalProducer(0 ..< 128), scheduler)
+		.start { event in
+			switch event {
+			case .value:
+				valueCount += 1
+			case .interrupted:
+				interruptCount += 1
+			case .failed, .completed:
+				unexpectedEventCount += 1
+			}
+	}
+
+	expect(interruptCount) == 0
+	expect(unexpectedEventCount) == 0
+	expect(valueCount) == 0
+
+	disposable.dispose()
+	scheduler.run()
+
+	let failedExpectations = gatherFailingExpectations {
+		expect(interruptCount) == 1
+		expect(unexpectedEventCount) == 0
+		expect(valueCount) == 0
+	}
+
+	if !failedExpectations.isEmpty {
+		fail("The ASAP interruption test of the async operator has failed.",
+			 location: SourceLocation(file: file, line: line))
 	}
 }
