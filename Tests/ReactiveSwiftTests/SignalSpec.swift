@@ -290,23 +290,19 @@ class SignalSpec: QuickSpec {
 					events.append(event)
 				}
 
-				let group = DispatchGroup()
-
-				DispatchQueue.concurrentPerform(iterations: 10) { index in
-					queue.async(group: group) {
+				DispatchQueue.concurrentPerform(iterations: 11) { index in
+					if index < 10 {
 						observer.send(value: index)
-					}
-
-					if index == 0 {
+					} else {
 						semaphore.wait()
 						observer.sendInterrupted()
 					}
 				}
 
-				group.wait()
-
-				expect(events.count) == 2
-				expect(events.first?.value).toNot(beNil())
+				// (1 to 10 values + 1 interruption) = 2 to 11 events
+				expect(events.count) >= 2
+				expect(events.count) <= 11
+				expect(events.dropLast().contains { $0.isTerminating }) == false
 				expect(events.last?.isTerminating) == true
 			}
 
