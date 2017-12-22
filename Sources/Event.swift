@@ -699,6 +699,53 @@ extension Signal.Event {
 		}
 	}
 
+	internal static func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> Transformation<U, Error> {
+		return { action, lifetime in
+			let box = Atomic<Value?>(nil)
+			let completionDisposable = SerialDisposable()
+			let valueDisposable = SerialDisposable()
+
+			lifetime += valueDisposable
+			lifetime += completionDisposable
+
+			lifetime.observeEnded {
+				scheduler.schedule {
+					action(.interrupted)
+				}
+			}
+
+			return { event in
+				switch event {
+				case let .value(value):
+					// Schedule only when there is no prior outstanding value.
+					if box.swap(value) == nil {
+						valueDisposable.inner = scheduler.schedule {
+							if let value = box.swap(nil) {
+								action(.value(transform(value)))
+							}
+						}
+					}
+
+				case .completed, .failed:
+					// Completion and failure should not discard the outstanding
+					// value.
+					completionDisposable.inner = scheduler.schedule {
+						action(event.map(transform))
+					}
+
+				case .interrupted:
+					// `interrupted` overrides any outstanding value and any
+					// scheduled completion/failure.
+					valueDisposable.dispose()
+					completionDisposable.dispose()
+					scheduler.schedule {
+						action(.interrupted)
+					}
+				}
+			}
+		}
+	}
+
 	internal static func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
 		precondition(interval >= 0)
 
