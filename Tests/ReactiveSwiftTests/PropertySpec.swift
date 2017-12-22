@@ -275,27 +275,34 @@ class PropertySpec: QuickSpec {
 					queue = DispatchQueue.global(priority: .high)
 				}
 
-				let group = DispatchGroup()
+				let setup = DispatchGroup()
+				let workers = DispatchGroup()
 
-				DispatchQueue.concurrentPerform(iterations: 500) { _ in
-					let source = MutableProperty(1)
-					var target = Optional(MutableProperty(1))
+				queue.async(group: setup) {
+					for _ in 0 ..< 1000 {
+						let source = MutableProperty(1)
+						var target = Optional(MutableProperty(1))
 
-					target! <~ source
+						target! <~ source
 
-					queue.async(group: group, flags: .barrier) {}
+						// Ensure everything before this iteration has been
+						// completed.
+						queue.async(group: workers, flags: .barrier) {}
 
-					queue.async(group: group) {
-						source.value = 2
-					}
+						queue.async(group: workers) {
+							source.value = 2
+						}
 
-					queue.async(group: group) {
-						target = nil
+						queue.async(group: workers) {
+							target = nil
+						}
 					}
 				}
 
 				waitUntil { done in
-					group.notify(queue: queue, execute: done)
+					setup.notify(queue: queue) {
+						workers.notify(queue: .main, execute: done)
+					}
 				}
 			}
 		}
