@@ -106,21 +106,6 @@ public final class Signal<Value, Error: Swift.Error> {
 			generator(inputObserver, Lifetime(disposable))
 		}
 
-		private func send(_ event: Event) {
-			stateLock.lock()
-
-			guard let observers = self.observers else {
-				stateLock.unlock()
-				return
-			}
-
-			stateLock.unlock()
-
-			for observer in observers {
-				observer.send(event)
-			}
-		}
-
 		/// Observe the Signal by sending any future events to the given observer.
 		///
 		/// - parameters:
