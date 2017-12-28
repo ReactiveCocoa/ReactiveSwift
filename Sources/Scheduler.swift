@@ -193,8 +193,14 @@ public final class QueueScheduler: DateScheduler {
 
 	public let queue: DispatchQueue
 
+	private let lock: Lock
+	
+	private var timers: [DispatchSourceTimer]
+	
 	internal init(internalQueue: DispatchQueue) {
 		queue = internalQueue
+		lock = Lock.make()
+		timers = []
 	}
 
 	/// Initializes a scheduler that will target the given queue with its
@@ -340,8 +346,16 @@ public final class QueueScheduler: DateScheduler {
 		timer.setEventHandler(handler: action)
 		timer.resume()
 
+		lock.lock()
+		timers.append(timer)
+		lock.unlock()
+
 		return AnyDisposable {
 			timer.cancel()
+			
+			self.lock.lock()
+			self.timers = self.timers.filter { !$0.isEqual(timer) }
+			self.lock.unlock()
 		}
 	}
 }
