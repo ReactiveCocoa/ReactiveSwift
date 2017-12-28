@@ -1,7 +1,7 @@
 # master
 *Please add new entries at the top.*
 
-1. Fixed `schedule(after:interval:leeway:)` being cancelled when the returned `Disposable` is not retained.
+1. Fixed `schedule(after:interval:leeway:)` being cancelled when the returned `Disposable` is not retained. (#584, kudos to @jjoelson)
 
 # 3.1.0-rc.1
 1. Fixed a scenario of downstream interruptions being dropped. (#577, kudos to @andersio)
