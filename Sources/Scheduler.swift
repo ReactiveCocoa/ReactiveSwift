@@ -366,11 +366,13 @@ public final class QueueScheduler: DateScheduler {
 			timers.insert(wrappedTimer)
 		}
 
-		return AnyDisposable {
+		return AnyDisposable { [weak self] in
 			timer.cancel()
 			
-			self.timers.modify { timers in
-				timers.remove(wrappedTimer)
+			if let scheduler = self {
+				scheduler.timers.modify { timers in
+					timers.remove(wrappedTimer)
+				}
 			}
 		}
 	}
