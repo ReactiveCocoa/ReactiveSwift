@@ -177,6 +177,23 @@ public final class UIScheduler: Scheduler {
 	}
 }
 
+/// A `Hashable` wrapper for `DispatchSourceTimer`.
+private final class DispatchSourceTimerWrapper: Hashable {
+	private let value: DispatchSourceTimer
+	
+	fileprivate var hashValue: Int {
+		return value.hash
+	}
+	
+	fileprivate init(_ value: DispatchSourceTimer) {
+		self.value = value
+	}
+	
+	fileprivate static func ==(lhs: DispatchSourceTimerWrapper, rhs: DispatchSourceTimerWrapper) -> Bool {
+		return lhs.value === rhs.value
+	}
+}
+
 /// A scheduler backed by a serial GCD queue.
 public final class QueueScheduler: DateScheduler {
 	/// A singleton `QueueScheduler` that always targets the main thread's GCD
@@ -193,11 +210,11 @@ public final class QueueScheduler: DateScheduler {
 
 	public let queue: DispatchQueue
 	
-	private var timers: Atomic<[DispatchSourceTimer]>
+	private var timers: Atomic<Set<DispatchSourceTimerWrapper>>
 	
 	internal init(internalQueue: DispatchQueue) {
 		queue = internalQueue
-		timers = Atomic([])
+		timers = Atomic(Set())
 	}
 
 	/// Initializes a scheduler that will target the given queue with its
@@ -343,15 +360,17 @@ public final class QueueScheduler: DateScheduler {
 		timer.setEventHandler(handler: action)
 		timer.resume()
 
+		let wrappedTimer = DispatchSourceTimerWrapper(timer)
+		
 		timers.modify { timers in
-			timers.append(timer)
+			timers.insert(wrappedTimer)
 		}
 
 		return AnyDisposable {
 			timer.cancel()
 			
 			self.timers.modify { timers in
-				timers = timers.filter { !$0.isEqual(timer) }
+				timers.remove(wrappedTimer)
 			}
 		}
 	}
