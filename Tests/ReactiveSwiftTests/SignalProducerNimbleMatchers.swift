@@ -16,41 +16,51 @@ public func sendValue<T: Equatable, E: Equatable>(_ value: T?, sendError: E?, co
 }
 
 public func sendValues<T: Equatable, E: Equatable>(_ values: [T], sendError maybeSendError: E?, complete: Bool) -> Predicate<SignalProducer<T, E>> {
-	return NonNilMatcherFunc { actualExpression, failureMessage in
+	return Predicate<SignalProducer<T, E>> { actualExpression in
 		precondition(maybeSendError == nil || !complete, "Signals can't both send an error and complete")
-
-		failureMessage.postfixMessage = "Send values \(values). Send error \(String(describing: maybeSendError)). Complete: \(complete)"
-		let maybeProducer = try actualExpression.evaluate()
-
-		if let signalProducer = maybeProducer {
-			var sentValues: [T] = []
-			var sentError: E?
-			var signalCompleted = false
-
-			signalProducer.start { event in
-				switch event {
-				case let .value(value):
-					sentValues.append(value)
-				case .completed:
-					signalCompleted = true
-				case let .failed(error):
-					sentError = error
-				default:
-					break
-				}
-			}
-
-			if sentValues != values {
-				return false
-			}
-
-			if sentError != maybeSendError {
-				return false
-			}
-
-			return signalCompleted == complete
-		} else {
-			return false
+		guard let signalProducer = try actualExpression.evaluate() else {
+			let message = ExpectationMessage.fail("The SignalProducer was not created.")
+				.appendedBeNilHint()
+			return PredicateResult(status: .fail, message: message)
 		}
-	}.predicate
+
+		var sentValues: [T] = []
+		var sentError: E?
+		var signalCompleted = false
+
+		signalProducer.start { event in
+			switch event {
+			case let .value(value):
+				sentValues.append(value)
+			case .completed:
+				signalCompleted = true
+			case let .failed(error):
+				sentError = error
+			default:
+				break
+			}
+		}
+
+		if sentValues != values {
+			let message = ExpectationMessage.expectedCustomValueTo(
+				"send values <\(values)>",
+				"<\(sentValues)>"
+			)
+			return PredicateResult(status: .doesNotMatch, message: message)
+		}
+
+		if sentError != maybeSendError {
+			let message = ExpectationMessage.expectedCustomValueTo(
+				"send error <\(String(describing: maybeSendError))>",
+				"<\(String(describing: sentError))>"
+			)
+			return PredicateResult(status: .doesNotMatch, message: message)
+		}
+
+		let completeMessage = complete ?
+			"complete, but the producer did not complete" :
+			"not to complete, but the producer completed"
+		let message = ExpectationMessage.expectedTo(completeMessage)
+		return PredicateResult(bool: signalCompleted == complete, message: message)
+	}
 }
