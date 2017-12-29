@@ -241,7 +241,7 @@ class SchedulerSpec: QuickSpec {
 					expect(count) == 0
 					
 					scheduler.queue.resume()
-					expect{count}.toEventually(equal(timesToIncrement))
+					expect(count).toEventually(equal(timesToIncrement))
 				}
 				
 				it("should cancel repeatedly run actions on disposal") {
@@ -265,7 +265,7 @@ class SchedulerSpec: QuickSpec {
 						count += 1
 						
 						if count == timesToRun {
-							disposable1.dispose()
+							disposable2.dispose()
 						}
 					}
 
@@ -277,7 +277,7 @@ class SchedulerSpec: QuickSpec {
 					
 					// This expectation should take about 2.0 * interval to be fulfilled, and that's
 					// enough time to ensure that the first timer was actually cancelled.
-					expect{count}.toEventually(equal(timesToRun))
+					expect(count).toEventually(equal(timesToRun))
 				}
 			}
 		}
