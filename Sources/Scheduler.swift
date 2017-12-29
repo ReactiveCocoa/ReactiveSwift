@@ -182,7 +182,7 @@ private final class DispatchSourceTimerWrapper: Hashable {
 	private let value: DispatchSourceTimer
 	
 	fileprivate var hashValue: Int {
-		return value.hash
+		return ObjectIdentifier(value).hashValue
 	}
 	
 	fileprivate init(_ value: DispatchSourceTimer) {
