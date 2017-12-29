@@ -230,7 +230,7 @@ class SchedulerSpec: QuickSpec {
 						scheduler.schedule(after: Date(), interval: .milliseconds(10), leeway: .seconds(0)) {
 							expect(Thread.isMainThread) == false
 							
-							if count <= timesToIncrement {
+							if count < timesToIncrement {
 								count += 1
 							}
 						}
@@ -241,7 +241,7 @@ class SchedulerSpec: QuickSpec {
 					expect(count) == 0
 					
 					scheduler.queue.resume()
-					expect(count).toEventually(equal(timesToIncrement))
+					expect(count).toEventually(equal(timesToIncrement), pollInterval: 0.1)
 				}
 				
 				it("should cancel repeatedly run actions on disposal") {
