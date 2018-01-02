@@ -177,12 +177,15 @@ public final class UIScheduler: Scheduler {
 	}
 }
 
-/// A `Hashable` wrapper for `DispatchSourceTimer`.
+/// A `Hashable` wrapper for `DispatchSourceTimer`. `Hashable` conformance is
+/// based on the identity of the wrapper object rather than the wrapped
+/// `DispatchSourceTimer`, so two wrappers wrapping the same timer will *not*
+/// be equal.
 private final class DispatchSourceTimerWrapper: Hashable {
 	private let value: DispatchSourceTimer
 	
 	fileprivate var hashValue: Int {
-		return ObjectIdentifier(value).hashValue
+		return ObjectIdentifier(self).hashValue
 	}
 	
 	fileprivate init(_ value: DispatchSourceTimer) {
@@ -190,7 +193,7 @@ private final class DispatchSourceTimerWrapper: Hashable {
 	}
 	
 	fileprivate static func ==(lhs: DispatchSourceTimerWrapper, rhs: DispatchSourceTimerWrapper) -> Bool {
-		return lhs.value === rhs.value
+		return lhs === rhs
 	}
 }
 
