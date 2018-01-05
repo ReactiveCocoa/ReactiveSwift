@@ -177,6 +177,26 @@ public final class UIScheduler: Scheduler {
 	}
 }
 
+/// A `Hashable` wrapper for `DispatchSourceTimer`. `Hashable` conformance is
+/// based on the identity of the wrapper object rather than the wrapped
+/// `DispatchSourceTimer`, so two wrappers wrapping the same timer will *not*
+/// be equal.
+private final class DispatchSourceTimerWrapper: Hashable {
+	private let value: DispatchSourceTimer
+	
+	fileprivate var hashValue: Int {
+		return ObjectIdentifier(self).hashValue
+	}
+	
+	fileprivate init(_ value: DispatchSourceTimer) {
+		self.value = value
+	}
+	
+	fileprivate static func ==(lhs: DispatchSourceTimerWrapper, rhs: DispatchSourceTimerWrapper) -> Bool {
+		return lhs === rhs
+	}
+}
+
 /// A scheduler backed by a serial GCD queue.
 public final class QueueScheduler: DateScheduler {
 	/// A singleton `QueueScheduler` that always targets the main thread's GCD
@@ -192,9 +212,12 @@ public final class QueueScheduler: DateScheduler {
 	}
 
 	public let queue: DispatchQueue
-
+	
+	private var timers: Atomic<Set<DispatchSourceTimerWrapper>>
+	
 	internal init(internalQueue: DispatchQueue) {
 		queue = internalQueue
+		timers = Atomic(Set())
 	}
 
 	/// Initializes a scheduler that will target the given queue with its
@@ -340,8 +363,20 @@ public final class QueueScheduler: DateScheduler {
 		timer.setEventHandler(handler: action)
 		timer.resume()
 
-		return AnyDisposable {
+		let wrappedTimer = DispatchSourceTimerWrapper(timer)
+		
+		timers.modify { timers in
+			timers.insert(wrappedTimer)
+		}
+
+		return AnyDisposable { [weak self] in
 			timer.cancel()
+			
+			if let scheduler = self {
+				scheduler.timers.modify { timers in
+					timers.remove(wrappedTimer)
+				}
+			}
 		}
 	}
 }
