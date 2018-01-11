@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+# 3.1.0
 1. Fixed `schedule(after:interval:leeway:)` being cancelled when the returned `Disposable` is not retained. (#584, kudos to @jjoelson)
 
 # 3.1.0-rc.1
