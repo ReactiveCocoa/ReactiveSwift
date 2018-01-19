@@ -494,7 +494,7 @@ extension SignalProducer where Error == AnyError {
 	///   - operation: A failable closure.
 	public init(_ action: @escaping () throws -> Value) {
 		self.init {
-			return ReactiveSwift.materialize {
+			return Result {
 				return try action()
 			}
 		}
