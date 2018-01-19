@@ -193,6 +193,7 @@ private final class DispatchSourceTimerWrapper: Hashable {
 	}
 	
 	fileprivate static func ==(lhs: DispatchSourceTimerWrapper, rhs: DispatchSourceTimerWrapper) -> Bool {
+		// Note that this isn't infinite recursion thanks to `===`.
 		return lhs === rhs
 	}
 }
