@@ -1,1 +1,1 @@
-github "antitypical/Result" ~> 3.2.1
+github "antitypical/Result" "swift-4-1"
