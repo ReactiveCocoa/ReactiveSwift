@@ -1979,7 +1979,7 @@ extension SignalProducer {
 		return start(producers, Signal.zip)
 	}
 
-	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping (ReversedRandomAccessCollection<[Signal<Value, Error>]>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
+	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping (ReversedCollection<[Signal<Value, Error>]>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
 		return SignalProducer<[Value], Error> { observer, lifetime in
 			var producers = Array(producers)
 			var signals: [Signal<Value, Error>] = []
