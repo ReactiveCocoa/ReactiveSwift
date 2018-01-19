@@ -320,7 +320,7 @@ public enum ActionError<Error: Swift.Error>: Swift.Error {
 	case producerFailed(Error)
 }
 
-extension ActionError where Error: Equatable {
+extension ActionError: Equatable where Error: Equatable {
 	public static func == (lhs: ActionError<Error>, rhs: ActionError<Error>) -> Bool {
 		switch (lhs, rhs) {
 		case (.disabled, .disabled):
