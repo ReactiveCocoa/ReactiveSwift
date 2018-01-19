@@ -159,7 +159,7 @@ public final class CompositeDisposable: Disposable {
 	public convenience init<S: Sequence>(_ disposables: S)
 		where S.Iterator.Element == Disposable?
 	{
-		self.init(disposables.flatMap { $0 })
+		self.init(disposables.compactMap { $0 })
 	}
 
 	/// Initializes an empty `CompositeDisposable`.
