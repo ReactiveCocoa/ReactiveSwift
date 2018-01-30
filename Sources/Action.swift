@@ -103,9 +103,9 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		(events, eventsObserver) = Signal<Signal<Output, Error>.Event, NoError>.pipe()
 		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
 
-		values = events.filterMap { $0.value }
-		errors = events.filterMap { $0.error }
-		completed = events.filterMap { $0.isCompleted ? () : nil }
+		values = events.compactMap { $0.value }
+		errors = events.compactMap { $0.error }
+		completed = events.compactMap { $0.isCompleted ? () : nil }
 
 		let actionState = MutableProperty(ActionState<State.Value>(isUserEnabled: true, isExecuting: false, value: state.value))
 

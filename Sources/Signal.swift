@@ -615,8 +615,8 @@ extension Signal {
 	///                returns a new optional value.
 	///
 	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
-	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
-		return flatMapEvent(Signal.Event.filterMap(transform))
+	public func compactMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.compactMap(transform))
 	}
 }
 
@@ -625,8 +625,8 @@ extension Signal where Value: OptionalProtocol {
 	/// values are dropped.
 	///
 	/// - returns: A signal that sends only non-nil values.
-	public func skipNil() -> Signal<Value.Wrapped, Error> {
-		return flatMapEvent(Signal.Event.skipNil)
+	public func compact() -> Signal<Value.Wrapped, Error> {
+		return flatMapEvent(Signal.Event.compact)
 	}
 }
 

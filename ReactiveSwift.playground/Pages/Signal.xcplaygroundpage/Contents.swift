@@ -185,18 +185,18 @@ scopedExample("`filter`") {
 }
 
 /*:
-### `skipNil`
+### `compact`
 Unwraps non-`nil` values and forwards them on the returned signal, `nil`
 values are dropped.
 */
-scopedExample("`skipNil`") {
+scopedExample("`compact`") {
 	let (signal, observer) = Signal<Int?, NoError>.pipe()
 	// note that the signal is of type `Int?` and observer is of type `Int`, given we're unwrapping
 	// non-`nil` values
 	let subscriber = Signal<Int, NoError>.Observer(value: { print("Subscriber received \($0)") } )
-	let skipNilSignal = signal.skipNil()
+	let compactSignal = signal.compact()
 
-	skipNilSignal.observe(subscriber)
+	compactSignal.observe(subscriber)
 	observer.send(value: 1)
 	observer.send(value: nil)
 	observer.send(value: 3)

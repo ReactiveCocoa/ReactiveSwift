@@ -661,10 +661,10 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("filterMap") {
+		describe("compactMap") {
 			it("should omit values from the signal that are nil after the transformation") {
 				let (signal, observer) = Signal<String, NoError>.pipe()
-				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				let mappedSignal: Signal<Int, NoError> = signal.compactMap { Int.init($0) }
 
 				var lastValue: Int?
 
@@ -684,7 +684,7 @@ class SignalSpec: QuickSpec {
 
 			it("should stop emiting values after an error") {
 				let (signal, observer) = Signal<String, TestError>.pipe()
-				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				let mappedSignal: Signal<Int, TestError> = signal.compactMap { Int.init($0) }
 
 				var lastValue: Int?
 
@@ -707,7 +707,7 @@ class SignalSpec: QuickSpec {
 
 			it("should stop emiting values after a complete") {
 				let (signal, observer) = Signal<String, NoError>.pipe()
-				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				let mappedSignal: Signal<Int, NoError> = signal.compactMap { Int.init($0) }
 
 				var lastValue: Int?
 
@@ -726,7 +726,7 @@ class SignalSpec: QuickSpec {
 
 			it("should send completed") {
 				let (signal, observer) = Signal<String, NoError>.pipe()
-				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				let mappedSignal: Signal<Int, NoError> = signal.compactMap { Int.init($0) }
 
 				var completed: Bool = false
 
@@ -738,7 +738,7 @@ class SignalSpec: QuickSpec {
 
 			it("should send failure") {
 				let (signal, observer) = Signal<String, TestError>.pipe()
-				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				let mappedSignal: Signal<Int, TestError> = signal.compactMap { Int.init($0) }
 
 				var failure: TestError?
 
@@ -749,10 +749,10 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("skipNil") {
+		describe("compact") {
 			it("should forward only non-nil values") {
 				let (signal, observer) = Signal<Int?, NoError>.pipe()
-				let mappedSignal = signal.skipNil()
+				let mappedSignal = signal.compact()
 
 				var lastValue: Int?
 

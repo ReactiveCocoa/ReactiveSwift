@@ -343,10 +343,10 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 		}
 
-		describe("skipNil") {
+		describe("compact") {
 			it("should forward only non-nil values") {
 				let (producer, observer) = SignalProducer<Int?, NoError>.pipe()
-				let mappedProducer = producer.skipNil()
+				let mappedProducer = producer.compact()
 
 				var lastValue: Int?
 
