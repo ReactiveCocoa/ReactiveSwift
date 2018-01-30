@@ -625,8 +625,8 @@ extension Signal where Value: OptionalProtocol {
 	/// values are dropped.
 	///
 	/// - returns: A signal that sends only non-nil values.
-	public func skipNil() -> Signal<Value.Wrapped, Error> {
-		return flatMapEvent(Signal.Event.skipNil)
+	public func compact() -> Signal<Value.Wrapped, Error> {
+		return flatMapEvent(Signal.Event.compact)
 	}
 }
 

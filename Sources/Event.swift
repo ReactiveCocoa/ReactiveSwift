@@ -476,7 +476,7 @@ extension Signal.Event where Value: EventProtocol {
 }
 
 extension Signal.Event where Value: OptionalProtocol {
-	internal static var skipNil: Transformation<Value.Wrapped, Error> {
+	internal static var compact: Transformation<Value.Wrapped, Error> {
 		return compactMap { $0.optional }
 	}
 }

@@ -749,10 +749,10 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("skipNil") {
+		describe("compact") {
 			it("should forward only non-nil values") {
 				let (signal, observer) = Signal<Int?, NoError>.pipe()
-				let mappedSignal = signal.skipNil()
+				let mappedSignal = signal.compact()
 
 				var lastValue: Int?
 

@@ -1531,8 +1531,8 @@ extension SignalProducer where Value: OptionalProtocol {
 	/// values are dropped.
 	///
 	/// - returns: A producer that sends only non-nil values.
-	public func skipNil() -> SignalProducer<Value.Wrapped, Error> {
-		return core.flatMapEvent(Signal.Event.skipNil)
+	public func compact() -> SignalProducer<Value.Wrapped, Error> {
+		return core.flatMapEvent(Signal.Event.compact)
 	}
 }
 
