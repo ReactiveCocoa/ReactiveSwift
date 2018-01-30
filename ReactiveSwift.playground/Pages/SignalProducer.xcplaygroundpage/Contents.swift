@@ -574,13 +574,13 @@ scopedExample("`take(last:)`") {
 }
 
 /*:
-### `skipNil`
+### `compact`
 Unwraps non-`nil` values and forwards them on the returned signal, `nil`
 values are dropped.
 */
-scopedExample("`skipNil`") {
+scopedExample("`compact`") {
 	SignalProducer<Int?, NoError>([ nil, 1, 2, nil, 3, 4, nil ])
-		.skipNil()
+		.compact()
 		.startWithValues { value in
 			print(value)
 		}

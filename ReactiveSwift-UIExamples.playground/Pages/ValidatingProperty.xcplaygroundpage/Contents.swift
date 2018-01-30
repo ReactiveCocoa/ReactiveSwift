@@ -96,10 +96,10 @@ final class ViewController: UIViewController {
 
 		// Setup bindings with the interactive controls.
 		viewModel.email <~ formView.emailField.reactive
-			.continuousTextValues.skipNil()
+			.continuousTextValues.compact()
 
 		viewModel.emailConfirmation <~ formView.emailConfirmationField.reactive
-			.continuousTextValues.skipNil()
+			.continuousTextValues.compact()
 
 		viewModel.termsAccepted <~ formView.termsSwitch.reactive
 			.isOnValues
