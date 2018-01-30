@@ -15,3 +15,31 @@ extension Lifetime {
 }
 
 // MARK: Deprecated types
+
+extension Signal {
+	@available(*, deprecated, renamed: "compactMap(_:)")
+	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
+		return compactMap(transform)
+	}
+}
+
+extension Signal where Value: OptionalProtocol {
+	@available(*, deprecated, renamed: "compact()")
+	public func skipNil() -> Signal<Value.Wrapped, Error> {
+		return compact()
+	}
+}
+
+extension SignalProducer {
+	@available(*, deprecated, renamed: "compactMap(_:)")
+	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> SignalProducer<U, Error> {
+		return compactMap(transform)
+	}
+}
+
+extension SignalProducer where Value: OptionalProtocol {
+	@available(*, deprecated, renamed: "compact()")
+	public func skipNil() -> SignalProducer<Value.Wrapped, Error> {
+		return compact()
+	}
+}
