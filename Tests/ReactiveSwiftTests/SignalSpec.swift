@@ -508,7 +508,7 @@ class SignalSpec: QuickSpec {
 
 			it("should replace the values of the signal to constant new value") {
 				let (signal, observer) = Signal<String, NoError>.pipe()
-				let mappedSignal = signal.map(to: 1)
+				let mappedSignal = signal.map(value: 1)
 
 				var lastValue: Int?
 				mappedSignal.observeValues {
