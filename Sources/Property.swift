@@ -101,6 +101,16 @@ extension PropertyProtocol {
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Property<U> {
 		return lift { $0.map(transform) }
 	}
+	
+	/// Map the current value and all susequent values to a new constant property.
+	///
+	/// - parameters:
+	///   - value: A new value.
+	///
+	/// - returns: A property that holds a mapped value from `self`.
+	public func map<U>(value: U) -> Property<U> {
+		return map { _ in value }
+	}
 
 	/// Maps the current value and all subsequent values to a new property
 	/// by applying a key path.
