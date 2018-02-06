@@ -505,22 +505,6 @@ class PropertySpec: QuickSpec {
 						property.value = 3
 						expect(latestValue) == 4
 					}
-					
-					it("should have the latest value available before sending any value") {
-						var latestValue: Int!
-						
-						let property = MutableProperty("foo")
-						let mappedProperty = property.map(value: 1)
-						mappedProperty.producer.startWithValues { _ in latestValue = mappedProperty.value }
-						
-						expect(latestValue) == 1
-						
-						property.value = "foobar"
-						expect(latestValue) == 1
-						
-						property.value = "foobarbaz"
-						expect(latestValue) == 1
-					}
 
 					it("should not retain its source property") {
 						var property = Optional(MutableProperty(1))
@@ -748,12 +732,20 @@ class PropertySpec: QuickSpec {
 			describe("map") {
 				it("should transform the current value and all subsequent values") {
 					let property = MutableProperty(1)
-					let mappedProperty = property
-						.map { $0 + 1 }
+					let mappedProperty = property.map { $0 + 1 }
 					expect(mappedProperty.value) == 2
 
 					property.value = 2
 					expect(mappedProperty.value) == 3
+				}
+				
+				it("should transform the current value and all subsequent values to a constant value") {
+					let property = MutableProperty("foo")
+					let mappedProperty = property.map(value: 1)
+					expect(mappedProperty.value) == 1
+					
+					property.value = "foobar"
+					expect(mappedProperty.value) == 1
 				}
 
 				it("should work with key paths") {
