@@ -481,11 +481,8 @@ extension UnsafeAtomicState where State == ProducerState {
 }
 
 extension Signal {
-	/// Merges the given signals into a single `Signal` that will emit all
-	/// values from each of them, and complete when all of them have completed.
-	///
-	/// - parameters:
-	///   - signals: A sequence of signals to merge.
+	/// Merges the values of all the given signals, in the manner described
+	/// by `merge(with:)`.
 	public static func merge<Seq: Sequence>(_ signals: Seq) -> Signal<Value, Error> where Seq.Iterator.Element == Signal<Value, Error>
 	{
 		return SignalProducer<Signal<Value, Error>, Error>(signals)
@@ -493,34 +490,23 @@ extension Signal {
 			.startAndRetrieveSignal()
 	}
 
-	/// Merges the given signals into a single `Signal` that will emit all
-	/// values from each of them, and complete when all of them have completed.
-	///
-	/// - parameters:
-    ///   - signals: A list of signals to merge.
+	/// Merges the values of all the given signals, in the manner described
+	/// by `merge(with:)`.
 	public static func merge(_ signals: Signal<Value, Error>...) -> Signal<Value, Error> {
 		return Signal.merge(signals)
 	}
 }
 
 extension SignalProducer {
-	/// Merges the given producers into a single `SignalProducer` that will emit
-	/// all values from each of them, and complete when all of them have
-	/// completed.
-	///
-	/// - parameters:
-	///   - producers: A sequence of producers to merge.
+	/// Merges the values of all the given producers, in the manner described
+	/// by `merge(with:)`.
 	public static func merge<Seq: Sequence>(_ producers: Seq) -> SignalProducer<Value, Error> where Seq.Iterator.Element == SignalProducer<Value, Error>
 	{
 		return SignalProducer<Seq.Iterator.Element, NoError>(producers).flatten(.merge)
 	}
 
-	/// Merges the given producers into a single `SignalProducer` that will emit
-	/// all values from each of them, and complete when all of them have
-	/// completed.
-	///
-	/// - parameters:
-	///   - producers: A sequence of producers to merge.
+	/// Merges the values of all the given producers, in the manner described
+	/// by `merge(with:)`.
 	public static func merge(_ producers: SignalProducer<Value, Error>...) -> SignalProducer<Value, Error> {
 		return SignalProducer.merge(producers)
 	}
