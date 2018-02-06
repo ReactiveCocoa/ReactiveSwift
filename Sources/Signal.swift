@@ -557,6 +557,16 @@ extension Signal {
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.map(transform))
 	}
+	
+	/// Map each value in the signal to a new constant value.
+	///
+	/// - parameters:
+	///   - value: A new value.
+	///
+	/// - returns: A signal that will send new values.
+	public func map<U>(value: U) -> Signal<U, Error> {
+		return map { _ in value }
+	}
 
 	/// Map each value in the signal to a new value by applying a key path.
 	///

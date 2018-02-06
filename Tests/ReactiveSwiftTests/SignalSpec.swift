@@ -506,9 +506,9 @@ class SignalSpec: QuickSpec {
 				expect(lastValue) == "2"
 			}
 
-			it("should support key paths") {
+			it("should replace the values of the signal to constant new value") {
 				let (signal, observer) = Signal<String, NoError>.pipe()
-				let mappedSignal = signal.map(\String.count)
+				let mappedSignal = signal.map(value: 1)
 
 				var lastValue: Int?
 				mappedSignal.observeValues {
@@ -518,8 +518,26 @@ class SignalSpec: QuickSpec {
 				expect(lastValue).to(beNil())
 
 				observer.send(value: "foo")
-				expect(lastValue) == 3
+				expect(lastValue) == 1
 
+				observer.send(value: "foobar")
+				expect(lastValue) == 1
+			}
+			
+			it("should support key paths") {
+				let (signal, observer) = Signal<String, NoError>.pipe()
+				let mappedSignal = signal.map(\String.count)
+				
+				var lastValue: Int?
+				mappedSignal.observeValues {
+					lastValue = $0
+				}
+				
+				expect(lastValue).to(beNil())
+				
+				observer.send(value: "foo")
+				expect(lastValue) == 3
+				
 				observer.send(value: "foobar")
 				expect(lastValue) == 6
 			}
