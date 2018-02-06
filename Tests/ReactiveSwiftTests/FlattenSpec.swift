@@ -924,7 +924,7 @@ class FlattenSpec: QuickSpec {
 				expect(lastValue) == 2
 			}
 			
-			it("should complete when all signals complete") {
+			it("should complete when both signals complete") {
 				let (signal1, observer1) = Signal<Int, NoError>.pipe()
 				let (signal2, observer2) = Signal<Int, NoError>.pipe()
 				
@@ -1006,6 +1006,71 @@ class FlattenSpec: QuickSpec {
 				observer1.sendCompleted()
 				expect(completed) == false
 
+				observer2.sendCompleted()
+				expect(completed) == true
+			}
+		}
+		
+		describe("SignalProducer.merge(with:)") {
+			it("should emit values from both producers") {
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedProducer = producer1.merge(with: producer2)
+				
+				var lastValue: Int?
+				mergedProducer.startWithValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer1.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer2.send(value: 2)
+				expect(lastValue) == 2
+				
+				observer1.send(value: 3)
+				expect(lastValue) == 3
+			}
+			
+			it("should not stop when one producer completes") {
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedProducer = producer1.merge(with: producer2)
+				
+				var lastValue: Int?
+				mergedProducer.startWithValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer1.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer1.sendCompleted()
+				expect(lastValue) == 1
+				
+				observer2.send(value: 2)
+				expect(lastValue) == 2
+			}
+			
+			it("should complete when both producers complete") {
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedProducer = producer1.merge(with: producer2)
+				
+				var completed = false
+				mergedProducer.startWithCompleted { completed = true }
+				
+				expect(completed) == false
+				
+				observer1.send(value: 1)
+				expect(completed) == false
+				
+				observer1.sendCompleted()
+				expect(completed) == false
+				
 				observer2.sendCompleted()
 				expect(completed) == true
 			}
