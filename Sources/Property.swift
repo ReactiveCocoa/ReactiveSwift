@@ -109,7 +109,7 @@ extension PropertyProtocol {
 	///
 	/// - returns: A property that holds a mapped value from `self`.
 	public func map<U>(value: U) -> Property<U> {
-		return map { _ in value }
+		return lift { $0.map(value: value) }
 	}
 
 	/// Maps the current value and all subsequent values to a new property
