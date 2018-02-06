@@ -857,6 +857,17 @@ extension SignalProducer {
 	public func map<U>(_ transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.map(transform))
 	}
+	
+	/// Map each value in the producer to a new constant value.
+	///
+	/// - parameters:
+	///   - value: A new value.
+	///
+	/// - returns: A signal producer that, when started, will send a mapped
+	///            value of `self`.
+	public func map<U>(value: U) -> SignalProducer<U, Error> {
+		return map { _ in value }
+	}
 
 	/// Map each value in the producer to a new value by applying a key path.
 	///
