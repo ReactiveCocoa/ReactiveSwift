@@ -880,6 +880,71 @@ class FlattenSpec: QuickSpec {
 				expect(completed) == true
 			}
 		}
+		
+		describe("Signal.merge(with:)") {
+			it("should emit values from both signals") {
+				let (signal1, observer1) = Signal<Int, NoError>.pipe()
+				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				
+				let mergedSignals = signal1.merge(with: signal2)
+				
+				var lastValue: Int?
+				mergedSignals.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer1.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer2.send(value: 2)
+				expect(lastValue) == 2
+				
+				observer1.send(value: 3)
+				expect(lastValue) == 3
+			}
+			
+			it("should not stop when one signal completes") {
+				let (signal1, observer1) = Signal<Int, NoError>.pipe()
+				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				
+				let mergedSignals = signal1.merge(with: signal2)
+				
+				var lastValue: Int?
+				mergedSignals.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer1.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer1.sendCompleted()
+				expect(lastValue) == 1
+				
+				observer2.send(value: 2)
+				expect(lastValue) == 2
+			}
+			
+			it("should complete when all signals complete") {
+				let (signal1, observer1) = Signal<Int, NoError>.pipe()
+				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				
+				let mergedSignals = signal1.merge(with: signal2)
+				
+				var completed = false
+				mergedSignals.observeCompleted { completed = true }
+				
+				expect(completed) == false
+				
+				observer1.send(value: 1)
+				expect(completed) == false
+				
+				observer1.sendCompleted()
+				expect(completed) == false
+				
+				observer2.sendCompleted()
+				expect(completed) == true
+			}
+		}
 
 		describe("SignalProducer.merge()") {
 			it("should emit values from all producers") {
