@@ -820,8 +820,9 @@ class FlattenSpec: QuickSpec {
 			it("should emit values from all signals") {
 				let (signal1, observer1) = Signal<Int, NoError>.pipe()
 				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				let (signal3, observer3) = Signal<Int, NoError>.pipe()
 
-				let mergedSignals = Signal.merge([signal1, signal2])
+				let mergedSignals = Signal.merge([signal1, signal2, signal3])
 
 				var lastValue: Int?
 				mergedSignals.observeValues { lastValue = $0 }
@@ -834,15 +835,19 @@ class FlattenSpec: QuickSpec {
 				observer2.send(value: 2)
 				expect(lastValue) == 2
 
-				observer1.send(value: 3)
+				observer3.send(value: 3)
 				expect(lastValue) == 3
+				
+				observer1.send(value: 4)
+				expect(lastValue) == 4
 			}
 
 			it("should not stop when one signal completes") {
 				let (signal1, observer1) = Signal<Int, NoError>.pipe()
 				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				let (signal3, observer3) = Signal<Int, NoError>.pipe()
 
-				let mergedSignals = Signal.merge([signal1, signal2])
+				let mergedSignals = Signal.merge([signal1, signal2, signal3])
 
 				var lastValue: Int?
 				mergedSignals.observeValues { lastValue = $0 }
@@ -857,13 +862,17 @@ class FlattenSpec: QuickSpec {
 
 				observer2.send(value: 2)
 				expect(lastValue) == 2
+				
+				observer3.send(value: 3)
+				expect(lastValue) == 3
 			}
 
 			it("should complete when all signals complete") {
 				let (signal1, observer1) = Signal<Int, NoError>.pipe()
 				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				let (signal3, observer3) = Signal<Int, NoError>.pipe()
 
-				let mergedSignals = Signal.merge([signal1, signal2])
+				let mergedSignals = Signal.merge([signal1, signal2, signal3])
 
 				var completed = false
 				mergedSignals.observeCompleted { completed = true }
@@ -877,70 +886,215 @@ class FlattenSpec: QuickSpec {
 				expect(completed) == false
 
 				observer2.sendCompleted()
+				expect(completed) == false
+				
+				observer3.sendCompleted()
+				expect(completed) == true
+			}
+		}
+		
+		describe("Signal.merge(with:)") {
+			it("should emit values from both signals") {
+				let (signal1, observer1) = Signal<Int, NoError>.pipe()
+				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				
+				let mergedSignals = signal1.merge(with: signal2)
+				
+				var lastValue: Int?
+				mergedSignals.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer1.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer2.send(value: 2)
+				expect(lastValue) == 2
+				
+				observer1.send(value: 3)
+				expect(lastValue) == 3
+			}
+			
+			it("should not stop when one signal completes") {
+				let (signal1, observer1) = Signal<Int, NoError>.pipe()
+				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				
+				let mergedSignals = signal1.merge(with: signal2)
+				
+				var lastValue: Int?
+				mergedSignals.observeValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer1.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer1.sendCompleted()
+				expect(lastValue) == 1
+				
+				observer2.send(value: 2)
+				expect(lastValue) == 2
+			}
+			
+			it("should complete when both signals complete") {
+				let (signal1, observer1) = Signal<Int, NoError>.pipe()
+				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				
+				let mergedSignals = signal1.merge(with: signal2)
+				
+				var completed = false
+				mergedSignals.observeCompleted { completed = true }
+				
+				expect(completed) == false
+				
+				observer1.send(value: 1)
+				expect(completed) == false
+				
+				observer1.sendCompleted()
+				expect(completed) == false
+				
+				observer2.sendCompleted()
 				expect(completed) == true
 			}
 		}
 
 		describe("SignalProducer.merge()") {
 			it("should emit values from all producers") {
-				let (signal1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (signal2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer3, observer3) = SignalProducer<Int, NoError>.pipe()
 
-				let mergedSignals = SignalProducer.merge([signal1, signal2])
+				let mergedProducer = SignalProducer.merge([producer1, producer2, producer3])
 
 				var lastValue: Int?
-				mergedSignals.startWithValues { lastValue = $0 }
+				mergedProducer.startWithValues { lastValue = $0 }
 
 				expect(lastValue).to(beNil())
 
 				observer1.send(value: 1)
 				expect(lastValue) == 1
-
+				
 				observer2.send(value: 2)
 				expect(lastValue) == 2
-
-				observer1.send(value: 3)
+				
+				observer3.send(value: 3)
 				expect(lastValue) == 3
+				
+				observer1.send(value: 4)
+				expect(lastValue) == 4
 			}
 
 			it("should not stop when one producer completes") {
-				let (signal1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (signal2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer3, observer3) = SignalProducer<Int, NoError>.pipe()
 
-				let mergedSignals = SignalProducer.merge([signal1, signal2])
+				let mergedProducer = SignalProducer.merge([producer1, producer2, producer3])
 
 				var lastValue: Int?
-				mergedSignals.startWithValues { lastValue = $0 }
+				mergedProducer.startWithValues { lastValue = $0 }
 
 				expect(lastValue).to(beNil())
 
 				observer1.send(value: 1)
 				expect(lastValue) == 1
-
+				
 				observer1.sendCompleted()
 				expect(lastValue) == 1
-
+				
 				observer2.send(value: 2)
 				expect(lastValue) == 2
+				
+				observer3.send(value: 3)
+				expect(lastValue) == 3
 			}
 
 			it("should complete when all producers complete") {
-				let (signal1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (signal2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer3, observer3) = SignalProducer<Int, NoError>.pipe()
 
-				let mergedSignals = SignalProducer.merge([signal1, signal2])
+				let mergedProducer = SignalProducer.merge([producer1, producer2, producer3])
 
 				var completed = false
-				mergedSignals.startWithCompleted { completed = true }
+				mergedProducer.startWithCompleted { completed = true }
 
 				expect(completed) == false
-
+				
 				observer1.send(value: 1)
 				expect(completed) == false
-
+				
 				observer1.sendCompleted()
 				expect(completed) == false
-
+				
+				observer2.sendCompleted()
+				expect(completed) == false
+				
+				observer3.sendCompleted()
+				expect(completed) == true
+			}
+		}
+		
+		describe("SignalProducer.merge(with:)") {
+			it("should emit values from both producers") {
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedProducer = producer1.merge(with: producer2)
+				
+				var lastValue: Int?
+				mergedProducer.startWithValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer1.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer2.send(value: 2)
+				expect(lastValue) == 2
+				
+				observer1.send(value: 3)
+				expect(lastValue) == 3
+			}
+			
+			it("should not stop when one producer completes") {
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedProducer = producer1.merge(with: producer2)
+				
+				var lastValue: Int?
+				mergedProducer.startWithValues { lastValue = $0 }
+				
+				expect(lastValue).to(beNil())
+				
+				observer1.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer1.sendCompleted()
+				expect(lastValue) == 1
+				
+				observer2.send(value: 2)
+				expect(lastValue) == 2
+			}
+			
+			it("should complete when both producers complete") {
+				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedProducer = producer1.merge(with: producer2)
+				
+				var completed = false
+				mergedProducer.startWithCompleted { completed = true }
+				
+				expect(completed) == false
+				
+				observer1.send(value: 1)
+				expect(completed) == false
+				
+				observer1.sendCompleted()
+				expect(completed) == false
+				
 				observer2.sendCompleted()
 				expect(completed) == true
 			}

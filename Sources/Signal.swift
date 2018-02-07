@@ -798,6 +798,17 @@ extension Signal {
 	public func combineLatest<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal.combineLatest(self, other)
 	}
+	
+	/// Merge the given signal into a single `Signal` that will emit all
+	/// values from both of them, and complete when all of them have completed.
+	///
+	/// - parameters:
+	///   - other: A signal to merge `self`'s value with.
+	///
+	/// - returns: A signal that sends all values of `self` and given signal.
+	public func merge(with other: Signal<Value, Error>) -> Signal<Value, Error> {
+		return Signal.merge(self, other)
+	}
 
 	/// Delay `value` and `completed` events by the given interval, forwarding
 	/// them on the given scheduler.

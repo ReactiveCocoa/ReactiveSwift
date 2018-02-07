@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. New operator `merge(with:)` (#600, kudos to @ra1028)
 1. New operator `map(value:)` (#601, kudos to @ra1028)
 
 # 3.1.0

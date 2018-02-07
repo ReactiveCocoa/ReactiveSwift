@@ -1087,6 +1087,17 @@ extension SignalProducer {
 	public func combineLatest<Other: SignalProducerConvertible>(with other: Other) -> SignalProducer<(Value, Other.Value), Error> where Other.Error == Error {
 		return SignalProducer.combineLatest(self, other)
 	}
+	
+	/// Merge the given producer into a single `SignalProducer` that will emit all
+	/// values from both of them, and complete when all of them have completed.
+	///
+	/// - parameters:
+	///   - other: A producer to merge `self`'s value with.
+	///
+	/// - returns: A producer that sends all values of `self` and given producer.
+	public func merge(with other: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return SignalProducer.merge(self, other)
+	}
 
 	/// Delay `value` and `completed` events by the given interval, forwarding
 	/// them on the given scheduler.
