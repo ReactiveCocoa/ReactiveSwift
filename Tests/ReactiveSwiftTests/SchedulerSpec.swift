@@ -218,6 +218,67 @@ class SchedulerSpec: QuickSpec {
 					scheduler.queue.resume()
 					expect{count}.toEventually(equal(timesToRun))
 				}
+				
+				it("should repeatedly run actions after a given date when the disposable is not retained") {
+					let disposable = SerialDisposable()
+					
+					var count = 0
+					let timesToIncrement = 3
+					
+					// Schedule within a function so that the disposable is guaranteed to be deinitialised.
+					func scheduleAndDeinitDisposable() {
+						scheduler.schedule(after: Date(), interval: .milliseconds(10), leeway: .seconds(0)) {
+							expect(Thread.isMainThread) == false
+							
+							if count < timesToIncrement {
+								count += 1
+							}
+						}
+					}
+					
+					scheduleAndDeinitDisposable()
+					
+					expect(count) == 0
+					
+					scheduler.queue.resume()
+					expect(count).toEventually(equal(timesToIncrement), pollInterval: 0.1)
+				}
+				
+				it("should cancel repeatedly run actions on disposal") {
+					// Start two repeating timers, dispose the first, and ensure only the second runs.
+
+					let disposable1 = SerialDisposable()
+					let disposable2 = SerialDisposable()
+
+					var count = 0
+					let timesToRun = 3
+
+					let interval = DispatchTimeInterval.milliseconds(10)
+					
+					disposable1.inner = scheduler.schedule(after: Date(), interval: interval, leeway: .seconds(0)) {
+						fail("timer not cancelled on disposal")
+					}
+
+					disposable2.inner = scheduler.schedule(after: Date(), interval: interval, leeway: .seconds(0)) {
+						expect(Thread.isMainThread) == false
+						
+						count += 1
+						
+						if count == timesToRun {
+							disposable2.dispose()
+						}
+					}
+
+					disposable1.dispose()
+					
+					expect(count) == 0
+					
+					scheduler.queue.resume()
+					
+					// This expectation should take about 2.0 * interval to be fulfilled, and that's
+					// enough time to ensure that the first timer was actually cancelled.
+					expect(count).toEventually(equal(timesToRun))
+				}
 			}
 		}
 

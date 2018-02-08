@@ -36,6 +36,25 @@ class SignalProducerLiftingSpec: QuickSpec {
 				observer.send(value: 1)
 				expect(lastValue) == "2"
 			}
+			
+			it("should raplace the values of the signal to constant new value") {
+				let (producer, observer) = SignalProducer<String, NoError>.pipe()
+				let mappedProducer = producer.map(value: 1)
+				
+				var lastValue: Int?
+				
+				mappedProducer.startWithValues {
+					lastValue = $0
+				}
+				
+				expect(lastValue).to(beNil())
+				
+				observer.send(value: "foo")
+				expect(lastValue) == 1
+				
+				observer.send(value: "foobar")
+				expect(lastValue) == 1
+			}
 		}
 
 		describe("mapError") {

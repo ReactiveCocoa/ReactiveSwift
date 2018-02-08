@@ -492,19 +492,19 @@ extension Signal {
 			.flatten(.merge)
 			.startAndRetrieveSignal()
 	}
-
+	
 	/// Merges the given signals into a single `Signal` that will emit all
 	/// values from each of them, and complete when all of them have completed.
 	///
 	/// - parameters:
-    ///   - signals: A list of signals to merge.
+	///   - signals: A list of signals to merge.
 	public static func merge(_ signals: Signal<Value, Error>...) -> Signal<Value, Error> {
 		return Signal.merge(signals)
 	}
 }
 
 extension SignalProducer {
-	/// Merges the given producers into a single `SignalProducer` that will emit
+ 	/// Merges the given producers into a single `SignalProducer` that will emit
 	/// all values from each of them, and complete when all of them have
 	/// completed.
 	///
@@ -514,7 +514,7 @@ extension SignalProducer {
 	{
 		return SignalProducer<Seq.Iterator.Element, NoError>(producers).flatten(.merge)
 	}
-
+	
 	/// Merges the given producers into a single `SignalProducer` that will emit
 	/// all values from each of them, and complete when all of them have
 	/// completed.

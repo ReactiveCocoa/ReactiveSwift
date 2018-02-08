@@ -732,12 +732,20 @@ class PropertySpec: QuickSpec {
 			describe("map") {
 				it("should transform the current value and all subsequent values") {
 					let property = MutableProperty(1)
-					let mappedProperty = property
-						.map { $0 + 1 }
+					let mappedProperty = property.map { $0 + 1 }
 					expect(mappedProperty.value) == 2
 
 					property.value = 2
 					expect(mappedProperty.value) == 3
+				}
+				
+				it("should transform the current value and all subsequent values to a constant value") {
+					let property = MutableProperty("foo")
+					let mappedProperty = property.map(value: 1)
+					expect(mappedProperty.value) == 1
+					
+					property.value = "foobar"
+					expect(mappedProperty.value) == 1
 				}
 
 				it("should work with key paths") {

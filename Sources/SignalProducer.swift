@@ -857,6 +857,17 @@ extension SignalProducer {
 	public func map<U>(_ transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.map(transform))
 	}
+	
+	/// Map each value in the producer to a new constant value.
+	///
+	/// - parameters:
+	///   - value: A new value.
+	///
+	/// - returns: A signal producer that, when started, will send a mapped
+	///            value of `self`.
+	public func map<U>(value: U) -> SignalProducer<U, Error> {
+		return lift { $0.map(value: value) }
+	}
 
 	/// Map each value in the producer to a new value by applying a key path.
 	///
@@ -1075,6 +1086,17 @@ extension SignalProducer {
 	///            values of `self` and given producer.
 	public func combineLatest<Other: SignalProducerConvertible>(with other: Other) -> SignalProducer<(Value, Other.Value), Error> where Other.Error == Error {
 		return SignalProducer.combineLatest(self, other)
+	}
+	
+	/// Merge the given producer into a single `SignalProducer` that will emit all
+	/// values from both of them, and complete when all of them have completed.
+	///
+	/// - parameters:
+	///   - other: A producer to merge `self`'s value with.
+	///
+	/// - returns: A producer that sends all values of `self` and given producer.
+	public func merge(with other: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return SignalProducer.merge(self, other)
 	}
 
 	/// Delay `value` and `completed` events by the given interval, forwarding

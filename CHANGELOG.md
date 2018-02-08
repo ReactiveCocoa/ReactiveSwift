@@ -2,6 +2,11 @@
 *Please add new entries at the top.*
 
 1. New property operator: `filter` (#586, kudos to @iv-mexx)
+1. New operator `merge(with:)` (#600, kudos to @ra1028)
+1. New operator `map(value:)` (#601, kudos to @ra1028)
+
+# 3.1.0
+1. Fixed `schedule(after:interval:leeway:)` being cancelled when the returned `Disposable` is not retained. (#584, kudos to @jjoelson)
 
 # 3.1.0-rc.1
 1. Fixed a scenario of downstream interruptions being dropped. (#577, kudos to @andersio)

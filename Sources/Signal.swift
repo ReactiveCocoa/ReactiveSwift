@@ -557,6 +557,16 @@ extension Signal {
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.map(transform))
 	}
+	
+	/// Map each value in the signal to a new constant value.
+	///
+	/// - parameters:
+	///   - value: A new value.
+	///
+	/// - returns: A signal that will send new values.
+	public func map<U>(value: U) -> Signal<U, Error> {
+		return map { _ in value }
+	}
 
 	/// Map each value in the signal to a new value by applying a key path.
 	///
@@ -787,6 +797,17 @@ extension Signal {
 	///            and given signal.
 	public func combineLatest<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal.combineLatest(self, other)
+	}
+	
+	/// Merge the given signal into a single `Signal` that will emit all
+	/// values from both of them, and complete when all of them have completed.
+	///
+	/// - parameters:
+	///   - other: A signal to merge `self`'s value with.
+	///
+	/// - returns: A signal that sends all values of `self` and given signal.
+	public func merge(with other: Signal<Value, Error>) -> Signal<Value, Error> {
+		return Signal.merge(self, other)
 	}
 
 	/// Delay `value` and `completed` events by the given interval, forwarding

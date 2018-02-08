@@ -17,10 +17,15 @@ fi
 
 PAGES_PATH=${BUILD_DIRECTORY}/Build/Products/${CONFIGURATION}/all-playground-pages.swift
 
-cat ReactiveSwift.playground/Sources/*.swift ReactiveSwift.playground/Pages/**/*.swift > ${PAGES_PATH}
-
-swift -v -target ${XCODE_PLAYGROUND_TARGET} -D NOT_IN_PLAYGROUND -F ${BUILD_DIRECTORY}/Build/Products/${CONFIGURATION} ${PAGES_PATH} > /dev/null
+validate () {
+	echo "Validating \$1..."
+	cat $1/Sources/*.swift $1/Pages/**/*.swift > ${PAGES_PATH}
+	swift -v -target ${XCODE_PLAYGROUND_TARGET} -D NOT_IN_PLAYGROUND -F ${BUILD_DIRECTORY}/Build/Products/${CONFIGURATION} ${PAGES_PATH} > /dev/null
 result=$?
+}
+
+validate ReactiveSwift.playground
+validate ReactiveSwift-UIExamples.playground
 
 # Cleanup
 rm -Rf $BUILD_DIRECTORY
