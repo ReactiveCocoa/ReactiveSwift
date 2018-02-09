@@ -758,6 +758,43 @@ class PropertySpec: QuickSpec {
 				}
 			}
 
+			describe("filter") {
+				it("should only receive values that pass the predicate")  {
+					let property = MutableProperty(1)
+					let filteredProperty = property
+						.filter(initial: 0) { $0 > 0 }
+					expect(filteredProperty.value) == 1
+
+					property.value = 0
+					expect(filteredProperty.value) == 1
+
+					property.value = 2
+					expect(filteredProperty.value) == 2
+
+					property.value = -5
+					expect(filteredProperty.value) == 2
+
+					property.value = 3
+					expect(filteredProperty.value) == 3
+				}
+
+				it("should behave correctly if the filter excludes the initial value")  {
+					let property = MutableProperty(1)
+					let filteredProperty = property
+						.filter(initial: 0) { $0 < 0 }
+					expect(filteredProperty.value) == 0
+
+					property.value = 2
+					expect(filteredProperty.value) == 0
+
+					property.value = -2
+					expect(filteredProperty.value) == -2
+
+					property.value = 0
+					expect(filteredProperty.value) == -2
+				}
+			}
+
 			describe("combineLatest") {
 				var property: MutableProperty<String>!
 				var otherProperty: MutableProperty<String>!
