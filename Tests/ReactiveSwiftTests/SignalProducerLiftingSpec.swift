@@ -607,7 +607,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			it("should skip values according to a predicate") {
 				let (baseProducer, observer) = SignalProducer<String, NoError>.pipe()
-				let producer = baseProducer.skipRepeats { $0.characters.count == $1.characters.count }
+				let producer = baseProducer.skipRepeats { $0.count == $1.count }
 
 				var values: [String] = []
 				producer.startWithValues { values.append($0) }
