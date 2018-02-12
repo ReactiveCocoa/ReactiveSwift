@@ -11,13 +11,12 @@ import Foundation
 import MachO
 #endif
 
-#if swift(>=4.1)
-#else
-    extension UnsafeMutablePointer {
-        internal func deallocate() {
-            self.deallocate(capacity: 1)
-        }
-    }
+#if !swift(>=4.1)
+extension UnsafeMutablePointer {
+	internal func deallocate() {
+		self.deallocate(capacity: 1)
+	}
+}
 #endif
 
 

@@ -5,35 +5,8 @@ import Glibc
 #endif
 import enum Result.NoError
 
-/// Represents a property that allows observation of its changes.
-///
-/// Only classes can conform to this protocol, because having a signal
-/// for changes over time implies the origin must have a unique identity.
-#if swift(>=4.1)
-	public protocol PropertyProtocol: class, BindingSource {
-		/// The current value of the property.
-		var value: Value { get }
 
-		/// The values producer of the property.
-		///
-		/// It produces a signal that sends the property's current value,
-		/// followed by all changes over time. It completes when the property
-		/// has deinitialized, or has no further change.
-		///
-		/// - note: If `self` is a composed property, the producer would be
-		///         bound to the lifetime of its sources.
-		var producer: SignalProducer<Value, NoError> { get }
-
-		/// A signal that will send the property's changes over time. It
-		/// completes when the property has deinitialized, or has no further
-		/// change.
-		///
-		/// - note: If `self` is a composed property, the signal would be
-		///         bound to the lifetime of its sources.
-		var signal: Signal<Value, NoError> { get }
-	}
-#else
-	public protocol PropertyProtocol: class, BindingSource where Error == NoError {
+public protocol BasePropertyProtocol: class, BindingSource {
 	/// The current value of the property.
 	var value: Value { get }
 
@@ -54,7 +27,16 @@ import enum Result.NoError
 	/// - note: If `self` is a composed property, the signal would be
 	///         bound to the lifetime of its sources.
 	var signal: Signal<Value, NoError> { get }
-	}
+}
+
+/// Represents a property that allows observation of its changes.
+///
+/// Only classes can conform to this protocol, because having a signal
+/// for changes over time implies the origin must have a unique identity.
+#if swift(>=4.1)
+public typealias PropertyProtocol = BasePropertyProtocol
+#else
+public protocol PropertyProtocol: BasePropertyProtocol where Error == NoError {}
 #endif
 
 /// Represents an observable property that can be mutated directly.
