@@ -14,7 +14,7 @@ import MachO
 #if swift(>=4.1)
 #else
     extension UnsafeMutablePointer {
-        private func deallocate() {
+        internal func deallocate() {
             self.deallocate(capacity: 1)
         }
     }
