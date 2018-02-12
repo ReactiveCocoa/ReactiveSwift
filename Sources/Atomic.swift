@@ -11,6 +11,16 @@ import Foundation
 import MachO
 #endif
 
+#if swift(>=4.1)
+#else
+    extension UnsafeMutablePointer {
+        private func deallocate() {
+            self.deallocate(capacity: 1)
+        }
+    }
+#endif
+
+
 /// A simple, generic lock-free finite state machine.
 ///
 /// - warning: `deinitialize` must be called to dispose of the consumed memory.

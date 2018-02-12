@@ -9,7 +9,31 @@ import enum Result.NoError
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: class, BindingSource {
+#if swift(>=4.1)
+	public protocol PropertyProtocol: class, BindingSource {
+		/// The current value of the property.
+		var value: Value { get }
+
+		/// The values producer of the property.
+		///
+		/// It produces a signal that sends the property's current value,
+		/// followed by all changes over time. It completes when the property
+		/// has deinitialized, or has no further change.
+		///
+		/// - note: If `self` is a composed property, the producer would be
+		///         bound to the lifetime of its sources.
+		var producer: SignalProducer<Value, NoError> { get }
+
+		/// A signal that will send the property's changes over time. It
+		/// completes when the property has deinitialized, or has no further
+		/// change.
+		///
+		/// - note: If `self` is a composed property, the signal would be
+		///         bound to the lifetime of its sources.
+		var signal: Signal<Value, NoError> { get }
+	}
+#else
+	public protocol PropertyProtocol: class, BindingSource where Error == NoError {
 	/// The current value of the property.
 	var value: Value { get }
 
@@ -30,7 +54,8 @@ public protocol PropertyProtocol: class, BindingSource {
 	/// - note: If `self` is a composed property, the signal would be
 	///         bound to the lifetime of its sources.
 	var signal: Signal<Value, NoError> { get }
-}
+	}
+#endif
 
 /// Represents an observable property that can be mutated directly.
 public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProvider {

@@ -11,9 +11,27 @@ precedencegroup BindingPrecedence {
 
 infix operator <~ : BindingPrecedence
 
- public protocol BindingSource: SignalProducerConvertible where Error == NoError {}
- extension Signal: BindingSource where Error == NoError {}
- extension SignalProducer: BindingSource where Error == NoError {}
+#if swift(>=4.1)
+    public protocol BindingSource: SignalProducerConvertible where Error == NoError {}
+    extension Signal: BindingSource where Error == NoError {}
+    extension SignalProducer: BindingSource where Error == NoError {}
+
+#else
+    /// Describes a source which can be bound.
+    public protocol BindingSource: SignalProducerConvertible {
+        // FIXME: Swift 4 compiler regression.
+        // All requirements are replicated to workaround the type checker issue.
+        // https://bugs.swift.org/browse/SR-5090
+        associatedtype Value
+        associatedtype Error: Swift.Error
+
+        var producer: SignalProducer<Value, Error> { get }
+    }
+
+    extension Signal: BindingSource {}
+    extension SignalProducer: BindingSource {}
+#endif
+
 
 /// Describes an entity which be bond towards.
 public protocol BindingTargetProvider {
@@ -52,16 +70,29 @@ extension BindingTargetProvider {
 	/// - returns: A disposable that can be used to terminate binding before the
 	///            deinitialization of the target or the source's `completed`
 	///            event.
-	@discardableResult
-	public static func <~
-		<Source: BindingSource>
-		(provider: Self, source: Source) -> Disposable?
-		where Source.Value == Value, Source.Error == NoError
-	{
-		return source.producer
-			.take(during: provider.bindingTarget.lifetime)
-			.startWithValues(provider.bindingTarget.action)
-	}
+	#if swift(>=4.1)
+		@discardableResult
+		public static func <~
+			<Source: BindingSource>
+			(provider: Self, source: Source) -> Disposable?
+			where Source.Value == Value
+		{
+			return source.producer
+				.take(during: provider.bindingTarget.lifetime)
+				.startWithValues(provider.bindingTarget.action)
+		}
+	#else
+		@discardableResult
+		public static func <~
+			<Source: BindingSource>
+			(provider: Self, source: Source) -> Disposable?
+			where Source.Value == Value, Source.Error == NoError
+		{
+			return source.producer
+				.take(during: provider.bindingTarget.lifetime)
+				.startWithValues(provider.bindingTarget.action)
+		}
+	#endif
 
 	/// Binds a source to a target, updating the target's value to the latest
 	/// value sent by the source.
@@ -92,14 +123,26 @@ extension BindingTargetProvider {
 	/// - returns: A disposable that can be used to terminate binding before the
 	///            deinitialization of the target or the source's `completed`
 	///            event.
-	@discardableResult
-	public static func <~
-		<Source: BindingSource>
-		(provider: Self, source: Source) -> Disposable?
-		where Value == Source.Value?, Source.Error == NoError
-	{
-		return provider <~ source.producer.optionalize()
-	}
+	#if swift(>=4.1)
+		@discardableResult
+		public static func <~
+			<Source: BindingSource>
+			(provider: Self, source: Source) -> Disposable?
+			where Value == Source.Value?
+		{
+			return provider <~ source.producer.optionalize()
+		}
+	#else
+		@discardableResult
+		public static func <~
+			<Source: BindingSource>
+			(provider: Self, source: Source) -> Disposable?
+			where Value == Source.Value?, Source.Error == NoError
+		{
+			return provider <~ source.producer.optionalize()
+		}
+	#endif
+
 }
 
 /// A binding target that can be used with the `<~` operator.

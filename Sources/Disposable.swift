@@ -159,7 +159,11 @@ public final class CompositeDisposable: Disposable {
 	public convenience init<S: Sequence>(_ disposables: S)
 		where S.Iterator.Element == Disposable?
 	{
-		self.init(disposables.compactMap { $0 })
+        #if swift(>=4.1)
+            self.init(disposables.compactMap { $0 })
+        #else
+            self.init(disposables.flatMap { $0 })
+        #endif
 	}
 
 	/// Initializes an empty `CompositeDisposable`.
