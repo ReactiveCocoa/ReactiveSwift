@@ -48,9 +48,7 @@ public struct Bag<Element> {
 	///   - token: A token returned from a call to `insert()`.
 	@discardableResult
 	public mutating func remove(using token: Token) -> Element? {
-		let reversedIndices = elements.indices.reversed()
-		
-		guard let i = reversedIndices.first(where: { tokens[$0] == token.value }) else {
+		guard let i = indices.first(where: { tokens[$0] == token.value }) else {
 			return nil
 		}
 		
