@@ -68,11 +68,35 @@ extension Bag: RandomAccessCollection {
 		return elements.endIndex
 	}
 	
-	public func index(after i: Int) -> Int {
-		return i + 1
+	public subscript(index: Int) -> Element {
+		return elements[index]
 	}
 	
-	public subscript(position: Int) -> Element {
-		return elements[position]
+	public func makeIterator() -> Iterator {
+		return Iterator(elements)
+	}
+	
+	/// An iterator of `Bag`.
+	public struct Iterator: IteratorProtocol {
+		private let base: ContiguousArray<Element>
+		private var nextIndex: Int
+		private let endIndex: Int
+		
+		fileprivate init(_ base: ContiguousArray<Element>) {
+			self.base = base
+			nextIndex = base.startIndex
+			endIndex = base.endIndex
+		}
+		
+		public mutating func next() -> Element? {
+			let currentIndex = nextIndex
+			
+			if currentIndex < endIndex {
+				nextIndex = currentIndex + 1
+				return base[currentIndex]
+			}
+			
+			return nil
+		}
 	}
 }
