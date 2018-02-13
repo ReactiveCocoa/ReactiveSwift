@@ -108,8 +108,8 @@ extension PropertyProtocol {
 	///   - value: A new value.
 	///
 	/// - returns: A property that holds a mapped value from `self`.
-	public func map<U>(value: U) -> Property<U> {
-		return lift { $0.map(value: value) }
+	public func replacingValues<U>(with value: U) -> Property<U> {
+		return lift { $0.replacingValues(with: value) }
 	}
 
 	/// Maps the current value and all subsequent values to a new property

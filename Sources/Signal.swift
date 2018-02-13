@@ -564,7 +564,7 @@ extension Signal {
 	///   - value: A new value.
 	///
 	/// - returns: A signal that will send new values.
-	public func map<U>(value: U) -> Signal<U, Error> {
+	public func replacingValues<U>(with value: U) -> Signal<U, Error> {
 		return map { _ in value }
 	}
 

@@ -39,7 +39,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			
 			it("should raplace the values of the signal to constant new value") {
 				let (producer, observer) = SignalProducer<String, NoError>.pipe()
-				let mappedProducer = producer.map(value: 1)
+				let mappedProducer = producer.replacingValues(with: 1)
 				
 				var lastValue: Int?
 				

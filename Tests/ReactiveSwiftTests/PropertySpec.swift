@@ -741,7 +741,7 @@ class PropertySpec: QuickSpec {
 				
 				it("should transform the current value and all subsequent values to a constant value") {
 					let property = MutableProperty("foo")
-					let mappedProperty = property.map(value: 1)
+					let mappedProperty = property.replacingValues(with: 1)
 					expect(mappedProperty.value) == 1
 					
 					property.value = "foobar"

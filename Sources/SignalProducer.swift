@@ -865,8 +865,8 @@ extension SignalProducer {
 	///
 	/// - returns: A signal producer that, when started, will send a mapped
 	///            value of `self`.
-	public func map<U>(value: U) -> SignalProducer<U, Error> {
-		return lift { $0.map(value: value) }
+	public func replacingValues<U>(with value: U) -> SignalProducer<U, Error> {
+		return lift { $0.replacingValues(with: value) }
 	}
 
 	/// Map each value in the producer to a new value by applying a key path.
