@@ -834,28 +834,59 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
+	internal static func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardsWhenTerminated: Bool) -> Transformation<Value, Error> {
 		precondition(interval >= 0)
-
+		
+		let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState(previousDate: scheduler.currentDate, pendingValue: nil))
+		
 		return { action, lifetime in
 			let d = SerialDisposable()
-
+			
 			lifetime.observeEnded {
 				d.dispose()
 				scheduler.schedule { action(.interrupted) }
 			}
-
+			
 			return { event in
 				switch event {
 				case let .value(value):
+					state.modify { state in
+						state.pendingValue = value
+					}
 					let date = scheduler.currentDate.addingTimeInterval(interval)
 					d.inner = scheduler.schedule(after: date) {
-						action(.value(value))
+						state.modify { state in
+							defer {
+								if state.pendingValue != nil {
+									state.pendingValue = nil
+									state.previousDate = date
+								}
+							}
+							if let pendingValue = state.pendingValue {
+								action(.value(pendingValue))
+							}
+						}
 					}
-
+					
 				case .completed, .failed, .interrupted:
 					d.inner = scheduler.schedule {
-						action(event)
+						let pending: (value: Value, previousDate: Date)? = state.modify { state in
+							defer {
+								if state.pendingValue != nil {
+									state.pendingValue = nil
+								}
+							}
+							guard let pendingValue = state.pendingValue, let previousDate = state.previousDate else { return nil }
+							return (pendingValue, previousDate)
+						}
+						if !discardsWhenTerminated, let (pendingValue, pendingDate) = pending {
+							scheduler.schedule(after: pendingDate.addingTimeInterval(interval)) {
+								action(.value(pendingValue))
+								action(event)
+							}
+						} else {
+							action(event)
+						}
 					}
 				}
 			}

@@ -1523,8 +1523,8 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that sends values that are sent from `self` at
 	///            least `interval` seconds apart.
-	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
-		return core.flatMapEvent(Signal.Event.debounce(interval, on: scheduler))
+	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardsWhenTerminated: Bool = true) -> SignalProducer<Value, Error> {
+		return core.flatMapEvent(Signal.Event.debounce(interval, on: scheduler, discardsWhenTerminated: discardsWhenTerminated))
 	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't

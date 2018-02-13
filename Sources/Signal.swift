@@ -1503,8 +1503,8 @@ extension Signal {
 	///
 	/// - returns: A signal that sends values that are sent from `self` at least
 	///            `interval` seconds apart.
-	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
-		return flatMapEvent(Signal.Event.debounce(interval, on: scheduler))
+	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardsWhenTerminated: Bool = true) -> Signal<Value, Error> {
+		return flatMapEvent(Signal.Event.debounce(interval, on: scheduler, discardsWhenTerminated: discardsWhenTerminated))
 	}
 }
 
