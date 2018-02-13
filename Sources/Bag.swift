@@ -13,14 +13,14 @@ public struct Bag<Element> {
 	public struct Token {
 		fileprivate let value: UInt64
 	}
-	
+
 	fileprivate var elements: ContiguousArray<Element> = []
 	fileprivate var tokens: ContiguousArray<UInt64> = []
-	
+
 	private var nextToken = Token(value: 0)
-	
+
 	public init() {}
-	
+
 	/// Insert the given value into `self`, and return a token that can
 	/// later be passed to `remove(using:)`.
 	///
@@ -29,17 +29,17 @@ public struct Bag<Element> {
 	@discardableResult
 	public mutating func insert(_ value: Element) -> Token {
 		let token = nextToken
-		
+
 		// Practically speaking, this would overflow only if we have 101% uptime and we
 		// manage to call `insert(_:)` every 1 ns for 500+ years non-stop.
 		nextToken = Token(value: token.value + 1)
-		
+
 		elements.append(value)
 		tokens.append(token.value)
-		
+
 		return token
 	}
-	
+
 	/// Remove a value, given the token returned from `insert()`.
 	///
 	/// - note: If the value has already been removed, nothing happens.
@@ -51,7 +51,7 @@ public struct Bag<Element> {
 		guard let i = indices.first(where: { tokens[$0] == token.value }) else {
 			return nil
 		}
-		
+
 		tokens.remove(at: i)
 		return elements.remove(at: i)
 	}
@@ -61,39 +61,39 @@ extension Bag: RandomAccessCollection {
 	public var startIndex: Int {
 		return elements.startIndex
 	}
-	
+
 	public var endIndex: Int {
 		return elements.endIndex
 	}
-	
+
 	public subscript(index: Int) -> Element {
 		return elements[index]
 	}
-	
+
 	public func makeIterator() -> Iterator {
 		return Iterator(elements)
 	}
-	
+
 	/// An iterator of `Bag`.
 	public struct Iterator: IteratorProtocol {
 		private let base: ContiguousArray<Element>
 		private var nextIndex: Int
 		private let endIndex: Int
-		
+
 		fileprivate init(_ base: ContiguousArray<Element>) {
 			self.base = base
 			nextIndex = base.startIndex
 			endIndex = base.endIndex
 		}
-		
+
 		public mutating func next() -> Element? {
 			let currentIndex = nextIndex
-			
+
 			if currentIndex < endIndex {
 				nextIndex = currentIndex + 1
 				return base[currentIndex]
 			}
-			
+
 			return nil
 		}
 	}
