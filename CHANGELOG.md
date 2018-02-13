@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. New `debounce` parameter: `discardsWhenTerminated` (#287, kudos to @Qata)
 1. New property operator: `filter` (#586, kudos to @iv-mexx)
 1. New operator `merge(with:)` (#600, kudos to @ra1028)
 1. New operator `map(value:)` (#601, kudos to @ra1028)
