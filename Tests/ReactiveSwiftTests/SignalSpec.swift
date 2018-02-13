@@ -541,6 +541,14 @@ class SignalSpec: QuickSpec {
 				observer.send(value: "foobar")
 				expect(lastValue) == 6
 			}
+			
+			it("does not conflict with other map overloads") {
+				let (signal, observer) = Signal<Int, NoError>.pipe()
+				
+				// These 2 lines verify that the type inference on `mappedSignal` is correct.
+				let mappedSignal = signal.map { $0 as Int? }
+				let expectedType: Signal<Int?, NoError> = mappedSignal
+			}
 		}
 
 		describe("mapError") {
