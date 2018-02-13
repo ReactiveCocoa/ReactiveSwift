@@ -6,7 +6,11 @@ import Glibc
 import enum Result.NoError
 
 
-public protocol BasePropertyProtocol: class, BindingSource {
+/// Represents a property that allows observation of its changes.
+///
+/// Only classes can conform to this protocol, because having a signal
+/// for changes over time implies the origin must have a unique identity.
+public protocol _BasePropertyProtocol: class, BindingSource {
 	/// The current value of the property.
 	var value: Value { get }
 
@@ -29,14 +33,10 @@ public protocol BasePropertyProtocol: class, BindingSource {
 	var signal: Signal<Value, NoError> { get }
 }
 
-/// Represents a property that allows observation of its changes.
-///
-/// Only classes can conform to this protocol, because having a signal
-/// for changes over time implies the origin must have a unique identity.
 #if swift(>=4.1)
-public typealias PropertyProtocol = BasePropertyProtocol
+public typealias PropertyProtocol = _BasePropertyProtocol
 #else
-public protocol PropertyProtocol: BasePropertyProtocol where Error == NoError {}
+public protocol PropertyProtocol: _BasePropertyProtocol where Error == NoError {}
 #endif
 
 /// Represents an observable property that can be mutated directly.

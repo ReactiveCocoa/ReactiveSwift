@@ -20,9 +20,6 @@ extension SignalProducer: BindingSource where Error == NoError {}
 #else
 /// Describes a source which can be bound.
 public protocol BindingSource: SignalProducerConvertible {
-	// FIXME: Swift 4 compiler regression.
-	// All requirements are replicated to workaround the type checker issue.
-	// https://bugs.swift.org/browse/SR-5090
 	associatedtype Value
 	associatedtype Error: Swift.Error
 
