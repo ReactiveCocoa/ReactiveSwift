@@ -118,7 +118,7 @@ extension Signal {
 	}
 }
 
-extension Signal.Event: Equatable where Value: Equatable, Error: Equatable {
+extension Signal.Event where Value: Equatable, Error: Equatable {
 	public static func == (lhs: Signal<Value, Error>.Event, rhs: Signal<Value, Error>.Event) -> Bool {
 		switch (lhs, rhs) {
 		case let (.value(left), .value(right)):
@@ -138,6 +138,9 @@ extension Signal.Event: Equatable where Value: Equatable, Error: Equatable {
 		}
 	}
 }
+#if swift(>=4.1)
+extension Signal.Event: Equatable where Value: Equatable, Error: Equatable {}
+#endif
 
 extension Signal.Event: CustomStringConvertible {
 	public var description: String {
