@@ -485,18 +485,28 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 		
-		describe("init(_:) base") {
+		describe("Result.producer") {
 			it("should send a successful value then complete") {
 				let operationReturnValue = "OperationValue"
 				
 				let signalProducer = SignalProducer<String, AnyError>(Result.success(operationReturnValue))
 				
+				var value: String?
 				var error: Error?
-				signalProducer.startWithFailed {
-					error = $0
-				}
+				var completed = false
+				signalProducer
+					.on(failed: {
+						error = $0
+					}, completed: {
+						completed = true
+					}, value: {
+						value = $0
+					})
+					.start()
 				
+				expect(value) == operationReturnValue
 				expect(error).to(beNil())
+				expect(completed).to(beTrue())
 			}
 			
 			it("should send the error") {
@@ -504,11 +514,17 @@ class SignalProducerSpec: QuickSpec {
 				
 				let signalProducer = SignalProducer<String, TestError>(Result.failure(operationError))
 				
+				var value: String?
 				var error: TestError?
-				signalProducer.startWithFailed {
-					error = $0
-				}
+				signalProducer
+					.on(failed: {
+						error = $0
+					}, value: {
+						value = $0
+					})
+					.start()
 				
+				expect(value).to(beNil())
 				expect(error) == operationError
 			}
 		}
