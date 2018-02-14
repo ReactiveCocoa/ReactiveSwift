@@ -48,12 +48,12 @@ public struct Bag<Element> {
 	///   - token: A token returned from a call to `insert()`.
 	@discardableResult
 	public mutating func remove(using token: Token) -> Element? {
-		guard let i = indices.first(where: { tokens[$0] == token.value }) else {
+		guard let index = indices.first(where: { tokens[$0] == token.value }) else {
 			return nil
 		}
 
-		tokens.remove(at: i)
-		return elements.remove(at: i)
+		tokens.remove(at: index)
+		return elements.remove(at: index)
 	}
 }
 
