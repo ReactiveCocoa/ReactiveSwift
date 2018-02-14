@@ -14,12 +14,6 @@ internal func materialize<T>(_ f: () throws -> T) -> Result<T, AnyError> {
 
 extension Result: SignalProducerConvertible {
 	public var producer: SignalProducer<Value, Error> {
-		switch self {
-		case let .success(value):
-			return .init(value: value)
-
-		case let .failure(error):
-			return .init(error: error)
-		}
+		return .init(result: self)
 	}
 }
