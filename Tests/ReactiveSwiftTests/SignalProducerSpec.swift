@@ -484,6 +484,34 @@ class SignalProducerSpec: QuickSpec {
 				expect(error) == operationError
 			}
 		}
+		
+		describe("init(_:) base") {
+			it("should send a successful value then complete") {
+				let operationReturnValue = "OperationValue"
+				
+				let signalProducer = SignalProducer<String, AnyError>(Result.success(operationReturnValue))
+				
+				var error: Error?
+				signalProducer.startWithFailed {
+					error = $0
+				}
+				
+				expect(error).to(beNil())
+			}
+			
+			it("should send the error") {
+				let operationError = TestError.default
+				
+				let signalProducer = SignalProducer<String, TestError>(Result.failure(operationError))
+				
+				var error: TestError?
+				signalProducer.startWithFailed {
+					error = $0
+				}
+				
+				expect(error) == operationError
+			}
+		}
 
 		describe("startWithSignal") {
 			it("should invoke the closure before any effects or events") {
