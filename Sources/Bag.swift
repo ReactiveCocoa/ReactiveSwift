@@ -17,7 +17,7 @@ public struct Bag<Element> {
 	fileprivate var elements: ContiguousArray<Element> = []
 	fileprivate var tokens: ContiguousArray<UInt64> = []
 
-	private var nextToken: Token = Token(value: 0)
+	private var nextToken = Token(value: 0)
 
 	public init() {}
 
@@ -48,14 +48,12 @@ public struct Bag<Element> {
 	///   - token: A token returned from a call to `insert()`.
 	@discardableResult
 	public mutating func remove(using token: Token) -> Element? {
-		for i in elements.indices.reversed() {
-			if tokens[i] == token.value {
-				tokens.remove(at: i)
-				return elements.remove(at: i)
-			}
+		guard let index = indices.first(where: { tokens[$0] == token.value }) else {
+			return nil
 		}
 
-		return nil
+		tokens.remove(at: index)
+		return elements.remove(at: index)
 	}
 }
 
