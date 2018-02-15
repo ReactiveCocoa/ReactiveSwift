@@ -32,7 +32,7 @@ public struct Bag<Element> {
 
 		// Practically speaking, this would overflow only if we have 101% uptime and we
 		// manage to call `insert(_:)` every 1 ns for 500+ years non-stop.
-		nextToken = Token(value: token.value + 1)
+		nextToken = Token(value: token.value &+ 1)
 
 		elements.append(value)
 		tokens.append(token.value)
