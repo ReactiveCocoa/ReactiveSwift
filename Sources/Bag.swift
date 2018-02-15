@@ -70,31 +70,7 @@ extension Bag: RandomAccessCollection {
 		return elements[index]
 	}
 
-	public func makeIterator() -> Iterator {
-		return Iterator(elements)
-	}
-
-	/// An iterator of `Bag`.
-	public struct Iterator: IteratorProtocol {
-		private let base: ContiguousArray<Element>
-		private var nextIndex: Int
-		private let endIndex: Int
-
-		fileprivate init(_ base: ContiguousArray<Element>) {
-			self.base = base
-			nextIndex = base.startIndex
-			endIndex = base.endIndex
-		}
-
-		public mutating func next() -> Element? {
-			let currentIndex = nextIndex
-
-			if currentIndex < endIndex {
-				nextIndex = currentIndex + 1
-				return base[currentIndex]
-			}
-
-			return nil
-		}
+	public func makeIterator() -> IndexingIterator<ContiguousArray<Element>> {
+		return elements.makeIterator()
 	}
 }
