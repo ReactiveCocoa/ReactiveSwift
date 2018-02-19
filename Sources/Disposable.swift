@@ -137,9 +137,7 @@ public final class CompositeDisposable: Disposable {
 	/// - parameters:
 	///   - disposables: A collection of objects conforming to the `Disposable`
 	///                  protocol
-	public init<S: Sequence>(_ disposables: S)
-		where S.Iterator.Element == Disposable
-	{
+	public init<S: Sequence>(_ disposables: S) where S.Iterator.Element == Disposable {
 		var bag: Bag<Disposable> = Bag()
 
 		for disposable in disposables {
@@ -156,9 +154,7 @@ public final class CompositeDisposable: Disposable {
 	/// - parameters:
 	///   - disposables: A collection of objects conforming to the `Disposable`
 	///                  protocol
-	public convenience init<S: Sequence>(_ disposables: S)
-		where S.Iterator.Element == Disposable?
-	{
+	public convenience init<S: Sequence>(_ disposables: S) where S.Iterator.Element == Disposable? {
 		self.init(disposables.flatMap { $0 })
 	}
 
