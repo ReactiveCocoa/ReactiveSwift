@@ -169,9 +169,9 @@ public final class CompositeDisposable: Disposable {
 	}
 
 	public func dispose() {
-		if state.tryDispose(), let ds = disposables.swap(nil) {
-			for d in ds {
-				d.dispose()
+		if state.tryDispose(), let disposables = disposables.swap(nil) {
+			for disposable in disposables {
+				disposable.dispose()
 			}
 		}
 	}
@@ -186,7 +186,7 @@ public final class CompositeDisposable: Disposable {
 	///            `disposable` is `nil`.
 	@discardableResult
 	public func add(_ disposable: Disposable?) -> Disposable? {
-		guard let d = disposable, !d.isDisposed, !isDisposed else {
+		guard let _disposable = disposable, !_disposable.isDisposed, !isDisposed else {
 			disposable?.dispose()
 			return nil
 		}
@@ -194,7 +194,7 @@ public final class CompositeDisposable: Disposable {
 		return disposables.modify { disposables in
 			guard disposables != nil else { return nil }
 
-			let token = disposables!.insert(d)
+			let token = disposables!.insert(_disposable)
 			return AnyDisposable { [weak self] in
 				self?.disposables.modify {
 					$0?.remove(using: token)
@@ -358,10 +358,10 @@ public final class SerialDisposable: Disposable {
 			return _inner.value
 		}
 
-		set(d) {
-			_inner.swap(d)?.dispose()
-			if let d = d, isDisposed {
-				d.dispose()
+		set(disposable) {
+			_inner.swap(disposable)?.dispose()
+			if let disposable = disposable, isDisposed {
+				disposable.dispose()
 			}
 		}
 	}
