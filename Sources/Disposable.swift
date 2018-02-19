@@ -145,7 +145,7 @@ public final class CompositeDisposable: Disposable {
 		}
 
 		self.disposables = Atomic(bag)
-		self.state = UnsafeAtomicState(DisposableState.active)
+		self.state = UnsafeAtomicState(.active)
 	}
 
 	/// Initialize a `CompositeDisposable` containing the given sequence of
