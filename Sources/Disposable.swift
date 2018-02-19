@@ -84,10 +84,9 @@ public final class AnyDisposable: Disposable {
 		}
 
 		func dispose() {
-			if state.tryDispose() {
-				action?()
-				action = nil
-			}
+			guard state.tryDispose() else { return }
+			action?()
+			action = nil
 		}
 	}
 
@@ -169,10 +168,10 @@ public final class CompositeDisposable: Disposable {
 	}
 
 	public func dispose() {
-		if state.tryDispose(), let disposables = disposables.swap(nil) {
-			for disposable in disposables {
-				disposable.dispose()
-			}
+		guard state.tryDispose(), let disposables = disposables.swap(nil) else { return }
+
+		for disposable in disposables {
+			disposable.dispose()
 		}
 	}
 
@@ -359,6 +358,7 @@ public final class SerialDisposable: Disposable {
 
 		set(disposable) {
 			_inner.swap(disposable)?.dispose()
+
 			if let disposable = disposable, isDisposed {
 				disposable.dispose()
 			}
@@ -376,9 +376,8 @@ public final class SerialDisposable: Disposable {
 	}
 
 	public func dispose() {
-		if state.tryDispose() {
-			_inner.swap(nil)?.dispose()
-		}
+		guard state.tryDispose() else { return }
+		_inner.swap(nil)?.dispose()
 	}
 
 	deinit {
