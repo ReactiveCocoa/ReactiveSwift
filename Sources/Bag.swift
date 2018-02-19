@@ -26,8 +26,8 @@ public struct Bag<Element> {
 	}
 
 	public init<S: Sequence>(_ elements: S) where S.Iterator.Element == Element {
-		nextToken = Token(value: UInt64(elements.underestimatedCount))
-		tokens = ContiguousArray(0..<nextToken.value)
+		self.nextToken = Token(value: UInt64(elements.underestimatedCount))
+		self.tokens = ContiguousArray(0..<nextToken.value)
 		self.elements = ContiguousArray(elements)
 	}
 
