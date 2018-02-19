@@ -14,12 +14,22 @@ public struct Bag<Element> {
 		fileprivate let value: UInt64
 	}
 
-	fileprivate var elements: ContiguousArray<Element> = []
-	fileprivate var tokens: ContiguousArray<UInt64> = []
+	fileprivate var elements: ContiguousArray<Element>
+	fileprivate var tokens: ContiguousArray<UInt64>
 
-	private var nextToken = Token(value: 0)
+	private var nextToken: Token
 
-	public init() {}
+	public init() {
+		elements = ContiguousArray()
+		tokens = ContiguousArray()
+		nextToken = Token(value: 0)
+	}
+
+	public init<S: Sequence>(_ elements: S) where S.Iterator.Element == Element {
+		nextToken = Token(value: UInt64(elements.underestimatedCount))
+		tokens = ContiguousArray(0..<nextToken.value)
+		self.elements = ContiguousArray(elements)
+	}
 
 	/// Insert the given value into `self`, and return a token that can
 	/// later be passed to `remove(using:)`.
