@@ -192,9 +192,8 @@ public final class CompositeDisposable: Disposable {
 		}
 
 		return disposables.modify { disposables in
-			guard disposables != nil else { return nil }
+			guard let token = disposables?.insert(_disposable) else { return nil }
 
-			let token = disposables!.insert(_disposable)
 			return AnyDisposable { [weak self] in
 				self?.disposables.modify {
 					$0?.remove(using: token)
