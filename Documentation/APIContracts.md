@@ -15,13 +15,14 @@ resource for getting up to speed on the main types and concepts provided by Reac
  1. [`completion` indicates success](#completion-indicates-success)
  1. [`interruption`s cancel outstanding work and usually propagate immediately](#interruptions-cancel-outstanding-work-and-usually-propagate-immediately)
  1. [Events are serial](#events-are-serial)
- 1. [Events are never delivered recursively, and values cannot be sent recursively](#events-are-never-delivered-recursively-and-values-cannot-be-sent-recursively)
+ 1. [Events are never delivered recursively](#events-are-never-delivered-recursively)
  1. [Events are sent synchronously by default](#events-are-sent-synchronously-by-default)
 
 **[The `Signal` contract](#the-signal-contract)**
 
  1. [Signals start work when instantiated](#signals-start-work-when-instantiated)
  1. [Observing a signal does not have side effects](#observing-a-signal-does-not-have-side-effects)
+ 1. [Observing a signal respect program order](#observing-a-signal-respect-program-order)
  1. [All observers of a signal see the same events in the same order](#all-observers-of-a-signal-see-the-same-events-in-the-same-order)
  1. [A signal is alive as long as it is publicly reachable or is being observed](#a-signal-is-alive-as-long-as-it-is-publicly-reachable-or-is-being-observed)
  1. [Terminating events dispose of signal resources](#terminating-events-dispose-of-signal-resources)
@@ -151,23 +152,11 @@ simultaneously.
 
 This simplifies [operator][Operators] implementations and [observers][].
 
-#### Events are never delivered recursively, and values cannot be sent recursively.
+#### Events are never delivered recursively.
 
 Just like [the guarantee of events not being delivered
-concurrently](#events-are-serial), it is also guaranteed that events would not be
-delivered recursively. As a consequence, [operators][] and [observers][] _do not_ need to
-be reentrant.
-
-If a `value` event is sent upon a signal from a thread that is _already processing_
-a previous event from that signal, it would result in a deadlock. This is because
-recursive signals are usually programmer error, and the determinacy of
-a deadlock is preferable to nondeterministic race conditions.
-
-Note that a terminal event is permitted to be sent recursively.
-
-When a recursive signal is explicitly desired, the recursive event should be
-time-shifted, with an operator like [`delay`][delay], to ensure that it isn’t sent from
-an already-running event handler.
+concurrently](#events-are-serial), events are guaranteed not to be delivered recursively.
+As a consequence, [operators][] and [observers][] _do not_ need to be reentrant.
 
 #### Events are sent synchronously by default
 
@@ -207,6 +196,14 @@ added or removed, so the [`observe`][observe] method (or the cancellation thereo
 has side effects.
 
 A signal’s side effects can only be stopped through [a terminating event](#signals-are-retained-until-a-terminating-event-occurs), or by a silent disposal at the point that [the signal is neither publicly reachable nor being observed](#a-signal-is-alive-as-long-as-it-is-publicly-reachable-or-is-being-observed).
+
+#### Observing a signal respect program order
+
+A signal delivers to its known observers immediately upon instruction. A future observer never sees any value happened before its subscription in the program order — or in other words — a value is never delivered to any future observer in the program order.
+
+A signal supports value recursion while still guaranteeing [events are never delivered recursively](#events-are-never-delivered-recursively). The recursively yielded values would be buffered and drained upon completion of the value delivery, and deliveries of such values also respect the program order as mentioned above.
+
+Note that such guarantee is applicable only in serialized scenarios — the concurrent behavior is indeterministic.
 
 #### All observers of a signal see the same events in the same order
 

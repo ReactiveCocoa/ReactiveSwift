@@ -260,6 +260,70 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("recursion") {
+			it("should not deadlock") {
+				let (output, input) = Signal<Int, NoError>.pipe()
+				var counter = 0
+
+				output
+					.take(first: 5)
+					.on(value: { _ in counter += 1 })
+					.observeValues(input.send(value:))
+
+				expect(counter) == 0
+				input.send(value: 0)
+
+				expect(counter) == 5
+			}
+
+			it("should be aware of new observers, while respecting the program order") {
+				let (output, input) = Signal<Int, NoError>.pipe()
+				var counter = 0
+				var counter2 = 0
+
+				output
+					.take(first: 5)
+					.on(value: { _ in counter += 1 })
+					.observeValues { value in
+						// The observer is attached before `value` is recursively sent,
+						// and therefore it must see `value`.
+						output.observeValues { _ in counter2 += 1 }
+						input.send(value: value)
+					}
+
+				expect(counter) == 0
+				expect(counter2) == 0
+				input.send(value: 0)
+
+				expect(counter) == 5
+				expect(counter2) == 5 + 4 + 3 + 2 + 1
+			}
+
+			it("should be aware of new observers, while respecting the program order") {
+				let (output, input) = Signal<Int, NoError>.pipe()
+				var counter = 0
+				var counter2 = 0
+
+				output
+					.take(first: 5)
+					.on(value: { _ in counter += 1 })
+					.observeValues { value in
+						input.send(value: value)
+
+						// The observer is attached after `value` is recursively sent,
+						// and therefore it must not see `value`.
+						output.observeValues { _ in counter2 += 1 }
+					}
+
+				expect(counter) == 0
+				expect(counter2) == 0
+				input.send(value: 0)
+
+				expect(counter) == 5
+				expect(counter2) == 4 + 3 + 2 + 1
+			}
+		}
+
 		describe("interruption") {
 			it("should not send events after sending an interrupted event") {
 				let queue: DispatchQueue
