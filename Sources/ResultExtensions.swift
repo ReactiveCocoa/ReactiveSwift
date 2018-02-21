@@ -11,3 +11,9 @@ import Result
 internal func materialize<T>(_ f: () throws -> T) -> Result<T, AnyError> {
 	return materialize(try f())
 }
+
+extension Result: SignalProducerConvertible {
+	public var producer: SignalProducer<Value, Error> {
+		return .init(result: self)
+	}
+}
