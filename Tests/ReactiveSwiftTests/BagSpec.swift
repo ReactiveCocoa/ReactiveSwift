@@ -50,5 +50,23 @@ class BagSpec: QuickSpec {
 			expect(bag).toNot(contain("bar"))
 			expect(bag).toNot(contain("buzz"))
 		}
+		
+		it("should create bag with initial values") {
+			let values = ["foo", "bar", "buzz"]
+			var bag = Bag(values)
+
+			let a = bag.insert("fuzz")
+
+			expect(bag).to(contain("foo"))
+			expect(bag).to(contain("bar"))
+			expect(bag).to(contain("buzz"))
+			expect(bag).to(contain("fuzz"))
+
+			bag.remove(using: a)
+			expect(bag).to(contain("foo"))
+			expect(bag).to(contain("bar"))
+			expect(bag).to(contain("buzz"))
+			expect(bag).toNot(contain("fuzz"))
+		}
 	}
 }

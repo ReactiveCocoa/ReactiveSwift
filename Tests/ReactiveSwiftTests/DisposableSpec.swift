@@ -81,6 +81,24 @@ class DisposableSpec: QuickSpec {
 				disposable.dispose()
 				expect(simpleDisposable.isDisposed) == false
 			}
+			
+			it("should create with initial disposables") {
+				let disposable1 = AnyDisposable()
+				let disposable2 = AnyDisposable()
+				let disposable3 = AnyDisposable()
+
+				let compositeDisposable = CompositeDisposable([disposable1, disposable2, disposable3])
+
+				expect(disposable1.isDisposed) == false
+				expect(disposable2.isDisposed) == false
+				expect(disposable3.isDisposed) == false
+
+				compositeDisposable.dispose()
+				
+				expect(disposable1.isDisposed) == true
+				expect(disposable2.isDisposed) == true
+				expect(disposable3.isDisposed) == true
+			}
 		}
 
 		describe("ScopedDisposable") {
