@@ -138,12 +138,7 @@ public final class CompositeDisposable: Disposable {
 	///   - disposables: A collection of objects conforming to the `Disposable`
 	///                  protocol
 	public init<S: Sequence>(_ disposables: S) where S.Iterator.Element == Disposable {
-		var bag: Bag<Disposable> = Bag()
-
-		for disposable in disposables {
-			bag.insert(disposable)
-		}
-
+		let bag = Bag(disposables)
 		self.disposables = Atomic(bag)
 		self.state = UnsafeAtomicState(.active)
 	}
