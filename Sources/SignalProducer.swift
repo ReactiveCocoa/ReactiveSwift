@@ -2127,8 +2127,8 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
-	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, Error> {
-		return _then(replacement.promoteError(Error.self))
+	public func then<U, Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<U, Error> where Replacement.Value == U, Replacement.Error == NoError {
+		return _then(replacement.producer.promoteError(Error.self))
 	}
 
 	/// Wait for completion of `self`, *then* forward all events from
@@ -2143,7 +2143,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
-	public func then<U>(_ replacement: SignalProducer<U, Error>) -> SignalProducer<U, Error> {
+	public func then<U, Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<U, Error> where Replacement.Value == U, Replacement.Error == Error {
 		return _then(replacement)
 	}
 
@@ -2162,7 +2162,7 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
-	public func then(_ replacement: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+	public func then<Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<Value, Error> where Replacement.Value == Value, Replacement.Error == Error {
 		return _then(replacement)
 	}
 
@@ -2170,7 +2170,7 @@ extension SignalProducer {
 	//       prefix is added to avoid self referencing in `then(_:)` overloads with
 	//       regard to the most specific rule of overload selection in Swift.
 
-	internal func _then<U>(_ replacement: SignalProducer<U, Error>) -> SignalProducer<U, Error> {
+	internal func _then<U, Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<U, Error> where Replacement.Value == U, Replacement.Error == Error {
 		return SignalProducer<U, Error> { observer, lifetime in
 			self.startWithSignal { signal, signalDisposable in
 				lifetime += signalDisposable
@@ -2180,7 +2180,7 @@ extension SignalProducer {
 					case let .failed(error):
 						observer.send(error: error)
 					case .completed:
-						lifetime += replacement.start(observer)
+						lifetime += replacement.producer.start(observer)
 					case .interrupted:
 						observer.sendInterrupted()
 					case .value:
@@ -2203,7 +2203,7 @@ extension SignalProducer where Error == NoError {
 	///
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
-	public func then<U, NewError>(_ replacement: SignalProducer<U, NewError>) -> SignalProducer<U, NewError> {
+	public func then<U, NewError, Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<U, NewError> where Replacement.Value == U, Replacement.Error == NewError {
 		return promoteError(NewError.self)._then(replacement)
 	}
 
@@ -2220,7 +2220,21 @@ extension SignalProducer where Error == NoError {
 	///
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
-	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, NoError> {
+	public func then<U, Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<U, NoError> where Replacement.Value == U, Replacement.Error == NoError {
+		return _then(replacement)
+	}
+	
+	/// Wait for completion of `self`, *then* forward all events from
+	/// `replacement`.
+	///
+	/// - note: All values sent from `self` are ignored.
+	///
+	/// - parameters:
+	///   - replacement: A producer to start when `self` completes.
+	///
+	/// - returns: A producer that sends events from `self` and then from
+	///            `replacement` when `self` completes.
+	public func then<Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<Value, NoError> where Replacement.Value == Value, Replacement.Error == NoError {
 		return _then(replacement)
 	}
 }
