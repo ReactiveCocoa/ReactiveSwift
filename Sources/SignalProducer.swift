@@ -1095,7 +1095,7 @@ extension SignalProducer {
 	///   - other: A producer to merge `self`'s value with.
 	///
 	/// - returns: A producer that sends all values of `self` and given producer.
-	public func merge(with other: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+	public func merge<Other: SignalProducerConvertible>(with other: Other) -> SignalProducer<Value, Error> where Other.Value == Value, Other.Error == Error {
 		return SignalProducer.merge(self, other)
 	}
 
