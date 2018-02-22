@@ -509,21 +509,11 @@ public final class Property<Value>: PropertyProtocol {
 	///   - initial: Starting value for the property.
 	///   - values: A producer that will start immediately and send values to
 	///             the property.
-	public convenience init(initial: Value, then values: SignalProducer<Value, NoError>) {
+	public convenience init<Values: SignalProducerConvertible>(initial: Value, then values: Values) where Values.Value == Value, Values.Error == NoError {
 		self.init(unsafeProducer: SignalProducer { observer, lifetime in
 			observer.send(value: initial)
-			lifetime += values.start(Signal.Observer(mappingInterruptedToCompleted: observer))
+			lifetime += values.producer.start(Signal.Observer(mappingInterruptedToCompleted: observer))
 		})
-	}
-
-	/// Initialize a composed property that first takes on `initial`, then each
-	/// value sent on `signal`.
-	///
-	/// - parameters:
-	///   - initialValue: Starting value for the property.
-	///   - values: A signal that will send values to the property.
-	public convenience init(initial: Value, then values: Signal<Value, NoError>) {
-		self.init(initial: initial, then: SignalProducer(values))
 	}
 
 	/// Initialize a composed property from a producer that promises to send
@@ -606,18 +596,8 @@ extension Property where Value: OptionalProtocol {
 	///   - initial: Starting value for the property.
 	///   - values: A producer that will start immediately and send values to
 	///             the property.
-	public convenience init(initial: Value, then values: SignalProducer<Value.Wrapped, NoError>) {
-		self.init(initial: initial, then: values.map(Value.init(reconstructing:)))
-	}
-
-	/// Initialize a composed property that first takes on `initial`, then each
-	/// value sent on `signal`.
-	///
-	/// - parameters:
-	///   - initialValue: Starting value for the property.
-	///   - values: A signal that will send values to the property.
-	public convenience init(initial: Value, then values: Signal<Value.Wrapped, NoError>) {
-		self.init(initial: initial, then: SignalProducer(values))
+	public convenience init<Values: SignalProducerConvertible>(initial: Value, then values: Values) where Values.Value == Value.Wrapped, Values.Error == NoError {
+		self.init(initial: initial, then: values.producer.map(Value.init(reconstructing:)))
 	}
 }
 
