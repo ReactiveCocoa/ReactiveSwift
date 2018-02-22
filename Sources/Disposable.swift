@@ -158,10 +158,12 @@ public final class CompositeDisposable: Disposable {
 	}
 
 	public func dispose() {
-		guard state.tryDispose(), let disposables = disposables.swap(nil) else { return }
+		guard state.tryDispose() else { return }
 
-		for disposable in disposables {
-			disposable.dispose()
+		if let disposables = disposables.swap(nil) {
+			for disposable in disposables {
+				disposable.dispose()
+			}
 		}
 	}
 
