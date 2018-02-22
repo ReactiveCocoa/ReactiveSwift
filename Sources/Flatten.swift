@@ -382,8 +382,8 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that will start `self` and then on completion of
 	///            `self` - will start `next`.
-	public func concat(_ next: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return SignalProducer<SignalProducer<Value, Error>, Error>([ self.producer, next ]).flatten(.concat)
+	public func concat<Next: SignalProducerConvertible>(_ next: Next) -> SignalProducer<Value, Error> where Next.Value == Value, Next.Error == Error {
+		return SignalProducer<SignalProducer<Value, Error>, Error>([ self, next.producer ]).flatten(.concat)
 	}
 
 	/// `concat`s `value` onto `self`.
@@ -415,8 +415,8 @@ extension SignalProducer {
 	///
 	/// - returns: A signal producer that, when started, first emits values from
     ///            `previous` producer and then from `self`.
-	public func prefix(_ previous: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return previous.concat(self)
+	public func prefix<Previous: SignalProducerConvertible>(_ previous: Previous) -> SignalProducer<Value, Error> where Previous.Value == Value, Previous.Error == Error {
+		return previous.producer.concat(self)
 	}
 
 	/// `concat`s `self` onto initial `value`.
@@ -893,19 +893,22 @@ extension Signal {
 	/// - parameters:
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
-	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> Signal<Value, F> {
+	public func flatMapError<F, Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> Signal<Value, F> where Inner.Value == Value, Inner.Error == F {
 		return Signal<Value, F> { observer, lifetime in
 			lifetime += self.observeFlatMapError(transform, observer, SerialDisposable())
 		}
 	}
 
-	fileprivate func observeFlatMapError<F>(_ handler: @escaping (Error) -> SignalProducer<Value, F>, _ observer: Signal<Value, F>.Observer, _ serialDisposable: SerialDisposable) -> Disposable? {
+	fileprivate func observeFlatMapError<F, Inner: SignalProducerConvertible>(
+		_ handler: @escaping (Error) -> Inner,
+		_ observer: Signal<Value, F>.Observer,
+		_ serialDisposable: SerialDisposable) -> Disposable? where Inner.Value == Value, Inner.Error == F {
 		return self.observe { event in
 			switch event {
 			case let .value(value):
 				observer.send(value: value)
 			case let .failed(error):
-				handler(error).startWithSignal { signal, disposable in
+				handler(error).producer.startWithSignal { signal, disposable in
 					serialDisposable.inner = disposable
 					signal.observe(observer)
 				}
@@ -925,7 +928,7 @@ extension SignalProducer {
 	/// - parameters:
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
-	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> SignalProducer<Value, F> {
+	public func flatMapError<F, Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> SignalProducer<Value, F> where Inner.Value == Value, Inner.Error == F {
 		return SignalProducer<Value, F> { observer, lifetime in
 			let serialDisposable = SerialDisposable()
 			lifetime += serialDisposable

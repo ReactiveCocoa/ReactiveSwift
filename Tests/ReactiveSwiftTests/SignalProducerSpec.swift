@@ -3012,7 +3012,7 @@ class SignalProducerSpec: QuickSpec {
 					.combineLatest(SignalProducer<Int, NoError>.never.promoteError(),
 					               SignalProducer<Double, TestError>.never,
 					               SignalProducer<Float, NoError>.never.promoteError(),
-					               SignalProducer<UInt, POSIXError>.never.flatMapError { _ in .empty })
+					               SignalProducer<UInt, POSIXError>.never.flatMapError { _ in SignalProducer.empty })
 
 				expect(combined is SignalProducer<(Int, Double, Float, UInt), TestError>) == true
 			}
