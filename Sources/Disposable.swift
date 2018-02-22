@@ -33,7 +33,6 @@ extension UnsafeAtomicState where State == DisposableState {
 	///
 	/// - returns: `true` if the transition succeeds. `false` otherwise.
 	@inline(__always)
-	@discardableResult
 	fileprivate func tryDispose() -> Bool {
 		return tryTransition(from: .active, to: .disposed)
 	}
@@ -48,7 +47,7 @@ internal final class _SimpleDisposable: Disposable {
 	}
 
 	func dispose() {
-		state.tryDispose()
+		_ = state.tryDispose()
 	}
 
 	deinit {
