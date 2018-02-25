@@ -1075,8 +1075,8 @@ extension Signal {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func withLatest<U, Samplee: SignalProducerConvertible>(from samplee: Samplee) -> Signal<(Value, U), Error> where Samplee.Value == U, Samplee.Error == NoError {
-		return Signal<(Value, U), Error> { observer, lifetime in
+	public func withLatest<Samplee: SignalProducerConvertible>(from samplee: Samplee) -> Signal<(Value, Samplee.Value), Error> where Samplee.Error == NoError {
+		return Signal<(Value, Samplee.Value), Error> { observer, lifetime in
 			samplee.producer.startWithSignal { signal, disposable in
 				lifetime += disposable
 				lifetime += self.withLatest(from: signal).observe(observer)
