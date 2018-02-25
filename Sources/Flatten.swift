@@ -928,16 +928,16 @@ extension Signal {
 	/// - parameters:
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
-	public func flatMapError<F, Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> Signal<Value, F> where Inner.Value == Value, Inner.Error == F {
-		return Signal<Value, F> { observer, lifetime in
+	public func flatMapError<Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> Signal<Value, Inner.Error> where Inner.Value == Value {
+		return Signal<Value, Inner.Error> { observer, lifetime in
 			lifetime += self.observeFlatMapError(transform, observer, SerialDisposable())
 		}
 	}
 
-	fileprivate func observeFlatMapError<F, Inner: SignalProducerConvertible>(
+	fileprivate func observeFlatMapError<Inner: SignalProducerConvertible>(
 		_ handler: @escaping (Error) -> Inner,
-		_ observer: Signal<Value, F>.Observer,
-		_ serialDisposable: SerialDisposable) -> Disposable? where Inner.Value == Value, Inner.Error == F {
+		_ observer: Signal<Value, Inner.Error>.Observer,
+		_ serialDisposable: SerialDisposable) -> Disposable? where Inner.Value == Value {
 		return self.observe { event in
 			switch event {
 			case let .value(value):
@@ -963,8 +963,8 @@ extension SignalProducer {
 	/// - parameters:
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
-	public func flatMapError<F, Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> SignalProducer<Value, F> where Inner.Value == Value, Inner.Error == F {
-		return SignalProducer<Value, F> { observer, lifetime in
+	public func flatMapError<Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> SignalProducer<Value, Inner.Error> where Inner.Value == Value {
+		return SignalProducer<Value, Inner.Error> { observer, lifetime in
 			let serialDisposable = SerialDisposable()
 			lifetime += serialDisposable
 
