@@ -3230,7 +3230,7 @@ class SignalSpec: QuickSpec {
 					.combineLatest(Signal<Int, NoError>.never.promoteError(),
 					               Signal<Double, TestError>.never,
 					               Signal<Float, NoError>.never.promoteError(),
-					               Signal<UInt, POSIXError>.never.flatMapError { _ in SignalProducer.empty })
+					               Signal<UInt, POSIXError>.never.flatMapError { _ in .empty })
 
 				expect(combined is Signal<(Int, Double, Float, UInt), TestError>) == true
 			}

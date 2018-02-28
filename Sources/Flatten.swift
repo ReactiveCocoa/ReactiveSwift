@@ -928,10 +928,20 @@ extension Signal {
 	/// - parameters:
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
-	public func flatMapError<Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> Signal<Value, Inner.Error> where Inner.Value == Value {
-		return Signal<Value, Inner.Error> { observer, lifetime in
+	public func flatMapError<NewError>(_ transform: @escaping (Error) -> SignalProducer<Value, NewError>) -> Signal<Value, NewError> {
+		return Signal<Value, NewError> { observer, lifetime in
 			lifetime += self.observeFlatMapError(transform, observer, SerialDisposable())
 		}
+	}
+	
+	/// Catches any failure that may occur on the input signal, mapping to a new
+	/// producer that starts in its place.
+	///
+	/// - parameters:
+	///   - transform: A closure that accepts emitted error and returns a signal
+	///                producer with a different type of error.
+	public func flatMapError<Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> Signal<Value, Inner.Error> where Inner.Value == Value {
+		return flatMapError { transform($0).producer }
 	}
 
 	fileprivate func observeFlatMapError<Inner: SignalProducerConvertible>(
@@ -963,8 +973,8 @@ extension SignalProducer {
 	/// - parameters:
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
-	public func flatMapError<Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> SignalProducer<Value, Inner.Error> where Inner.Value == Value {
-		return SignalProducer<Value, Inner.Error> { observer, lifetime in
+	public func flatMapError<NewError>(_ transform: @escaping (Error) -> SignalProducer<Value, NewError>) -> SignalProducer<Value, NewError> {
+		return SignalProducer<Value, NewError> { observer, lifetime in
 			let serialDisposable = SerialDisposable()
 			lifetime += serialDisposable
 
@@ -974,5 +984,15 @@ extension SignalProducer {
 				_ = signal.observeFlatMapError(transform, observer, serialDisposable)
 			}
 		}
+	}
+	
+	/// Catches any failure that may occur on the input producer, mapping to a
+	/// new producer that starts in its place.
+	///
+	/// - parameters:
+	///   - transform: A closure that accepts emitted error and returns a signal
+	///                producer with a different type of error.
+	public func flatMapError<Inner: SignalProducerConvertible>(_ transform: @escaping (Error) -> Inner) -> SignalProducer<Value, Inner.Error> where Inner.Value == Value {
+		return flatMapError { transform($0).producer }
 	}
 }

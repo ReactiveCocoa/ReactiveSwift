@@ -2855,8 +2855,8 @@ class SignalProducerSpec: QuickSpec {
 			describe("init(values) ambiguity") {
 				it("should not be a SignalProducer<SignalProducer<Int, NoError>, NoError>") {
 
-					let producer1: SignalProducer<Int, NoError> = SignalProducer.empty
-					let producer2: SignalProducer<Int, NoError> = SignalProducer.empty
+					let producer1: SignalProducer<Int, NoError> = .empty
+					let producer2: SignalProducer<Int, NoError> = .empty
 
 					// This expression verifies at compile time that the type is as expected.
 					let _: SignalProducer<Int, NoError> = SignalProducer([producer1, producer2])
@@ -3012,7 +3012,7 @@ class SignalProducerSpec: QuickSpec {
 					.combineLatest(SignalProducer<Int, NoError>.never.promoteError(),
 					               SignalProducer<Double, TestError>.never,
 					               SignalProducer<Float, NoError>.never.promoteError(),
-					               SignalProducer<UInt, POSIXError>.never.flatMapError { _ in SignalProducer.empty })
+					               SignalProducer<UInt, POSIXError>.never.flatMapError { _ in .empty })
 
 				expect(combined is SignalProducer<(Int, Double, Float, UInt), TestError>) == true
 			}
