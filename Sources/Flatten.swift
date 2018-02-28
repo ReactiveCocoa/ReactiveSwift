@@ -514,15 +514,50 @@ extension SignalProducer {
 	{
 		return SignalProducer<Seq.Iterator.Element, NoError>(producers).flatten(.merge)
 	}
-	
-	/// Merges the given producers into a single `SignalProducer` that will emit
-	/// all values from each of them, and complete when all of them have
-	/// completed.
-	///
-	/// - parameters:
-	///   - producers: A sequence of producers to merge.
-	public static func merge(_ producers: SignalProducer<Value, Error>...) -> SignalProducer<Value, Error> {
-		return SignalProducer.merge(producers)
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible>(_ a: A, _ b: B) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer])
+	}
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error, C.Value == Value, C.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer, c.producer])
+	}
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error, C.Value == Value, C.Error == Error, D.Value == Value, D.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer, c.producer, d.producer])
+	}
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error, C.Value == Value, C.Error == Error, D.Value == Value, D.Error == Error, E.Value == Value, E.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer, c.producer, d.producer, e.producer])
+	}
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error, C.Value == Value, C.Error == Error, D.Value == Value, D.Error == Error, E.Value == Value, E.Error == Error, F.Value == Value, F.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer, c.producer, d.producer, e.producer, f.producer])
+	}
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error, C.Value == Value, C.Error == Error, D.Value == Value, D.Error == Error, E.Value == Value, E.Error == Error, F.Value == Value, F.Error == Error, G.Value == Value, G.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer])
+	}
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error, C.Value == Value, C.Error == Error, D.Value == Value, D.Error == Error, E.Value == Value, E.Error == Error, F.Value == Value, F.Error == Error, G.Value == Value, G.Error == Error, H.Value == Value, H.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer])
+	}
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible, I: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error, C.Value == Value, C.Error == Error, D.Value == Value, D.Error == Error, E.Value == Value, E.Error == Error, F.Value == Value, F.Error == Error, G.Value == Value, G.Error == Error, H.Value == Value, H.Error == Error, I.Value == Value, I.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer, i.producer])
+	}
+
+	/// Merge the values of all the given producers, in the manner described by `merge(_:)`.
+	public static func merge<A: SignalProducerConvertible, B: SignalProducerConvertible, C: SignalProducerConvertible, D: SignalProducerConvertible, E: SignalProducerConvertible, F: SignalProducerConvertible, G: SignalProducerConvertible, H: SignalProducerConvertible, I: SignalProducerConvertible, J: SignalProducerConvertible>(_ a: A, _ b: B, _ c: C, _ d: D, _ e: E, _ f: F, _ g: G, _ h: H, _ i: I, _ j: J) -> SignalProducer<Value, Error> where A.Value == Value, A.Error == Error, B.Value == Value, B.Error == Error, C.Value == Value, C.Error == Error, D.Value == Value, D.Error == Error, E.Value == Value, E.Error == Error, F.Value == Value, F.Error == Error, G.Value == Value, G.Error == Error, H.Value == Value, H.Error == Error, I.Value == Value, I.Error == Error, J.Value == Value, J.Error == Error {
+		return SignalProducer.merge([a.producer, b.producer, c.producer, d.producer, e.producer, f.producer, g.producer, h.producer, i.producer, j.producer])
 	}
 }
 
