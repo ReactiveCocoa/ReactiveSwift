@@ -811,8 +811,23 @@ extension Signal {
 	///	  - strategy: Strategy used when flattening signals.
 	///   - transform: A closure that takes a value emitted by `self` and
 	///                returns a signal producer with transformed value.
-	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> Signal<Inner.Value, Error> where Inner.Error == Error {
+	public func flatMap<U>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, Error>) -> Signal<U, Error>{
 		return map(transform).flatten(strategy)
+	}
+
+	/// Maps each event from `signal` to a new signal, then flattens the
+	/// resulting producers (into a signal of values), according to the
+	/// semantics of the given strategy.
+	///
+	/// - warning: If `signal` or any of the created producers fail, the
+	///            returned signal will forward that failure immediately.
+	///
+	/// - parameters:
+	///	  - strategy: Strategy used when flattening signals.
+	///   - transform: A closure that takes a value emitted by `self` and
+	///                returns a signal producer with transformed value.
+	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> Signal<Inner.Value, Error> where Inner.Error == Error {
+		return flatMap(strategy) { transform($0).producer }
 	}
 
 	/// Maps each event from `signal` to a new signal, then flattens the
@@ -826,8 +841,23 @@ extension Signal {
 	///	  - strategy: Strategy used when flattening signals.
 	///   - transform: A closure that takes a value emitted by `self` and
 	///                returns a signal producer with transformed value.
-	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> Signal<Inner.Value, Error> where Inner.Error == NoError {
+	public func flatMap<U>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, NoError>) -> Signal<U, Error> {
 		return map(transform).flatten(strategy)
+	}
+	
+	/// Maps each event from `signal` to a new signal, then flattens the
+	/// resulting producers (into a signal of values), according to the
+	/// semantics of the given strategy.
+	///
+	/// - warning: If `signal` fails, the returned signal will forward that
+	///            failure immediately.
+	///
+	/// - parameters:
+	///	  - strategy: Strategy used when flattening signals.
+	///   - transform: A closure that takes a value emitted by `self` and
+	///                returns a signal producer with transformed value.
+	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> Signal<Inner.Value, Error> where Inner.Error == NoError {
+		return flatMap(strategy) { transform($0).producer }
 	}
 }
 
@@ -843,7 +873,34 @@ extension Signal where Error == NoError {
 	///	  - strategy: Strategy used when flattening signals.
 	///   - transform: A closure that takes a value emitted by `self` and
 	///                returns a signal producer with transformed value.
+	public func flatMap<U, F>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, F>) -> Signal<U, F> {
+		return map(transform).flatten(strategy)
+	}
+
+	/// Maps each event from `signal` to a new signal, then flattens the
+	/// resulting signals (into a signal of values), according to the
+	/// semantics of the given strategy.
+	///
+	/// - warning: If any of the created signals emit an error, the returned
+	///            signal will forward that error immediately.
+	///
+	/// - parameters:
+	///	  - strategy: Strategy used when flattening signals.
+	///   - transform: A closure that takes a value emitted by `self` and
+	///                returns a signal producer with transformed value.
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> Signal<Inner.Value, Inner.Error> {
+		return flatMap(strategy) { transform($0).producer }
+	}
+
+	/// Maps each event from `signal` to a new signal, then flattens the
+	/// resulting signals (into a signal of values), according to the
+	/// semantics of the given strategy.
+	///
+	/// - parameters:
+	///	  - strategy: Strategy used when flattening signals.
+	///   - transform: A closure that takes a value emitted by `self` and
+	///                returns a signal producer with transformed value.
+	public func flatMap<U>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, NoError>) -> Signal<U, NoError> {
 		return map(transform).flatten(strategy)
 	}
 
@@ -856,7 +913,7 @@ extension Signal where Error == NoError {
 	///   - transform: A closure that takes a value emitted by `self` and
 	///                returns a signal producer with transformed value.
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> Signal<Inner.Value, NoError> where Inner.Error == NoError {
-		return map(transform).flatten(strategy)
+		return flatMap(strategy) { transform($0).producer }
 	}
 }
 
@@ -872,7 +929,37 @@ extension SignalProducer {
 	///	  - strategy: Strategy used when flattening signals.
 	///   - transform: A closure that takes a value emitted by `self` and
 	///                returns a signal producer with transformed value.
+	public func flatMap<U>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, Error>) -> SignalProducer<U, Error> {
+		return map(transform).flatten(strategy)
+	}
+
+	/// Maps each event from `self` to a new producer, then flattens the
+	/// resulting producers (into a producer of values), according to the
+	/// semantics of the given strategy.
+	///
+	/// - warning: If `self` or any of the created producers fail, the returned
+	///            producer will forward that failure immediately.
+	///
+	/// - parameters:
+	///	  - strategy: Strategy used when flattening signals.
+	///   - transform: A closure that takes a value emitted by `self` and
+	///                returns a signal producer with transformed value.
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> SignalProducer<Inner.Value, Error> where Inner.Error == Error {
+		return flatMap(strategy) { transform($0).producer }
+	}
+
+	/// Maps each event from `self` to a new producer, then flattens the
+	/// resulting producers (into a producer of values), according to the
+	/// semantics of the given strategy.
+	///
+	/// - warning: If `self` fails, the returned producer will forward that
+	///            failure immediately.
+	///
+	/// - parameters:
+	///	  - strategy: Strategy used when flattening signals.
+	///   - transform: A closure that takes a value emitted by `self` and
+	///                returns a signal producer with transformed value.
+	public func flatMap<U>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, NoError>) -> SignalProducer<U, Error> {
 		return map(transform).flatten(strategy)
 	}
 
@@ -888,7 +975,7 @@ extension SignalProducer {
 	///   - transform: A closure that takes a value emitted by `self` and
 	///                returns a signal producer with transformed value.
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> SignalProducer<Inner.Value, Error> where Inner.Error == NoError {
-		return map(transform).flatten(strategy)
+		return flatMap(strategy) { transform($0).producer }
 	}
 }
 
@@ -901,7 +988,34 @@ extension SignalProducer where Error == NoError {
 	///	  - strategy: Strategy used when flattening signals.
 	///   - transform: A closure that takes a value emitted by `self` and
 	///                returns a signal producer with transformed value.
+	public func flatMap<U>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, Error>) -> SignalProducer<U, Error> {
+		return map(transform).flatten(strategy)
+	}
+
+	/// Maps each event from `self` to a new producer, then flattens the
+	/// resulting producers (into a producer of values), according to the
+	/// semantics of the given strategy.
+	///
+	/// - parameters:
+	///	  - strategy: Strategy used when flattening signals.
+	///   - transform: A closure that takes a value emitted by `self` and
+	///                returns a signal producer with transformed value.
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> SignalProducer<Inner.Value, Error> where Inner.Error == Error {
+		return flatMap(strategy) { transform($0).producer }
+	}
+
+	/// Maps each event from `self` to a new producer, then flattens the
+	/// resulting producers (into a producer of values), according to the
+	/// semantics of the given strategy.
+	///
+	/// - warning: If any of the created producers fail, the returned producer
+	///            will forward that failure immediately.
+	///
+	/// - parameters:
+	///	  - strategy: Strategy used when flattening signals.
+	///   - transform: A closure that takes a value emitted by `self` and
+	///                returns a signal producer with transformed value.
+	public func flatMap<U, F>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, F>) -> SignalProducer<U, F> {
 		return map(transform).flatten(strategy)
 	}
 
@@ -917,7 +1031,7 @@ extension SignalProducer where Error == NoError {
 	///   - transform: A closure that takes a value emitted by `self` and
 	///                returns a signal producer with transformed value.
 	public func flatMap<Inner: SignalProducerConvertible>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> Inner) -> SignalProducer<Inner.Value, Inner.Error> {
-		return map(transform).flatten(strategy)
+		return flatMap(strategy) { transform($0).producer }
 	}
 }
 
@@ -928,12 +1042,12 @@ extension Signal {
 	/// - parameters:
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
-	public func flatMapError<NewError>(_ transform: @escaping (Error) -> SignalProducer<Value, NewError>) -> Signal<Value, NewError> {
-		return Signal<Value, NewError> { observer, lifetime in
+	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> Signal<Value, F> {
+		return Signal<Value, F> { observer, lifetime in
 			lifetime += self.observeFlatMapError(transform, observer, SerialDisposable())
 		}
 	}
-	
+
 	/// Catches any failure that may occur on the input signal, mapping to a new
 	/// producer that starts in its place.
 	///
@@ -973,8 +1087,8 @@ extension SignalProducer {
 	/// - parameters:
 	///   - transform: A closure that accepts emitted error and returns a signal
 	///                producer with a different type of error.
-	public func flatMapError<NewError>(_ transform: @escaping (Error) -> SignalProducer<Value, NewError>) -> SignalProducer<Value, NewError> {
-		return SignalProducer<Value, NewError> { observer, lifetime in
+	public func flatMapError<F>(_ transform: @escaping (Error) -> SignalProducer<Value, F>) -> SignalProducer<Value, F> {
+		return SignalProducer<Value, F> { observer, lifetime in
 			let serialDisposable = SerialDisposable()
 			lifetime += serialDisposable
 
@@ -985,7 +1099,7 @@ extension SignalProducer {
 			}
 		}
 	}
-	
+
 	/// Catches any failure that may occur on the input producer, mapping to a
 	/// new producer that starts in its place.
 	///
