@@ -382,8 +382,19 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that will start `self` and then on completion of
 	///            `self` - will start `next`.
+	public func concat(_ next: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return SignalProducer<SignalProducer<Value, Error>, Error>([ self, next ]).flatten(.concat)
+	}
+	
+	/// `concat`s `next` onto `self`.
+	///
+	/// - parameters:
+	///   - next: A follow-up producer to concat `self` with.
+	///
+	/// - returns: A producer that will start `self` and then on completion of
+	///            `self` - will start `next`.
 	public func concat<Next: SignalProducerConvertible>(_ next: Next) -> SignalProducer<Value, Error> where Next.Value == Value, Next.Error == Error {
-		return SignalProducer<SignalProducer<Value, Error>, Error>([ self, next.producer ]).flatten(.concat)
+		return concat(next.producer)
 	}
 
 	/// `concat`s `value` onto `self`.
@@ -407,6 +418,17 @@ extension SignalProducer {
 	public func concat(error: Error) -> SignalProducer<Value, Error> {
 		return self.concat(SignalProducer(error: error))
 	}
+	
+	/// `concat`s `self` onto initial `previous`.
+	///
+	/// - parameters:
+	///   - previous: A producer to start before `self`.
+	///
+	/// - returns: A signal producer that, when started, first emits values from
+	///            `previous` producer and then from `self`.
+	public func prefix(_ previous: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return previous.concat(self)
+	}
 
 	/// `concat`s `self` onto initial `previous`.
 	///
@@ -416,7 +438,7 @@ extension SignalProducer {
 	/// - returns: A signal producer that, when started, first emits values from
     ///            `previous` producer and then from `self`.
 	public func prefix<Previous: SignalProducerConvertible>(_ previous: Previous) -> SignalProducer<Value, Error> where Previous.Value == Value, Previous.Error == Error {
-		return previous.producer.concat(self)
+		return prefix(previous.producer)
 	}
 
 	/// `concat`s `self` onto initial `value`.
