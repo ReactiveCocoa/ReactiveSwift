@@ -2635,6 +2635,17 @@ extension SignalProducer where Value == Bool {
 	public func negate() -> SignalProducer<Value, Error> {
 		return map(!)
 	}
+	
+	/// Create a producer that computes a logical AND between the latest values of `self`
+	/// and `producer`.
+	///
+	/// - parameters:
+	///   - booleans: A producer of booleans to be combined with `self`.
+	///
+	/// - returns: A producer that emits the logical AND results.
+	public func and(_ booleans: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return combineLatest(with: booleans).map { $0.0 && $0.1 }
+	}
 
 	/// Create a producer that computes a logical AND between the latest values of `self`
 	/// and `producer`.
@@ -2644,7 +2655,18 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical AND results.
 	public func and<Booleans: SignalProducerConvertible>(_ booleans: Booleans) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error {
-		return combineLatest(with: booleans).map { $0.0 && $0.1 }
+		return and(booleans.producer)
+	}
+
+	/// Create a producer that computes a logical OR between the latest values of `self`
+	/// and `producer`.
+	///
+	/// - parameters:
+	///   - booleans: A producer of booleans to be combined with `self`.
+	///
+	/// - returns: A producer that emits the logical OR results.
+	public func or(_ booleans: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+		return combineLatest(with: booleans).map { $0.0 || $0.1 }
 	}
 
 	/// Create a producer that computes a logical OR between the latest values of `self`
@@ -2655,7 +2677,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical OR results.
 	public func or<Booleans: SignalProducerConvertible>(_ booleans: Booleans) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error {
-		return combineLatest(with: booleans).map { $0.0 || $0.1 }
+		return or(booleans.producer)
 	}
 }
 
