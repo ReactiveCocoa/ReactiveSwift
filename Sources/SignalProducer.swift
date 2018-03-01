@@ -1108,7 +1108,7 @@ extension SignalProducer {
 	public func combineLatest<Other: SignalProducerConvertible>(with other: Other) -> SignalProducer<(Value, Other.Value), Error> where Other.Error == Error {
 		return combineLatest(with: other.producer)
 	}
-	
+
 	/// Merge the given producer into a single `SignalProducer` that will emit all
 	/// values from both of them, and complete when all of them have completed.
 	///
@@ -1119,7 +1119,7 @@ extension SignalProducer {
 	public func merge(with other: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return SignalProducer.merge(self, other)
 	}
-	
+
 	/// Merge the given producer into a single `SignalProducer` that will emit all
 	/// values from both of them, and complete when all of them have completed.
 	///
@@ -1191,7 +1191,7 @@ extension SignalProducer {
 	public func sample<U>(with sampler: SignalProducer<U, NoError>) -> SignalProducer<(Value, U), Error> {
 		return liftLeft(Signal.sample(with:))(sampler)
 	}
-	
+
 	/// Forward the latest value from `self` with the value from `sampler` as a
 	/// tuple, only when `sampler` sends a `value` event.
 	///
@@ -1209,7 +1209,7 @@ extension SignalProducer {
 	public func sample<Sampler: SignalProducerConvertible>(with sampler: Sampler) -> SignalProducer<(Value, Sampler.Value), Error> where Sampler.Error == NoError {
 		return sample(with: sampler.producer)
 	}
-	
+
 	/// Forward the latest value from `self` whenever `sampler` sends a `value`
 	/// event.
 	///
@@ -1264,7 +1264,7 @@ extension SignalProducer {
 	public func withLatest<U>(from samplee: SignalProducer<U, NoError>) -> SignalProducer<(Value, U), Error> {
 		return liftRight(Signal.withLatest)(samplee.producer)
 	}
-	
+
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
 	/// This is like a flipped version of `sample(with:)`, but `samplee`'s
@@ -1308,7 +1308,7 @@ extension SignalProducer {
 	public func take(until trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
 		return liftRight(Signal.take(until:))(trigger)
 	}
-	
+
 	/// Forward events from `self` until `trigger` sends a `value` or `completed`
 	/// event, at which point the returned producer will complete.
 	///
@@ -1335,7 +1335,7 @@ extension SignalProducer {
 	public func skip(until trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
 		return liftRight(Signal.skip(until:))(trigger)
 	}
-	
+
 	/// Do not forward any values from `self` until `trigger` sends a `value`
 	/// or `completed`, at which point the returned producer behaves exactly
 	/// like `producer`.
@@ -1488,7 +1488,7 @@ extension SignalProducer {
 	public func take(untilReplacement replacement: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return liftRight(Signal.take(untilReplacement:))(replacement)
 	}
-	
+
 	/// Forwards events from `self` until `replacement` begins sending events.
 	///
 	/// - parameters:
@@ -1539,7 +1539,7 @@ extension SignalProducer {
 	public func zip<U>(with other: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
 		return SignalProducer.zip(self, other)
 	}
-	
+
 	/// Zip elements of two producers into pairs. The elements of any Nth pair
 	/// are the Nth elements of the two input producers.
 	///
@@ -2255,7 +2255,7 @@ extension SignalProducer {
 			}
 			.retry(upTo: count)
 	}
-	
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`. Any failure or interruption sent from `self` is
 	/// forwarded immediately, in which case `replacement` will not be started,
@@ -2271,7 +2271,7 @@ extension SignalProducer {
 	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, Error> {
 		return _then(replacement.promoteError(Error.self))
 	}
-	
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`. Any failure or interruption sent from `self` is
 	/// forwarded immediately, in which case `replacement` will not be started,
@@ -2287,7 +2287,7 @@ extension SignalProducer {
 	public func then<Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<Replacement.Value, Error> where Replacement.Error == NoError {
 		return then(replacement.producer)
 	}
-	
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`. Any failure or interruption sent from `self` is
 	/// forwarded immediately, in which case `replacement` will not be started,
@@ -2338,7 +2338,7 @@ extension SignalProducer {
 	public func then(_ replacement: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return _then(replacement)
 	}
-	
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`. Any failure or interruption sent from `self` is
 	/// forwarded immediately, in which case `replacement` will not be started,
@@ -2395,7 +2395,7 @@ extension SignalProducer where Error == NoError {
 	public func then<U, F>(_ replacement: SignalProducer<U, F>) -> SignalProducer<U, F> {
 		return promoteError(F.self)._then(replacement)
 	}
-	
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`.
 	///
@@ -2426,7 +2426,7 @@ extension SignalProducer where Error == NoError {
 	public func then<U>(_ replacement: SignalProducer<U, NoError>) -> SignalProducer<U, NoError> {
 		return _then(replacement)
 	}
-	
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`.
 	///
@@ -2440,7 +2440,7 @@ extension SignalProducer where Error == NoError {
 	public func then<Replacement: SignalProducerConvertible>(_ replacement: Replacement) -> SignalProducer<Replacement.Value, NoError> where Replacement.Error == NoError {
 		return then(replacement.producer)
 	}
-	
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`.
 	///
@@ -2454,7 +2454,7 @@ extension SignalProducer where Error == NoError {
 	public func then(_ replacement: SignalProducer<Value, NoError>) -> SignalProducer<Value, NoError> {
 		return _then(replacement)
 	}
-	
+
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`.
 	///
@@ -2635,7 +2635,7 @@ extension SignalProducer where Value == Bool {
 	public func negate() -> SignalProducer<Value, Error> {
 		return map(!)
 	}
-	
+
 	/// Create a producer that computes a logical AND between the latest values of `self`
 	/// and `producer`.
 	///

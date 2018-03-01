@@ -501,7 +501,7 @@ public final class Property<Value>: PropertyProtocol {
 	public convenience init<P: PropertyProtocol>(_ property: P) where P.Value == Value {
 		self.init(unsafeProducer: property.producer)
 	}
-	
+
 	/// Initializes a composed property that first takes on `initial`, then each
 	/// value sent on a signal created by `producer`.
 	///
@@ -610,7 +610,7 @@ extension Property where Value: OptionalProtocol {
 	public convenience init(initial: Value, then values: SignalProducer<Value.Wrapped, NoError>) {
 		self.init(initial: initial, then: values.map(Value.init(reconstructing:)))
 	}
-	
+
 	/// Initializes a composed property that first takes on `initial`, then each
 	/// value sent on a signal created by `producer`.
 	///

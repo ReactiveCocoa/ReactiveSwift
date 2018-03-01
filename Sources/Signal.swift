@@ -1083,7 +1083,7 @@ extension Signal {
 			}
 		}
 	}
-	
+
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
 	/// This is like a flipped version of `sample(with:)`, but `samplee`'s

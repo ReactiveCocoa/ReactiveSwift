@@ -418,7 +418,7 @@ extension SignalProducer {
 	public func concat(error: Error) -> SignalProducer<Value, Error> {
 		return self.concat(SignalProducer(error: error))
 	}
-	
+
 	/// `concat`s `self` onto initial `previous`.
 	///
 	/// - parameters:
@@ -866,7 +866,7 @@ extension Signal {
 	public func flatMap<U>(_ strategy: FlattenStrategy, _ transform: @escaping (Value) -> SignalProducer<U, NoError>) -> Signal<U, Error> {
 		return map(transform).flatten(strategy)
 	}
-	
+
 	/// Maps each event from `signal` to a new signal, then flattens the
 	/// resulting producers (into a signal of values), according to the
 	/// semantics of the given strategy.
