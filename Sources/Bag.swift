@@ -42,7 +42,7 @@ public struct Bag<Element> {
 
 		// Practically speaking, this would overflow only if we have 101% uptime and we
 		// manage to call `insert(_:)` every 1 ns for 500+ years non-stop.
-		nextToken = Token(value: token.value + 1)
+		nextToken = Token(value: token.value &+ 1)
 
 		elements.append(value)
 		tokens.append(token.value)
@@ -81,30 +81,19 @@ extension Bag: RandomAccessCollection {
 	}
 
 	public func makeIterator() -> Iterator {
-		return Iterator(elements)
+		return Iterator(elements.makeIterator())
 	}
 
 	/// An iterator of `Bag`.
 	public struct Iterator: IteratorProtocol {
-		private let base: ContiguousArray<Element>
-		private var nextIndex: Int
-		private let endIndex: Int
+		private var base: ContiguousArray<Element>.Iterator
 
-		fileprivate init(_ base: ContiguousArray<Element>) {
+		fileprivate init(_ base: ContiguousArray<Element>.Iterator) {
 			self.base = base
-			nextIndex = base.startIndex
-			endIndex = base.endIndex
 		}
 
 		public mutating func next() -> Element? {
-			let currentIndex = nextIndex
-
-			if currentIndex < endIndex {
-				nextIndex = currentIndex + 1
-				return base[currentIndex]
-			}
-
-			return nil
+			return base.next()
 		}
 	}
 }
