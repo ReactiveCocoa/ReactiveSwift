@@ -174,37 +174,42 @@ extension Signal.Event: EventProtocol {
 	}
 }
 
-// Event Transformations
-//
-// Operators backed by event transformations have such characteristics:
-//
-// 1. Unary
-//    The operator applies to only one stream.
-//
-// 2. Serial
-//    The outcome need not be synchronously emitted, but all events must be delivered in
-//    serial order.
-//
-// 3. No side effect upon interruption.
-//    The operator must not perform any side effect upon receving `interrupted`.
-//
-// Examples of ineligible operators (for now):
-//
-// 1. `timeout`
-//    This operator forwards the `failed` event on a different scheduler.
-//
-// 2. `combineLatest`
-//    This operator applies to two or more streams.
-//
-// 3. `SignalProducer.then`
-//    This operator starts a second stream when the first stream completes.
-//
-// 4. `on`
-//    This operator performs side effect upon interruption.
-
 extension Signal.Event {
+	/// Event Transformation
+	///
+	/// Given an output sink and a upstream lifetime, an event transformation
+	/// yields an input sink which, for every event received, evaluates certain
+	/// side effects that emits zero or more events to the given output sink.
+	///
+	/// Operators are obliged to maintain:
+	///
+	/// 1. Serial event order
+	///    The outcome need not be synchronously emitted, but every event must
+	///    be delivered exclusively in serial order.
+	///
+	/// 2. No side effect upon interruption.
+	///    The operator must not perform any side effect upon receving `interrupted`.
+	///
+	/// When implementing operators with event transformations, one must
+	/// acknowledge that the output sink is not necessarily synchronized.
 	internal typealias Transformation<U, E: Swift.Error> = (@escaping Signal<U, E>.Observer.Action, Lifetime) -> Signal<Value, Error>.Observer.Action
 
+	// Examples of ineligible operators (for now):
+	//
+	// 1. `timeout`
+	//    This operator forwards the `failed` event on a different scheduler.
+	//
+	// 2. `combineLatest`
+	//    This operator applies to two or more streams.
+	//
+	// 3. `SignalProducer.then`
+	//    This operator starts a second stream when the first stream completes.
+	//
+	// 4. `on`
+	//    This operator performs side effect upon interruption.
+}
+
+extension Signal.Event {
 	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
 		return { action, _ in
 			return { event in
@@ -901,6 +906,118 @@ extension Signal.Event where Value == Never {
 				case .interrupted:
 					action(.interrupted)
 				}
+			}
+		}
+	}
+}
+
+private enum EventStreamStatus: Int32 {
+	case alive
+	case terminated
+	case terminationBlocked
+}
+
+extension Signal.Event {
+	/// Wrap the given event sink with the necessary synchronization logic so
+	/// that it satisfies the `Signal` contract, specifically the serial event
+	/// order and the support for recursively delivered terminal events.
+	///
+	/// Recursive events are disallowed for `value` events, but are permitted
+	/// for termination events. Specifically:
+	///
+	/// - `interrupted`
+	/// It can inadvertently be sent by downstream consumers as part of the
+	/// `SignalProducer` mechanics.
+	///
+	/// - `completed`
+	/// If a downstream consumer weakly references an object, invocation of
+	/// such consumer may cause a race condition with its weak retain against
+	/// the last strong release of the object. If the `Lifetime` of the
+	/// object is being referenced by an upstream `take(during:)`, a
+	/// signal recursion might occur.
+	///
+	/// So we would treat termination events specially. If it happens to
+	/// occur while the `sendLock` is acquired, the observer call-out and
+	/// the disposal would be delegated to the current sender, or
+	/// occasionally one of the senders waiting on `sendLock`.
+	///
+	/// - parameters:
+	///   - action: The event sink to be wrapped.
+	///   - disposable: The disposable to be disposed of upon termination.
+	///
+	/// - returns: A wrapped, synchronizing event sink that propagates events
+	///            to the given event sink.
+	internal static func makeSynchronizing(disposable: Disposable? = nil, action: @escaping Signal.Observer.Action) -> Signal.Observer.Action {
+		let sendLock = Lock.make()
+		let status = UnsafeAtomicState(EventStreamStatus.alive)
+		let deallocator = ScopedDisposable(AnyDisposable(status.deinitialize))
+
+		// No one loves IUO, but logically speaking it is always available when
+		// stream state is `terminationBlocked`.
+		//
+		// This variable is only write once and subsequently read once.
+		var terminalEvent: Signal.Event!
+
+		return { [deallocator] event in
+			// All `sendLock` holders for delivering values must invoke
+			// `tryToCommitTermination` after releasing the lock. This ensures
+			// the terminal event would eventually be picked up.
+			@inline(__always)
+			func tryToCommitTermination() {
+				if status.is(.terminationBlocked) && sendLock.try() {
+					// status CAS with barrier - acquire fence for `terminalEvent`.
+					let shouldTerminate = status.tryTransition(from: .terminationBlocked, to: .terminated)
+
+					if shouldTerminate {
+						action(terminalEvent)
+						_ = deallocator
+					}
+
+					sendLock.unlock()
+
+					if shouldTerminate {
+						disposable?.dispose()
+					}
+				}
+			}
+
+			if case .value = event {
+				// `value` should not lead to an `alive -> terminated`
+				// transition. So the two conditions above and below cannot be
+				// merged together as one.
+
+				// `sendLock` lock - acquire fence for `status`.
+				sendLock.lock()
+
+				// `alive` must be checked after `sendLock` so that it sees the
+				// correct status if (*1) below has acquired the lock.
+				if status.is(.alive) {
+					action(event)
+				}
+
+				sendLock.unlock()
+				tryToCommitTermination()
+			} else if status.tryTransition(from: .alive, to: .terminated) {
+				// For every terminal event, try to transition to the
+				// `terminated` state. Any terminal event coming after the
+				// successful transition is gracefully ignored.
+
+				if sendLock.try() { // (*1)
+					action(event)
+
+					// `sendLock` unlock - release fence for `status`.
+					sendLock.unlock()
+					disposable?.dispose()
+					return
+				}
+
+				terminalEvent = event
+
+				// status CAS with barrier - release fence for `terminalEvent`.
+				let succeeds = status.tryTransition(from: .terminated, to: .terminationBlocked)
+				assert(succeeds)
+
+				tryToCommitTermination()
 			}
 		}
 	}

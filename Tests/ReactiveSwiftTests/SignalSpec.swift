@@ -263,7 +263,6 @@ class SignalSpec: QuickSpec {
 		describe("interruption") {
 			it("should not send events after sending an interrupted event") {
 				let queue: DispatchQueue
-				let counter = Atomic<Int>(0)
 
 				if #available(macOS 10.10, *) {
 					queue = DispatchQueue.global(qos: .userInitiated)
@@ -271,43 +270,43 @@ class SignalSpec: QuickSpec {
 					queue = DispatchQueue.global(priority: .high)
 				}
 
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				// NOTE: Parallelising this test case would cause the issue to
+				//       subdue due to queue oversubscription.
+				for _ in 0 ..< 20 {
+					let (signal, observer) = Signal<Int, NoError>.pipe()
 
-				var hasSlept = false
-				var events: [Signal<Int, NoError>.Event] = []
+					var hasSlept = false
+					var events: [Signal<Int, NoError>.Event] = []
 
-				// Used to synchronize the `interrupt` sender to only act after the
-				// chosen observer has started sending its event, but before it is done.
-				let semaphore = DispatchSemaphore(value: 0)
+					// Used to synchronize the `interrupt` sender to only act after the
+					// chosen observer has started sending its event, but before it is done.
+					let semaphore = DispatchSemaphore(value: 0)
 
-				signal.observe { event in
-					if !hasSlept {
-						semaphore.signal()
-						// 100000 us = 0.1 s
-						usleep(100000)
-						hasSlept = true
+					signal.observe { event in
+						if !hasSlept {
+							semaphore.signal()
+							// 100000 us = 0.1 s
+							usleep(100000)
+							hasSlept = true
+						}
+						events.append(event)
 					}
-					events.append(event)
+
+					DispatchQueue.concurrentPerform(iterations: 11) { index in
+						if index < 10 {
+							observer.send(value: index)
+						} else {
+							semaphore.wait()
+							observer.sendInterrupted()
+						}
+					}
+
+					// (1 to 10 values + 1 interruption) = 2 to 11 events
+					expect(events.count) >= 2
+					expect(events.count) <= 11
+					expect(events.dropLast().contains { $0.isTerminating }) == false
+					expect(events.last?.isTerminating) == true
 				}
-
-				let group = DispatchGroup()
-
-				DispatchQueue.concurrentPerform(iterations: 10) { index in
-					queue.async(group: group) {
-						observer.send(value: index)
-					}
-
-					if index == 0 {
-						semaphore.wait()
-						observer.sendInterrupted()
-					}
-				}
-
-				group.wait()
-
-				expect(events.count) == 2
-				expect(events.first?.value).toNot(beNil())
-				expect(events.last?.isTerminating) == true
 			}
 
 			it("should interrupt concurrently") {
