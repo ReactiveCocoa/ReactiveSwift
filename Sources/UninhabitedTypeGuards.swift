@@ -118,6 +118,9 @@ private func observingUninhabitedTypeError() -> Never {
 
 /*
 func test() {
+	SignalProducer<Any, AnyError>.never.startWithValues { _ in }
+	Signal<Any, AnyError>.never.observeValues { _ in }
+
 	SignalProducer<Never, AnyError>.never.startWithResult { _ in }
 	SignalProducer<Never, NoError>.never.startWithResult { _ in }
 	SignalProducer<Any, NoError>.never.startWithFailed { _ in }
