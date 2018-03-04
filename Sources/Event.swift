@@ -861,6 +861,40 @@ extension Signal.Event {
 			}
 		}
 	}
+	
+	internal static func chunk(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreEmptyChunks: Bool) -> Transformation<[Value], Error> {
+		return { action, lifetime in
+			let values = Atomic<[Value]>([])
+			
+			let d = SerialDisposable()
+			
+			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1, action: {
+				values.modify { values in
+					guard !(values.isEmpty && ignoreEmptyChunks) else { return }
+					action(.value(values))
+					values = []
+				}
+			})
+			
+			lifetime.observeEnded {
+				d.dispose()
+				scheduler.schedule { action(.interrupted) }
+			}
+
+			return { event in
+				switch event {
+				case let .value(value):
+					values.modify { $0.append(value) }
+				case let .failed(error):
+					d.inner = scheduler.schedule { action(.failed(error)) }
+				case .completed:
+					d.inner = scheduler.schedule { action(.completed) }
+				case .interrupted:
+					d.inner = scheduler.schedule { action(.interrupted) }
+				}
+			}
+		}
+	}
 }
 
 private struct ThrottleState<Value> {

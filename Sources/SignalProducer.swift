@@ -1526,6 +1526,25 @@ extension SignalProducer {
 	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return core.flatMapEvent(Signal.Event.debounce(interval, on: scheduler))
 	}
+	
+	/// Forward the latest values on `scheduler` every `interval`.
+	///
+	/// - seealso: `throttle`
+	/// - seealso: `debounce`
+	///
+	/// - note: If the input signal terminates, the returned signal will
+	///         terminate immediately without forwarding the values
+	///	        currently being accumulated.
+	///
+	/// - parameters:
+	///   - interval: A repetition interval.
+	///   - scheduler: A scheduler to send values on.
+	///
+	/// - returns: A producer that sends all values that are sent from `self`
+	///            at `interval` seconds apart.
+	public func chunk(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreEmptyChunks: Bool = false) -> SignalProducer<[Value], Error> {
+		return core.flatMapEvent(Signal.Event.chunk(interval, on: scheduler, ignoreEmptyChunks: ignoreEmptyChunks))
+	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't
 	/// completed yet, fails with `error` on `scheduler`.

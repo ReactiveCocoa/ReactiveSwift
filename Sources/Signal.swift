@@ -1506,6 +1506,25 @@ extension Signal {
 	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.debounce(interval, on: scheduler))
 	}
+
+	/// Forward the latest values on `scheduler` every `interval`.
+	///
+	/// - seealso: `throttle`
+	/// - seealso: `debounce`
+	///
+	/// - note: If the input signal terminates, the returned signal will
+	///         terminate immediately without forwarding the values
+	///	        currently being accumulated.
+	///
+	/// - parameters:
+	///   - interval: A repetition interval.
+	///   - scheduler: A scheduler to send values on.
+	///
+	/// - returns: A signal that sends all values that are sent from `self` at
+	///            `interval` seconds apart.
+	public func chunk(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreEmptyChunks: Bool = false) -> Signal<[Value], Error> {
+		return flatMapEvent(Signal.Event.chunk(interval, on: scheduler, ignoreEmptyChunks: ignoreEmptyChunks))
+	}
 }
 
 extension Signal {
