@@ -1523,7 +1523,7 @@ extension SignalProducer {
 	/// - parameters:
 	///   - interval: A number of seconds to wait before sending a value.
 	///   - scheduler: A scheduler to send values on.
-	///	  - discardsWhenTerminated: A boolean to indicate if the latest value
+	///   - discardsWhenTerminated: A boolean to indicate if the latest value
 	///                             should be discarded on termination.
 	///
 	/// - returns: A producer that sends values that are sent from `self` at

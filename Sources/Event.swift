@@ -838,15 +838,15 @@ extension Signal.Event {
 		precondition(interval >= 0)
 		
 		let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState(previousDate: scheduler.currentDate, pendingValue: nil))
-		
+
 		return { action, lifetime in
 			let d = SerialDisposable()
-			
+
 			lifetime.observeEnded {
 				d.dispose()
 				scheduler.schedule { action(.interrupted) }
 			}
-			
+
 			return { event in
 				switch event {
 				case let .value(value):
@@ -867,7 +867,7 @@ extension Signal.Event {
 							}
 						}
 					}
-					
+
 				case .completed, .failed, .interrupted:
 					d.inner = scheduler.schedule {
 						let pending: (value: Value, previousDate: Date)? = state.modify { state in

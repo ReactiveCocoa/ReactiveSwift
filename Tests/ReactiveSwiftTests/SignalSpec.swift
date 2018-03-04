@@ -1867,7 +1867,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("debounce") {
+		describe("debounce discarding the latest value when terminated") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<Int, NoError>!
@@ -1878,7 +1878,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 
-				signal = baseSignal.debounce(1, on: scheduler)
+				signal = baseSignal.debounce(1, on: scheduler, discardsWhenTerminated: true)
 				expect(signal).notTo(beNil())
 			}
 
@@ -1954,7 +1954,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 		
-		describe("debounce without discarding when terminated") {
+		describe("debounce without discarding the latest value when terminated") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<Int, NoError>!
@@ -2043,7 +2043,7 @@ class SignalSpec: QuickSpec {
 				expect(completed) == true
 			}
 			
-			it("should schedule completion immediately") {
+			it("should schedule completion immediately if there is no pending value") {
 				var completed = false
 				
 				signal.observe { event in
