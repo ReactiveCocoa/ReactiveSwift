@@ -1,6 +1,19 @@
 import Result
 
 // Observation
+
+extension SignalProducer {
+	@available(*, unavailable, message:"Transform the error to `NoError` beforehand, or use `startWithResult` instead")
+	@discardableResult
+	public func startWithValues(_ action: @escaping (Value) -> Void) -> Disposable { observingUninhabitedTypeError() }
+}
+
+extension Signal {
+	@available(*, unavailable, message:"Transform the error to `NoError` beforehand, or use `observeResult` instead")
+	@discardableResult
+	public func observeValues(_ action: @escaping (Value) -> Void) -> Disposable? { observingUninhabitedTypeError() }
+}
+
 extension SignalProducer where Value == Never {
 	@discardableResult
 	@available(*, deprecated, message:"`Result.success` is never delivered - value type `Never` is uninstantiable (Use at runtime would trap)")
@@ -106,6 +119,9 @@ private func observingUninhabitedTypeError() -> Never {
 
 /*
 func test() {
+	SignalProducer<Any, AnyError>.never.startWithValues { _ in }
+	Signal<Any, AnyError>.never.observeValues { _ in }
+
 	SignalProducer<Never, AnyError>.never.startWithResult { _ in }
 	SignalProducer<Never, NoError>.never.startWithResult { _ in }
 	SignalProducer<Any, NoError>.never.startWithFailed { _ in }
