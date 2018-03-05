@@ -3,13 +3,13 @@ import Result
 // Observation
 
 extension SignalProducer {
-	@available(*, unavailable, message:"Use `startWithResult` instead - cannot ignore errors that may occur")
+	@available(*, unavailable, message:"Transform the error to `NoError` beforehand, or use `startWithResult` instead")
 	@discardableResult
 	public func startWithValues(_ action: @escaping (Value) -> Void) -> Disposable { observingUninhabitedTypeError() }
 }
 
 extension Signal {
-	@available(*, unavailable, message:"Use `observeResult` instead - cannot ignore errors that may occur")
+	@available(*, unavailable, message:"Transform the error to `NoError` beforehand, or use `observeResult` instead")
 	@discardableResult
 	public func observeValues(_ action: @escaping (Value) -> Void) -> Disposable? { observingUninhabitedTypeError() }
 }
