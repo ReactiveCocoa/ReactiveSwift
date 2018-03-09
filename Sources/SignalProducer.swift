@@ -1514,7 +1514,7 @@ extension SignalProducer {
 	///         the latest value is the one that will be passed on.
 	///
 	/// - note: If `self` terminates while a value is being debounced,
-	///         the behaviour will be determined by `discardsWhenTerminated`.
+	///         the behaviour will be determined by `discardsWhenCompleted`.
 	///         If `true`, that value will be discarded and the returned producer
 	///         will terminate immediately.
 	///			If `false`, that value will be delivered at the next debounce
@@ -1523,13 +1523,13 @@ extension SignalProducer {
 	/// - parameters:
 	///   - interval: A number of seconds to wait before sending a value.
 	///   - scheduler: A scheduler to send values on.
-	///   - discardsWhenTerminated: A boolean to indicate if the latest value
+	///   - discardsWhenCompleted: A boolean to indicate if the latest value
 	///                             should be discarded on termination.
 	///
 	/// - returns: A producer that sends values that are sent from `self` at
 	///            least `interval` seconds apart.
-	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardsWhenTerminated: Bool = true) -> SignalProducer<Value, Error> {
-		return core.flatMapEvent(Signal.Event.debounce(interval, on: scheduler, discardsWhenTerminated: discardsWhenTerminated))
+	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardsWhenCompleted: Bool = true) -> SignalProducer<Value, Error> {
+		return core.flatMapEvent(Signal.Event.debounce(interval, on: scheduler, discardsWhenCompleted: discardsWhenCompleted))
 	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't

@@ -1878,7 +1878,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 
-				signal = baseSignal.debounce(1, on: scheduler, discardsWhenTerminated: true)
+				signal = baseSignal.debounce(1, on: scheduler, discardsWhenCompleted: true)
 				expect(signal).notTo(beNil())
 			}
 
@@ -1965,7 +1965,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 				
-				signal = baseSignal.debounce(1, on: scheduler, discardsWhenTerminated: false)
+				signal = baseSignal.debounce(1, on: scheduler, discardsWhenCompleted: false)
 				expect(signal).notTo(beNil())
 			}
 			

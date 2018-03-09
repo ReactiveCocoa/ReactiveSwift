@@ -1339,19 +1339,19 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 		describe("debounce") {
 			it("should interrupt ASAP and discard outstanding events") {
-				testAsyncASAPInterruption(op: "debounce") { $0.debounce(10.0, on: $1, discardsWhenTerminated: true) }
+				testAsyncASAPInterruption(op: "debounce") { $0.debounce(10.0, on: $1, discardsWhenCompleted: true) }
 			}
 			
 			it("should interrupt ASAP and discard outstanding events") {
-				testAsyncASAPInterruption(op: "debounce") { $0.debounce(10.0, on: $1, discardsWhenTerminated: false) }
+				testAsyncASAPInterruption(op: "debounce") { $0.debounce(10.0, on: $1, discardsWhenCompleted: false) }
 			}
 
 			it("should interrupt on the given scheduler") {
-				testAsyncInterruptionScheduler(op: "debounce") { $0.debounce(10.0, on: $1, discardsWhenTerminated: true) }
+				testAsyncInterruptionScheduler(op: "debounce") { $0.debounce(10.0, on: $1, discardsWhenCompleted: true) }
 			}
 			
 			it("should interrupt on the given scheduler") {
-				testAsyncInterruptionScheduler(op: "debounce") { $0.debounce(10.0, on: $1, discardsWhenTerminated: false) }
+				testAsyncInterruptionScheduler(op: "debounce") { $0.debounce(10.0, on: $1, discardsWhenCompleted: false) }
 			}
 		}
 
