@@ -1542,8 +1542,8 @@ extension SignalProducer {
 	///
 	/// - returns: A producer that sends all values that are sent from `self`
 	///            at `interval` seconds apart.
-	public func chunk(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreEmptyChunks: Bool = false) -> SignalProducer<[Value], Error> {
-		return core.flatMapEvent(Signal.Event.chunk(interval, on: scheduler, ignoreEmptyChunks: ignoreEmptyChunks))
+	public func collect(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreWhenEmpty: Bool = false) -> SignalProducer<[Value], Error> {
+		return core.flatMapEvent(Signal.Event.collect(interval, on: scheduler, ignoreWhenEmpty: ignoreWhenEmpty))
 	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't

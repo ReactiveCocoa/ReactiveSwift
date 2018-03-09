@@ -862,17 +862,21 @@ extension Signal.Event {
 		}
 	}
 	
-	internal static func chunk(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreEmptyChunks: Bool) -> Transformation<[Value], Error> {
+	internal static func collect(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreWhenEmpty: Bool) -> Transformation<[Value], Error> {
 		return { action, lifetime in
 			let values = Atomic<[Value]>([])
 			
 			let d = SerialDisposable()
 			
 			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1, action: {
+				var currentValues: [Value]?
 				values.modify { values in
-					guard !(values.isEmpty && ignoreEmptyChunks) else { return }
-					action(.value(values))
+					guard !(values.isEmpty && ignoreWhenEmpty) else { return }
+					currentValues = values
 					values = []
+				}
+				if let values = currentValues {
+					action(.value(values))
 				}
 			})
 			

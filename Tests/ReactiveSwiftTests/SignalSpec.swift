@@ -1954,7 +1954,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 		
-		describe("chunk") {
+		describe("collect(_:on:ignoreWhenEmpty:) where ignoreWhenEmpty is false") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<[Int], NoError>!
@@ -1965,7 +1965,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 				
-				signal = baseSignal.chunk(.seconds(1), on: scheduler)
+				signal = baseSignal.collect(.seconds(1), on: scheduler, ignoreWhenEmpty: false)
 				expect(signal).notTo(beNil())
 			}
 			
@@ -2047,7 +2047,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 		
-		describe("chunk without empty chunks") {
+		describe("collect(_:on:ignoreWhenEmpty:) where ignoreWhenEmpty is true") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<[Int], NoError>!
@@ -2058,7 +2058,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 				
-				signal = baseSignal.chunk(.seconds(1), on: scheduler, ignoreEmptyChunks: true)
+				signal = baseSignal.collect(.seconds(1), on: scheduler, ignoreWhenEmpty: true)
 				expect(signal).notTo(beNil())
 			}
 			
