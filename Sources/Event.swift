@@ -865,15 +865,13 @@ extension Signal.Event {
 	internal static func collect(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreWhenEmpty: Bool) -> Transformation<[Value], Error> {
 		return { action, lifetime in
 			let values = Atomic<[Value]>([])
-			
 			let d = SerialDisposable()
 			
 			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1, action: {
-				var currentValues: [Value]?
-				values.modify { values in
-					guard !(values.isEmpty && ignoreWhenEmpty) else { return }
-					currentValues = values
-					values = []
+				let currentValues: [Value]? = values.modify { values in
+					guard !(values.isEmpty && ignoreWhenEmpty) else { return nil }
+					defer { values = [] }
+					return values
 				}
 				if let values = currentValues {
 					action(.value(values))
