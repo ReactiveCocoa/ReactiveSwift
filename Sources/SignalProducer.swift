@@ -1517,14 +1517,14 @@ extension SignalProducer {
 	///         the behaviour will be determined by `discardsWhenCompleted`.
 	///         If `true`, that value will be discarded and the returned producer
 	///         will terminate immediately.
-	///			If `false`, that value will be delivered at the next debounce
-	///			interval.
+	///         If `false`, that value will be delivered at the next debounce
+	///         interval.
 	///
 	/// - parameters:
 	///   - interval: A number of seconds to wait before sending a value.
 	///   - scheduler: A scheduler to send values on.
 	///   - discardsWhenCompleted: A boolean to indicate if the latest value
-	///                             should be discarded on termination.
+	///                             should be discarded on completion.
 	///
 	/// - returns: A producer that sends values that are sent from `self` at
 	///            least `interval` seconds apart.

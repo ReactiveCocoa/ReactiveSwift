@@ -861,8 +861,8 @@ extension Signal.Event {
 							guard let pendingValue = state.pendingValue, let previousDate = state.previousDate else { return nil }
 							return (pendingValue, previousDate)
 						}
-						if !discardsWhenCompleted, let (pendingValue, pendingDate) = pending {
-							scheduler.schedule(after: pendingDate.addingTimeInterval(interval)) {
+						if !discardsWhenCompleted, let (pendingValue, previousDate) = pending {
+							scheduler.schedule(after: previousDate.addingTimeInterval(interval)) {
 								action(.value(pendingValue))
 								action(.completed)
 							}
