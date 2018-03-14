@@ -577,9 +577,9 @@ public final class Property<Value>: PropertyProtocol {
 					}
 				}
 				observer.send(event)
-				// Instruments will report a leak if you still have a weak pointer that is
-				// still pointing to freed memory. By freeing this weak pointer manually
-				// it prevents Instruments from reporting a leak.
+				// Instruments will report a leak if you have a weak variable that is
+				// still pointing to freed memory. By freeing box manually it prevents 
+                // Instruments from reporting a leak.
 				box = nil
 			}
 		}
