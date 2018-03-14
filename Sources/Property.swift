@@ -564,19 +564,21 @@ public final class Property<Value>: PropertyProtocol {
 			// `signal`, and would not be delivered anyway. So transforming
 			// `interrupted` to `completed` is unnecessary here.
 
-			guard let box = box else {
+			guard let unwrappedBox = box else {
 				// Just forward the event, since no one owns the box or IOW no demand
 				// for a cached latest value.
 				return observer.send(event)
 			}
 
-			box.begin { storage in
+			unwrappedBox.begin { storage in
 				storage.modify { value in
 					if let newValue = event.value {
 						value = newValue
 					}
 				}
 				observer.send(event)
+				// by freeing this weak pointer manually, it avoids Instruments from detecting this as a leak.
+				box = nil
 			}
 		}
 
