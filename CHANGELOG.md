@@ -2,6 +2,7 @@
 *Please add new entries at the top.*
 
 1. Instruments will no longer detect a leak during Property.init(unsafeProducer:) (#623, kudos to @mishagray)
+1. Result now interoperates with SignalProducer n-ary operators as a constant producer (#606, kudos to @Qata)     
 1. Result now interoperates with SignalProducer n-ary operators as a constant producer (#606, kudos to @Qata)
 1. New property operator: `filter` (#586, kudos to @iv-mexx)
 1. New operator `merge(with:)` (#600, kudos to @ra1028)
@@ -48,13 +49,13 @@
 1. `Signal` now uses `Lifetime` for resource management. (#404, kudos to @andersio)
 
    The `Signal` initialzer now accepts a generator closure that is passed with the input `Observer` and the `Lifetime` as its arguments. The original variant accepting a single-argument generator closure is now obselete. This is a source breaking change.
-
+   
    ```swift
    // New: Add `Disposable`s to the `Lifetime`.
    let candies = Signal<U, E> { (observer: Signal<U, E>.Observer, lifetime: Lifetime) in
       lifetime += trickOrTreat.observe(observer)
    }
-
+   
    // Obsolete: Returning a `Disposable`.
    let candies = Signal { (observer: Signal<U, E>.Observer) -> Disposable? in
       return trickOrTreat.observe(observer)
@@ -115,7 +116,7 @@
 1. The performance of `SignalProducer` has been improved significantly. (#140, kudos to @andersio)
 
    All lifted `SignalProducer` operators no longer yield an extra `Signal`. As a result, the calling overhead of event delivery is generally reduced proportionally to the level of chaining of lifted operators.
-
+   
 1. `interrupted` now respects `observe(on:)`. (#140)
 
    When a produced `Signal` is interrupted, if `observe(on:)` is the last applied operator, `interrupted` would now be delivered on the `Scheduler` passed to `observe(on:)` just like other events.
@@ -155,12 +156,12 @@ let producer = SignalProducer<Int, NoError> { observer, lifetime in
 
 Two `Disposable`-accepting methods `Lifetime.Type.+=` and `Lifetime.add` are provided to aid migration, and are subject to removal in a future release.
 
-### Signal and SignalProducer
+### Signal and SignalProducer 
 1. All `Signal` and `SignalProducer` operators now belongs to the respective concrete types. (#304)
 
    Custom operators should extend the concrete types directly. `SignalProtocol` and `SignalProducerProtocol` should be used only for constraining associated types.
 
-1. `combineLatest` and `zip` are optimised to have a constant overhead regardless of arity, mitigating the possibility of stack overflow. (#345)
+1. `combineLatest` and `zip` are optimised to have a constant overhead regardless of arity, mitigating the possibility of stack overflow. (#345) 
 
 1. `flatMap(_:transform:)` is renamed to `flatMap(_:_:)`. (#339)
 
@@ -217,7 +218,7 @@ Two `Disposable`-accepting methods `Lifetime.Type.+=` and `Lifetime.add` are pro
    `concurrent` starts and flattens inner signals according to the specified concurrency limit. If an inner signal is received after the limit is reached, it would be queued and drained later as the in-flight inner signals terminate.
 
 1. New operators: `reduce(into:)` and `scan(into:)`. (#365, kudos to @ikesyo)
-
+ 
    These variants pass to the closure an `inout` reference to the accumulator, which helps the performance when a large value type is used, e.g. collection.
 
 1. `Property(initial:then:)` gains overloads that accept a producer or signal of the wrapped value type when the value type is an `Optional`. (#396)
@@ -237,7 +238,7 @@ Thank you to all of @ReactiveCocoa/reactiveswift and all our contributors, but e
 ## Deprecation
 1. `observe(_:during:)` is now deprecated. It would be removed in ReactiveSwift 2.0.
     Use `take(during:)` and the relevant observation API of `Signal`, `SignalProducer` and `Property` instead. (#374)
-
+    
 # 1.1.2
 ## Changes
 1. Fixed a rare occurrence of `interrupted` events being emitted by a `Property`. (#362)
@@ -291,27 +292,27 @@ This is the first major release of ReactiveSwift, a multi-platform, pure-Swift f
 
 Major changes since ReactiveCocoa 4 include:
 - **Updated for Swift 3**
-
+  
   APIs have been updated and renamed to adhere to the Swift 3 [API Design Guidelines](https://swift.org/documentation/api-design-guidelines/).
 - **Signal Lifetime Semantics**
-
+  
   `Signal`s now live and continue to emit events only while either (a) they have observers or (b) they are retained. This clears up a number of unexpected cases and makes Signals much less dangerous.
 - **Reactive Proxies**
-
+  
   Types can now declare conformance to `ReactiveExtensionsProvider` to expose a `reactive` property that’s generic over `self`. This property hosts reactive extensions to the type, such as the ones provided on `NotificationCenter` and `URLSession`.
 - **Property Composition**
-
+  
   `Property`s can now be composed. They expose many of the familiar operators from `Signal` and `SignalProducer`, including `map`, `flatMap`, `combineLatest`, etc.
 - **Binding Primitives**
-
+  
   `BindingTargetProtocol` and `BindingSourceProtocol` have been introduced to allow binding of observable instances to targets. `BindingTarget` is a new concrete type that can be used to wrap a settable but non-observable property.
 - **Lifetime**
-
+  
   `Lifetime` is introduced to represent the lifetime of any arbitrary reference type. This can be used with the new `take(during:)` operator, but also forms part of the new binding APIs.
 - **Race-free Action**
-
+  
    A new `Action` initializer `Action(state:enabledIf:_:)` has been introduced. It allows the latest value of any arbitrary property to be supplied to the execution closure in addition to the input from `apply(_:)`, while having the availability being derived from the property.
-
+  
    This eliminates a data race in ReactiveCocoa 4.x, when both the `enabledIf` predicate and the execution closure depend on an overlapping set of properties.
 
 Extensive use of Swift’s `@available` declaration has been used to ease migration from ReactiveCocoa 4. Xcode should have fix-its for almost all changes from older APIs.
