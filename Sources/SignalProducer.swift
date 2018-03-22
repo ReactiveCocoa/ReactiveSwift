@@ -1055,6 +1055,28 @@ extension SignalProducer {
 		return core.flatMapEvent(Signal.Event.collect(shouldEmit))
 	}
 
+	/// Forward the latest values on `scheduler` every `interval`.
+	///
+	/// - note: If `self` terminates while values are being accumulated,
+	///         the behaviour will be determined by `discardsWhenCompleted`.
+	///         If `true`, the values will be discarded and the returned producer
+	///         will terminate immediately.
+	///         If `false`, that values will be delivered at the next interval.
+	///
+	/// - parameters:
+	///   - interval: A repetition interval.
+	///   - scheduler: A scheduler to send values on.
+	///   - skipEmpty: Whether empty arrays should be sent if no values were
+	///     accumulated during the interval.
+	///   - discardsWhenCompleted: A boolean to indicate if the latest unsent
+	///     values should be discarded on completion.
+	///
+	/// - returns: A producer that sends all values that are sent from `self`
+	///            at `interval` seconds apart.
+	public func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool = false, discardsWhenCompleted: Bool = true) -> SignalProducer<[Value], Error> {
+		return core.flatMapEvent(Signal.Event.collect(every: interval, on: scheduler, skipEmpty: skipEmpty, discardsWhenCompleted: discardsWhenCompleted))
+	}
+
 	/// Forward all events onto the given scheduler, instead of whichever
 	/// scheduler they originally arrived upon.
 	///
@@ -1525,25 +1547,6 @@ extension SignalProducer {
 	///            least `interval` seconds apart.
 	public func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		return core.flatMapEvent(Signal.Event.debounce(interval, on: scheduler))
-	}
-	
-	/// Forward the latest values on `scheduler` every `interval`.
-	///
-	/// - seealso: `throttle`
-	/// - seealso: `debounce`
-	///
-	/// - note: If the input signal terminates, the returned signal will
-	///         terminate immediately without forwarding the values
-	///	        currently being accumulated.
-	///
-	/// - parameters:
-	///   - interval: A repetition interval.
-	///   - scheduler: A scheduler to send values on.
-	///
-	/// - returns: A producer that sends all values that are sent from `self`
-	///            at `interval` seconds apart.
-	public func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool = false, discardsWhenCompleted: Bool = true) -> SignalProducer<[Value], Error> {
-		return core.flatMapEvent(Signal.Event.collect(every: interval, on: scheduler, skipEmpty: skipEmpty, discardsWhenCompleted: discardsWhenCompleted))
 	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't
