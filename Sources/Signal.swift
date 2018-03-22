@@ -1522,8 +1522,8 @@ extension Signal {
 	///
 	/// - returns: A signal that sends all values that are sent from `self` at
 	///            `interval` seconds apart.
-	public func collect(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreWhenEmpty: Bool = false) -> Signal<[Value], Error> {
-		return flatMapEvent(Signal.Event.collect(interval, on: scheduler, ignoreWhenEmpty: ignoreWhenEmpty))
+	public func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool = false, discardsWhenCompleted: Bool = true) -> Signal<[Value], Error> {
+		return flatMapEvent(Signal.Event.collect(every: interval, on: scheduler, skipEmpty: skipEmpty, discardsWhenCompleted: discardsWhenCompleted))
 	}
 }
 

@@ -862,21 +862,19 @@ extension Signal.Event {
 		}
 	}
 	
-	internal static func collect(_ interval: DispatchTimeInterval, on scheduler: DateScheduler, ignoreWhenEmpty: Bool) -> Transformation<[Value], Error> {
+	internal static func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool, discardsWhenCompleted: Bool) -> Transformation<[Value], Error> {
 		return { action, lifetime in
 			let values = Atomic<[Value]>([])
 			let d = SerialDisposable()
+			var lastDelivered: Date = scheduler.currentDate
 			
-			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1, action: {
-				let currentValues: [Value]? = values.modify { values in
-					guard !(values.isEmpty && ignoreWhenEmpty) else { return nil }
-					defer { values = [] }
-					return values
+			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1) {
+				let currentValues = values.swap([])
+				if !(currentValues.isEmpty && skipEmpty) {
+					action(.value(currentValues))
+					lastDelivered = scheduler.currentDate
 				}
-				if let values = currentValues {
-					action(.value(values))
-				}
-			})
+			}
 			
 			lifetime.observeEnded {
 				d.dispose()
@@ -890,7 +888,15 @@ extension Signal.Event {
 				case let .failed(error):
 					d.inner = scheduler.schedule { action(.failed(error)) }
 				case .completed:
-					d.inner = scheduler.schedule { action(.completed) }
+					let currentValues = values.swap([])
+					if !discardsWhenCompleted, !(currentValues.isEmpty && skipEmpty) {
+						d.inner = scheduler.schedule(after: lastDelivered.addingTimeInterval(interval)) {
+							action(.value(currentValues))
+							action(.completed)
+						}
+					} else {
+						d.inner = scheduler.schedule { action(.completed) }
+					}
 				case .interrupted:
 					d.inner = scheduler.schedule { action(.interrupted) }
 				}
