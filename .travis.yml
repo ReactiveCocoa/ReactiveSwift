@@ -1,5 +1,5 @@
 language: objective-c
-osx_image: xcode9.2
+osx_image: xcode9.3beta
 before_install: true
 install: true
 branches:
@@ -15,7 +15,7 @@ cache:
 
 jobs:
   include:
-    - osx_image: xcode9.2
+    - osx_image: xcode9.3beta
       script:
         - XCODE_SCHEME=ReactiveSwift-macOS
           XCODE_SDK=macosx
@@ -42,7 +42,7 @@ jobs:
         - pod lib lint ReactiveSwift.podspec
       env:
         - JOB=PODSPEC
-    - osx_image: xcode9.2
+    - osx_image: xcode9.3beta
       script:
         - swift --version
         - swift build
