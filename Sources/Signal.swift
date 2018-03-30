@@ -1020,6 +1020,21 @@ extension Signal {
 			.map { $0.0 }
 	}
 
+	/// Forward all values from `self`, and resend the latest value whenever
+	/// `sampler` sends a `value` event.
+	///
+	/// - parameters:
+	///   - sampler: A signal that will trigger redelivery of the latest `value`
+	///              event from `self`.
+	///
+	/// - returns: A signal that will send all values from `self`, and will resample
+	///            the latest value whenever `sampler` sends a `value` event. Completes
+	///            once both input signals have completed, or interrupts if either
+	///            input signal is interrupted.
+	public func resample(on sampler: Signal<(), NoError>) -> Signal<Value, Error> {
+		return merge(with: sample(on: sampler))
+	}
+
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
 	/// This is like a flipped version of `sample(with:)`, but `samplee`'s

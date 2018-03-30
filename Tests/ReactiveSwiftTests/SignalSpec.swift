@@ -2060,6 +2060,39 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("resample(on:)") {
+			var sampledSignal: Signal<Int, NoError>!
+			var observer: Signal<Int, NoError>.Observer!
+			var samplerObserver: Signal<(), NoError>.Observer!
+
+			beforeEach {
+				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
+				let (sampler, incomingSamplerObserver) = Signal<(), NoError>.pipe()
+				sampledSignal = signal.resample(on: sampler)
+				observer = incomingObserver
+				samplerObserver = incomingSamplerObserver
+			}
+
+			it("should pass through events from the receiver") {
+				var result: [Int] = []
+				sampledSignal.observeValues { result.append($0) }
+
+				observer.send(value: 1)
+				observer.send(value: 2)
+				expect(result) == [ 1, 2 ]
+			}
+
+			it("should re-forward the latest value when the sampler fires") {
+				var result: [Int] = []
+				sampledSignal.observeValues { result.append($0) }
+
+				observer.send(value: 1)
+				observer.send(value: 2)
+				samplerObserver.send(value: ())
+				expect(result) == [ 1, 2, 2 ]
+			}
+		}
+
 		describe("withLatest(from: signal)") {
 			var withLatestSignal: Signal<(Int, String), NoError>!
 			var observer: Signal<Int, NoError>.Observer!

@@ -1178,6 +1178,21 @@ extension SignalProducer {
 		return liftLeft(Signal.sample(on:))(sampler.producer)
 	}
 
+	/// Forward all values from `self`, and resend the latest value whenever
+	/// `sampler` sends a `value` event.
+	///
+	/// - parameters:
+	///   - sampler: A producer that will trigger redelivery of the latest `value`
+	///              event from `self`.
+	///
+	/// - returns: A producer that, when started, will send all values from `self`,
+	///            and will resample the latest value whenever `sampler` sends a
+	///            `value` event. Completes once both input producers have completed,
+	///            or interrupts if either input producer is interrupted.
+	public func resample<Sampler: SignalProducerConvertible>(on sampler: Sampler) -> SignalProducer<Value, Error> where Sampler.Value == (), Sampler.Error == NoError {
+		return liftLeft(Signal.resample(on:))(sampler.producer)
+	}
+
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
 	/// This is like a flipped version of `sample(with:)`, but `samplee`'s
