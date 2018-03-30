@@ -347,7 +347,22 @@ extension Signal.Event where Error == AnyError {
 
 	internal static func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Transformation<U, AnyError> {
 		return attemptMap { value in
-			ReactiveSwift.materialize { try transform(value) }
+			Result { try transform(value) }
+		}
+	}
+}
+
+extension Signal.Event where Error: ErrorConvertible {
+	internal static func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Transformation<U, Error> {
+		return attemptMap { value in
+			Result { try transform(value) }
+		}
+	}
+
+	internal static func attempt(_ action: @escaping (Value) throws -> Void) -> Transformation<Value, Error> {
+		return attemptMap { value in
+			try action(value)
+			return value
 		}
 	}
 }

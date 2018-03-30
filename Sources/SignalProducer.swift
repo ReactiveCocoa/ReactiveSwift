@@ -494,9 +494,24 @@ extension SignalProducer where Error == AnyError {
 	///   - operation: A failable closure.
 	public init(_ action: @escaping () throws -> Value) {
 		self.init {
-			return ReactiveSwift.materialize {
-				return try action()
-			}
+			return Result(attempt: action)
+		}
+	}
+}
+
+/// Create a `SignalProducer` that will attempt the given failable operation once for
+/// each invocation of `start()`.
+///
+/// Upon success, the started producer will send the resulting value then
+/// complete. Upon failure, the started signal will fail with the error that
+/// occurred.
+///
+/// - parameters:
+///   - operation: A failable closure.
+extension SignalProducer where Error: ErrorConvertible {
+	public init(_ action: @escaping () throws -> Value) {
+		self.init {
+			return Result(attempt: action)
 		}
 	}
 }
@@ -1637,6 +1652,20 @@ extension SignalProducer where Error == NoError {
 			.attempt(action)
 	}
 
+	/// Apply a throwable action to every value from `self`, and forward the values
+	/// if the action succeeds. If the action throws an error, the produced `Signal`
+	/// would propagate the failure and terminate.
+	///
+	/// - parameters:
+	///   - action: A throwable closure to perform an arbitrary action on the value.
+	///
+	/// - returns: A producer which forwards the successful values of the given action.
+	public func attempt<NewError: ErrorConvertible>(_ action: @escaping (Value) throws -> Void) -> SignalProducer<Value, NewError> {
+		return self
+			.promoteError(NewError.self)
+			.attempt(action)
+	}
+
 	/// Apply a throwable action to every value from `self`, and forward the results
 	/// if the action succeeds. If the action throws an error, the produced `Signal`
 	/// would propagate the failure and terminate.
@@ -1649,6 +1678,21 @@ extension SignalProducer where Error == NoError {
 	public func attemptMap<U>(_ action: @escaping (Value) throws -> U) -> SignalProducer<U, AnyError> {
 		return self
 			.promoteError(AnyError.self)
+			.attemptMap(action)
+	}
+
+	/// Apply a throwable action to every value from `self`, and forward the results
+	/// if the action succeeds. If the action throws an error, the produced `Signal`
+	/// would propagate the failure and terminate.
+	///
+	/// - parameters:
+	///   - action: A throwable closure to perform an arbitrary action on the value, and
+	///             yield a result.
+	///
+	/// - returns: A producer which forwards the successful results of the given action.
+	public func attemptMap<U, NewError: ErrorConvertible>(_ action: @escaping (Value) throws -> U) -> SignalProducer<U, NewError> {
+		return self
+			.promoteError(NewError.self)
 			.attemptMap(action)
 	}
 }
@@ -1675,6 +1719,32 @@ extension SignalProducer where Error == AnyError {
 	///
 	/// - returns: A producer which forwards the successfully transformed values.
 	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> SignalProducer<U, AnyError> {
+		return core.flatMapEvent(Signal.Event.attemptMap(transform))
+	}
+}
+
+extension SignalProducer where Error: ErrorConvertible {
+	/// Apply a throwable action to every value from `self`, and forward the values
+	/// if the action succeeds. If the action throws an error, the produced `Signal`
+	/// would propagate the failure and terminate.
+	///
+	/// - parameters:
+	///   - action: A throwable closure to perform an arbitrary action on the value.
+	///
+	/// - returns: A producer which forwards the successful values of the given action.
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> SignalProducer<Value, Error> {
+		return core.flatMapEvent(Signal.Event.attempt(action))
+	}
+
+	/// Apply a throwable transform to every value from `self`, and forward the results
+	/// if the action succeeds. If the transform throws an error, the produced `Signal`
+	/// would propagate the failure and terminate.
+	///
+	/// - parameters:
+	///   - transform: A throwable transform.
+	///
+	/// - returns: A producer which forwards the successfully transformed values.
+	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.attemptMap(transform))
 	}
 }

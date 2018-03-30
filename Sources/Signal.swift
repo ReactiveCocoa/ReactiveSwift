@@ -2148,6 +2148,20 @@ extension Signal where Error == NoError {
 			.attempt(action)
 	}
 
+	/// Apply a throwable action to every value from `self`, and forward the values
+	/// if the action succeeds. If the action throws an error, the returned `Signal`
+	/// would propagate the failure and terminate.
+	///
+	/// - parameters:
+	///   - action: A throwable closure to perform an arbitrary action on the value.
+	///
+	/// - returns: A signal which forwards the successful values of the given action.
+	public func attempt<NewError: ErrorConvertible>(_ action: @escaping (Value) throws -> Void) -> Signal<Value, NewError> {
+		return self
+			.promoteError(NewError.self)
+			.attempt(action)
+	}
+
 	/// Apply a throwable transform to every value from `self`, and forward the results
 	/// if the action succeeds. If the transform throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.
@@ -2159,6 +2173,20 @@ extension Signal where Error == NoError {
 	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
 		return self
 			.promoteError(AnyError.self)
+			.attemptMap(transform)
+	}
+
+	/// Apply a throwable transform to every value from `self`, and forward the results
+	/// if the action succeeds. If the transform throws an error, the returned `Signal`
+	/// would propagate the failure and terminate.
+	///
+	/// - parameters:
+	///   - transform: A throwable transform.
+	///
+	/// - returns: A signal which forwards the successfully transformed values.
+	public func attemptMap<U, NewError: ErrorConvertible>(_ transform: @escaping (Value) throws -> U) -> Signal<U, NewError> {
+		return self
+			.promoteError(NewError.self)
 			.attemptMap(transform)
 	}
 }
@@ -2185,6 +2213,32 @@ extension Signal where Error == AnyError {
 	///
 	/// - returns: A signal which forwards the successfully transformed values.
 	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+		return flatMapEvent(Signal.Event.attemptMap(transform))
+	}
+}
+
+extension Signal where Error: ErrorConvertible {
+	/// Apply a throwable action to every value from `self`, and forward the values
+	/// if the action succeeds. If the action throws an error, the returned `Signal`
+	/// would propagate the failure and terminate.
+	///
+	/// - parameters:
+	///   - action: A throwable closure to perform an arbitrary action on the value.
+	///
+	/// - returns: A signal which forwards the successful values of the given action.
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, Error> {
+		return flatMapEvent(Signal.Event.attempt(action))
+	}
+
+	/// Apply a throwable transform to every value from `self`, and forward the results
+	/// if the action succeeds. If the transform throws an error, the returned `Signal`
+	/// would propagate the failure and terminate.
+	///
+	/// - parameters:
+	///   - transform: A throwable transform.
+	///
+	/// - returns: A signal which forwards the successfully transformed values.
+	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.attemptMap(transform))
 	}
 }
