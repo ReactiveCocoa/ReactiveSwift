@@ -864,15 +864,16 @@ extension Signal.Event {
 	
 	internal static func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool, discardsWhenCompleted: Bool) -> Transformation<[Value], Error> {
 		return { action, lifetime in
-			let values = Atomic<[Value]>([])
+			let values = Atomic<CollectEveryState<Value>>(.init(skipEmpty: skipEmpty))
 			let d = SerialDisposable()
-			var lastDelivered: Date = scheduler.currentDate
 			
 			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1) {
-				let currentValues = values.swap([])
-				if !(currentValues.isEmpty && skipEmpty) {
+				let (currentValues, isCompleted) = values.modify { ($0.collect(), $0.isCompleted) }
+				if let currentValues = currentValues {
 					action(.value(currentValues))
-					lastDelivered = scheduler.currentDate
+				}
+				if isCompleted {
+					action(.completed)
 				}
 			}
 			
@@ -884,24 +885,38 @@ extension Signal.Event {
 			return { event in
 				switch event {
 				case let .value(value):
-					values.modify { $0.append(value) }
+					values.modify { $0.values.append(value) }
 				case let .failed(error):
 					d.inner = scheduler.schedule { action(.failed(error)) }
+				case .completed where !discardsWhenCompleted:
+					values.modify { $0.isCompleted = true }
 				case .completed:
-					let currentValues = values.swap([])
-					if !discardsWhenCompleted, !(currentValues.isEmpty && skipEmpty) {
-						d.inner = scheduler.schedule(after: lastDelivered.addingTimeInterval(interval)) {
-							action(.value(currentValues))
-							action(.completed)
-						}
-					} else {
-						d.inner = scheduler.schedule { action(.completed) }
-					}
+					d.inner = scheduler.schedule { action(.completed) }
 				case .interrupted:
 					d.inner = scheduler.schedule { action(.interrupted) }
 				}
 			}
 		}
+	}
+}
+
+private struct CollectEveryState<Value> {
+	let skipEmpty: Bool
+	var values: [Value] = []
+	var isCompleted: Bool = false
+	
+	init(skipEmpty: Bool) {
+		self.skipEmpty = skipEmpty
+	}
+	
+	var hasValues: Bool {
+		return !values.isEmpty || !skipEmpty
+	}
+	
+	mutating func collect() -> [Value]? {
+		guard hasValues else { return nil }
+		defer { values.removeAll() }
+		return values
 	}
 }
 
