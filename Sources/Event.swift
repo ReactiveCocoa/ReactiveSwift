@@ -853,11 +853,7 @@ extension Signal.Event {
 				case .completed:
 					d.inner = scheduler.schedule {
 						let pending: (value: Value, previousDate: Date)? = state.modify { state in
-							defer {
-								if state.pendingValue != nil {
-									state.pendingValue = nil
-								}
-							}
+							defer { state.pendingValue = nil }
 							guard let pendingValue = state.pendingValue, let previousDate = state.previousDate else { return nil }
 							return (pendingValue, previousDate)
 						}
