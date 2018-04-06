@@ -19,5 +19,5 @@ Pod::Spec.new do |s|
   s.source_files  = "Sources/*.{swift}"
   s.dependency 'Result', '~> 3.2'
 
-  s.pod_target_xcconfig = {"OTHER_SWIFT_FLAGS[config=Release]" => "-suppress-warnings" }
+  s.pod_target_xcconfig = {"OTHER_SWIFT_FLAGS[config=Release]" => "$(inherited) -suppress-warnings" }
 end
