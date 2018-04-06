@@ -1867,7 +1867,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("debounce") {
+		describe("debounce discarding the latest value when terminated") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<Int, NoError>!
@@ -1878,7 +1878,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 
-				signal = baseSignal.debounce(1, on: scheduler)
+				signal = baseSignal.debounce(1, on: scheduler, discardWhenCompleted: true)
 				expect(signal).notTo(beNil())
 			}
 
@@ -1950,6 +1950,497 @@ class SignalSpec: QuickSpec {
 
 				scheduler.run()
 				expect(values) == []
+				expect(completed) == true
+			}
+		}
+		
+		describe("debounce without discarding the latest value when terminated") {
+			var scheduler: TestScheduler!
+			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<Int, NoError>!
+			
+			beforeEach {
+				scheduler = TestScheduler()
+				
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				observer = baseObserver
+				
+				signal = baseSignal.debounce(1, on: scheduler, discardWhenCompleted: false)
+				expect(signal).notTo(beNil())
+			}
+			
+			it("should send values on the given scheduler once the interval has passed since the last value was sent") {
+				var values: [Int] = []
+				signal.observeValues { value in
+					values.append(value)
+				}
+				
+				expect(values) == []
+				
+				observer.send(value: 0)
+				expect(values) == []
+				
+				scheduler.advance()
+				expect(values) == []
+				
+				observer.send(value: 1)
+				observer.send(value: 2)
+				expect(values) == []
+				
+				scheduler.advance(by: .milliseconds(1500))
+				expect(values) == [ 2 ]
+				
+				scheduler.advance(by: .seconds(3))
+				expect(values) == [ 2 ]
+				
+				observer.send(value: 3)
+				expect(values) == [ 2 ]
+				
+				scheduler.advance()
+				expect(values) == [ 2 ]
+				
+				observer.send(value: 4)
+				observer.send(value: 5)
+				scheduler.advance()
+				expect(values) == [ 2 ]
+				observer.sendCompleted()
+				
+				scheduler.run()
+				expect(values) == [ 2, 5 ]
+				
+			}
+			
+			it("should schedule completion after sending the last value") {
+				var values: [Int] = []
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.send(value: 0)
+				scheduler.advance()
+				expect(values) == []
+				
+				observer.send(value: 1)
+				scheduler.advance()
+				observer.sendCompleted()
+				expect(completed) == false
+				
+				scheduler.advance()
+				expect(values) == []
+				expect(completed) == false
+				
+				scheduler.run()
+				expect(values) == [1]
+				expect(completed) == true
+			}
+			
+			it("should schedule completion immediately if there is no pending value") {
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.sendCompleted()
+				expect(completed) == false
+				scheduler.advance()
+				expect(completed) == true
+			}
+		}
+		
+		
+		describe("collect(every:on:skipEmpty:discardWhenCompleted:) where skipEmpty is false, discardWhenCompleted is false") {
+			var scheduler: TestScheduler!
+			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<[Int], NoError>!
+			
+			beforeEach {
+				scheduler = TestScheduler()
+				
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				observer = baseObserver
+				
+				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: false, discardWhenCompleted: false)
+				expect(signal).notTo(beNil())
+			}
+			
+			it("should send accumulated values on the given scheduler every interval") {
+				var values: [[Int]] = []
+				signal.observeValues { value in
+					values.append(value)
+				}
+				
+				expect(values.count) == 0
+				
+				observer.send(value: 0)
+				expect(values.count) == 0
+				
+				scheduler.advance()
+				expect(values.count) == 0
+				
+				observer.send(value: 1)
+				observer.send(value: 2)
+				expect(values.count) == 0
+				
+				scheduler.advance(by: .milliseconds(1500))
+				expect(values.count) == 1
+				expect(values[0]) == [ 0, 1, 2 ]
+				
+				scheduler.advance(by: .seconds(2))
+				expect(values.count) == 3
+				expect(values[0]) == [ 0, 1, 2 ]
+				expect(values[1]) == [ ]
+				expect(values[2]) == [ ]
+				
+				observer.send(value: 3)
+				expect(values.count) == 3
+				
+				scheduler.advance()
+				expect(values.count) == 3
+				
+				observer.send(value: 4)
+				observer.send(value: 5)
+				scheduler.advance()
+				expect(values.count) == 3
+				
+				scheduler.advance(by: .milliseconds(500))
+				expect(values.count) == 4
+				expect(values.first) == [ 0, 1, 2 ]
+				expect(values.last) == [ 3, 4, 5 ]
+				
+				observer.sendCompleted()
+				expect(values.last) == [ 3, 4, 5 ]
+				scheduler.advance(by: .seconds(1))
+				expect(values.count) == 5
+				expect(values.last) == []
+			}
+			
+			it("should schedule completion correctly") {
+				var values: [[Int]] = []
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.send(value: 0)
+				scheduler.advance()
+				expect(values.count) == 0
+				
+				observer.send(value: 1)
+				observer.sendCompleted()
+				expect(completed) == false
+				
+				scheduler.advance()
+				expect(values.count) == 0
+				expect(completed) == false
+				
+				scheduler.advance(by: .seconds(1))
+				expect(values.count) == 1
+				expect(values.first) == [ 0, 1 ]
+				expect(completed) == true
+			}
+		}
+		
+		describe("collect(every:on:skipEmpty:discardWhenCompleted:) where skipEmpty is false, discardWhenCompleted is true") {
+			var scheduler: TestScheduler!
+			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<[Int], NoError>!
+			
+			beforeEach {
+				scheduler = TestScheduler()
+				
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				observer = baseObserver
+				
+				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: false, discardWhenCompleted: true)
+				expect(signal).notTo(beNil())
+			}
+			
+			it("should send accumulated values on the given scheduler every interval") {
+				var values: [[Int]] = []
+				signal.observeValues { value in
+					values.append(value)
+				}
+				
+				expect(values.count) == 0
+				
+				observer.send(value: 0)
+				expect(values.count) == 0
+				
+				scheduler.advance()
+				expect(values.count) == 0
+				
+				observer.send(value: 1)
+				observer.send(value: 2)
+				expect(values.count) == 0
+				
+				scheduler.advance(by: .milliseconds(1500))
+				expect(values.count) == 1
+				expect(values[0]) == [ 0, 1, 2 ]
+				
+				scheduler.advance(by: .seconds(2))
+				expect(values.count) == 3
+				expect(values[0]) == [ 0, 1, 2 ]
+				expect(values[1]) == [ ]
+				expect(values[2]) == [ ]
+				
+				observer.send(value: 3)
+				expect(values.count) == 3
+				
+				scheduler.advance()
+				expect(values.count) == 3
+				
+				observer.send(value: 4)
+				observer.send(value: 5)
+				scheduler.advance()
+				expect(values.count) == 3
+				
+				scheduler.advance(by: .milliseconds(500))
+				expect(values.count) == 4
+				expect(values.first) == [ 0, 1, 2 ]
+				expect(values.last) == [ 3, 4, 5 ]
+				
+				observer.sendCompleted()
+				expect(values.last) == [ 3, 4, 5 ]
+				scheduler.run()
+				expect(values.count) == 4
+				expect(values.last) == [ 3, 4, 5 ]
+			}
+			
+			it("should schedule completion correctly") {
+				var values: [[Int]] = []
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.send(value: 0)
+				scheduler.advance()
+				expect(values.count) == 0
+				
+				observer.send(value: 1)
+				observer.sendCompleted()
+				expect(completed) == false
+				
+				scheduler.advance()
+				expect(values.count) == 0
+				expect(completed) == true
+				
+				scheduler.run()
+				expect(values.count) == 0
+				expect(completed) == true
+			}
+		}
+		
+		describe("collect(every:on:skipEmpty:discardWhenCompleted:) where skipEmpty is true, discardWhenCompleted is false") {
+			var scheduler: TestScheduler!
+			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<[Int], NoError>!
+			
+			beforeEach {
+				scheduler = TestScheduler()
+				
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				observer = baseObserver
+				
+				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: true, discardWhenCompleted: false)
+				expect(signal).notTo(beNil())
+			}
+			
+			it("should send accumulated values on the given scheduler every interval") {
+				var values: [[Int]] = []
+				signal.observeValues { value in
+					values.append(value)
+				}
+				
+				expect(values.count) == 0
+				
+				observer.send(value: 0)
+				expect(values.count) == 0
+				
+				scheduler.advance()
+				expect(values.count) == 0
+				
+				observer.send(value: 1)
+				observer.send(value: 2)
+				expect(values.count) == 0
+				
+				scheduler.advance(by: .milliseconds(1500))
+				expect(values.count) == 1
+				expect(values[0]) == [ 0, 1, 2 ]
+				
+				scheduler.advance(by: .seconds(2))
+				expect(values.count) == 1
+				expect(values[0]) == [ 0, 1, 2 ]
+				
+				observer.send(value: 3)
+				expect(values.count) == 1
+				
+				scheduler.advance()
+				expect(values.count) == 1
+				
+				observer.send(value: 4)
+				observer.send(value: 5)
+				scheduler.advance()
+				expect(values.count) == 1
+				
+				scheduler.advance(by: .seconds(100))
+				expect(values.count) == 2
+				expect(values[0]) == [ 0, 1, 2 ]
+				expect(values[1]) == [ 3, 4, 5 ]
+			}
+			
+			it("should schedule completion correctly") {
+				var values: [[Int]] = []
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.send(value: 0)
+				scheduler.advance()
+				expect(values.count) == 0
+				
+				observer.send(value: 1)
+				observer.sendCompleted()
+				expect(completed) == false
+				
+				scheduler.advance()
+				expect(values.count) == 0
+				expect(completed) == false
+				
+				scheduler.run()
+				expect(values.count) == 1
+				expect(values.last) == [ 0, 1 ]
+				expect(completed) == true
+			}
+		}
+		
+		describe("collect(every:on:skipEmpty:) where skipEmpty is true, discardWhenCompleted is true") {
+			var scheduler: TestScheduler!
+			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<[Int], NoError>!
+			
+			beforeEach {
+				scheduler = TestScheduler()
+				
+				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				observer = baseObserver
+				
+				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: true, discardWhenCompleted: true)
+				expect(signal).notTo(beNil())
+			}
+			
+			it("should send accumulated values on the given scheduler every interval") {
+				var values: [[Int]] = []
+				signal.observeValues { value in
+					values.append(value)
+				}
+				
+				expect(values.count) == 0
+				
+				observer.send(value: 0)
+				expect(values.count) == 0
+				
+				scheduler.advance()
+				expect(values.count) == 0
+				
+				observer.send(value: 1)
+				observer.send(value: 2)
+				expect(values.count) == 0
+				
+				scheduler.advance(by: .milliseconds(1500))
+				expect(values.count) == 1
+				expect(values[0]) == [ 0, 1, 2 ]
+				
+				scheduler.advance(by: .seconds(2))
+				expect(values.count) == 1
+				expect(values[0]) == [ 0, 1, 2 ]
+				
+				observer.send(value: 3)
+				expect(values.count) == 1
+				
+				scheduler.advance()
+				expect(values.count) == 1
+				
+				observer.send(value: 4)
+				observer.send(value: 5)
+				scheduler.advance()
+				expect(values.count) == 1
+				
+				scheduler.advance(by: .seconds(100))
+				expect(values.count) == 2
+				expect(values[0]) == [ 0, 1, 2 ]
+				expect(values[1]) == [ 3, 4, 5 ]
+			}
+			
+			it("should schedule completion correctly") {
+				var values: [[Int]] = []
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.send(value: 0)
+				scheduler.advance()
+				expect(values.count) == 0
+				
+				observer.send(value: 1)
+				observer.sendCompleted()
+				expect(completed) == false
+				
+				scheduler.advance()
+				expect(values.count) == 0
+				expect(completed) == true
+				
+				scheduler.run()
+				expect(values.count) == 0
 				expect(completed) == true
 			}
 		}

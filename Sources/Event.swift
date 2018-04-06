@@ -817,17 +817,7 @@ extension Signal.Event {
 				}
 
 				schedulerDisposable.inner = scheduler.schedule(after: scheduleDate) {
-					let pendingValue: Value? = state.modify { state in
-						defer {
-							if state.pendingValue != nil {
-								state.pendingValue = nil
-								state.previousDate = scheduleDate
-							}
-						}
-						return state.pendingValue
-					}
-
-					if let pendingValue = pendingValue {
+					if let pendingValue = state.modify({ $0.retrieveValue(date: scheduleDate) }) {
 						action(.value(pendingValue))
 					}
 				}
@@ -835,8 +825,10 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func debounce(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
+	internal static func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardWhenCompleted: Bool) -> Transformation<Value, Error> {
 		precondition(interval >= 0)
+		
+		let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState(previousDate: scheduler.currentDate, pendingValue: nil))
 
 		return { action, lifetime in
 			let d = SerialDisposable()
@@ -849,12 +841,34 @@ extension Signal.Event {
 			return { event in
 				switch event {
 				case let .value(value):
+					state.modify { state in
+						state.pendingValue = value
+					}
 					let date = scheduler.currentDate.addingTimeInterval(interval)
 					d.inner = scheduler.schedule(after: date) {
-						action(.value(value))
+						if let pendingValue = state.modify({ $0.retrieveValue(date: date) }) {
+							action(.value(pendingValue))
+						}
+					}
+					
+				case .completed:
+					d.inner = scheduler.schedule {
+						let pending: (value: Value, previousDate: Date)? = state.modify { state in
+							defer { state.pendingValue = nil }
+							guard let pendingValue = state.pendingValue, let previousDate = state.previousDate else { return nil }
+							return (pendingValue, previousDate)
+						}
+						if !discardWhenCompleted, let (pendingValue, previousDate) = pending {
+							scheduler.schedule(after: previousDate.addingTimeInterval(interval)) {
+								action(.value(pendingValue))
+								action(.completed)
+							}
+						} else {
+							action(.completed)
+						}
 					}
 
-				case .completed, .failed, .interrupted:
+				case .failed, .interrupted:
 					d.inner = scheduler.schedule {
 						action(event)
 					}
@@ -925,6 +939,16 @@ private struct CollectEveryState<Value> {
 private struct ThrottleState<Value> {
 	var previousDate: Date?
 	var pendingValue: Value?
+	
+	mutating func retrieveValue(date: Date) -> Value? {
+		defer {
+			if pendingValue != nil {
+				pendingValue = nil
+				previousDate = date
+			}
+		}
+		return pendingValue
+	}
 }
 
 extension Signal.Event where Error == NoError {
