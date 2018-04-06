@@ -862,18 +862,19 @@ extension Signal.Event {
 		}
 	}
 	
-	internal static func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool, discardsWhenCompleted: Bool) -> Transformation<[Value], Error> {
+	internal static func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool, discardWhenCompleted: Bool) -> Transformation<[Value], Error> {
 		return { action, lifetime in
 			let values = Atomic<CollectEveryState<Value>>(.init(skipEmpty: skipEmpty))
 			let d = SerialDisposable()
 			
-			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1) {
+			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1) { [weak d] in
 				let (currentValues, isCompleted) = values.modify { ($0.collect(), $0.isCompleted) }
 				if let currentValues = currentValues {
 					action(.value(currentValues))
 				}
 				if isCompleted {
 					action(.completed)
+					d?.dispose()
 				}
 			}
 			
@@ -888,7 +889,7 @@ extension Signal.Event {
 					values.modify { $0.values.append(value) }
 				case let .failed(error):
 					d.inner = scheduler.schedule { action(.failed(error)) }
-				case .completed where !discardsWhenCompleted:
+				case .completed where !discardWhenCompleted:
 					values.modify { $0.isCompleted = true }
 				case .completed:
 					d.inner = scheduler.schedule { action(.completed) }

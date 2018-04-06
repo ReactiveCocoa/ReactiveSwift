@@ -1954,7 +1954,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 		
-		describe("collect(_:on:skipEmpty:discardsWhenCompleted:) where skipEmpty is false, discardsWhenCompleted is false") {
+		describe("collect(_:on:skipEmpty:discardWhenCompleted:) where skipEmpty is false, discardWhenCompleted is false") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<[Int], NoError>!
@@ -1965,7 +1965,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 				
-				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: false, discardsWhenCompleted: false)
+				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: false, discardWhenCompleted: false)
 				expect(signal).notTo(beNil())
 			}
 			
@@ -2054,7 +2054,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 		
-		describe("collect(_:on:skipEmpty:discardsWhenCompleted:) where skipEmpty is false, discardsWhenCompleted is true") {
+		describe("collect(_:on:skipEmpty:discardWhenCompleted:) where skipEmpty is false, discardWhenCompleted is true") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<[Int], NoError>!
@@ -2065,7 +2065,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 				
-				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: false, discardsWhenCompleted: true)
+				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: false, discardWhenCompleted: true)
 				expect(signal).notTo(beNil())
 			}
 			
@@ -2153,7 +2153,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 		
-		describe("collect(_:on:skipEmpty:discardsWhenCompleted:) where skipEmpty is true, discardsWhenCompleted is false") {
+		describe("collect(_:on:skipEmpty:discardWhenCompleted:) where skipEmpty is true, discardWhenCompleted is false") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<[Int], NoError>!
@@ -2164,7 +2164,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 				
-				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: true, discardsWhenCompleted: false)
+				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: true, discardWhenCompleted: false)
 				expect(signal).notTo(beNil())
 			}
 			
@@ -2245,7 +2245,7 @@ class SignalSpec: QuickSpec {
 			}
 		}
 		
-		describe("collect(_:on:skipEmpty:) where skipEmpty is true, discardsWhenCompleted is true") {
+		describe("collect(_:on:skipEmpty:) where skipEmpty is true, discardWhenCompleted is true") {
 			var scheduler: TestScheduler!
 			var observer: Signal<Int, NoError>.Observer!
 			var signal: Signal<[Int], NoError>!
@@ -2256,7 +2256,7 @@ class SignalSpec: QuickSpec {
 				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
 				observer = baseObserver
 				
-				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: true, discardsWhenCompleted: true)
+				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: true, discardWhenCompleted: true)
 				expect(signal).notTo(beNil())
 			}
 			

@@ -1058,7 +1058,7 @@ extension SignalProducer {
 	/// Forward the latest values on `scheduler` every `interval`.
 	///
 	/// - note: If `self` terminates while values are being accumulated,
-	///         the behaviour will be determined by `discardsWhenCompleted`.
+	///         the behaviour will be determined by `discardWhenCompleted`.
 	///         If `true`, the values will be discarded and the returned producer
 	///         will terminate immediately.
 	///         If `false`, that values will be delivered at the next interval.
@@ -1068,13 +1068,13 @@ extension SignalProducer {
 	///   - scheduler: A scheduler to send values on.
 	///   - skipEmpty: Whether empty arrays should be sent if no values were
 	///     accumulated during the interval.
-	///   - discardsWhenCompleted: A boolean to indicate if the latest unsent
+	///   - discardWhenCompleted: A boolean to indicate if the latest unsent
 	///     values should be discarded on completion.
 	///
 	/// - returns: A producer that sends all values that are sent from `self`
 	///            at `interval` seconds apart.
-	public func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool = false, discardsWhenCompleted: Bool = true) -> SignalProducer<[Value], Error> {
-		return core.flatMapEvent(Signal.Event.collect(every: interval, on: scheduler, skipEmpty: skipEmpty, discardsWhenCompleted: discardsWhenCompleted))
+	public func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool = false, discardWhenCompleted: Bool = true) -> SignalProducer<[Value], Error> {
+		return core.flatMapEvent(Signal.Event.collect(every: interval, on: scheduler, skipEmpty: skipEmpty, discardWhenCompleted: discardWhenCompleted))
 	}
 
 	/// Forward all events onto the given scheduler, instead of whichever
