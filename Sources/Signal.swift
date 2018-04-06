@@ -1,5 +1,6 @@
 import Foundation
 import Result
+import Dispatch
 
 /// A push-driven stream that sends Events over time, parameterized by the type
 /// of values being sent (`Value`) and the type of failure that can occur
