@@ -513,7 +513,7 @@ because some operators to [combine streams](#combining-event-streams) require
 the inputs to have matching error types.
 
 
-[Signal]: Documentation/ReactivePrimitives.md#signal-a-unidirectional-stream-of-events
-[SignalProducer]: Documentation/ReactivePrimitives.md#signalproducer-deferred-work-that-creates-a-stream-of-values
+[Signal]: ReactivePrimitives.md#signal-a-unidirectional-stream-of-events
+[SignalProducer]: ReactivePrimitives.md#signalproducer-deferred-work-that-creates-a-stream-of-values
 [Observation]: FrameworkOverview.md#observation
 
