@@ -1,5 +1,6 @@
 import Result
 import Foundation
+import Dispatch
 
 extension Signal {
 	/// Represents a signal event.
