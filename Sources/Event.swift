@@ -824,7 +824,7 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardsWhenCompleted: Bool) -> Transformation<Value, Error> {
+	internal static func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardWhenCompleted: Bool) -> Transformation<Value, Error> {
 		precondition(interval >= 0)
 		
 		let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState(previousDate: scheduler.currentDate, pendingValue: nil))
@@ -857,7 +857,7 @@ extension Signal.Event {
 							guard let pendingValue = state.pendingValue, let previousDate = state.previousDate else { return nil }
 							return (pendingValue, previousDate)
 						}
-						if !discardsWhenCompleted, let (pendingValue, previousDate) = pending {
+						if !discardWhenCompleted, let (pendingValue, previousDate) = pending {
 							scheduler.schedule(after: previousDate.addingTimeInterval(interval)) {
 								action(.value(pendingValue))
 								action(.completed)
