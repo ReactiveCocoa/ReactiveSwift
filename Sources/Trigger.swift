@@ -17,7 +17,7 @@ public final class Trigger: BindingSource, BindingTargetProvider {
 	
 	public convenience init(capturing signal: Signal<Value, Error>) {
 		self.init()
-		signal.observe(observer)
+		lifetime += signal.observeValues(observer.send)
 	}
 	
 	public convenience init<P: PropertyProtocol>(capturing property: P) where P.Value == Value {
