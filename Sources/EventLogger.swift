@@ -84,11 +84,11 @@ extension Signal {
 	/// - returns: Signal that, when observed, logs the fired events.
 	public func logEvents(identifier: String = "", events: Set<LoggingEvent.Signal> = LoggingEvent.Signal.allEvents, fileName: String = #file, functionName: String = #function, lineNumber: Int = #line, logger: @escaping EventLogger = defaultEventLog) -> Signal<Value, Error> {
 		let logContext = LogContext(events: events,
-									identifier: identifier,
-									fileName: fileName,
-									functionName: functionName,
-									lineNumber: lineNumber,
-									logger: logger)
+		                            identifier: identifier,
+		                            fileName: fileName,
+		                            functionName: functionName,
+		                            lineNumber: lineNumber,
+		                            logger: logger)
 		
 		return self.on(
 			failed: logContext.log(.failed),
@@ -123,11 +123,11 @@ extension SignalProducer {
 	                      logger: @escaping EventLogger = defaultEventLog
 	) -> SignalProducer<Value, Error> {
 		let logContext = LogContext(events: events,
-									identifier: identifier,
-									fileName: fileName,
-									functionName: functionName,
-									lineNumber: lineNumber,
-									logger: logger)
+		                            identifier: identifier,
+		                            fileName: fileName,
+		                            functionName: functionName,
+		                            lineNumber: lineNumber,
+		                            logger: logger)
 
 		return self.on(
 			starting: logContext.log(.starting),
