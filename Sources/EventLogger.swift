@@ -62,7 +62,7 @@ fileprivate struct LogContext<Event: LoggingEventProtocol> {
 	}
 	
 	func log(_ event: Event) -> (() -> Void)? {
-		return event.logIfNeeded(events: self.events) { event in
+		return event.logIfNeededNoArg(events: self.events) { event in
 			self.logger(self.identifier, event, self.fileName, self.functionName, self.lineNumber)
 		}
 	}
@@ -147,8 +147,11 @@ extension LoggingEvent.Signal: LoggingEventProtocol {}
 extension LoggingEvent.SignalProducer: LoggingEventProtocol {}
 
 private extension LoggingEventProtocol {
-	// See https://bugs.swift.org/browse/SR-6796 and the discussion in https://github.com/apple/swift/pull/14477.
-	func logIfNeeded(events: Set<Self>, logger: @escaping (String) -> Void) -> (() -> Void)? {
+	// FIXME: See https://bugs.swift.org/browse/SR-6796 and the discussion in https://github.com/apple/swift/pull/14477.
+	//        Due to differences in the type checker, this method cannot
+	//        overload the generic `logIfNeeded`, or otherwise it would lead to
+	//        infinite recursion with Swift 4.0.x.
+	func logIfNeededNoArg(events: Set<Self>, logger: @escaping (String) -> Void) -> (() -> Void)? {
 		return (self.logIfNeeded(events: events, logger: logger) as ((()) -> Void)?)
 			.map { closure in
 				{ closure(()) }
