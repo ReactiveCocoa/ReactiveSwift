@@ -889,7 +889,6 @@ extension Signal.Event {
 				}
 				if isCompleted {
 					action(.completed)
-					d?.dispose()
 				}
 			}
 			
