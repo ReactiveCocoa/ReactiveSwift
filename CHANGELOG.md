@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. New method `collect(every:on:skipEmpty:discardWhenCompleted:)` which delivers all values that occurred during a time interval (#619, kudos to @Qata)
 1. `debounce` now offers an opt-in behaviour to preserve the pending value when the signal or producer completes. You may enable it by specifying `discardWhenCompleted` as false (#287, kudos to @Qata)
 1. Result now interoperates with SignalProducer n-ary operators as a constant producer (#606, kudos to @Qata)
 1. New property operator: `filter` (#586, kudos to @iv-mexx)
