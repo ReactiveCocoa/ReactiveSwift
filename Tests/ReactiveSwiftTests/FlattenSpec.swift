@@ -644,6 +644,26 @@ class FlattenSpec: QuickSpec {
 				_ = Signal<Int, NoError>.empty
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
+			
+			it("sould available to use contextual lookup for arbitrary error outer signal and arbitrary error inner signal") {
+				_ = Signal<Int, TestError>.empty
+					.flatMap(.latest) { _ in .init(error: .default) } as Signal<Int, TestError>
+			}
+			
+			it("sould available to use contextual lookup for NoError outer signal and NoError inner signal") {
+				_ = Signal<Int, NoError>.empty
+					.flatMap(.latest) { _ in .init(value: 0) }
+			}
+			
+			it("sould available to use contextual lookup for arbitrary error outer signal and NoError inner signal") {
+				_ = Signal<Int, TestError>.empty
+					.flatMap(.latest) { _ in .init(value: 0) }
+			}
+			
+			it("sould available to use contextual lookup for NoError outer signal and arbitrary error inner signal") {
+				_ = Signal<Int, NoError>.empty
+					.flatMap(.latest) { _ in .init(error: .default) } as Signal<Int, TestError>
+			}
 		}
 
 		describe("SignalProducer.flatMap()") {
@@ -813,6 +833,26 @@ class FlattenSpec: QuickSpec {
 			it("works with Property and NoError") {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in Property(value: 0) }
+			}
+			
+			it("sould available to use contextual lookup for arbitrary error outer signal and arbitrary error inner signal") {
+				_ = SignalProducer<Int, TestError>.empty
+					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
+			}
+			
+			it("sould available to use contextual lookup for NoError outer signal and NoError inner signal") {
+				_ = SignalProducer<Int, NoError>.empty
+					.flatMap(.latest) { _ in .init(value: 0) }
+			}
+			
+			it("sould available to use contextual lookup for arbitrary error outer signal and NoError inner signal") {
+				_ = SignalProducer<Int, TestError>.empty
+					.flatMap(.latest) { _ in .init(value: 0) }
+			}
+			
+			it("sould available to use contextual lookup for NoError outer signal and arbitrary error inner signal") {
+				_ = SignalProducer<Int, NoError>.empty
+					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
 			}
 		}
 
