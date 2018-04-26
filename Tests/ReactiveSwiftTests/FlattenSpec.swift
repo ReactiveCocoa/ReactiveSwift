@@ -1120,29 +1120,54 @@ class FlattenSpec: QuickSpec {
 				observer.send(value: 3)
 				expect(lastValue) == 3
 			}
-
+			
 			it("should emit initial value") {
 				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
-
+				
 				let mergedSignals = signal.prefix(SignalProducer(value: 0))
-
+				
 				var lastValue: Int?
 				mergedSignals.startWithValues { lastValue = $0 }
-
+				
+				expect(lastValue) == 0
+				
+				observer.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer.send(value: 2)
+				expect(lastValue) == 2
+				
+				observer.send(value: 3)
+				expect(lastValue) == 3
+			}
+			
+			it("should accept SignalProducerConvertible conforming type") {
+				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedSignals = signal.prefix(Property(value: 0))
+				
+				var lastValue: Int?
+				mergedSignals.startWithValues { lastValue = $0 }
+				
 				expect(lastValue) == 0
 
 				observer.send(value: 1)
 				expect(lastValue) == 1
-
+				
 				observer.send(value: 2)
 				expect(lastValue) == 2
-
+				
 				observer.send(value: 3)
 				expect(lastValue) == 3
 			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.prefix(.init(value: 0))
+			}
 		}
 
-		describe("SignalProducer.concat(value:)") {
+		describe("SignalProducer.concat()") {
 			it("should emit final value") {
 				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
 
@@ -1163,9 +1188,49 @@ class FlattenSpec: QuickSpec {
 				observer.sendCompleted()
 				expect(lastValue) == 4
 			}
-		}
-
-		describe("SignalProducer.concat(error:)") {
+			
+			it("should emit final value") {
+				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedSignals = signal.concat(SignalProducer(value: 4))
+				
+				var lastValue: Int?
+				mergedSignals.startWithValues { lastValue = $0 }
+				
+				observer.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer.send(value: 2)
+				expect(lastValue) == 2
+				
+				observer.send(value: 3)
+				expect(lastValue) == 3
+				
+				observer.sendCompleted()
+				expect(lastValue) == 4
+			}
+			
+			it("should accept SignalProducerConvertible conforming type") {
+				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				
+				let mergedSignals = signal.concat(Property(value: 4))
+				
+				var lastValue: Int?
+				mergedSignals.startWithValues { lastValue = $0 }
+				
+				observer.send(value: 1)
+				expect(lastValue) == 1
+				
+				observer.send(value: 2)
+				expect(lastValue) == 2
+				
+				observer.send(value: 3)
+				expect(lastValue) == 3
+				
+				observer.sendCompleted()
+				expect(lastValue) == 4
+			}
+			
 			it("should emit concatenated error") {
 				let (signal, observer) = SignalProducer<Int, TestError>.pipe()
 
@@ -1198,6 +1263,11 @@ class FlattenSpec: QuickSpec {
 
 				expect(results).to(haveCount(1))
 				expect(results[0].error) == .error1
+			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.concat(.init(value: 0))
 			}
 		}
 

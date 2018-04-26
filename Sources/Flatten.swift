@@ -405,7 +405,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, will emit own values and on
 	///            completion will emit a `value`.
 	public func concat(value: Value) -> SignalProducer<Value, Error> {
-		return self.concat(SignalProducer(value: value))
+		return concat(SignalProducer(value: value))
 	}
 
 	/// `concat`s `error` onto `self`.
@@ -416,7 +416,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, will emit own values and on
 	///            completion will emit an `error`.
 	public func concat(error: Error) -> SignalProducer<Value, Error> {
-		return self.concat(SignalProducer(error: error))
+		return concat(SignalProducer(error: error))
 	}
 
 	/// `concat`s `self` onto initial `previous`.
@@ -449,7 +449,7 @@ extension SignalProducer {
 	/// - returns: A producer that, when started, first emits `value`, then all
     ///            values emited by `self`.
 	public func prefix(value: Value) -> SignalProducer<Value, Error> {
-		return self.prefix(SignalProducer(value: value))
+		return prefix(SignalProducer(value: value))
 	}
 }
 
