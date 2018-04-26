@@ -2316,6 +2316,36 @@ class SignalProducerSpec: QuickSpec {
 				let h = SignalProducer<Int, TestError>.empty.then(SignalProducer<Double, NoError>.empty)
 				expect(type(of: h)) == SignalProducer<Double, TestError>.self
 			}
+			
+			it("sould available to use contextual lookup for arbitrary error signal then same value same error signal") {
+				_ = SignalProducer<Int, TestError>.empty
+					.then(.init(value: 0))
+			}
+			
+			it("sould available to use contextual lookup for arbitrary error signal then other value same error signal") {
+				_ = SignalProducer<Int, TestError>.empty
+					.then(.init(result: Result<String, TestError>(value: "")))
+			}
+			
+			it("sould available to use contextual lookup for arbitrary error signal then other value NoError signal") {
+				_ = SignalProducer<Int, TestError>.empty
+					.then(.init(value: ""))
+			}
+			
+			it("sould available to use contextual lookup for NoError signal then same value same error signal") {
+				_ = SignalProducer<Int, NoError>.empty
+					.then(.init(value: 0))
+			}
+			
+			it("sould available to use contextual lookup for NoError signal then other value same error signal") {
+				_ = SignalProducer<Int, NoError>.empty
+					.then(.init(value: ""))
+			}
+			
+			it("sould available to use contextual lookup for NoError signal then other value arbitrary error signal") {
+				_ = SignalProducer<Int, NoError>.empty
+					.then(.init(result: Result<String, TestError>(value: "")))
+			}
 		}
 
 		describe("first") {

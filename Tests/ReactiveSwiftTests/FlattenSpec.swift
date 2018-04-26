@@ -835,22 +835,22 @@ class FlattenSpec: QuickSpec {
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
 			
-			it("sould available to use contextual lookup for arbitrary error outer signal and arbitrary error inner signal") {
+			it("sould available to use contextual lookup for flatMap arbitrary error signal to arbitrary error signal") {
 				_ = SignalProducer<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
 			}
 			
-			it("sould available to use contextual lookup for NoError outer signal and NoError inner signal") {
+			it("sould available to use contextual lookup for flatMap NoError signal to NoError signal") {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
 			
-			it("sould available to use contextual lookup for arbitrary error outer signal and NoError inner signal") {
+			it("sould available to use contextual lookup for flatMap arbitrary error signal to NoError signal") {
 				_ = SignalProducer<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
 			
-			it("sould available to use contextual lookup for NoError outer signal and arbitrary error inner signal") {
+			it("sould available to use contextual lookup for flatMap NoError signal to arbitrary error signal") {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
 			}
