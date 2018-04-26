@@ -2890,8 +2890,8 @@ class SignalProducerSpec: QuickSpec {
 			describe("init(values) ambiguity") {
 				it("should not be a SignalProducer<SignalProducer<Int, NoError>, NoError>") {
 
-					let producer1: SignalProducer<Int, NoError> = .empty
-					let producer2: SignalProducer<Int, NoError> = .empty
+					let producer1 = SignalProducer<Int, NoError>.empty
+					let producer2 = SignalProducer<Int, NoError>.empty
 
 					// This expression verifies at compile time that the type is as expected.
 					let _: SignalProducer<Int, NoError> = SignalProducer([producer1, producer2])
@@ -2993,6 +2993,11 @@ class SignalProducerSpec: QuickSpec {
 
 				observer2.sendCompleted()
 			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Bool, NoError>.empty
+					.and(.init(value: true))
+			}
 		}
 
 		describe("or attribute") {
@@ -3038,6 +3043,11 @@ class SignalProducerSpec: QuickSpec {
 				observer2.send(value: true)
 
 				observer2.sendCompleted()
+			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Bool, NoError>.empty
+					.or(.init(value: true))
 			}
 		}
 
