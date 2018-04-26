@@ -1310,6 +1310,11 @@ class SignalProducerSpec: QuickSpec {
 				expect(interrupted) == true
 				expect(disposed) == true
 			}
+			
+			it("sould available to use contextual lookup for") {
+				_ = SignalProducer<Int, TestError>.empty
+					.flatMapError { _ in .init(value: 0) }
+			}
 		}
 
 		describe("flatten") {
