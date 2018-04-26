@@ -385,7 +385,7 @@ extension SignalProducer {
 	public func concat(_ next: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return SignalProducer<SignalProducer<Value, Error>, Error>([ self, next ]).flatten(.concat)
 	}
-	
+
 	/// `concat`s `next` onto `self`.
 	///
 	/// - parameters:

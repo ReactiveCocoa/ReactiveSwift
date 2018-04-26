@@ -644,22 +644,22 @@ class FlattenSpec: QuickSpec {
 				_ = Signal<Int, NoError>.empty
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
-			
+
 			it("sould available to use contextual lookup for arbitrary error outer signal and arbitrary error inner signal") {
 				_ = Signal<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as Signal<Int, TestError>
 			}
-			
+
 			it("sould available to use contextual lookup for NoError outer signal and NoError inner signal") {
 				_ = Signal<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
-			
+
 			it("sould available to use contextual lookup for arbitrary error outer signal and NoError inner signal") {
 				_ = Signal<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
-			
+
 			it("sould available to use contextual lookup for NoError outer signal and arbitrary error inner signal") {
 				_ = Signal<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as Signal<Int, TestError>
@@ -834,22 +834,22 @@ class FlattenSpec: QuickSpec {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
-			
+
 			it("sould available to use contextual lookup for flatMap arbitrary error signal to arbitrary error signal") {
 				_ = SignalProducer<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
 			}
-			
+
 			it("sould available to use contextual lookup for flatMap NoError signal to NoError signal") {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
-			
+
 			it("sould available to use contextual lookup for flatMap arbitrary error signal to NoError signal") {
 				_ = SignalProducer<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
-			
+
 			it("sould available to use contextual lookup for flatMap NoError signal to arbitrary error signal") {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
@@ -1138,7 +1138,7 @@ class FlattenSpec: QuickSpec {
 				observer2.sendCompleted()
 				expect(completed) == true
 			}
-			
+
 			it("sould available to use contextual lookup") {
 				_ = SignalProducer<Int, NoError>.empty
 					.merge(with: .init(value: 0))
@@ -1165,47 +1165,47 @@ class FlattenSpec: QuickSpec {
 				observer.send(value: 3)
 				expect(lastValue) == 3
 			}
-			
+
 			it("should emit initial value") {
 				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
-				
+
 				let mergedSignals = signal.prefix(SignalProducer(value: 0))
-				
+
 				var lastValue: Int?
 				mergedSignals.startWithValues { lastValue = $0 }
-				
-				expect(lastValue) == 0
-				
-				observer.send(value: 1)
-				expect(lastValue) == 1
-				
-				observer.send(value: 2)
-				expect(lastValue) == 2
-				
-				observer.send(value: 3)
-				expect(lastValue) == 3
-			}
-			
-			it("should accept SignalProducerConvertible conforming type") {
-				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
-				
-				let mergedSignals = signal.prefix(Property(value: 0))
-				
-				var lastValue: Int?
-				mergedSignals.startWithValues { lastValue = $0 }
-				
+
 				expect(lastValue) == 0
 
 				observer.send(value: 1)
 				expect(lastValue) == 1
-				
+
 				observer.send(value: 2)
 				expect(lastValue) == 2
-				
+
 				observer.send(value: 3)
 				expect(lastValue) == 3
 			}
-			
+
+			it("should accept SignalProducerConvertible conforming type") {
+				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+
+				let mergedSignals = signal.prefix(Property(value: 0))
+
+				var lastValue: Int?
+				mergedSignals.startWithValues { lastValue = $0 }
+
+				expect(lastValue) == 0
+
+				observer.send(value: 1)
+				expect(lastValue) == 1
+
+				observer.send(value: 2)
+				expect(lastValue) == 2
+
+				observer.send(value: 3)
+				expect(lastValue) == 3
+			}
+
 			it("sould available to use contextual lookup") {
 				_ = SignalProducer<Int, NoError>.empty
 					.prefix(.init(value: 0))
@@ -1233,49 +1233,49 @@ class FlattenSpec: QuickSpec {
 				observer.sendCompleted()
 				expect(lastValue) == 4
 			}
-			
+
 			it("should emit final value") {
 				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
-				
+
 				let mergedSignals = signal.concat(SignalProducer(value: 4))
-				
+
 				var lastValue: Int?
 				mergedSignals.startWithValues { lastValue = $0 }
-				
+
 				observer.send(value: 1)
 				expect(lastValue) == 1
-				
+
 				observer.send(value: 2)
 				expect(lastValue) == 2
-				
+
 				observer.send(value: 3)
 				expect(lastValue) == 3
-				
+
 				observer.sendCompleted()
 				expect(lastValue) == 4
 			}
-			
+
 			it("should accept SignalProducerConvertible conforming type") {
 				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
-				
+
 				let mergedSignals = signal.concat(Property(value: 4))
-				
+
 				var lastValue: Int?
 				mergedSignals.startWithValues { lastValue = $0 }
-				
+
 				observer.send(value: 1)
 				expect(lastValue) == 1
-				
+
 				observer.send(value: 2)
 				expect(lastValue) == 2
-				
+
 				observer.send(value: 3)
 				expect(lastValue) == 3
-				
+
 				observer.sendCompleted()
 				expect(lastValue) == 4
 			}
-			
+
 			it("should emit concatenated error") {
 				let (signal, observer) = SignalProducer<Int, TestError>.pipe()
 
@@ -1309,7 +1309,7 @@ class FlattenSpec: QuickSpec {
 				expect(results).to(haveCount(1))
 				expect(results[0].error) == .error1
 			}
-			
+
 			it("sould available to use contextual lookup") {
 				_ = SignalProducer<Int, NoError>.empty
 					.concat(.init(value: 0))
