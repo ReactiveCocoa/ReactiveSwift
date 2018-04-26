@@ -2193,6 +2193,11 @@ class SignalSpec: QuickSpec {
 				sampleeObserver.sendInterrupted()
 				expect(event).to(beNil())
 			}
+			
+			it("sould available to use contextual lookup") {
+				_ = Signal<Int, NoError>.empty
+					.withLatest(from: .init(value: 0))
+			}
 		}
 
 		describe("combineLatestWith") {

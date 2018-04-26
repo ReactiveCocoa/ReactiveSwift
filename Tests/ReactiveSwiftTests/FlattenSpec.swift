@@ -1138,6 +1138,11 @@ class FlattenSpec: QuickSpec {
 				observer2.sendCompleted()
 				expect(completed) == true
 			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.merge(with: .init(value: 0))
+			}
 		}
 
 		describe("SignalProducer.prefix()") {

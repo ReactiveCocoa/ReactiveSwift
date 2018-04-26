@@ -722,6 +722,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 				observer.send(value: 0)
 				expect(lastValue) == 0
 			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.skip(until: .init(value: ()))
+			}
 		}
 
 		describe("take") {
@@ -1017,6 +1022,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(completed) == true
 				expect(lastValue).to(beNil())
 			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.take(until: .init(value: ()))
+			}
 		}
 
 		describe("takeUntilReplacement") {
@@ -1076,6 +1086,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(completed) == false
 				replacementObserver.sendCompleted()
 				expect(completed) == true
+			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.take(untilReplacement: .init(value: 0))
 			}
 		}
 
@@ -1410,6 +1425,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				expect(valueReceived) == "1a"
 			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.sample(with: .init(value: 0))
+			}
 		}
 
 		describe("sampleOn") {
@@ -1517,6 +1537,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 					disposable.dispose()
 					expect(payloadFreed) == true
 				}
+			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.sample(on: .init(value: ()))
 			}
 		}
 
@@ -1650,6 +1675,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 				sampleeObserver.sendInterrupted()
 				expect(event).to(beNil())
 			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.withLatest(from: .init(value: 0))
+			}
 		}
 
 		describe("combineLatestWith") {
@@ -1691,6 +1721,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				otherObserver.sendCompleted()
 				expect(completed) == true
+			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.combineLatest(with: .init(value: 0))
 			}
 		}
 
@@ -1758,6 +1793,11 @@ class SignalProducerLiftingSpec: QuickSpec {
 				rightObserver.send(value: "foo")
 				expect(completed) == true
 				expect(result) == [ "0foo" ]
+			}
+			
+			it("sould available to use contextual lookup") {
+				_ = SignalProducer<Int, NoError>.empty
+					.zip(with: .init(value: 0))
 			}
 		}
 
