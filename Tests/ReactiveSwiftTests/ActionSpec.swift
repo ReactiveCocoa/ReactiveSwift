@@ -411,6 +411,21 @@ class ActionSpec: QuickSpec {
 
 				expect(values) == [3, 4, -11]
 			}
+			it("is disabled if a validatedProperty is invalid") {
+				enum TestValidationError: Error { case generic }
+				typealias PropertyType = ValidatingProperty<Int, TestValidationError>
+				let decisions: [PropertyType.Decision] = [.valid, .invalid(.generic), .coerced(10, nil)]
+				let input = PropertyType(0, { decisions[$0] })
+				let action = Action(validating: input, execute: echo)
+				expect(action.isEnabled.value) == true
+				expect(action.apply().single()?.value) == 0
+				input.value = 1
+				expect(action.isEnabled.value) == false
+				expect(action.apply().single()?.error).toNot(beNil())
+				input.value = 2
+				expect(action.isEnabled.value) == true
+				expect(action.apply().single()?.value) == 10
+			}
 		}
 	}
 }
