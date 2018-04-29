@@ -411,7 +411,7 @@ class ActionSpec: QuickSpec {
 
 				expect(values) == [3, 4, -11]
 			}
-			it("is disabled if a validatedProperty is invalid") {
+			it("is disabled if the validating property does not hold a valid value") {
 				enum TestValidationError: Error { case generic }
 				typealias PropertyType = ValidatingProperty<Int, TestValidationError>
 				let decisions: [PropertyType.Decision] = [.valid, .invalid(.generic), .coerced(10, nil)]
