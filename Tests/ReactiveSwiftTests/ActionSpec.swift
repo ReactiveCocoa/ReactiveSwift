@@ -411,6 +411,7 @@ class ActionSpec: QuickSpec {
 
 				expect(values) == [3, 4, -11]
 			}
+			
 			it("is disabled if the validating property does not hold a valid value") {
 				enum TestValidationError: Error { case generic }
 				typealias PropertyType = ValidatingProperty<Int, TestValidationError>
@@ -425,6 +426,35 @@ class ActionSpec: QuickSpec {
 				input.value = 2
 				expect(action.isEnabled.value) == true
 				expect(action.apply().single()?.value) == 10
+			}
+			
+			it("allows a different input type while using a validating property as its state") {
+				enum TestValidationError: Error { case generic }
+				let state = ValidatingProperty<Int?, TestValidationError>(nil, { $0 != nil ? .valid : .invalid(.generic) })
+				
+				let add = Action<String, Int?, NoError>(validating: state) { state, input -> SignalProducer<Int?, NoError> in
+					guard let input = Int(input), let state = state else { return SignalProducer(value: nil) }
+					return SignalProducer(value: state + input)
+				}
+				
+				var values: [Int] = []
+				add.values.observeValues { output in
+					if let output = output {
+						values.append(output)
+					}
+				}
+				
+				expect(add.isEnabled.value) == false
+				state.value = 1
+				expect(add.isEnabled.value) == true
+				
+				add.apply("2").start()
+				add.apply("3").start()
+				
+				state.value = -1
+				add.apply("-10").start()
+				
+				expect(values) == [3, 4, -11]
 			}
 		}
 	}
