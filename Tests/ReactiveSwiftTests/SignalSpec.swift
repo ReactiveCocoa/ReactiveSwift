@@ -1012,7 +1012,7 @@ class SignalSpec: QuickSpec {
 
 			it("should skip values according to a predicate") {
 				let (baseSignal, observer) = Signal<String, NoError>.pipe()
-				let signal = baseSignal.skipRepeats { $0.characters.count == $1.characters.count }
+				let signal = baseSignal.skipRepeats { $0.count == $1.count }
 
 				var values: [String] = []
 				signal.observeValues { values.append($0) }
