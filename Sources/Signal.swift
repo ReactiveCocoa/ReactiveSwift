@@ -1,5 +1,6 @@
 import Foundation
 import Result
+import Dispatch
 
 /// A push-driven stream that sends Events over time, parameterized by the type
 /// of values being sent (`Value`) and the type of failure that can occur
@@ -763,6 +764,28 @@ extension Signal {
 	///            closure.
 	public func collect(_ shouldEmit: @escaping (_ collected: [Value], _ latest: Value) -> Bool) -> Signal<[Value], Error> {
 		return flatMapEvent(Signal.Event.collect(shouldEmit))
+	}
+
+	/// Forward the latest values on `scheduler` every `interval`.
+	///
+	/// - note: If `self` terminates while values are being accumulated,
+	///         the behaviour will be determined by `discardWhenCompleted`.
+	///         If `true`, the values will be discarded and the returned signal
+	///         will terminate immediately.
+	///         If `false`, that values will be delivered at the next interval.
+	///
+	/// - parameters:
+	///   - interval: A repetition interval.
+	///   - scheduler: A scheduler to send values on.
+	///   - skipEmpty: Whether empty arrays should be sent if no values were
+	///     accumulated during the interval.
+	///   - discardWhenCompleted: A boolean to indicate if the latest unsent
+	///     values should be discarded on completion.
+	///
+	/// - returns: A signal that sends all values that are sent from `self` at
+	///            `interval` seconds apart.
+	public func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool = false, discardWhenCompleted: Bool = true) -> Signal<[Value], Error> {
+		return flatMapEvent(Signal.Event.collect(every: interval, on: scheduler, skipEmpty: skipEmpty, discardWhenCompleted: discardWhenCompleted))
 	}
 
 	/// Forward all events onto the given scheduler, instead of whichever

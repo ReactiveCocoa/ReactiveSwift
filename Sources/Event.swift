@@ -1,5 +1,6 @@
 import Result
 import Foundation
+import Dispatch
 
 extension Signal {
 	/// Represents a signal event.
@@ -877,6 +878,63 @@ extension Signal.Event {
 				}
 			}
 		}
+	}
+	
+	internal static func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool, discardWhenCompleted: Bool) -> Transformation<[Value], Error> {
+		return { action, lifetime in
+			let state = Atomic<CollectEveryState<Value>>(.init(skipEmpty: skipEmpty))
+			let d = SerialDisposable()
+			
+			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1) { [weak d] in
+				let (currentValues, isCompleted) = state.modify { ($0.collect(), $0.isCompleted) }
+				if let currentValues = currentValues {
+					action(.value(currentValues))
+				}
+				if isCompleted {
+					action(.completed)
+				}
+			}
+			
+			lifetime.observeEnded {
+				d.dispose()
+				scheduler.schedule { action(.interrupted) }
+			}
+
+			return { event in
+				switch event {
+				case let .value(value):
+					state.modify { $0.values.append(value) }
+				case let .failed(error):
+					d.inner = scheduler.schedule { action(.failed(error)) }
+				case .completed where !discardWhenCompleted:
+					state.modify { $0.isCompleted = true }
+				case .completed:
+					d.inner = scheduler.schedule { action(.completed) }
+				case .interrupted:
+					d.inner = scheduler.schedule { action(.interrupted) }
+				}
+			}
+		}
+	}
+}
+
+private struct CollectEveryState<Value> {
+	let skipEmpty: Bool
+	var values: [Value] = []
+	var isCompleted: Bool = false
+	
+	init(skipEmpty: Bool) {
+		self.skipEmpty = skipEmpty
+	}
+	
+	var hasValues: Bool {
+		return !values.isEmpty || !skipEmpty
+	}
+	
+	mutating func collect() -> [Value]? {
+		guard hasValues else { return nil }
+		defer { values.removeAll() }
+		return values
 	}
 }
 
