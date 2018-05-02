@@ -3037,7 +3037,7 @@ extension SignalProducer {
 
 	/// Creates a producer that can be started as many times as elements in `results`.
 	/// Each signal will immediately send either a value or an error.
-	fileprivate static func attemptWithResults<C: Collection>(_ results: C) -> SignalProducer<Value, Error> where C.Iterator.Element == Result<Value, Error>, C.IndexDistance == C.Index, C.Index == Int {
+	fileprivate static func attemptWithResults<C: Collection>(_ results: C) -> SignalProducer<Value, Error> where C.Iterator.Element == Result<Value, Error> {
 		let resultCount = results.count
 		var operationIndex = 0
 
