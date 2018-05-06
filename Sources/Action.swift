@@ -325,9 +325,9 @@ extension Action where Input == Void {
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
 	///              be executed by the `Action`.
 	public convenience init<T, E>(validating state: ValidatingProperty<T, E>, execute: @escaping (T) -> SignalProducer<Output, Error>) {
-		self.init(validating: state, execute: { state, _ in
+		self.init(validating: state) { state, _ in
 			execute(state)
-		})
+		}
 	}
 
 	/// Initializes an `Action` that uses a property as its state.
