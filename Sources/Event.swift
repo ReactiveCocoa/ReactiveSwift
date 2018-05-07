@@ -139,9 +139,8 @@ extension Signal.Event where Value: Equatable, Error: Equatable {
 		}
 	}
 }
-#if swift(>=4.1)
+
 extension Signal.Event: Equatable where Value: Equatable, Error: Equatable {}
-#endif
 
 extension Signal.Event: CustomStringConvertible {
 	public var description: String {

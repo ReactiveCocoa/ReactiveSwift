@@ -335,7 +335,5 @@ extension ActionError where Error: Equatable {
 	}
 }
 
-#if swift(>=4.1)
-    extension ActionError: Equatable where Error: Equatable {}
-#endif
+extension ActionError: Equatable where Error: Equatable {}
 
