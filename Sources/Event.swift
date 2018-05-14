@@ -140,6 +140,8 @@ extension Signal.Event where Value: Equatable, Error: Equatable {
 	}
 }
 
+extension Signal.Event: Equatable where Value: Equatable, Error: Equatable {}
+
 extension Signal.Event: CustomStringConvertible {
 	public var description: String {
 		switch self {
@@ -348,7 +350,7 @@ extension Signal.Event where Error == AnyError {
 
 	internal static func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Transformation<U, AnyError> {
 		return attemptMap { value in
-			ReactiveSwift.materialize { try transform(value) }
+			Result { try transform(value) }
 		}
 	}
 }
@@ -882,7 +884,7 @@ extension Signal.Event {
 			let state = Atomic<CollectEveryState<Value>>(.init(skipEmpty: skipEmpty))
 			let d = SerialDisposable()
 			
-			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1) { [weak d] in
+			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1) {
 				let (currentValues, isCompleted) = state.modify { ($0.collect(), $0.isCompleted) }
 				if let currentValues = currentValues {
 					action(.value(currentValues))

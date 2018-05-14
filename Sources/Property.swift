@@ -3,13 +3,17 @@ import Darwin.POSIX.pthread
 #else
 import Glibc
 #endif
-import enum Result.NoError
+import Result
+
+// FIXME: The `Error == NoError` constraint is retained for Swift 4.0.x
+//        compatibility, since `BindingSource` did not impose such constraint
+//        due to the absence of conditional conformance.
 
 /// Represents a property that allows observation of its changes.
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: class, BindingSource where Error == NoError {
+public protocol PropertyProtocol: class, BindingSource {
 	/// The current value of the property.
 	var value: Value { get }
 
