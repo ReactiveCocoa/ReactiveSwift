@@ -232,7 +232,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///   - state: A `ValidatingProperty` to be the state of the `Action`.
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
 	///              be executed by the `Action`.
-	public convenience init<T, E>(validating state: ValidatingProperty<T, E>, execute: @escaping (T, Input) -> SignalProducer<Output, Error>) {
+	public convenience init<T, E>(validated state: ValidatingProperty<T, E>, execute: @escaping (T, Input) -> SignalProducer<Output, Error>) {
 		self.init(unwrapping: state.result.map { $0.value }, execute: execute)
 	}
 	
@@ -324,8 +324,8 @@ extension Action where Input == Void {
 	///   - state: A `ValidatingProperty` to be the state of the `Action`.
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
 	///              be executed by the `Action`.
-	public convenience init<T, E>(validating state: ValidatingProperty<T, E>, execute: @escaping (T) -> SignalProducer<Output, Error>) {
-		self.init(validating: state) { state, _ in
+	public convenience init<T, E>(validated state: ValidatingProperty<T, E>, execute: @escaping (T) -> SignalProducer<Output, Error>) {
+		self.init(validated: state) { state, _ in
 			execute(state)
 		}
 	}

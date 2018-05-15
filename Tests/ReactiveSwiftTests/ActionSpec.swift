@@ -417,7 +417,7 @@ class ActionSpec: QuickSpec {
 				typealias PropertyType = ValidatingProperty<Int, TestValidationError>
 				let decisions: [PropertyType.Decision] = [.valid, .invalid(.generic), .coerced(10, nil)]
 				let input = PropertyType(0, { decisions[$0] })
-				let action = Action(validating: input, execute: echo)
+				let action = Action(validated: input, execute: echo)
 				expect(action.isEnabled.value) == true
 				expect(action.apply().single()?.value) == 0
 				input.value = 1
@@ -432,7 +432,7 @@ class ActionSpec: QuickSpec {
 				enum TestValidationError: Error { case generic }
 				let state = ValidatingProperty<Int?, TestValidationError>(nil, { $0 != nil ? .valid : .invalid(.generic) })
 				
-				let add = Action<String, Int?, NoError>(validating: state) { state, input -> SignalProducer<Int?, NoError> in
+				let add = Action<String, Int?, NoError>(validated: state) { state, input -> SignalProducer<Int?, NoError> in
 					guard let input = Int(input), let state = state else { return SignalProducer(value: nil) }
 					return SignalProducer(value: state + input)
 				}
