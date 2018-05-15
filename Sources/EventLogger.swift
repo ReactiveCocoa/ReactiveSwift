@@ -46,6 +46,28 @@ public typealias EventLogger = (
 	_ lineNumber: Int
 ) -> Void
 
+// See https://bugs.swift.org/browse/SR-6796.
+fileprivate struct LogContext<Event: LoggingEventProtocol> {
+	let events: Set<Event>
+	let identifier: String
+	let fileName: String
+	let functionName: String
+	let lineNumber: Int
+	let logger: EventLogger
+	
+	func log<T>(_ event: Event) -> ((T) -> Void)? {
+		return event.logIfNeeded(events: self.events) { event in
+			self.logger(self.identifier, event, self.fileName, self.functionName, self.lineNumber)
+		}
+	}
+	
+	func log(_ event: Event) -> (() -> Void)? {
+		return event.logIfNeededNoArg(events: self.events) { event in
+			self.logger(self.identifier, event, self.fileName, self.functionName, self.lineNumber)
+		}
+	}
+}
+
 extension Signal {
 	/// Logs all events that the receiver sends. By default, it will print to 
 	/// the standard output.
@@ -61,19 +83,20 @@ extension Signal {
 	///
 	/// - returns: Signal that, when observed, logs the fired events.
 	public func logEvents(identifier: String = "", events: Set<LoggingEvent.Signal> = LoggingEvent.Signal.allEvents, fileName: String = #file, functionName: String = #function, lineNumber: Int = #line, logger: @escaping EventLogger = defaultEventLog) -> Signal<Value, Error> {
-		func log<T>(_ event: LoggingEvent.Signal) -> ((T) -> Void)? {
-			return event.logIfNeeded(events: events) { event in
-				logger(identifier, event, fileName, functionName, lineNumber)
-			}
-		}
-
+		let logContext = LogContext(events: events,
+		                            identifier: identifier,
+		                            fileName: fileName,
+		                            functionName: functionName,
+		                            lineNumber: lineNumber,
+		                            logger: logger)
+		
 		return self.on(
-			failed: log(.failed),
-			completed: log(.completed) as ((()) -> Void)?,
-			interrupted: log(.interrupted) as ((()) -> Void)?,
-			terminated: log(.terminated) as ((()) -> Void)?,
-			disposed: log(.disposed) as ((()) -> Void)?,
-			value: log(.value)
+			failed: logContext.log(.failed),
+			completed: logContext.log(.completed),
+			interrupted: logContext.log(.interrupted),
+			terminated: logContext.log(.terminated),
+			disposed: logContext.log(.disposed),
+			value: logContext.log(.value)
 		)
 	}
 }
@@ -99,21 +122,22 @@ extension SignalProducer {
 	                      lineNumber: Int = #line,
 	                      logger: @escaping EventLogger = defaultEventLog
 	) -> SignalProducer<Value, Error> {
-		func log<T>(_ event: LoggingEvent.SignalProducer) -> ((T) -> Void)? {
-			return event.logIfNeeded(events: events) { event in
-				logger(identifier, event, fileName, functionName, lineNumber)
-			}
-		}
+		let logContext = LogContext(events: events,
+		                            identifier: identifier,
+		                            fileName: fileName,
+		                            functionName: functionName,
+		                            lineNumber: lineNumber,
+		                            logger: logger)
 
 		return self.on(
-			starting: log(.starting) as ((()) -> Void)?,
-			started: log(.started) as ((()) -> Void)?,
-			failed: log(.failed),
-			completed: log(.completed) as ((()) -> Void)?,
-			interrupted: log(.interrupted) as ((()) -> Void)?,
-			terminated: log(.terminated) as ((()) -> Void)?,
-			disposed: log(.disposed) as ((()) -> Void)?,
-			value: log(.value)
+			starting: logContext.log(.starting),
+			started: logContext.log(.started),
+			failed: logContext.log(.failed),
+			completed: logContext.log(.completed),
+			interrupted: logContext.log(.interrupted),
+			terminated: logContext.log(.terminated),
+			disposed: logContext.log(.disposed),
+			value: logContext.log(.value)
 		)
 	}
 }
@@ -123,6 +147,17 @@ extension LoggingEvent.Signal: LoggingEventProtocol {}
 extension LoggingEvent.SignalProducer: LoggingEventProtocol {}
 
 private extension LoggingEventProtocol {
+	// FIXME: See https://bugs.swift.org/browse/SR-6796 and the discussion in https://github.com/apple/swift/pull/14477.
+	//        Due to differences in the type checker, this method cannot
+	//        overload the generic `logIfNeeded`, or otherwise it would lead to
+	//        infinite recursion with Swift 4.0.x.
+	func logIfNeededNoArg(events: Set<Self>, logger: @escaping (String) -> Void) -> (() -> Void)? {
+		return (self.logIfNeeded(events: events, logger: logger) as ((()) -> Void)?)
+			.map { closure in
+				{ closure(()) }
+			}
+	}
+	
 	func logIfNeeded<T>(events: Set<Self>, logger: @escaping (String) -> Void) -> ((T) -> Void)? {
 		guard events.contains(self) else {
 			return nil

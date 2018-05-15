@@ -371,3 +371,6 @@ extension ActionError where Error: Equatable {
 		}
 	}
 }
+
+extension ActionError: Equatable where Error: Equatable {}
+

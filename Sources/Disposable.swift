@@ -149,8 +149,10 @@ public final class CompositeDisposable: Disposable {
 	/// - parameters:
 	///   - disposables: A collection of objects conforming to the `Disposable`
 	///                  protocol
-	public convenience init<S: Sequence>(_ disposables: S) where S.Iterator.Element == Disposable? {
-		self.init(disposables.flatMap { $0 })
+	public convenience init<S: Sequence>(_ disposables: S)
+		where S.Iterator.Element == Disposable?
+	{
+		self.init(disposables.compactMap { $0 })
 	}
 
 	/// Initializes an empty `CompositeDisposable`.

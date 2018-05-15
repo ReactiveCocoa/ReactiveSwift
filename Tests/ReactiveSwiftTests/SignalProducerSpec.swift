@@ -2832,12 +2832,12 @@ class SignalProducerSpec: QuickSpec {
 			describe("log events") {
 				it("should output the correct event") {
 					let expectations: [(String) -> Void] = [
-						{ event in expect(event) == "[] starting" },
-						{ event in expect(event) == "[] started" },
-						{ event in expect(event) == "[] value 1" },
-						{ event in expect(event) == "[] completed" },
-						{ event in expect(event) == "[] terminated" },
-						{ event in expect(event) == "[] disposed" },
+						{ event in expect(event).to(equal("[] starting")) },
+						{ event in expect(event).to(equal("[] started")) },
+						{ event in expect(event).to(equal("[] value 1")) },
+						{ event in expect(event).to(equal("[] completed")) },
+						{ event in expect(event).to(equal("[] terminated")) },
+						{ event in expect(event).to(equal("[] disposed")) },
 					]
 
 					let logger = TestLogger(expectations: expectations)
@@ -3037,7 +3037,7 @@ extension SignalProducer {
 
 	/// Creates a producer that can be started as many times as elements in `results`.
 	/// Each signal will immediately send either a value or an error.
-	fileprivate static func attemptWithResults<C: Collection>(_ results: C) -> SignalProducer<Value, Error> where C.Iterator.Element == Result<Value, Error>, C.IndexDistance == C.Index, C.Index == Int {
+	fileprivate static func attemptWithResults<C: Collection>(_ results: C) -> SignalProducer<Value, Error> where C.Iterator.Element == Result<Value, Error> {
 		let resultCount = results.count
 		var operationIndex = 0
 
