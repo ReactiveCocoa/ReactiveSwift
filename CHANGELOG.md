@@ -12,6 +12,7 @@
 1. New operator `map(value:)` (#601, kudos to @ra1028)
 1. `SignalProducer.merge` now accepts any combination of `SignalProducerConvertible` conforming types (#610, kudos to @1028)
 1. Bag can be created with the initial elements now (#609, kudos to @ra1028)
+1. Non-class types now can be conforms to ReactiveExtensionProvider (#636, kudos to @ra1028)
 
 # 3.1.0
 1. Fixed `schedule(after:interval:leeway:)` being cancelled when the returned `Disposable` is not retained. (#584, kudos to @jjoelson)
