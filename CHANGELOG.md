@@ -2,6 +2,7 @@
 
 *Please add new entries at the top.*
 
+1. `Lifetime` may now be manually ended using `Lifetime.Token.dispose()`, in addition to the existing when-token-deinitializes semantic. (#641, kudos to @andersio) 
 1. For Swift 4.1 and above, `BindingSource` conformances are required to have `Error` parameterized as exactly `NoError`. As a result, `Signal` and `SignalProducer` are now conditionally `BindingSource`. (#590, kudos to @NachoSoto and @andersio)
 1. For Swift 4.1 and above, `Signal.Event` and `ActionError` are now conditionally `Equatable`. (#590, kudos to @NachoSoto and @andersio)
 1. New method `collect(every:on:skipEmpty:discardWhenCompleted:)` which delivers all values that occurred during a time interval (#619, kudos to @Qata)
