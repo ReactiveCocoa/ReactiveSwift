@@ -436,7 +436,7 @@ extension SignalProducer {
 	///   - previous: A producer to start before `self`.
 	///
 	/// - returns: A signal producer that, when started, first emits values from
-    ///            `previous` producer and then from `self`.
+	///            `previous` producer and then from `self`.
 	public func prefix<Previous: SignalProducerConvertible>(_ previous: Previous) -> SignalProducer<Value, Error> where Previous.Value == Value, Previous.Error == Error {
 		return prefix(previous.producer)
 	}
