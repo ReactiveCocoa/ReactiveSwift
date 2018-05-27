@@ -520,14 +520,15 @@ public final class Property<Value>: PropertyProtocol {
 		})
 	}
 
-	/// Initialize a composed property that first takes on `initial`, then each
-	/// value sent on `signal`.
+	/// Initializes a composed property that first takes on `initial`, then each
+	/// value sent on a signal created by `producer`.
 	///
 	/// - parameters:
-	///   - initialValue: Starting value for the property.
-	///   - values: A signal that will send values to the property.
-	public convenience init(initial: Value, then values: Signal<Value, NoError>) {
-		self.init(initial: initial, then: SignalProducer(values))
+	///   - initial: Starting value for the property.
+	///   - values: A producer that will start immediately and send values to
+	///             the property.
+	public convenience init<Values: SignalProducerConvertible>(initial: Value, then values: Values) where Values.Value == Value, Values.Error == NoError {
+		self.init(initial: initial, then: values.producer)
 	}
 
 	/// Initialize a composed property from a producer that promises to send
@@ -614,14 +615,15 @@ extension Property where Value: OptionalProtocol {
 		self.init(initial: initial, then: values.map(Value.init(reconstructing:)))
 	}
 
-	/// Initialize a composed property that first takes on `initial`, then each
-	/// value sent on `signal`.
+	/// Initializes a composed property that first takes on `initial`, then each
+	/// value sent on a signal created by `producer`.
 	///
 	/// - parameters:
-	///   - initialValue: Starting value for the property.
-	///   - values: A signal that will send values to the property.
-	public convenience init(initial: Value, then values: Signal<Value.Wrapped, NoError>) {
-		self.init(initial: initial, then: SignalProducer(values))
+	///   - initial: Starting value for the property.
+	///   - values: A producer that will start immediately and send values to
+	///             the property.
+	public convenience init<Values: SignalProducerConvertible>(initial: Value, then values: Values) where Values.Value == Value.Wrapped, Values.Error == NoError {
+		self.init(initial: initial, then: values.producer)
 	}
 }
 
