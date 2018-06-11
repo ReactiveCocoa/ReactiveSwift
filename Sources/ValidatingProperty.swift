@@ -178,8 +178,8 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 		self.init(MutableProperty(initial), with: other, validator)
 	}
 	
-	/// Create a `ValidatingProperty` that presents a mutable validating
-	/// view for an inner mutable property.
+	/// Create a `ValidatingProperty` which validates mutations before
+	/// committing them.
 	///
 	/// The proposed value is only committed when `valid` is returned by the
 	/// `validator` closure.
@@ -199,8 +199,8 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 		self.init(MutableProperty(initial), with: other, validator)
 	}
 
-	/// Create a `ValidatingProperty` that validates mutations before
-	/// committing them.
+	/// Create a `ValidatingProperty` that presents a mutable validating
+	/// view for an inner mutable property.
 	///
 	/// The proposed value is only committed when `valid` is returned by the
 	/// `validator` closure.
