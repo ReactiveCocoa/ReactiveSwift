@@ -723,7 +723,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(lastValue) == 0
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.skip(until: .init(value: ()))
 			}
@@ -1023,7 +1023,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(lastValue).to(beNil())
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.take(until: .init(value: ()))
 			}
@@ -1088,7 +1088,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(completed) == true
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.take(untilReplacement: .init(value: 0))
 			}
@@ -1434,7 +1434,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(valueReceived) == "1a"
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.sample(with: .init(value: 0))
 			}
@@ -1547,7 +1547,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				}
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.sample(on: .init(value: ()))
 			}
@@ -1684,7 +1684,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(event).to(beNil())
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.withLatest(from: .init(value: 0))
 			}
@@ -1731,7 +1731,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(completed) == true
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.combineLatest(with: .init(value: 0))
 			}
@@ -1803,7 +1803,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(result) == [ "0foo" ]
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.zip(with: .init(value: 0))
 			}

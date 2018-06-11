@@ -645,22 +645,34 @@ class FlattenSpec: QuickSpec {
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
 
-			it("sould available to use contextual lookup for flatMap arbitrary error signal to arbitrary error signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner value and error type parameters, given an upstream of arbitrary error type") {
 				_ = Signal<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(error: .default)) }
 			}
 
-			it("sould available to use contextual lookup for flatMap NoError signal to NoError signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups with implicit error type parameter") {
 				_ = Signal<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
 
-			it("sould available to use contextual lookup for flatMap arbitrary error signal and NoError signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups with implicit error type parameter") {
 				_ = Signal<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
 
-			it("sould available to use contextual lookup for flatMap NoError signal to arbitrary error signal") {
+// NOTE: These test cases were disabled as the Swift 4.2 type checker apparently
+// cannot infer the type paramaters when both are absent.
+//			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
+//				_ = Signal<Int, NoError>.empty
+//					.flatMap(.latest) { _ in .empty }
+//			}
+//
+//			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
+//				_ = Signal<Int, TestError>.empty
+//					.flatMap(.latest) { _ in .empty }
+//			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a NoError upstream") {
 				_ = Signal<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(error: .default)) }
 			}
@@ -835,22 +847,34 @@ class FlattenSpec: QuickSpec {
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
 
-			it("sould available to use contextual lookup for flatMap arbitrary error signal to arbitrary error signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner value and error type parameters, given an upstream of arbitrary error type") {
 				_ = SignalProducer<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
 			}
 
-			it("sould available to use contextual lookup for flatMap NoError signal to NoError signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups with implicit inner error type parameter") {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
 
-			it("sould available to use contextual lookup for flatMap arbitrary error signal to NoError signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups with implicit inner error type parameter") {
 				_ = SignalProducer<Int, TestError>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
 
-			it("sould available to use contextual lookup for flatMap NoError signal to arbitrary error signal") {
+// NOTE: These test cases were disabled as the Swift 4.2 type checker apparently
+// cannot infer the type paramaters when both are absent.
+//			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
+//				_ = SignalProducer<Int, NoError>.empty
+//					.flatMap(.latest) { _ in .empty }
+//			}
+//
+//			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
+//				_ = SignalProducer<Int, TestError>.empty
+//					.flatMap(.latest) { _ in .empty }
+//			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a NoError upstream.") {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
 			}
@@ -1139,7 +1163,7 @@ class FlattenSpec: QuickSpec {
 				expect(completed) == true
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.merge(with: .init(value: 0))
 			}
@@ -1206,7 +1230,7 @@ class FlattenSpec: QuickSpec {
 				expect(lastValue) == 3
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.prefix(.init(value: 0))
 			}
@@ -1310,7 +1334,7 @@ class FlattenSpec: QuickSpec {
 				expect(results[0].error) == .error1
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, NoError>.empty
 					.concat(.init(value: 0))
 			}
