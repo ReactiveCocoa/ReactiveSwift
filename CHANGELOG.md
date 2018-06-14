@@ -1,6 +1,7 @@
 # master
 
-1. Support Swift 4.2 (Xcode 10) (#644, kudos to @ikesyo) 
+
+# 4.0.0-rc.21. Support Swift 4.2 (Xcode 10) (#644, kudos to @ikesyo) 
 
 # 4.0.0-rc.1*Please add new entries at the top.*
 
