@@ -1311,7 +1311,7 @@ class SignalProducerSpec: QuickSpec {
 				expect(disposed) == true
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Int, TestError>.empty
 					.flatMapError { _ in .init(value: 0) }
 			}
@@ -2317,32 +2317,32 @@ class SignalProducerSpec: QuickSpec {
 				expect(type(of: h)) == SignalProducer<Double, TestError>.self
 			}
 
-			it("sould available to use contextual lookup for arbitrary error signal then same value same error signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups without explicit value and error type parameters, given an upstream of arbitrary error type") {
 				_ = SignalProducer<Int, TestError>.empty
-					.then(.init(value: 0))
+					.then(.empty)
 			}
 
-			it("sould available to use contextual lookup for arbitrary error signal then other value same error signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit value and error type parameters, given an upstream of arbitary error type") {
 				_ = SignalProducer<Int, TestError>.empty
 					.then(.init(result: Result<String, TestError>(value: "")))
 			}
 
-			it("sould available to use contextual lookup for arbitrary error signal then other value NoError signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups without explicit error type parameter") {
 				_ = SignalProducer<Int, TestError>.empty
 					.then(.init(value: ""))
 			}
 
-			it("sould available to use contextual lookup for NoError signal then same value same error signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups without explicit value and error type parameters, given a NoError upstream") {
 				_ = SignalProducer<Int, NoError>.empty
-					.then(.init(value: 0))
+					.then(.empty)
 			}
 
-			it("sould available to use contextual lookup for NoError signal then other value same error signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups without explicit error type parameter") {
 				_ = SignalProducer<Int, NoError>.empty
 					.then(.init(value: ""))
 			}
 
-			it("sould available to use contextual lookup for NoError signal then other value arbitrary error signal") {
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit value and error type parameters, given a NoError upstream") {
 				_ = SignalProducer<Int, NoError>.empty
 					.then(.init(result: Result<String, TestError>(value: "")))
 			}
@@ -2791,7 +2791,7 @@ class SignalProducerSpec: QuickSpec {
 					let producer = SignalProducer<Int, NoError>.never
 						.on(disposed: { disposed = true })
 
-					var replayedProducer = ImplicitlyUnwrappedOptional(producer.replayLazily(upTo: 1))
+					var replayedProducer = Optional(producer.replayLazily(upTo: 1))
 
 					expect(disposed) == false
 					let disposable1 = replayedProducer?.start()
@@ -2814,7 +2814,7 @@ class SignalProducerSpec: QuickSpec {
 					let producer = SignalProducer<Int, NoError>.never
 						.on(disposed: { disposed = true })
 
-					var replayedProducer = ImplicitlyUnwrappedOptional(producer.replayLazily(upTo: 1))
+					var replayedProducer = Optional(producer.replayLazily(upTo: 1))
 
 					expect(disposed) == false
 					let disposable = replayedProducer?.start()
@@ -2994,7 +2994,7 @@ class SignalProducerSpec: QuickSpec {
 				observer2.sendCompleted()
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Bool, NoError>.empty
 					.and(.init(value: true))
 			}
@@ -3045,7 +3045,7 @@ class SignalProducerSpec: QuickSpec {
 				observer2.sendCompleted()
 			}
 
-			it("sould available to use contextual lookup") {
+			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Bool, NoError>.empty
 					.or(.init(value: true))
 			}

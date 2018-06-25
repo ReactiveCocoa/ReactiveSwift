@@ -1,5 +1,5 @@
 language: objective-c
-osx_image: xcode9.3
+osx_image: xcode9.4
 before_install: true
 install: true
 branches:
@@ -15,7 +15,7 @@ cache:
 
 jobs:
   include:
-    - osx_image: xcode9.3
+    - osx_image: xcode9.4
       script:
         - XCODE_SCHEME=ReactiveSwift-macOS
           XCODE_SDK=macosx
@@ -42,7 +42,7 @@ jobs:
         - pod lib lint ReactiveSwift.podspec
       env:
         - JOB=PODSPEC
-    - osx_image: xcode9.3
+    - osx_image: xcode9.4
       script:
         - swift --version
         - swift build
@@ -53,6 +53,19 @@ jobs:
       language: generic
       sudo: required
       dist: trusty
+      before_install:
+        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
+      script:
+        - swift --version
+        - swift build
+        - swift test
+      git:
+        submodules: false
+    - os: linux
+      language: generic
+      sudo: required
+      dist: trusty
+      env: SWIFT_VERSION=4.2-DEVELOPMENT-SNAPSHOT-2018-06-12-a
       before_install:
         - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
       script:
