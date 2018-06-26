@@ -149,3 +149,16 @@ public struct BindingTarget<Value>: BindingTargetProvider {
 		self.init(on: scheduler, lifetime: lifetime) { [weak object] in object?[keyPath: keyPath] = $0 }
 	}
 }
+
+extension Optional: BindingTargetProvider where Wrapped: BindingTargetProvider {
+	public typealias Value = Wrapped.Value
+
+	public var bindingTarget: BindingTarget<Wrapped.Value> {
+		switch self {
+		case let .some(provider):
+			return provider.bindingTarget
+		case .none:
+			return BindingTarget(lifetime: .empty, action: { _ in })
+		}
+	}
+}

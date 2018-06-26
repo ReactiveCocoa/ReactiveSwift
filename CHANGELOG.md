@@ -1,9 +1,22 @@
 # master
 
+*Please add new entries at the top.*
 
-# 4.0.0-rc.21. Support Swift 4.2 (Xcode 10) (#644, kudos to @ikesyo) 
+1. `<~` bindings now works with optional left-hand-side operands. (#642, kudos to @andersio and @Ankit-Aggarwal)
 
-# 4.0.0-rc.1*Please add new entries at the top.*
+   ```swift
+   let nilTarget: BindingTarget<Int>? = nil
+
+   // This is now a valid binding. Previously required manual
+   // unwrapping in ReactiveSwift 3.x.
+   nilTarget <~ notifications.map { $0.count }
+   ```
+
+# 4.0.0-rc.2
+
+1. Support Swift 4.2 (Xcode 10) (#644, kudos to @ikesyo) 
+
+# 4.0.0-rc.1
 
 1. `Lifetime` may now be manually ended using `Lifetime.Token.dispose()`, in addition to the existing when-token-deinitializes semantic. (#641, kudos to @andersio) 
 1. For Swift 4.1 and above, `BindingSource` conformances are required to have `Error` parameterized as exactly `NoError`. As a result, `Signal` and `SignalProducer` are now conditionally `BindingSource`. (#590, kudos to @NachoSoto and @andersio)
