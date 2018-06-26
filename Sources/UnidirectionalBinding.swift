@@ -23,6 +23,57 @@ public protocol BindingTargetProvider {
 	var bindingTarget: BindingTarget<Value> { get }
 }
 
+/// Binds a source to a target, updating the target's value to the latest
+/// value sent by the source, can have target to be optional
+///
+/// - note: The binding will automatically terminate when the target is
+///         deinitialized, or when the source sends a `completed` event.
+///
+/// ````
+/// let property =  MutableProperty<String?>(nil)
+/// let signal = Signal({ /* do some work after some time */ })
+/// property <~ signal
+/// ````
+///
+/// ````
+/// let property = MutableProperty<String?>(nil)
+/// let signal = Signal({ /* do some work after some time */ })
+/// let disposable = property <~ signal
+/// ...
+/// // Terminates binding before property dealloc or signal's
+/// // `completed` event.
+/// disposable.dispose()
+/// ````
+///
+/// - parameters:
+///   - target: A target to be bond to, can be optional
+///   - source: A source to bind.
+///
+/// - returns: A disposable that can be used to terminate binding before the
+///            deinitialization of the target or the source's `completed`
+///            event.
+
+extension Optional where Wrapped: BindingTargetProvider {
+	@discardableResult
+	public static func <~
+		<Source: BindingSource, Target: BindingTargetProvider>
+		(provider1: Target?, source: Source) -> Disposable?
+		where Source.Value == Target.Value, Source.Error == NoError {
+			guard let provider = provider1 else { return nil }
+			return provider <~ source
+	}
+
+	@discardableResult
+	public static  func <~
+		<Source: BindingSource, Target: BindingTargetProvider>
+		(provider1: Target?, source: Source) -> Disposable?
+		where Target.Value == Source.Value?, Source.Error == NoError {
+			guard let provider = provider1 else { return nil }
+			return provider <~ source
+	}
+}
+
+
 extension BindingTargetProvider {
 	/// Binds a source to a target, updating the target's value to the latest
 	/// value sent by the source.
