@@ -2235,3 +2235,27 @@ extension Signal where Error == AnyError {
 		return flatMapEvent(Signal.Event.attemptMap(transform))
 	}
 }
+
+// FIXME: doesn't compile on Swift 4.2
+extension Signal where Value: ResultProtocol, Error == NoError {
+	func dematerializeResults() -> Signal<Value.Value, Value.Error> {
+		return .init { observer, lifetime in
+			lifetime += self.observe { event in
+				switch event {
+				case let .value(value):
+					value.result.analysis(
+						ifSuccess: { value in
+							observer.send(value: value)
+						}, ifFailure: { error in
+							observer.send(error: error)
+						}
+					)
+				case .completed:
+					observer.sendCompleted()
+				case .interrupted:
+					observer.sendInterrupted()
+				}
+			}
+		}
+	}
+}
