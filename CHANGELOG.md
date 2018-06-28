@@ -2,6 +2,7 @@
 
 *Please add new entries at the top.*
 
+1. [CocoaPods] CocoaPods 1.4.0 is the minimum required version. (#651, kudos to @ikesyo)
 1. `<~` bindings now works with optional left-hand-side operands. (#642, kudos to @andersio and @Ankit-Aggarwal)
 
    ```swift
