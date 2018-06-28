@@ -38,6 +38,9 @@ jobs:
           XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 3 - 38mm"
           script/build
     - script:
+        # To work around the lint error: "ERROR | swift: Specification `ReactiveSwift` specifies an inconsistent `swift_version` (`4.1`) compared to the one present in your `.swift-version` file (`4.1.2`). Please remove the `.swift-version` file which is now deprecated and only use the `swift_version` attribute within your podspec."
+        # `.swift-version` is for swiftenv, not for CocoaPods, so we can't remove the file as suggested.
+        - rm .swift-version
         - pod repo update --silent
         - pod lib lint ReactiveSwift.podspec
       env:
