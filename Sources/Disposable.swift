@@ -8,15 +8,15 @@
 
 /// Represents something that can be “disposed”, usually associated with freeing
 /// resources or canceling work.
-public protocol Disposable: class {
+open class Disposable {
 	/// Whether this disposable has been disposed already.
-	var isDisposed: Bool { get }
+	open var isDisposed: Bool { fatalError() }
 
 	/// Disposing of the resources represented by `self`. If `self` has already
 	/// been disposed of, it does nothing.
 	///
 	/// - note: Implementations must issue a memory barrier.
-	func dispose()
+	open func dispose() { fatalError() }
 }
 
 /// Represents the state of a disposable.
@@ -42,11 +42,11 @@ extension UnsafeAtomicState where State == DisposableState {
 internal final class _SimpleDisposable: Disposable {
 	private let state = UnsafeAtomicState<DisposableState>(.active)
 
-	var isDisposed: Bool {
+	override var isDisposed: Bool {
 		return state.is(.disposed)
 	}
 
-	func dispose() {
+	override func dispose() {
 		_ = state.tryDispose()
 	}
 
@@ -58,9 +58,9 @@ internal final class _SimpleDisposable: Disposable {
 /// A disposable that has already been disposed.
 internal final class NopDisposable: Disposable {
 	static let shared = NopDisposable()
-	var isDisposed = true
-	func dispose() {}
-	private init() {}
+	override var isDisposed: Bool { return true }
+	override func dispose() {}
+	private override init() {}
 }
 
 /// A type-erased disposable that forwards operations to an underlying disposable.
@@ -69,7 +69,7 @@ public final class AnyDisposable: Disposable {
 		let state: UnsafeAtomicState<DisposableState>
 		var action: (() -> Void)?
 
-		var isDisposed: Bool {
+		override var isDisposed: Bool {
 			return state.is(.disposed)
 		}
 
@@ -82,7 +82,7 @@ public final class AnyDisposable: Disposable {
 			state.deinitialize()
 		}
 
-		func dispose() {
+		override func dispose() {
 			if state.tryDispose() {
 				action?()
 				action = nil
@@ -92,7 +92,7 @@ public final class AnyDisposable: Disposable {
 
 	private let base: Disposable
 
-	public var isDisposed: Bool {
+	public override var isDisposed: Bool {
 		return base.isDisposed
 	}
 
@@ -105,7 +105,7 @@ public final class AnyDisposable: Disposable {
 	}
 
 	/// Create a disposable.
-	public init() {
+	public override init() {
 		base = _SimpleDisposable()
 	}
 
@@ -117,7 +117,7 @@ public final class AnyDisposable: Disposable {
 		base = disposable
 	}
 
-	public func dispose() {
+	public override func dispose() {
 		base.dispose()
 	}
 }
@@ -127,7 +127,7 @@ public final class CompositeDisposable: Disposable {
 	private let disposables: Atomic<Bag<Disposable>?>
 	private var state: UnsafeAtomicState<DisposableState>
 
-	public var isDisposed: Bool {
+	public override var isDisposed: Bool {
 		return state.is(.disposed)
 	}
 
@@ -156,11 +156,11 @@ public final class CompositeDisposable: Disposable {
 	}
 
 	/// Initializes an empty `CompositeDisposable`.
-	public convenience init() {
+	public convenience override init() {
 		self.init([Disposable]())
 	}
 
-	public func dispose() {
+	public override func dispose() {
 		if state.tryDispose(), let disposables = disposables.swap(nil) {
 			for disposable in disposables {
 				disposable.dispose()
@@ -258,7 +258,7 @@ public final class ScopedDisposable<Inner: Disposable>: Disposable {
 	/// deinitializes.
 	public let inner: Inner
 
-	public var isDisposed: Bool {
+	public override var isDisposed: Bool {
 		return inner.isDisposed
 	}
 
@@ -275,7 +275,7 @@ public final class ScopedDisposable<Inner: Disposable>: Disposable {
 		dispose()
 	}
 
-	public func dispose() {
+	public override func dispose() {
 		return inner.dispose()
 	}
 }
@@ -336,7 +336,7 @@ public final class SerialDisposable: Disposable {
 	private let _inner: Atomic<Disposable?>
 	private var state: UnsafeAtomicState<DisposableState>
 
-	public var isDisposed: Bool {
+	public override var isDisposed: Bool {
 		return state.is(.disposed)
 	}
 
@@ -368,7 +368,7 @@ public final class SerialDisposable: Disposable {
 		self.state = UnsafeAtomicState(DisposableState.active)
 	}
 
-	public func dispose() {
+	public override func dispose() {
 		if state.tryDispose() {
 			_inner.swap(nil)?.dispose()
 		}
