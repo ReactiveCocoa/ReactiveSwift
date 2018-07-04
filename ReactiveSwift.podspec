@@ -20,4 +20,7 @@ Pod::Spec.new do |s|
   s.dependency 'Result', '~> 4.0'
 
   s.pod_target_xcconfig = {"OTHER_SWIFT_FLAGS[config=Release]" => "$(inherited) -suppress-warnings" }
+
+  s.cocoapods_version = ">= 1.4.0"
+  s.swift_version = "4.1"
 end
