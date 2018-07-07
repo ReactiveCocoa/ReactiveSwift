@@ -13,6 +13,8 @@
    nilTarget <~ notifications.map { $0.count }
    ```
 
+1. Fix some documentation errors about Carthage usage (#655)
+
 # 4.0.0-rc.2
 
 1. Support Swift 4.2 (Xcode 10) (#644, kudos to @ikesyo) 
