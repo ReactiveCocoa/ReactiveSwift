@@ -155,13 +155,7 @@ internal class Lock {
 				attr.deallocate()
 			}
 
-			// Darwin pthread for 32-bit ARM somehow returns `EAGAIN` when
-			// using `trylock` on a `PTHREAD_MUTEX_ERRORCHECK` mutex.
-			#if DEBUG && !arch(arm)
 			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_ERRORCHECK))
-			#else
-			pthread_mutexattr_settype(attr, Int32(recursive ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL))
-			#endif
 
 			let status = pthread_mutex_init(_lock, attr)
 			assert(status == 0, "Unexpected pthread mutex error code: \(status)")
@@ -184,7 +178,7 @@ internal class Lock {
 			switch status {
 			case 0:
 				return true
-			case EBUSY:
+			case EBUSY, EAGAIN:
 				return false
 			default:
 				assertionFailure("Unexpected pthread mutex error code: \(status)")
