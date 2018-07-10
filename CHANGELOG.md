@@ -1,11 +1,9 @@
 # master
 
-1. When unfair locks from libplatform are unavailable, ReactiveSwift now fallbacks to error checking Pthread mutexes instead of the default. Mitigations regarding issues with `pthread_mutex_trylock` have also been applied. (#654, kudos to @andersio)
-
-# 4.0.0-rc.2
-
 *Please add new entries at the top.*
 
+1. When unfair locks from libplatform are unavailable, ReactiveSwift now fallbacks to error checking Pthread mutexes instead of the default. Mitigations regarding issues with `pthread_mutex_trylock` have also been applied. (#654, kudos to @andersio)
+1. Fix some documentation errors about Carthage usage (#655)
 1. [CocoaPods] CocoaPods 1.4.0 is the minimum required version. (#651, kudos to @ikesyo)
 1. `<~` bindings now works with optional left-hand-side operands. (#642, kudos to @andersio and @Ankit-Aggarwal)
 
@@ -16,6 +14,8 @@
    // unwrapping in ReactiveSwift 3.x.
    nilTarget <~ notifications.map { $0.count }
    ```
+
+# 4.0.0-rc.2
 
 1. Support Swift 4.2 (Xcode 10) (#644, kudos to @ikesyo) 
 
