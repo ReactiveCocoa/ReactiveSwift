@@ -211,6 +211,22 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			lifetime.observeEnded { _ = observer }
 		}
 	}
+	
+	/// A boolean producer for a Signal that sends one `true` value and completes afterwards.
+	public static var `true`: SignalProducer<Bool, Error> {
+		return SignalProducer<Bool, Error> (GeneratorCore { observer, _ in
+			observer.send(value: true)
+			observer.sendCompleted()
+		})
+	}
+	
+	/// A boolean producer for a Signal that sends one `false` value and completes afterwards.
+	public static var `false`: SignalProducer<Bool, Error> {
+		return SignalProducer<Bool, Error> (GeneratorCore { observer, _ in
+			observer.send(value: false)
+			observer.sendCompleted()
+		})
+	}
 
 	/// Create a `Signal` from `self`, pass it into the given closure, and start the
 	/// associated work on the produced `Signal` as the closure returns.
