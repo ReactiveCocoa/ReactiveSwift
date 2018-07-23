@@ -25,7 +25,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// 1. handling the single-observer `start`; and
 	/// 2. building `Signal`s on demand via its `makeInstance()` method, which produces a
 	///    `Signal` with the associated side effect and interrupt handle.
-	fileprivate let core: SignalProducerCore<Value, Error>
+	private let core: SignalProducerCore<Value, Error>
 
 	/// Convert an entity into its equivalent representation as `SignalProducer`.
 	///
@@ -652,6 +652,20 @@ extension SignalProducer where Error == NoError {
 }
 
 extension SignalProducer {
+	/// Perform an action upon every event from `self`. The action may generate zero or
+	/// more events.
+	///
+	/// - precondition: The action must be synchronous.
+	///
+	/// - parameters:
+	///   - transform: A closure that creates the said action from the given event
+	///                closure.
+	///
+	/// - returns: A signal that forwards events yielded by the action.
+	internal func flatMapEvent<U, E>(_ transform: @escaping ProducedSignal.Event.Transformation<U, E>) -> SignalProducer<U, E> {
+		return core.flatMapEvent(transform)
+	}
+
 	/// Lift an unary Signal operator to operate upon SignalProducers instead.
 	///
 	/// In other words, this will create a new `SignalProducer` which will apply

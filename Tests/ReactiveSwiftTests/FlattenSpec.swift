@@ -70,6 +70,9 @@ class FlattenSpec: QuickSpec {
 			describeSignalFlattenDisposal(.concat, name: "concat")
 			describeSignalFlattenDisposal(.concurrent(limit: 1024), name: "concurrent(limit: 1024)")
 			describeSignalFlattenDisposal(.race, name: "race")
+
+			// The `once` strategy have a different slightly behavior that does not match
+			// the above test cases.
 		}
 
 		func describeSignalProducerFlattenDisposal(_ flattenStrategy: FlattenStrategy, name: String) {
@@ -95,6 +98,7 @@ class FlattenSpec: QuickSpec {
 			describeSignalProducerFlattenDisposal(.concat, name: "concat")
 			describeSignalProducerFlattenDisposal(.concurrent(limit: 1024), name: "concurrent(limit: 1024)")
 			describeSignalProducerFlattenDisposal(.race, name: "race")
+			describeSignalProducerFlattenDisposal(.once, name: "once")
 		}
 
 		describe("Signal.flatten()") {
@@ -1388,6 +1392,148 @@ class FlattenSpec: QuickSpec {
 				}
 
 				run { $0.start(on: scheduler) }
+			}
+		}
+
+		describe("FlattenStrategy.once") {
+			it("should complete immediately if the producer of streams completes without emitting any stream") {
+				let (signal, observer) = Signal<SignalProducer<(), NoError>, NoError>.pipe()
+				var isCompleted = false
+
+				signal
+					.flatten(.once)
+					.observeCompleted { isCompleted = true }
+
+				expect(isCompleted) == false
+
+				observer.sendCompleted()
+				expect(isCompleted) == true
+			}
+
+			it("should complete immediately if the producer of streams completes without emitting any stream") {
+				let (signal, observer) = Signal<SignalProducer<(), NoError>, NoError>.pipe()
+				let producer = SignalProducer<SignalProducer<(), NoError>, NoError>(signal)
+				var isCompleted = false
+
+				producer
+					.flatten(.once)
+					.startWithCompleted { isCompleted = true }
+
+				expect(isCompleted) == false
+
+				observer.sendCompleted()
+				expect(isCompleted) == true
+			}
+
+			it("should interrupt immediately if the producer of streams interrupts without emitting any stream") {
+				let (signal, observer) = Signal<SignalProducer<(), NoError>, NoError>.pipe()
+				var isInterrupted = false
+
+				signal
+					.flatten(.once)
+					.observeInterrupted { isInterrupted = true }
+
+				expect(isInterrupted) == false
+
+				observer.sendInterrupted()
+				expect(isInterrupted) == true
+			}
+
+			it("should interrupt immediately if the producer of streams interrupts without emitting any stream") {
+				let (signal, observer) = Signal<SignalProducer<(), NoError>, NoError>.pipe()
+				let producer = SignalProducer<SignalProducer<(), NoError>, NoError>(signal)
+				var isInterrupted = false
+
+				producer
+					.flatten(.once)
+					.startWithInterrupted { isInterrupted = true }
+
+				expect(isInterrupted) == false
+
+				observer.sendInterrupted()
+				expect(isInterrupted) == true
+			}
+
+			it("should fail immediately if the producer of streams fails without emitting any stream") {
+				let (signal, observer) = Signal<SignalProducer<(), NoError>, TestError>.pipe()
+				var error: TestError?
+
+				signal
+					.flatten(.once)
+					.observeFailed { error = $0 }
+
+				expect(error).to(beNil())
+
+				observer.send(error: .default)
+				expect(error) == .default
+			}
+
+			it("should fail immediately if the producer of streams fails without emitting any stream") {
+				let (signal, observer) = Signal<SignalProducer<(), NoError>, TestError>.pipe()
+				let producer = SignalProducer<SignalProducer<(), NoError>, TestError>(signal)
+				var error: TestError?
+
+				producer
+					.flatten(.once)
+					.startWithFailed { error = $0 }
+
+				expect(error).to(beNil())
+
+				observer.send(error: .default)
+				expect(error) == .default
+			}
+
+			it("should dispose of the signal of streams immediately when an inner stream is received") {
+				let disposable = AnyDisposable()
+				var observer: Signal<SignalProducer<(), NoError>, NoError>.Observer!
+
+				func make() -> Signal<SignalProducer<(), NoError>, NoError> {
+					let (signal, innerObserver) = Signal<SignalProducer<(), NoError>, NoError>.pipe(disposable: disposable)
+					observer = innerObserver
+					return signal
+				}
+
+				make()
+					.flatten(.once)
+					.observe(Signal.Observer())
+
+				expect(disposable.isDisposed) == false
+
+				observer.send(value: SignalProducer(value: ()))
+				expect(disposable.isDisposed) == true
+			}
+
+			it("should interrupt the producer of streams immediately when an inner stream is received") {
+				let (signal, observer) = Signal<SignalProducer<(), NoError>, NoError>.pipe()
+				let producer = SignalProducer<SignalProducer<(), NoError>, NoError>(signal)
+
+				var isProducerOfStreamsInterrupted = false
+
+				producer
+					.on(interrupted: { isProducerOfStreamsInterrupted = true })
+					.flatten(.once)
+					.start()
+
+				expect(isProducerOfStreamsInterrupted) == false
+
+				observer.send(value: SignalProducer(value: ()))
+				expect(isProducerOfStreamsInterrupted) == true
+			}
+
+			it("should forward the values from the received inner producer") {
+				let (signal, observer) = Signal<SignalProducer<Int, NoError>, NoError>.pipe()
+				let producer = SignalProducer<SignalProducer<Int, NoError>, NoError>(signal)
+
+				var values: [Int] = []
+
+				producer
+					.flatten(.once)
+					.startWithValues { values.append($0) }
+
+				expect(values) == []
+
+				observer.send(value: SignalProducer(CountableRange(0 ..< 10)))
+				expect(values) == Array(CountableRange(0 ..< 10))
 			}
 		}
 	}

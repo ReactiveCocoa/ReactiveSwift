@@ -14,6 +14,7 @@ public struct FlattenStrategy {
 		case concurrent(limit: UInt)
 		case latest
 		case race
+		case once
 	}
 
 	fileprivate let kind: Kind
@@ -98,6 +99,19 @@ public struct FlattenStrategy {
 	/// Any failure from the inner streams is propagated immediately to the flattened
 	/// stream of values.
 	public static let race = FlattenStrategy(kind: .race)
+
+	/// Forward only events from the first inner stream received. The stream of streams
+	/// would be interrupted upon the said stream being started.
+	///
+	/// The flattened stream of values completes when the stream of streams completes
+	/// without emitting any inner stream, or when the sole inner stream completes.
+	///
+	/// Any interruption of inner streams is propagated immediately to the flattened
+	/// stream of values.
+	///
+	/// Any failure from the inner streams is propagated immediately to the flattened
+	/// stream of values.
+	public static let once = FlattenStrategy(kind: .once)
 }
 
 extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
@@ -122,6 +136,9 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 
 		case .race:
 			return self.race()
+
+		case .once:
+			return self.flatMapEvent(Signal.Event.flattenOnce())
 		}
 	}
 }
@@ -164,6 +181,9 @@ extension Signal where Value: SignalProducerConvertible, Error == NoError, Value
 
 		case .race:
 			return self.race()
+
+		case .once:
+			return self.flatMapEvent(Signal.Event.flattenOnce())
 		}
 	}
 }
@@ -207,6 +227,9 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 
 		case .race:
 			return self.race()
+
+		case .once:
+			return self.flatMapEvent(Signal.Event.flattenOnce())
 		}
 	}
 }
@@ -249,6 +272,9 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == NoErro
 
 		case .race:
 			return self.race()
+
+		case .once:
+			return self.flatMapEvent(Signal.Event.flattenOnce())
 		}
 	}
 }

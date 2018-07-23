@@ -937,6 +937,25 @@ private struct CollectEveryState<Value> {
 	}
 }
 
+extension Signal.Event where Value: SignalProducerConvertible, Value.Error == Error {
+	internal static func flattenOnce() -> Transformation<Value.Value, Error> {
+		return { action, lifetime in
+			return { event in
+				switch event {
+				case let .value(stream):
+					lifetime += stream.producer.start(action)
+				case let .failed(error):
+					action(.failed(error))
+				case .completed:
+					action(.completed)
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+}
+
 private struct ThrottleState<Value> {
 	var previousDate: Date?
 	var pendingValue: Value?
