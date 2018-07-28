@@ -644,6 +644,38 @@ class FlattenSpec: QuickSpec {
 				_ = Signal<Int, NoError>.empty
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner value and error type parameters, given an upstream of arbitrary error type") {
+				_ = Signal<Int, TestError>.empty
+					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(error: .default)) }
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with implicit error type parameter") {
+				_ = Signal<Int, NoError>.empty
+					.flatMap(.latest) { _ in .init(value: 0) }
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with implicit error type parameter") {
+				_ = Signal<Int, TestError>.empty
+					.flatMap(.latest) { _ in .init(value: 0) }
+			}
+
+// NOTE: These test cases were disabled as the Swift 4.2 type checker apparently
+// cannot infer the type paramaters when both are absent.
+//			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
+//				_ = Signal<Int, NoError>.empty
+//					.flatMap(.latest) { _ in .empty }
+//			}
+//
+//			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
+//				_ = Signal<Int, TestError>.empty
+//					.flatMap(.latest) { _ in .empty }
+//			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a NoError upstream") {
+				_ = Signal<Int, NoError>.empty
+					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(error: .default)) }
+			}
 		}
 
 		describe("SignalProducer.flatMap()") {
@@ -813,6 +845,38 @@ class FlattenSpec: QuickSpec {
 			it("works with Property and NoError") {
 				_ = SignalProducer<Int, NoError>.empty
 					.flatMap(.latest) { _ in Property(value: 0) }
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner value and error type parameters, given an upstream of arbitrary error type") {
+				_ = SignalProducer<Int, TestError>.empty
+					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with implicit inner error type parameter") {
+				_ = SignalProducer<Int, NoError>.empty
+					.flatMap(.latest) { _ in .init(value: 0) }
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with implicit inner error type parameter") {
+				_ = SignalProducer<Int, TestError>.empty
+					.flatMap(.latest) { _ in .init(value: 0) }
+			}
+
+// NOTE: These test cases were disabled as the Swift 4.2 type checker apparently
+// cannot infer the type paramaters when both are absent.
+//			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
+//				_ = SignalProducer<Int, NoError>.empty
+//					.flatMap(.latest) { _ in .empty }
+//			}
+//
+//			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
+//				_ = SignalProducer<Int, TestError>.empty
+//					.flatMap(.latest) { _ in .empty }
+//			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a NoError upstream.") {
+				_ = SignalProducer<Int, NoError>.empty
+					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
 			}
 		}
 
@@ -1098,6 +1162,11 @@ class FlattenSpec: QuickSpec {
 				observer2.sendCompleted()
 				expect(completed) == true
 			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups") {
+				_ = SignalProducer<Int, NoError>.empty
+					.merge(with: .init(value: 0))
+			}
 		}
 
 		describe("SignalProducer.prefix()") {
@@ -1140,9 +1209,34 @@ class FlattenSpec: QuickSpec {
 				observer.send(value: 3)
 				expect(lastValue) == 3
 			}
+
+			it("should accept SignalProducerConvertible conforming type") {
+				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+
+				let mergedSignals = signal.prefix(Property(value: 0))
+
+				var lastValue: Int?
+				mergedSignals.startWithValues { lastValue = $0 }
+
+				expect(lastValue) == 0
+
+				observer.send(value: 1)
+				expect(lastValue) == 1
+
+				observer.send(value: 2)
+				expect(lastValue) == 2
+
+				observer.send(value: 3)
+				expect(lastValue) == 3
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups") {
+				_ = SignalProducer<Int, NoError>.empty
+					.prefix(.init(value: 0))
+			}
 		}
 
-		describe("SignalProducer.concat(value:)") {
+		describe("SignalProducer.concat()") {
 			it("should emit final value") {
 				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
 
@@ -1163,9 +1257,49 @@ class FlattenSpec: QuickSpec {
 				observer.sendCompleted()
 				expect(lastValue) == 4
 			}
-		}
 
-		describe("SignalProducer.concat(error:)") {
+			it("should emit final value") {
+				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+
+				let mergedSignals = signal.concat(SignalProducer(value: 4))
+
+				var lastValue: Int?
+				mergedSignals.startWithValues { lastValue = $0 }
+
+				observer.send(value: 1)
+				expect(lastValue) == 1
+
+				observer.send(value: 2)
+				expect(lastValue) == 2
+
+				observer.send(value: 3)
+				expect(lastValue) == 3
+
+				observer.sendCompleted()
+				expect(lastValue) == 4
+			}
+
+			it("should accept SignalProducerConvertible conforming type") {
+				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+
+				let mergedSignals = signal.concat(Property(value: 4))
+
+				var lastValue: Int?
+				mergedSignals.startWithValues { lastValue = $0 }
+
+				observer.send(value: 1)
+				expect(lastValue) == 1
+
+				observer.send(value: 2)
+				expect(lastValue) == 2
+
+				observer.send(value: 3)
+				expect(lastValue) == 3
+
+				observer.sendCompleted()
+				expect(lastValue) == 4
+			}
+
 			it("should emit concatenated error") {
 				let (signal, observer) = SignalProducer<Int, TestError>.pipe()
 
@@ -1198,6 +1332,11 @@ class FlattenSpec: QuickSpec {
 
 				expect(results).to(haveCount(1))
 				expect(results[0].error) == .error1
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups") {
+				_ = SignalProducer<Int, NoError>.empty
+					.concat(.init(value: 0))
 			}
 		}
 

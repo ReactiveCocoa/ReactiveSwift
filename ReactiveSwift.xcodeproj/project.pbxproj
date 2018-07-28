@@ -636,9 +636,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 57A4D23C1BA13D7A00F7D4B1 /* Build configuration list for PBXNativeTarget "ReactiveSwift-tvOS" */;
 			buildPhases = (
+				57A4D2091BA13D7A00F7D4B1 /* Headers */,
 				57A4D1B01BA13D7A00F7D4B1 /* Sources */,
 				57A4D2071BA13D7A00F7D4B1 /* Frameworks */,
-				57A4D2091BA13D7A00F7D4B1 /* Headers */,
 				57A4D23B1BA13D7A00F7D4B1 /* Resources */,
 			);
 			buildRules = (
@@ -673,9 +673,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A9B3155D1B3940610001CB9C /* Build configuration list for PBXNativeTarget "ReactiveSwift-watchOS" */;
 			buildPhases = (
+				A9B315511B3940610001CB9C /* Headers */,
 				A9B3154F1B3940610001CB9C /* Sources */,
 				A9B315501B3940610001CB9C /* Frameworks */,
-				A9B315511B3940610001CB9C /* Headers */,
 				A9B315521B3940610001CB9C /* Resources */,
 			);
 			buildRules = (
@@ -691,9 +691,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = D047260019E49ED7006002AA /* Build configuration list for PBXNativeTarget "ReactiveSwift-macOS" */;
 			buildPhases = (
+				D04725E719E49ED7006002AA /* Headers */,
 				D04725E519E49ED7006002AA /* Sources */,
 				D04725E619E49ED7006002AA /* Frameworks */,
-				D04725E719E49ED7006002AA /* Headers */,
 				D04725E819E49ED7006002AA /* Resources */,
 			);
 			buildRules = (
@@ -727,9 +727,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = D047261F19E49F82006002AA /* Build configuration list for PBXNativeTarget "ReactiveSwift-iOS" */;
 			buildPhases = (
+				D047260919E49F82006002AA /* Headers */,
 				D047260719E49F82006002AA /* Sources */,
 				D047260819E49F82006002AA /* Frameworks */,
-				D047260919E49F82006002AA /* Headers */,
 				D047260A19E49F82006002AA /* Resources */,
 			);
 			buildRules = (

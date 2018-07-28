@@ -1,8 +1,30 @@
 # master
-
 *Please add new entries at the top.*
 
 1. New convenience initializer for `Action` that takes a `ValidatingProperty` as its state (#637, kudos to @Marcocanc)
+
+# 4.0.0
+
+1. When unfair locks from libplatform are unavailable, ReactiveSwift now fallbacks to error checking Pthread mutexes instead of the default. Mitigations regarding issues with `pthread_mutex_trylock` have also been applied. (#654, kudos to @andersio)
+1. Fix some documentation errors about Carthage usage (#655)
+1. [CocoaPods] CocoaPods 1.4.0 is the minimum required version. (#651, kudos to @ikesyo)
+1. `<~` bindings now works with optional left-hand-side operands. (#642, kudos to @andersio and @Ankit-Aggarwal)
+
+   ```swift
+   let nilTarget: BindingTarget<Int>? = nil
+
+   // This is now a valid binding. Previously required manual
+   // unwrapping in ReactiveSwift 3.x.
+   nilTarget <~ notifications.map { $0.count }
+   ```
+
+# 4.0.0-rc.2
+
+1. Support Swift 4.2 (Xcode 10) (#644, kudos to @ikesyo) 
+
+# 4.0.0-rc.1
+
+1. `Lifetime` may now be manually ended using `Lifetime.Token.dispose()`, in addition to the existing when-token-deinitializes semantic. (#641, kudos to @andersio) 
 1. For Swift 4.1 and above, `BindingSource` conformances are required to have `Error` parameterized as exactly `NoError`. As a result, `Signal` and `SignalProducer` are now conditionally `BindingSource`. (#590, kudos to @NachoSoto and @andersio)
 1. For Swift 4.1 and above, `Signal.Event` and `ActionError` are now conditionally `Equatable`. (#590, kudos to @NachoSoto and @andersio)
 1. New method `collect(every:on:skipEmpty:discardWhenCompleted:)` which delivers all values that occurred during a time interval (#619, kudos to @Qata)
@@ -11,8 +33,9 @@
 1. New property operator: `filter` (#586, kudos to @iv-mexx)
 1. New operator `merge(with:)` (#600, kudos to @ra1028)
 1. New operator `map(value:)` (#601, kudos to @ra1028)
-1. `SignalProducer.merge` now accepts any combination of `SignalProducerConvertible` conforming types (#610, kudos to @1028)
+1. `SignalProducer.merge(with:)`, `SignalProducer.concat`, `SignalProducer.prefix`, `SignalProducer.then`, `SignalProducer.and`, `SignalProducer.or`, `SignalProducer.zip(with:)`, `SignalProducer.sample(with:)`, `SignalProducer.sample(on:)`, `SignalProducer.take(until:)`, `SignalProducer.take(untilReplacement:)`, `SignalProducer.skip(until:)`, `SignalProducer.flatMap`, `SignalProducer.flatMapError`, `SignalProducer.combineLatest(with:)`, `Signal.flatMap`, `Signal.flatMapError`, `Signal.withLatest(from:)` and `Property.init(initial:then:)` now accept `SignalProducerConvertible` conforming types (#610, #611, kudos to @1028)
 1. Bag can be created with the initial elements now (#609, kudos to @ra1028)
+1. Non-class types now can be conforms to ReactiveExtensionProvider (#636, kudos to @ra1028)
 
 # 3.1.0
 1. Fixed `schedule(after:interval:leeway:)` being cancelled when the returned `Disposable` is not retained. (#584, kudos to @jjoelson)

@@ -661,6 +661,14 @@ class PropertySpec: QuickSpec {
 						propertySignal.observeInterrupted { signalInterrupted = true }
 						expect(signalInterrupted) == true
 					}
+
+					it("should be able to fallback to SignalProducer for contextual lookups") {
+						_ = Property(initial: 0, then: .init(value: 0))
+					}
+
+					it("should be able to fallback to SignalProducer for contextual lookups when an optional value type parameter is involved") {
+						_ = Property(initial: Optional(0), then: .init(value: 0))
+					}
 				}
 
 				describe("from a value and Signal") {

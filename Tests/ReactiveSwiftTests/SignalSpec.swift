@@ -2684,6 +2684,11 @@ class SignalSpec: QuickSpec {
 				sampleeObserver.sendInterrupted()
 				expect(event).to(beNil())
 			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups") {
+				_ = Signal<Int, NoError>.empty
+					.withLatest(from: .init(value: 0))
+			}
 		}
 
 		describe("combineLatestWith") {

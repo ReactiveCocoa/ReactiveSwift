@@ -4,7 +4,7 @@
  1. Retrieve the project dependencies using one of the following terminal commands from the ReactiveSwift project root directory:
  - `git submodule update --init`
  **OR**, if you have [Carthage](https://github.com/Carthage/Carthage) installed
- - `carthage checkout --no-use-binaries`
+ - `carthage checkout`
  1. Open `ReactiveSwift.xcworkspace`
  1. Build `Result-iOS` scheme
  1. Build `ReactiveSwift-iOS` scheme

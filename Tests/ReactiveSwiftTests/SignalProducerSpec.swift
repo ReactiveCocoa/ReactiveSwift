@@ -1310,6 +1310,11 @@ class SignalProducerSpec: QuickSpec {
 				expect(interrupted) == true
 				expect(disposed) == true
 			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups") {
+				_ = SignalProducer<Int, TestError>.empty
+					.flatMapError { _ in .init(value: 0) }
+			}
 		}
 
 		describe("flatten") {
@@ -2311,6 +2316,36 @@ class SignalProducerSpec: QuickSpec {
 				let h = SignalProducer<Int, TestError>.empty.then(SignalProducer<Double, NoError>.empty)
 				expect(type(of: h)) == SignalProducer<Double, TestError>.self
 			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups without explicit value and error type parameters, given an upstream of arbitrary error type") {
+				_ = SignalProducer<Int, TestError>.empty
+					.then(.empty)
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit value and error type parameters, given an upstream of arbitary error type") {
+				_ = SignalProducer<Int, TestError>.empty
+					.then(.init(result: Result<String, TestError>(value: "")))
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups without explicit error type parameter") {
+				_ = SignalProducer<Int, TestError>.empty
+					.then(.init(value: ""))
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups without explicit value and error type parameters, given a NoError upstream") {
+				_ = SignalProducer<Int, NoError>.empty
+					.then(.empty)
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups without explicit error type parameter") {
+				_ = SignalProducer<Int, NoError>.empty
+					.then(.init(value: ""))
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit value and error type parameters, given a NoError upstream") {
+				_ = SignalProducer<Int, NoError>.empty
+					.then(.init(result: Result<String, TestError>(value: "")))
+			}
 		}
 
 		describe("first") {
@@ -2756,7 +2791,7 @@ class SignalProducerSpec: QuickSpec {
 					let producer = SignalProducer<Int, NoError>.never
 						.on(disposed: { disposed = true })
 
-					var replayedProducer = ImplicitlyUnwrappedOptional(producer.replayLazily(upTo: 1))
+					var replayedProducer = Optional(producer.replayLazily(upTo: 1))
 
 					expect(disposed) == false
 					let disposable1 = replayedProducer?.start()
@@ -2779,7 +2814,7 @@ class SignalProducerSpec: QuickSpec {
 					let producer = SignalProducer<Int, NoError>.never
 						.on(disposed: { disposed = true })
 
-					var replayedProducer = ImplicitlyUnwrappedOptional(producer.replayLazily(upTo: 1))
+					var replayedProducer = Optional(producer.replayLazily(upTo: 1))
 
 					expect(disposed) == false
 					let disposable = replayedProducer?.start()
@@ -2855,8 +2890,8 @@ class SignalProducerSpec: QuickSpec {
 			describe("init(values) ambiguity") {
 				it("should not be a SignalProducer<SignalProducer<Int, NoError>, NoError>") {
 
-					let producer1: SignalProducer<Int, NoError> = SignalProducer.empty
-					let producer2: SignalProducer<Int, NoError> = SignalProducer.empty
+					let producer1 = SignalProducer<Int, NoError>.empty
+					let producer2 = SignalProducer<Int, NoError>.empty
 
 					// This expression verifies at compile time that the type is as expected.
 					let _: SignalProducer<Int, NoError> = SignalProducer([producer1, producer2])
@@ -2958,6 +2993,11 @@ class SignalProducerSpec: QuickSpec {
 
 				observer2.sendCompleted()
 			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups") {
+				_ = SignalProducer<Bool, NoError>.empty
+					.and(.init(value: true))
+			}
 		}
 
 		describe("or attribute") {
@@ -3003,6 +3043,11 @@ class SignalProducerSpec: QuickSpec {
 				observer2.send(value: true)
 
 				observer2.sendCompleted()
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups") {
+				_ = SignalProducer<Bool, NoError>.empty
+					.or(.init(value: true))
 			}
 		}
 
