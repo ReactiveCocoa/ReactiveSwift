@@ -219,6 +219,24 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		}
 	}
 
+	/// Initializes an `Action` that uses a `ValidatingProperty` as its state.
+	///
+	/// When the `Action` is asked to start executing, a unit of work (represented by
+	/// a `SignalProducer`) is created by invoking `execute` with the latest value
+	/// of the state and the `input` that was passed to `apply()`.
+	///
+	/// If the `ValidatingProperty` does not hold a valid value, the `Action` would be
+	/// disabled until it's valid.
+	///
+	/// - parameters:
+	///   - state: A `ValidatingProperty` to be the state of the `Action`.
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
+	///              be executed by the `Action`.
+	public convenience init<T, E>(validated state: ValidatingProperty<T, E>, execute: @escaping (T, Input) -> SignalProducer<Output, Error>) {
+		self.init(unwrapping: state.result.map { $0.value }, execute: execute)
+	}
+	
+
 	/// Initializes an `Action` that would always be enabled.
 	///
 	/// When the `Action` is asked to start the execution with an input value, a unit of
@@ -289,6 +307,25 @@ extension Action where Input == Void {
 	///              be executed by the `Action`.
 	public convenience init<P: PropertyProtocol, T>(unwrapping state: P, execute: @escaping (T) -> SignalProducer<Output, Error>) where P.Value == T? {
 		self.init(unwrapping: state) { state, _ in
+			execute(state)
+		}
+	}
+	
+	/// Initializes an `Action` that uses a `ValidatingProperty` as its state.
+	///
+	/// When the `Action` is asked to start executing, a unit of work (represented by
+	/// a `SignalProducer`) is created by invoking `execute` with the latest value
+	/// of the state and the `input` that was passed to `apply()`.
+	///
+	/// If the `ValidatingProperty` does not hold a valid value, the `Action` would be
+	/// disabled until it's valid.
+	///
+	/// - parameters:
+	///   - state: A `ValidatingProperty` to be the state of the `Action`.
+	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to
+	///              be executed by the `Action`.
+	public convenience init<T, E>(validated state: ValidatingProperty<T, E>, execute: @escaping (T) -> SignalProducer<Output, Error>) {
+		self.init(validated: state) { state, _ in
 			execute(state)
 		}
 	}
