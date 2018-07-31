@@ -174,7 +174,7 @@ scopedExample("`filter`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
 	let subscriber = Signal<Int, NoError>.Observer(value: { print("Subscriber received \($0)") } )
 	// subscriber will only receive events with values greater than 12
-	let filteredSignal = signal.filter { $0 > 12 ? true : false }
+	let filteredSignal = signal.filter { $0 > 12 }
 
 	filteredSignal.observe(subscriber)
 	observer.send(value: 10)
