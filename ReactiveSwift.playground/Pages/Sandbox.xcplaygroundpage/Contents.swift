@@ -49,17 +49,57 @@ enum PromiseResult<Value, Error: Swift.Error> {
     }
 }
 
-protocol Thenable {
+protocol ThenableType {
     associatedtype Value
     associatedtype Error: Swift.Error
     
     func await(notify: @escaping (PromiseResult<Value, Error>) -> Void) -> Disposable
 }
 
-extension Thenable {
+struct Thenable<Value, Error: Swift.Error>: ThenableType {
+    typealias AwaitFunction = (@escaping (PromiseResult<Value, Error>) -> Void) -> Disposable
+    typealias Result = PromiseResult<Value, Error>
     
+    private let awaitImpl: AwaitFunction
+    
+    @inline(__always)
+    func await(notify: @escaping (Result) -> Void) -> Disposable {
+        return awaitImpl(notify)
+    }
+    
+    init(_ impl: @escaping AwaitFunction) {
+        self.awaitImpl = impl
+    }
+    
+    init<T: ThenableType>(_ thenable: T) where T.Value == Value, T.Error == Error {
+        self.awaitImpl = { notify in
+            return thenable.await(notify: notify)
+        }
+    }
+}
+
+extension Thenable {
+    init(_ result: Result) {
+        self.init { notify in
+            notify(result)
+            return AnyDisposable()
+        }
+    }
+    init(_ value: Value) {
+        self.init(.fulfilled(value))
+    }
+    init(_ error: Error?) {
+        self.init(.rejected(error))
+    }
+    
+    static func never() -> Thenable<Value, Error> {
+        return Thenable { _ in AnyDisposable() }
+    }
+}
+
+extension ThenableType {
     @discardableResult
-    func chain<T: Thenable>(on: Scheduler = ImmediateScheduler(), body: @escaping (PromiseResult<Value, Error>) -> T) -> Promise<T.Value, Error> where T.Error == Error {
+    func chain<T: ThenableType>(on: Scheduler = ImmediateScheduler(), body: @escaping (PromiseResult<Value, Error>) -> T) -> Promise<T.Value, Error> where T.Error == Error{
         return Promise<T.Value, Error> { resolve, lifetime in
             lifetime += self.await { result in
                 on.schedule {
@@ -71,19 +111,18 @@ extension Thenable {
     }
     
     @discardableResult
-    func then<T: Thenable>(on: Scheduler = ImmediateScheduler(), body: @escaping (Value) -> T) -> Promise<T.Value, Error> where T.Error == Error {
+    func then<T: ThenableType>(on: Scheduler = ImmediateScheduler(), body: @escaping (Value) -> T) -> Promise<T.Value, Error> where T.Error == Error {
         
-        return self.chain { (result) -> T in
-            guard let value = result.value else {
-                return Promise<T.Value, Error>(error: result.error) as! T
+        return self.chain { result -> Thenable<T.Value, Error> in
+            guard case .fulfilled(let value) = result else {
+                return Thenable(result.error)
             }
-            return body(value)
+            return Thenable(body(value))
         }
-        
     }
 }
 
-struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
+struct Promise<Value, Error: Swift.Error>: ThenableType, SignalProducerConvertible {
     typealias Result = PromiseResult<Value, Error>
     
     enum State {
@@ -98,7 +137,7 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
         }
     }
     
-    fileprivate let state: Property<State>
+    private let state: Property<State>
     
     private let (_lifetime, _lifetimeToken) = Lifetime.make()
     
@@ -108,6 +147,22 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
         return SignalProducer(self)
     }
     
+    fileprivate init(_ state: Property<State>) {
+        self.state = state
+    }
+    
+    func await(notify: @escaping (PromiseResult<Value, Error>) -> Void) -> Disposable {
+        return state.producer
+            .filterMap { $0.promiseResult }
+            .startWithValues(notify)
+    }
+    
+    static var never: Promise<Value, Error> {
+        return Promise(Property(initial: .pending, then: .empty))
+    }
+}
+
+extension Promise {
     init(_ resolver: @escaping (@escaping (Result) -> Void, Lifetime) -> Void) {
         let promiseResolver = SignalProducer<State, NoError> { observer, lifetime in
             resolver(
@@ -115,11 +170,11 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
                     result in
                     observer.send(value: .resolved(result))
                     observer.sendCompleted()
-                },
+            },
                 lifetime
             )
         }
-        state = Property(initial: .pending, then: promiseResolver)
+        self.init(Property(initial: .pending, then: promiseResolver))
     }
     
     init(_ resolver: @escaping (@escaping (Value) -> Void, @escaping (Error) -> Void, Lifetime) -> Void) {
@@ -131,20 +186,25 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
             )
         }
     }
+}
+
+extension Promise {
     
-    init(value: Value) {
-        self.init(result: .fulfilled(value))
+    init(_ result: Result) {
+        self.init(Property(initial: .resolved(result), then: .empty))
     }
     
-    init(error: Error?) {
-        self.init(result: .rejected(error))
+    init(_ value: Value) {
+        self.init(.fulfilled(value))
     }
     
-    init(result: Result) {
-        state = Property(initial: .resolved(result), then: .empty)
+    init(_ error: Error?) {
+        self.init(.rejected(error))
     }
-    
-    init(producer: SignalProducer<Value, Error>) {
+}
+
+extension Promise {
+    init(_ producer: SignalProducer<Value, Error>) {
         self.init { resolve, lifetime in
             lifetime += producer.start { event in
                 switch event {
@@ -159,21 +219,12 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
             }
         }
     }
-    
-    func await(notify: @escaping (PromiseResult<Value, Error>) -> Void) -> Disposable {
-        return state.producer
-            .filterMap { $0.promiseResult }
-            .startWithValues(notify)
-    }
 }
 
 extension SignalProducer {
-    init(_ promise: Promise<Value, Error>) {
+    init<T: ThenableType>(thenable: T) where T.Value == Value, T.Error == Error {
         self.init { observer, lifetime in
-            lifetime += promise.state.producer.startWithValues {
-                guard case .resolved(let result) = $0 else {
-                    return
-                }
+            lifetime += thenable.await { result in
                 switch result {
                 case .fulfilled(let value):
                     observer.send(value: value)
@@ -186,11 +237,19 @@ extension SignalProducer {
             }
         }
     }
+    
+    init<T: ThenableType>(_ thenable: T) where T.Value == Value, T.Error == Error {
+        self.init(thenable: thenable)
+    }
+    
+    init(_ promise: Promise<Value, Error>) {
+        self.init(thenable: promise)
+    }
 }
 
 extension SignalProducer {
     func makePromise() -> Promise<Value, Error> {
-        return Promise<Value, Error>(producer: self)
+        return Promise<Value, Error>(self)
     }
 }
 
