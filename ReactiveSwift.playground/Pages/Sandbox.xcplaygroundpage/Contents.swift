@@ -60,8 +60,8 @@ extension Thenable {
     
     @discardableResult
     func chain<T: Thenable>(on: Scheduler = ImmediateScheduler(), body: @escaping (PromiseResult<Value, Error>) -> T) -> Promise<T.Value, Error> where T.Error == Error {
-        return Promise<T.Value, Error> { resolve in
-            return self.await { result in
+        return Promise<T.Value, Error> { resolve, lifetime in
+            lifetime += self.await { result in
                 on.schedule {
                     let thenable = body(result)
                     thenable.await(notify: resolve)
@@ -108,21 +108,26 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
         return SignalProducer(self)
     }
     
-    init(_ resolver: @escaping (@escaping (Result) -> Void) -> Disposable) {
+    init(_ resolver: @escaping (@escaping (Result) -> Void, Lifetime) -> Void) {
         let promiseResolver = SignalProducer<State, NoError> { observer, lifetime in
-            lifetime += resolver { result in
-                observer.send(value: .resolved(result))
-                observer.sendCompleted()
-            }
+            resolver(
+                {
+                    result in
+                    observer.send(value: .resolved(result))
+                    observer.sendCompleted()
+                },
+                lifetime
+            )
         }
         state = Property(initial: .pending, then: promiseResolver)
     }
     
-    init(_ resolver: @escaping (@escaping (Value) -> Void, @escaping (Error) -> Void) -> Disposable) {
-        self.init { resolve in
-            return resolver(
+    init(_ resolver: @escaping (@escaping (Value) -> Void, @escaping (Error) -> Void, Lifetime) -> Void) {
+        self.init { resolve, lifetime in
+            resolver (
                 { resolve(.fulfilled($0)) },
-                { resolve(.rejected($0)) }
+                { resolve(.rejected($0)) },
+                lifetime
             )
         }
     }
@@ -140,8 +145,8 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
     }
     
     init(producer: SignalProducer<Value, Error>) {
-        self.init { resolve in
-            return producer.start { event in
+        self.init { resolve, lifetime in
+            lifetime += producer.start { event in
                 switch event {
                 case .value(let value):
                     resolve(.fulfilled(value))
@@ -190,9 +195,8 @@ extension SignalProducer {
 }
 
 func add28(to term: Int) -> Promise<Int, NoError> {
-    return Promise { fulfil, _ in
+    return Promise { fulfil, _, _ in
         fulfil(term + 28)
-        return AnyDisposable()
     }
 }
 
