@@ -98,34 +98,14 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
         }
     }
     
-    private let state: Property<State>
+    fileprivate let state: Property<State>
     
     private let (_lifetime, _lifetimeToken) = Lifetime.make()
     
     var lifetime: Lifetime { return _lifetime }
     
     var producer: SignalProducer<Value, Error> {
-        return SignalProducer { [weak state] observer, lifetime in
-            guard let state = state else {
-                observer.sendInterrupted()
-                return
-            }
-            
-            lifetime += state.producer.startWithValues {
-                guard case .resolved(let result) = $0 else {
-                    return
-                }
-                switch result {
-                case .fulfilled(let value):
-                    observer.send(value: value)
-                    observer.sendCompleted()
-                case .rejected(let error?):
-                    observer.send(error: error)
-                case .rejected(nil):
-                    observer.sendCompleted()
-                }
-            }
-        }
+        return SignalProducer(self)
     }
     
     init(_ resolver: @escaping (@escaping (Result) -> Void) -> Disposable) {
@@ -182,7 +162,26 @@ struct Promise<Value, Error: Swift.Error>: Thenable, SignalProducerConvertible {
     }
 }
 
-
+extension SignalProducer {
+    init(_ promise: Promise<Value, Error>) {
+        self.init { observer, lifetime in
+            lifetime += promise.state.producer.startWithValues {
+                guard case .resolved(let result) = $0 else {
+                    return
+                }
+                switch result {
+                case .fulfilled(let value):
+                    observer.send(value: value)
+                    observer.sendCompleted()
+                case .rejected(let error?):
+                    observer.send(error: error)
+                case .rejected(nil):
+                    observer.sendCompleted()
+                }
+            }
+        }
+    }
+}
 
 extension SignalProducer {
     func makePromise() -> Promise<Value, Error> {
