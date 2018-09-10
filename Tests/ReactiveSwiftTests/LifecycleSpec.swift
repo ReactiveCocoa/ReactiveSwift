@@ -14,6 +14,21 @@ import Nimble
 final class LifecycleSpec: QuickSpec {
 	override func spec() {
 		describe("Lifecycle") {
+			it("should have a valid lifetime after initialization by default") {
+				let lifecycle = Lifecycle(invalidate: false)
+				expect(lifecycle.lifetime.value.hasEnded) == false
+			}
+
+			it("should have a valid lifetime after initialization if invalidate is false") {
+				let lifecycle = Lifecycle(invalidate: false)
+				expect(lifecycle.lifetime.value.hasEnded) == false
+			}
+
+			it("should have a invalid lifetime after initialization if invalidate is true") {
+				let lifecycle = Lifecycle(invalidate: true)
+				expect(lifecycle.lifetime.value.hasEnded) == true
+			}
+
 			it("should invalidate lifetime when invalidate is called") {
 				let cycle = Lifecycle()
 				let lifetime = cycle.lifetime.value

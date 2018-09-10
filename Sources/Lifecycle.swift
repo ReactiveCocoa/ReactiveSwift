@@ -10,17 +10,22 @@ import Foundation
 
 public class Lifecycle {
 
-	/// Hook that can be used to get the current lifetime
+	/// Hook that can be used to get the current lifetime.
 	/// - note: The consumer of lifecycle is responsible for checking
-	///         whether or not the lifetime is valid
+	///         whether or not the lifetime is valid.
 	public let lifetime: Property<Lifetime>
 	private let lock: LockProtocol
 	private var token: Lifetime.Token?
 	private let mutableLifetime: MutableProperty<Lifetime>
 
-	public init() {
+	/// Initializes a new Lifecycle
+	///
+	/// - parameters:
+	///   - invalidate: A flag used to determine whether the current
+	///                 lifetime is invalidated.
+	public init(invalidate: Bool = false) {
 		let (lifetime, token) = Lifetime.make()
-		self.token = token
+		self.token = (!invalidate) ? token : nil
 		mutableLifetime = MutableProperty(lifetime)
 		self.lifetime = Property(mutableLifetime)
 		lock = Lock.PthreadLock(recursive: true)
@@ -34,7 +39,7 @@ public class Lifecycle {
 		self.lock = lock
 	}
 
-	/// Updates lifetime property and invalidates current lifetime
+	/// Updates lifetime property and invalidates current lifetime.
 	public func update() {
 		lock.perform { [weak self] in
 			self?.unsafeUpdate()
@@ -42,9 +47,9 @@ public class Lifecycle {
 	}
 
 	/// Updates lifetime property and invalidates cuurent lifetime
-	/// if current lifetime is valid
+	/// if current lifetime is valid.
 	///
-	/// - note: If the current lifetime is invalid nothing happens
+	/// - note: If the current lifetime is invalid nothing happens.
 	public func updateIfValid() {
 		lock.perform { [weak self] in
 			if self?.token != nil {
@@ -53,9 +58,9 @@ public class Lifecycle {
 		}
 	}
 
-	/// Invalidates lifetime property
+	/// Invalidates lifetime property.
 	///
-	/// - note: If the current lifetime is invalid nothing happens
+	/// - note: If the current lifetime is invalid nothing happens.
 	public func invalidate() {
 		lock.perform { [weak self] in
 			self?.token = nil
