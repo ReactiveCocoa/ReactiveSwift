@@ -35,7 +35,7 @@ public class Lifecycle {
 	/// Initializer used for testing purposes
 	///
 	/// - parameters:
-	///   - lock: A lock that can be used to reproduce race conditions reliably
+	///   - lock: A lock that can be used to reproduce race conditions reliably.
 	internal init(lock: LockProtocol) {
 		let (lifetime, token) = Lifetime.make()
 		self.token = token
