@@ -8,7 +8,14 @@
 
 import Foundation
 
-public class Lifecycle {
+public protocol LifecycleProtocol {
+	var lifetime: Property<Lifetime> { get }
+	func update()
+	func updateIfValid()
+	func invalidate()
+}
+
+public class Lifecycle: LifecycleProtocol {
 
 	/// Hook that can be used to get the current lifetime.
 	///
