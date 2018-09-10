@@ -102,9 +102,23 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 #endif
 }
 
+internal protocol LockProtocol {
+	func lock()
+	func unlock()
+	func `try`() -> Bool
+}
+
+extension LockProtocol {
+	func perform(action: () -> Void) {
+		lock()
+		action()
+		unlock()
+	}
+}
+
 /// `Lock` exposes `os_unfair_lock` on supported platforms, with pthread mutex as the
 // fallback.
-internal class Lock {
+internal class Lock: LockProtocol {
 	#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 	@available(iOS 10.0, *)
 	@available(macOS 10.12, *)
