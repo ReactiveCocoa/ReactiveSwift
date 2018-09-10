@@ -11,14 +11,15 @@ import Foundation
 public class Lifecycle {
 
 	/// Hook that can be used to get the current lifetime.
-	/// - note: The consumer of lifecycle is responsible for checking
+	///
+	/// - note: The consumer of `Lifecycle` is responsible for checking
 	///         whether or not the lifetime is valid.
 	public let lifetime: Property<Lifetime>
 	private let lock: LockProtocol
 	private var token: Lifetime.Token?
 	private let mutableLifetime: MutableProperty<Lifetime>
 
-	/// Initializes a new Lifecycle
+	/// Initializes a new `Lifecycle`
 	///
 	/// - parameters:
 	///   - invalidate: A flag used to determine whether the current
