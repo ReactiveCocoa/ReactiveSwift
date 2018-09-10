@@ -10,6 +10,9 @@ import Foundation
 
 public class Lifecycle {
 
+	/// Hook that can be used to get the current lifetime
+	/// - note: The consumer of lifecycle is responsible for checking
+	///         whether or not the lifetime is valid
 	public let lifetime: Property<Lifetime>
 	private let lock: LockProtocol
 	private var token: Lifetime.Token?
@@ -31,12 +34,17 @@ public class Lifecycle {
 		self.lock = lock
 	}
 
+	/// Updates lifetime property and invalidates current lifetime
 	public func update() {
 		lock.perform { [weak self] in
 			self?.unsafeUpdate()
 		}
 	}
 
+	/// Updates lifetime property and invalidates cuurent lifetime
+	/// if current lifetime is valid
+	///
+	/// - note: If the current lifetime is invalid nothing happens
 	public func updateIfValid() {
 		lock.perform { [weak self] in
 			if self?.token != nil {
@@ -45,6 +53,9 @@ public class Lifecycle {
 		}
 	}
 
+	/// Invalidates lifetime property
+	///
+	/// - note: If the current lifetime is invalid nothing happens
 	public func invalidate() {
 		lock.perform { [weak self] in
 			self?.token = nil
