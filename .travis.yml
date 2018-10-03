@@ -1,3 +1,4 @@
+os: osx
 language: objective-c
 osx_image: xcode9.4
 before_install: true
@@ -13,99 +14,74 @@ cache:
     - $HOME/Library/Caches/org.carthage.CarthageKit/dependencies
     - Carthage/Build
 
-jobs:
-  include:
-    - osx_image: xcode9.4
-      script:
-        - XCODE_SCHEME=ReactiveSwift-macOS
-          XCODE_SDK=macosx
-          XCODE_ACTION="build test"
-          XCODE_DESTINATION="arch=x86_64"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-iOS
-          XCODE_SDK=iphonesimulator
-          XCODE_ACTION="build-for-testing test-without-building"
-          XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-tvOS
-          XCODE_SDK=appletvsimulator
-          XCODE_ACTION="build-for-testing test-without-building"
-          XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-watchOS
-          XCODE_SDK=watchsimulator
-          XCODE_ACTION=build
-          XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 3 - 38mm"
-          script/build
-    - osx_image: xcode10
-      script:
-        - XCODE_SCHEME=ReactiveSwift-macOS
-          XCODE_SDK=macosx
-          XCODE_ACTION="build test"
-          XCODE_DESTINATION="arch=x86_64"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-iOS
-          XCODE_SDK=iphonesimulator
-          XCODE_ACTION="build-for-testing test-without-building"
-          XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-tvOS
-          XCODE_SDK=appletvsimulator
-          XCODE_ACTION="build-for-testing test-without-building"
-          XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV"
-          script/build
-        - XCODE_SCHEME=ReactiveSwift-watchOS
-          XCODE_SDK=watchsimulator
-          XCODE_ACTION=build
-          XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 3 - 38mm"
-          script/build
-    - script:
+aliases:
+  - &xcode
+    script:
+      - XCODE_SCHEME=ReactiveSwift-macOS
+        XCODE_SDK=macosx
+        XCODE_ACTION="build test"
+        XCODE_DESTINATION="arch=x86_64"
+        script/build
+      - XCODE_SCHEME=ReactiveSwift-iOS
+        XCODE_SDK=iphonesimulator
+        XCODE_ACTION="build-for-testing test-without-building"
+        XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
+        script/build
+      - XCODE_SCHEME=ReactiveSwift-tvOS
+        XCODE_SDK=appletvsimulator
+        XCODE_ACTION="build-for-testing test-without-building"
+        XCODE_DESTINATION="platform=tvOS Simulator,name=Apple TV"
+        script/build
+      - XCODE_SCHEME=ReactiveSwift-watchOS
+        XCODE_SDK=watchsimulator
+        XCODE_ACTION=build
+        XCODE_DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 3 - 38mm"
+        script/build
+  - &cocoapods
+    script:
         # To work around the lint error: "ERROR | swift: Specification `ReactiveSwift` specifies an inconsistent `swift_version` (`4.1`) compared to the one present in your `.swift-version` file (`4.1.2`). Please remove the `.swift-version` file which is now deprecated and only use the `swift_version` attribute within your podspec."
         # `.swift-version` is for swiftenv, not for CocoaPods, so we can't remove the file as suggested.
         - rm .swift-version
         - pod repo update --silent
         - pod lib lint ReactiveSwift.podspec
+    env:
+      - JOB=PODSPEC
+  - &swiftpm
+    script:
+      - swift --version
+      - swift build
+      - swift test
+    git:
+      submodules: false
+    env: JOB=SwiftPM
+  - &swiftpm_darwin
+    <<: *swiftpm
+  - &swiftpm_linux
+    <<: *swiftpm
+    sudo: required
+    dist: trusty
+    os: linux
+    language: generic
+    before_install:
+      - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
+
+matrix:
+  include:
+    - <<: *xcode
+    - <<: *xcode
+      osx_image: xcode10
+    - <<: *xcode
+      osx_image: xcode10
+      env: XCODE_ARGS="SWIFT_VERSION=4.2"
+    - <<: *cocoapods
+    - <<: *swiftpm_darwin
+    - <<: *swiftpm_darwin
+      osx_image: xcode10
+    - <<: *swiftpm_linux
+    - <<: *swiftpm_linux
       env:
-        - JOB=PODSPEC
-    - osx_image: xcode9.4
-      script:
-        - swift --version
-        - swift build
-        - swift test
-      git:
-        submodules: false
-    - osx_image: xcode10
-      script:
-        - swift --version
-        - swift build
-        - swift test
-      git:
-        submodules: false
-    - os: linux
-      language: generic
-      sudo: required
-      dist: trusty
-      before_install:
-        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
-      script:
-        - swift --version
-        - swift build
-        - swift test
-      git:
-        submodules: false
-    - os: linux
-      language: generic
-      sudo: required
-      dist: trusty
-      env: SWIFT_VERSION=4.2-DEVELOPMENT-SNAPSHOT-2018-08-25-a
-      before_install:
-        - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
-      script:
-        - swift --version
-        - swift build
-        - swift test
-      git:
-        submodules: false
+        - JOB=SwiftPM
+        - SWIFT_VERSION=4.2
     - stage: carthage
       script: carthage build --cache-builds --no-skip-current
     - stage: deploy

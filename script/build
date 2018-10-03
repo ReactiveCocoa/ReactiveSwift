@@ -34,7 +34,8 @@ xcodebuild $XCODE_ACTION \
     -configuration $CONFIGURATION \
     ENABLE_TESTABILITY=YES \
     GCC_GENERATE_DEBUGGING_SYMBOLS=NO \
-    RUN_CLANG_STATIC_ANALYZER=NO | xcpretty
+    RUN_CLANG_STATIC_ANALYZER=NO \
+    ${XCODE_ARGS} | xcpretty
 result=$?
 
 if [ "$result" -ne 0 ]; then
