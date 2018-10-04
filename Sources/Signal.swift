@@ -880,6 +880,15 @@ extension Signal {
 		return flatMapEvent(Signal.Event.materialize)
 	}
 
+	/// Treats all Results from the input producer as plain values, allowing them
+	/// to be manipulated just like any other value.
+	///
+	/// In other words, this brings Results “into the monad.”
+	///
+	/// - note: When a Failed event is received, the resulting producer will
+	///         send the `Result.failure` itself and then complete.
+	///
+	/// - returns: A producer that sends results as its values.
 	public func resultValues() -> Signal<Result<Value, Error>, NoError> {
 		return flatMapEvent(Signal.Event.resultValues)
 	}
