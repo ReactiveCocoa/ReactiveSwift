@@ -435,6 +435,25 @@ scopedExample("`materialize`") {
 }
 
 /*:
+ ### `materializeResults`
+
+ Treats all Results from the input producer as plain values, allowing them
+ to be manipulated just like any other value.
+
+ In other words, this brings Results “into the monad.”
+
+ When a Failed event is received, the resulting producer will
+ send the `Result.failure` itself and then complete.
+ */
+scopedExample("`materializeResults`") {
+    SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+        .materializeResults()
+        .startWithValues { value in
+            print(value)
+    }
+}
+
+/*:
 ### `sample(on:)`
 Forwards the latest value from `self` whenever `sampler` sends a `value`
 event.
