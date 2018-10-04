@@ -477,13 +477,40 @@ extension Signal.Event {
 	}
 }
 
-extension Signal.Event where Value: EventProtocol {
+extension Signal.Event where Value: EventProtocol, Error == NoError {
 	internal static var dematerialize: Transformation<Value.Value, Value.Error> {
 		return { action, _ in
 			return { event in
 				switch event {
 				case let .value(innerEvent):
 					action(innerEvent.event)
+
+				case .failed:
+					fatalError("NoError is impossible to construct")
+
+				case .completed:
+					action(.completed)
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+}
+
+extension Signal.Event where Value: ResultProtocol, Error == NoError {
+	internal static var dematerializeResults: Transformation<Value.Value, Value.Error> {
+		return { action, _ in
+			return { event in
+				let event = event.map { $0.result }
+
+				switch event {
+				case .value(.success(let value)):
+					action(.value(value))
+
+				case .value(.failure(let error)):
+					action(.failed(error))
 
 				case .failed:
 					fatalError("NoError is impossible to construct")

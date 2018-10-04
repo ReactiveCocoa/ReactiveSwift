@@ -1749,6 +1749,16 @@ extension SignalProducer where Value: EventProtocol, Error == NoError {
 	}
 }
 
+extension SignalProducer where Value: ResultProtocol, Error == NoError {
+	/// The inverse of materializeResults(), this will translate a producer of `Result`
+	/// _values_ into a producer of those events themselves.
+	///
+	/// - returns: A producer that sends values carried by `self` results.
+	public func dematerializeResults() -> SignalProducer<Value.Value, Value.Error> {
+		return core.flatMapEvent(Signal.Event.dematerializeResults)
+	}
+}
+
 extension SignalProducer where Error == NoError {
 	/// Promote a producer that does not generate failures into one that can.
 	///
