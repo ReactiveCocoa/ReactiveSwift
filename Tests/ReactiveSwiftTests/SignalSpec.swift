@@ -2980,7 +2980,7 @@ class SignalSpec: QuickSpec {
 				dematerialized = signal.dematerializeResults()
 			}
 
-			it("should send values for Value events") {
+			it("should send values for Value results") {
 				var result: [Int] = []
 				dematerialized
 					.assumeNoErrors()
@@ -2995,7 +2995,7 @@ class SignalSpec: QuickSpec {
 				expect(result) == [ 2, 4 ]
 			}
 
-			it("should error out for Error events") {
+			it("should error out for Error results") {
 				var errored = false
 				dematerialized.observeFailed { _ in errored = true }
 

@@ -1932,7 +1932,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				dematerialized = producer.dematerializeResults()
 			}
 
-			it("should send values for Value events") {
+			it("should send values for Value results") {
 				var result: [Int] = []
 				dematerialized
 					.assumeNoErrors()
@@ -1947,7 +1947,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				expect(result) == [ 2, 4 ]
 			}
 
-			it("should error out for Error events") {
+			it("should error out for Error results") {
 				var errored = false
 				dematerialized.startWithFailed { _ in errored = true }
 
