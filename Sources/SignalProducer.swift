@@ -1196,6 +1196,10 @@ extension SignalProducer {
 		return core.flatMapEvent(Signal.Event.materialize)
 	}
 
+	public func resultValues() -> SignalProducer<Result<Value, Error>, NoError> {
+		return core.flatMapEvent(Signal.Event.resultValues)
+	}
+
 	/// Forward the latest value from `self` with the value from `sampler` as a
 	/// tuple, only when `sampler` sends a `value` event.
 	///

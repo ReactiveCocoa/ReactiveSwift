@@ -311,6 +311,27 @@ extension Signal.Event {
 		}
 	}
 
+	internal static var resultValues: Transformation<Result<Value, Error>, NoError> {
+		return { action, _ in
+			return { event in
+				switch event {
+				case .value(let value):
+					action(.value(Result(value: value)))
+
+				case .failed(let error):
+					action(.value(Result(error: error)))
+					action(.completed)
+
+				case .completed:
+					action(.completed)
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
 	internal static func attemptMap<U>(_ transform: @escaping (Value) -> Result<U, Error>) -> Transformation<U, Error> {
 		return { action, _ in
 			return { event in

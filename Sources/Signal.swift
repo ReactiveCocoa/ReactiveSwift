@@ -879,6 +879,10 @@ extension Signal {
 	public func materialize() -> Signal<Event, NoError> {
 		return flatMapEvent(Signal.Event.materialize)
 	}
+
+	public func resultValues() -> Signal<Result<Value, Error>, NoError> {
+		return flatMapEvent(Signal.Event.resultValues)
+	}
 }
 
 extension Signal where Value: EventProtocol, Error == NoError {
