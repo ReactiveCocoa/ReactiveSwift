@@ -2935,6 +2935,40 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("resultValues") {
+			it("should reify results from the signal") {
+				let (signal, observer) = Signal<Int, TestError>.pipe()
+				var latestResult: Result<Int, TestError>?
+				signal
+					.resultValues()
+					.observeValues { latestResult = $0 }
+
+				observer.send(value: 2)
+
+				expect(latestResult).toNot(beNil())
+				if let latestResult = latestResult {
+					switch latestResult {
+					case .success(let value):
+						expect(value) == 2
+
+					case .failure:
+						fail()
+					}
+				}
+
+				observer.send(error: TestError.default)
+				if let latestResult = latestResult {
+					switch latestResult {
+					case .failure(let error):
+						expect(error) == TestError.default
+
+					case .success:
+						fail()
+					}
+				}
+			}
+		}
+
 		describe("takeLast") {
 			var observer: Signal<Int, TestError>.Observer!
 			var lastThree: Signal<Int, TestError>!

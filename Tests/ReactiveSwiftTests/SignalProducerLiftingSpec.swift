@@ -1887,6 +1887,40 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 		}
 
+		describe("resultValues") {
+			it("should reify results from the signal") {
+				let (producer, observer) = SignalProducer<Int, TestError>.pipe()
+				var latestResult: Result<Int, TestError>?
+				producer
+					.resultValues()
+					.startWithValues { latestResult = $0 }
+
+				observer.send(value: 2)
+
+				expect(latestResult).toNot(beNil())
+				if let latestResult = latestResult {
+					switch latestResult {
+					case .success(let value):
+						expect(value) == 2
+
+					case .failure:
+						fail()
+					}
+				}
+
+				observer.send(error: TestError.default)
+				if let latestResult = latestResult {
+					switch latestResult {
+					case .failure(let error):
+						expect(error) == TestError.default
+
+					case .success:
+						fail()
+					}
+				}
+			}
+		}
+
 		describe("takeLast") {
 			var observer: Signal<Int, TestError>.Observer!
 			var lastThree: SignalProducer<Int, TestError>!
