@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. New operator `matelializeResults` and `dematerializeResults` (#679, kudos to @ra1028)
 1. New convenience initializer for `Action` that takes a `ValidatingProperty` as its state (#637, kudos to @Marcocanc)
 
 # 4.0.0
