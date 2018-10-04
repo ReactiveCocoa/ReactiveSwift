@@ -1205,8 +1205,8 @@ extension SignalProducer {
 	///         send the `Result.failure` itself and then complete.
 	///
 	/// - returns: A producer that sends results as its values.
-	public func resultValues() -> SignalProducer<Result<Value, Error>, NoError> {
-		return core.flatMapEvent(Signal.Event.resultValues)
+	public func materializeResults() -> SignalProducer<Result<Value, Error>, NoError> {
+		return core.flatMapEvent(Signal.Event.materializeResults)
 	}
 
 	/// Forward the latest value from `self` with the value from `sampler` as a

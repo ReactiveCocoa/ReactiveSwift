@@ -1887,12 +1887,12 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 		}
 
-		describe("resultValues") {
+		describe("materializeResults") {
 			it("should reify results from the signal") {
 				let (producer, observer) = SignalProducer<Int, TestError>.pipe()
 				var latestResult: Result<Int, TestError>?
 				producer
-					.resultValues()
+					.materializeResults()
 					.startWithValues { latestResult = $0 }
 
 				observer.send(value: 2)

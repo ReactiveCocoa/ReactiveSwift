@@ -311,7 +311,7 @@ extension Signal.Event {
 		}
 	}
 
-	internal static var resultValues: Transformation<Result<Value, Error>, NoError> {
+	internal static var materializeResults: Transformation<Result<Value, Error>, NoError> {
 		return { action, _ in
 			return { event in
 				switch event {

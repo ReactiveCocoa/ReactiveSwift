@@ -889,8 +889,8 @@ extension Signal {
 	///         send the `Result.failure` itself and then complete.
 	///
 	/// - returns: A producer that sends results as its values.
-	public func resultValues() -> Signal<Result<Value, Error>, NoError> {
-		return flatMapEvent(Signal.Event.resultValues)
+	public func materializeResults() -> Signal<Result<Value, Error>, NoError> {
+		return flatMapEvent(Signal.Event.materializeResults)
 	}
 }
 

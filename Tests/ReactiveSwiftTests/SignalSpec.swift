@@ -2935,12 +2935,12 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("resultValues") {
+		describe("materializeResults") {
 			it("should reify results from the signal") {
 				let (signal, observer) = Signal<Int, TestError>.pipe()
 				var latestResult: Result<Int, TestError>?
 				signal
-					.resultValues()
+					.materializeResults()
 					.observeValues { latestResult = $0 }
 
 				observer.send(value: 2)
