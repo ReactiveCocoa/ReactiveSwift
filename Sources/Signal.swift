@@ -879,6 +879,19 @@ extension Signal {
 	public func materialize() -> Signal<Event, NoError> {
 		return flatMapEvent(Signal.Event.materialize)
 	}
+
+	/// Treats all Results from the input producer as plain values, allowing them
+	/// to be manipulated just like any other value.
+	///
+	/// In other words, this brings Results “into the monad.”
+	///
+	/// - note: When a Failed event is received, the resulting producer will
+	///         send the `Result.failure` itself and then complete.
+	///
+	/// - returns: A producer that sends results as its values.
+	public func materializeResults() -> Signal<Result<Value, Error>, NoError> {
+		return flatMapEvent(Signal.Event.materializeResults)
+	}
 }
 
 extension Signal where Value: EventProtocol, Error == NoError {
@@ -888,6 +901,16 @@ extension Signal where Value: EventProtocol, Error == NoError {
 	/// - returns: A signal that sends values carried by `self` events.
 	public func dematerialize() -> Signal<Value.Value, Value.Error> {
 		return flatMapEvent(Signal.Event.dematerialize)
+	}
+}
+
+extension Signal where Value: ResultProtocol, Error == NoError {
+	/// Translate a signal of `Result` _values_ into a signal of those events
+	/// themselves.
+	///
+	/// - returns: A signal that sends values carried by `self` events.
+	public func dematerializeResults() -> Signal<Value.Value, Value.Error> {
+		return flatMapEvent(Signal.Event.dematerializeResults)
 	}
 }
 

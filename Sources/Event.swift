@@ -311,6 +311,27 @@ extension Signal.Event {
 		}
 	}
 
+	internal static var materializeResults: Transformation<Result<Value, Error>, NoError> {
+		return { action, _ in
+			return { event in
+				switch event {
+				case .value(let value):
+					action(.value(Result(value: value)))
+
+				case .failed(let error):
+					action(.value(Result(error: error)))
+					action(.completed)
+
+				case .completed:
+					action(.completed)
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+
 	internal static func attemptMap<U>(_ transform: @escaping (Value) -> Result<U, Error>) -> Transformation<U, Error> {
 		return { action, _ in
 			return { event in
@@ -456,13 +477,40 @@ extension Signal.Event {
 	}
 }
 
-extension Signal.Event where Value: EventProtocol {
+extension Signal.Event where Value: EventProtocol, Error == NoError {
 	internal static var dematerialize: Transformation<Value.Value, Value.Error> {
 		return { action, _ in
 			return { event in
 				switch event {
 				case let .value(innerEvent):
 					action(innerEvent.event)
+
+				case .failed:
+					fatalError("NoError is impossible to construct")
+
+				case .completed:
+					action(.completed)
+
+				case .interrupted:
+					action(.interrupted)
+				}
+			}
+		}
+	}
+}
+
+extension Signal.Event where Value: ResultProtocol, Error == NoError {
+	internal static var dematerializeResults: Transformation<Value.Value, Value.Error> {
+		return { action, _ in
+			return { event in
+				let event = event.map { $0.result }
+
+				switch event {
+				case .value(.success(let value)):
+					action(.value(value))
+
+				case .value(.failure(let error)):
+					action(.failed(error))
 
 				case .failed:
 					fatalError("NoError is impossible to construct")

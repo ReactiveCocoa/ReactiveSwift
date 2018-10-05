@@ -1887,6 +1887,77 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 		}
 
+		describe("materializeResults") {
+			it("should reify results from the signal") {
+				let (producer, observer) = SignalProducer<Int, TestError>.pipe()
+				var latestResult: Result<Int, TestError>?
+				producer
+					.materializeResults()
+					.startWithValues { latestResult = $0 }
+
+				observer.send(value: 2)
+
+				expect(latestResult).toNot(beNil())
+				if let latestResult = latestResult {
+					switch latestResult {
+					case .success(let value):
+						expect(value) == 2
+
+					case .failure:
+						fail()
+					}
+				}
+
+				observer.send(error: TestError.default)
+				if let latestResult = latestResult {
+					switch latestResult {
+					case .failure(let error):
+						expect(error) == TestError.default
+
+					case .success:
+						fail()
+					}
+				}
+			}
+		}
+
+		describe("dematerializeResults") {
+			typealias IntResult = Result<Int, TestError>
+			var observer: Signal<IntResult, NoError>.Observer!
+			var dematerialized: SignalProducer<Int, TestError>!
+
+			beforeEach {
+				let (producer, incomingObserver) = SignalProducer<IntResult, NoError>.pipe()
+				observer = incomingObserver
+				dematerialized = producer.dematerializeResults()
+			}
+
+			it("should send values for Value results") {
+				var result: [Int] = []
+				dematerialized
+					.assumeNoErrors()
+					.startWithValues { result.append($0) }
+
+				expect(result).to(beEmpty())
+
+				observer.send(value: .success(2))
+				expect(result) == [ 2 ]
+
+				observer.send(value: .success(4))
+				expect(result) == [ 2, 4 ]
+			}
+
+			it("should error out for Error results") {
+				var errored = false
+				dematerialized.startWithFailed { _ in errored = true }
+
+				expect(errored) == false
+
+				observer.send(value: .failure(TestError.default))
+				expect(errored) == true
+			}
+		}
+
 		describe("takeLast") {
 			var observer: Signal<Int, TestError>.Observer!
 			var lastThree: SignalProducer<Int, TestError>!
