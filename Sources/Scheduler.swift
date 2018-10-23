@@ -394,7 +394,7 @@ public final class TestScheduler: DateScheduler {
 		}
 
 		func less(_ rhs: ScheduledAction) -> Bool {
-			return date.compare(rhs.date) == .orderedAscending
+			return date < rhs.date
 		}
 	}
 
@@ -565,10 +565,10 @@ public final class TestScheduler: DateScheduler {
 	public func advance(to newDate: Date) {
 		lock.lock()
 
-		assert(currentDate.compare(newDate) != .orderedDescending)
+		assert(currentDate <= newDate)
 
 		while scheduledActions.count > 0 {
-			if newDate.compare(scheduledActions[0].date) == .orderedAscending {
+			if newDate < scheduledActions[0].date {
 				break
 			}
 
@@ -598,7 +598,7 @@ public final class TestScheduler: DateScheduler {
 		lock.lock()
 
 		let newDate = currentDate.addingTimeInterval(-interval)
-		assert(currentDate.compare(newDate) != .orderedAscending)
+		assert(currentDate >= newDate)
 		_currentDate = newDate
 
 		lock.unlock()

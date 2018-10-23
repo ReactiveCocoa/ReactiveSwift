@@ -850,20 +850,13 @@ extension Signal.Event {
 					state.pendingValue = value
 
 					let proposedScheduleDate: Date
-					if let previousDate = state.previousDate, previousDate.compare(scheduler.currentDate) != .orderedDescending {
+					if let previousDate = state.previousDate, previousDate <= scheduler.currentDate {
 						proposedScheduleDate = previousDate.addingTimeInterval(interval)
 					} else {
 						proposedScheduleDate = scheduler.currentDate
 					}
 
-					switch proposedScheduleDate.compare(scheduler.currentDate) {
-					case .orderedAscending:
-						return scheduler.currentDate
-
-					case .orderedSame: fallthrough
-					case .orderedDescending:
-						return proposedScheduleDate
-					}
+					return proposedScheduleDate < scheduler.currentDate ? scheduler.currentDate : proposedScheduleDate
 				}
 
 				schedulerDisposable.inner = scheduler.schedule(after: scheduleDate) {
