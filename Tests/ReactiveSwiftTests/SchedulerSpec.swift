@@ -364,7 +364,7 @@ class SchedulerSpec: QuickSpec {
 				expect(string) == ""
 
 				scheduler.run()
-				expect(scheduler.currentDate) == NSDate.distantFuture
+				expect(scheduler.currentDate) == Date.distantFuture
 				expect(string) == "fuzzbuzzfoobar"
 			}
 		}
