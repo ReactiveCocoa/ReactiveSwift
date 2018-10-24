@@ -2877,7 +2877,7 @@ extension SignalProducer where Value == Date, Error == NoError {
 	///   - interval: An interval between invocations.
 	///   - scheduler: A scheduler to deliver events on.
 	///
-	/// - returns: A producer that sends `NSDate` values every `interval` seconds.
+	/// - returns: A producer that sends `Date` values every `interval` seconds.
 	public static func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler) -> SignalProducer<Value, Error> {
 		// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
 		// at least 10% of the timer interval.
@@ -2900,7 +2900,7 @@ extension SignalProducer where Value == Date, Error == NoError {
 	///   - leeway: Interval leeway. Apple's "Power Efficiency Guide for Mac Apps"
 	///             recommends a leeway of at least 10% of the timer interval.
 	///
-	/// - returns: A producer that sends `NSDate` values every `interval` seconds.
+	/// - returns: A producer that sends `Date` values every `interval` seconds.
 	public static func timer(interval: DispatchTimeInterval, on scheduler: DateScheduler, leeway: DispatchTimeInterval) -> SignalProducer<Value, Error> {
 		precondition(interval.timeInterval >= 0)
 		precondition(leeway.timeInterval >= 0)
