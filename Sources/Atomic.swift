@@ -103,7 +103,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 }
 
 /// `Lock` exposes `os_unfair_lock` on supported platforms, with pthread mutex as the
-// fallback.
+/// fallback.
 internal class Lock {
 	#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 	@available(iOS 10.0, *)
