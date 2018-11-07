@@ -10,7 +10,7 @@
 #### `Signal`: a unidirectional stream of events.
 The owner of a `Signal` has unilateral control of the event stream. Observers may register their interests in the future events at any time, but the observation would have no side effect on the stream or its owner.
 
-It is like a live TV feed — you can observe and react to the content, but you cannot have a side effect on the live feed or the TV station.
+A `Signal` is like a live TV feed — you can observe and react to the content, but you cannot have a side effect on the live feed or the TV station.
 
 ```swift
 let channel: Signal<Program, NoError> = tvStation.channelOne
@@ -21,16 +21,16 @@ channel.observeValues { program in ... }
 
 
 #### `Event`: the basic transfer unit of an event stream.
-A `Signal` may have any arbitrary number of events carrying a value, following by an eventual terminal event of a specific reason.
+A `Signal` may have any arbitrary number of events carrying a value, followed by an eventual terminal event of a specific reason.
 
-It is like a frame in a one-time live feed — seas of data frames carry the visual and audio data, but the feed would eventually be terminated with a special frame to indicate "end of stream".
+An `Event` is like a frame in a one-time live feed — seas of data frames carry the visual and audio data, but the feed would eventually be terminated with a special frame to indicate "end of stream".
 
 *See also: [The `Event` overview](FrameworkOverview.md#events), [The `Event` contract](APIContracts.md#the-event-contract), [The `Event` API reference](http://reactivecocoa.io/reactiveswift/docs/latest/Classes/Signal/Event.html)*
 
 #### `SignalProducer`: deferred work that creates a stream of values.
 `SignalProducer` defers work — of which the output is represented as a stream of values — until it is started. For every invocation to start the `SignalProducer`, a new `Signal` is created and the deferred work is subsequently invoked.
 
-It is like a on-demand streaming service — even though the episode is streamed like a live TV feed, you can choose what you watch, when to start watching and when to interrupt it.
+A `SignalProducer` is like an on-demand streaming service — even though the episode is streamed like a live TV feed, you can choose what you watch, when to start watching and when to interrupt it.
 
 
 ```swift
@@ -42,9 +42,9 @@ interrupter.dispose()
 *See also: [The `SignalProducer` overview](FrameworkOverview.md#signal-producers), [The `SignalProducer` contract](APIContracts.md#the-signalproducer-contract), [The `SignalProducer` API reference](http://reactivecocoa.io/reactiveswift/docs/latest/Structs/SignalProducer.html)*
 
 #### `Property`: an observable box that always holds a value.
-`Property` is a variable that can be observed for its changes. In other words, it is a stream of values with a stronger guarantee than `Signal` — the latest value is always available, and the stream would never fail.
+`Property` is a variable that can be observed for its changes. In other words, it is a stream of values with a stronger guarantee than `Signal` — the latest value is always available, and the stream will never fail.
 
-It is like the continuously updated current time offset of a video playback — the playback is always at a certain time offset at any time, and it would be updated by the playback logic as the playback continues.
+A `Property` is like the continuously updated current time offset of a video playback — the playback is always at a certain time offset at any time, and it would be updated by the playback logic as the playback continues.
 
 ```swift
 let currentTime: Property<TimeInterval> = video.currentTime
@@ -55,9 +55,9 @@ currentTime.signal.observeValues { timeBar.timeLabel.text = "\($0)" }
 *See also: [The `Property` overview](FrameworkOverview.md#properties), [The `Property` contract](APIContracts.md#the-property-contract), [The property API reference](http://reactivecocoa.io/reactiveswift/docs/latest/Property.html)*
 
 #### `Action`: a serialized worker with a preset action.
-When being invoked with an input, `Action` apply the input and the latest state to the preset action, and pushes the output to any interested parties.
+When invoked with an input, an `Action` applies the input and the latest state to the preset action, and pushes the output to any interested parties.
 
-It is like an automatic vending machine — after choosing an option with coins inserted, the machine would process the order and eventually output your wanted snack. Notice that the entire process is mutually exclusive — you cannot have the machine to serve two customers concurrently.
+An `Action` is like an automatic vending machine — after inserting coins and choosing an option, the machine processes the order and eventually outputs your desired snack. Notice that the entire process is mutually exclusive — you cannot have the machine serve two customers concurrently.
 
 ```swift
 // Purchase from the vending machine with a specific option.
@@ -98,7 +98,7 @@ class VendingMachine {
 *See also: [The `Action` overview](FrameworkOverview.md#actions), [The `Action` API reference](http://reactivecocoa.io/reactiveswift/docs/latest/Classes/Action.html)*
 
 #### `Lifetime`: limits the scope of an observation
-When observing a `Signal` or `SignalProducer`, it doesn't make sense to continue emitting values if there's no longer anyone observing them.
+It doesn't make sense for a `Signal` or `SignalProducer` to continue emitting values if there are no longer any observers.
 Consider the video stream: once you stop watching the video, the stream can be automatically closed by providing a `Lifetime`:
 
 ```swift
