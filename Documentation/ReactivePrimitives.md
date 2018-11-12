@@ -57,7 +57,7 @@ currentTime.signal.observeValues { timeBar.timeLabel.text = "\($0)" }
 #### `Action`: a serialized worker with a preset action.
 When invoked with an input, an `Action` applies the input and the latest state to the preset action, and pushes the output to any interested parties.
 
-An `Action` is like an automatic vending machine — after inserting coins and choosing an option, the machine processes the order and eventually outputs your desired snack. Notice that the entire process is mutually exclusive — you cannot have the machine serve two customers concurrently.
+An `Action` is like an automatic vending machine — after inserting coins and choosing an option, the machine processes the order and eventually outputs your desired snack. Notice that you cannot have the machine serve two customers concurrently.
 
 ```swift
 // Purchase from the vending machine with a specific option.
