@@ -1314,6 +1314,14 @@ extension Signal {
 	public func scan<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.scan(into: initialResult, nextPartialResult))
 	}
+
+	public func transduce<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.transduce(initialState, next))
+	}
+
+	public func transduce<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.transduce(into: initialState, next))
+	}
 }
 
 extension Signal where Value: Equatable {

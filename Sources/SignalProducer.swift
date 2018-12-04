@@ -1483,6 +1483,14 @@ extension SignalProducer {
 		return core.flatMapEvent(Signal.Event.scan(into: initialResult, nextPartialResult))
 	}
 
+	public func transduce<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> SignalProducer<U, Error> {
+		return core.flatMapEvent(Signal.Event.transduce(initialState, next))
+	}
+
+	public func transduce<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> SignalProducer<U, Error> {
+		return core.flatMapEvent(Signal.Event.transduce(into: initialState, next))
+	}
+
 	/// Forward only values from `self` that are not considered equivalent to its
 	/// immediately preceding value.
 	///
