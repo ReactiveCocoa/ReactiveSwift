@@ -1483,10 +1483,30 @@ extension SignalProducer {
 		return core.flatMapEvent(Signal.Event.scan(into: initialResult, nextPartialResult))
 	}
 
+	/// Accumulate all values from `self` as `State`, and send the value as `Output`.
+	///
+	/// - parameters:
+	///   - initialState: The state to use as the initial accumulating state.
+	///   - next: A closure that combines the accumulating state and the latest value
+	///           from `self`. The result would be "next state" and "output" where
+	///           "output" would be forwarded and "next state" would be used in the
+	///           next call of `next`.
+	///
+	/// - returns: A producer that sends the output that is computed from the accumuation.
 	public func transduce<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.transduce(initialState, next))
 	}
 
+	/// Accumulate all values from `self` as `State`, and send the value as `Output`.
+	///
+	/// - parameters:
+	///   - initialState: The state to use as the initial accumulating state.
+	///   - next: A closure that combines the accumulating state and the latest value
+	///           from `self`. The result would be "next state" and "output" where
+	///           "output" would be forwarded and "next state" would be used in the
+	///           next call of `next`.
+	///
+	/// - returns: A producer that sends the output that is computed from the accumuation.
 	public func transduce<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.transduce(into: initialState, next))
 	}
