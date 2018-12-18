@@ -1493,8 +1493,8 @@ extension SignalProducer {
 	///           next call of `next`.
 	///
 	/// - returns: A producer that sends the output that is computed from the accumuation.
-	public func transduce<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> SignalProducer<U, Error> {
-		return core.flatMapEvent(Signal.Event.transduce(initialState, next))
+	public func scanMap<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> SignalProducer<U, Error> {
+		return core.flatMapEvent(Signal.Event.scanMap(initialState, next))
 	}
 
 	/// Accumulate all values from `self` as `State`, and send the value as `Output`.
@@ -1507,8 +1507,8 @@ extension SignalProducer {
 	///           next call of `next`.
 	///
 	/// - returns: A producer that sends the output that is computed from the accumuation.
-	public func transduce<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> SignalProducer<U, Error> {
-		return core.flatMapEvent(Signal.Event.transduce(into: initialState, next))
+	public func scanMap<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> SignalProducer<U, Error> {
+		return core.flatMapEvent(Signal.Event.scanMap(into: initialState, next))
 	}
 
 	/// Forward only values from `self` that are not considered equivalent to its

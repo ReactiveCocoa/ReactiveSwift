@@ -829,10 +829,10 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("transduce(_:_:)") {
+		describe("scanMap(_:_:)") {
 			it("should update state and output separately") {
 				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
-				let signal = baseSignal.transduce(false) { state, value -> (Bool, String) in
+				let signal = baseSignal.scanMap(false) { state, value -> (Bool, String) in
 					return (true, state ? "\(value)" : "initial")
 				}
 
@@ -853,10 +853,10 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("transduce(into:_:)") {
+		describe("scanMap(into:_:)") {
 			it("should update state and output separately") {
 				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
-				let signal = baseSignal.transduce(into: false) { (state: inout Bool, value: Int) -> String in
+				let signal = baseSignal.scanMap(into: false) { (state: inout Bool, value: Int) -> String in
 					defer { state = true }
 					return state ? "\(value)" : "initial"
 				}

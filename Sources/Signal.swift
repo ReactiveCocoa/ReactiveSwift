@@ -1325,8 +1325,8 @@ extension Signal {
 	///           next call of `next`.
 	///
 	/// - returns: A producer that sends the output that is computed from the accumuation.
-	public func transduce<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> Signal<U, Error> {
-		return flatMapEvent(Signal.Event.transduce(initialState, next))
+	public func scanMap<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.scanMap(initialState, next))
 	}
 
 	/// Accumulate all values from `self` as `State`, and send the value as `Output`.
@@ -1339,8 +1339,8 @@ extension Signal {
 	///           next call of `next`.
 	///
 	/// - returns: A producer that sends the output that is computed from the accumuation.
-	public func transduce<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Signal<U, Error> {
-		return flatMapEvent(Signal.Event.transduce(into: initialState, next))
+	public func scanMap<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.scanMap(into: initialState, next))
 	}
 }
 

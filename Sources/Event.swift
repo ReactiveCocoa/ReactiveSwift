@@ -732,7 +732,7 @@ extension Signal.Event {
 		return reduce(into: initialResult) { $0 = nextPartialResult($0, $1) }
 	}
 
-	internal static func transduce<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Transformation<U, Error> {
+	internal static func scanMap<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Transformation<U, Error> {
 		return { action, _ in
 			var accumulator = initialState
 
@@ -752,8 +752,8 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func transduce<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> Transformation<U, Error> {
-		return transduce(into: initialState) { state, value in
+	internal static func scanMap<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> Transformation<U, Error> {
+		return scanMap(into: initialState) { state, value in
 			let new = next(state, value)
 			state = new.0
 			return new.1
