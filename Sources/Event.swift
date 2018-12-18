@@ -691,17 +691,6 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func scan<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Transformation<U, Error> {
-		return self.scanMap(into: initialResult, { result, value -> U in
-			nextPartialResult(&result, value)
-			return result
-		})
-	}
-
-	internal static func scan<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Transformation<U, Error> {
-		return scan(into: initialResult) { $0 = nextPartialResult($0, $1) }
-	}
-
 	internal static func reduce<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Transformation<U, Error> {
 		return { action, _ in
 			var accumulator = initialResult
@@ -724,6 +713,17 @@ extension Signal.Event {
 
 	internal static func reduce<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Transformation<U, Error> {
 		return reduce(into: initialResult) { $0 = nextPartialResult($0, $1) }
+	}
+
+	internal static func scan<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Transformation<U, Error> {
+		return self.scanMap(into: initialResult, { result, value -> U in
+			nextPartialResult(&result, value)
+			return result
+		})
+	}
+
+	internal static func scan<U>(_ initialResult: U, _ nextPartialResult: @escaping (U, Value) -> U) -> Transformation<U, Error> {
+		return scan(into: initialResult) { $0 = nextPartialResult($0, $1) }
 	}
 
 	internal static func scanMap<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Transformation<U, Error> {
