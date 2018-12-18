@@ -2863,6 +2863,17 @@ class SignalProducerSpec: QuickSpec {
 					expect(deinitValues) == 1
 				}
 			}
+			
+			context("recursion") {
+				it("should not deadlock when it is started again doenstream as a result of a terminating event") {
+					let replayed = SignalProducer<Never, NoError>.empty.replayLazily(upTo: 0)
+					
+					var completed = false
+					replayed.then(replayed).startWithCompleted { completed = true }
+					
+					expect(completed) == true
+				}
+			}
 
 			describe("log events") {
 				it("should output the correct event") {
