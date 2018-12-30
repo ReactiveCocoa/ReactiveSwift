@@ -4,7 +4,7 @@
 1. New operator `materializeResults` and `dematerializeResults` (#679, kudos to @ra1028)
 1. New convenience initializer for `Action` that takes a `ValidatingProperty` as its state (#637, kudos to @Marcocanc)
 1. Fix legacy date implementation. (#683, kudos to @shoheiyokoyama)
-1. New operator `transduce`. (#695, kudos to @inamiy)
+1. New operator `scanMap`. (#695, kudos to @inamiy)
 
 # 4.0.0
 

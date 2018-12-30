@@ -1315,7 +1315,7 @@ extension Signal {
 		return flatMapEvent(Signal.Event.scan(into: initialResult, nextPartialResult))
 	}
 
-	/// Accumulate all values from `self` as `State`, and send the value as `Output`.
+	/// Accumulate all values from `self` as `State`, and send the value as `U`.
 	///
 	/// - parameters:
 	///   - initialState: The state to use as the initial accumulating state.
@@ -1329,7 +1329,7 @@ extension Signal {
 		return flatMapEvent(Signal.Event.scanMap(initialState, next))
 	}
 
-	/// Accumulate all values from `self` as `State`, and send the value as `Output`.
+	/// Accumulate all values from `self` as `State`, and send the value as `U`.
 	///
 	/// - parameters:
 	///   - initialState: The state to use as the initial accumulating state.
