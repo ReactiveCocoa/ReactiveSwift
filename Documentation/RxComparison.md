@@ -15,7 +15,7 @@ The following are a few important differences, along with their rationales.
 ### Signals and SignalProducers (“hot” and “cold” observables)
 
 One of the most confusing aspects of Rx is that of [“hot”, “cold”, and “warm”
-                                                    observables](http://www.introtorx.com/content/v1.0.10621.0/14_HotAndColdObservables.html) (event streams).
+                                                    observables](http://introtorx.com/Content/v1.0.10621.0/14_HotAndColdObservables.html) (event streams).
 
 In short, given just a method or function declaration like this, in C#:
 
