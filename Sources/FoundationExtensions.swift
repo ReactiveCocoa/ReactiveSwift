@@ -16,6 +16,45 @@ import struct Result.AnyError
 	import let CDispatch.NSEC_PER_SEC
 #endif
 
+extension FileHandle: ReactiveExtensionsProvider {}
+
+extension Reactive where Base: FileHandle {
+	/// Returns a SignalProducer that reads the contents of this file in the
+	/// background.
+	///
+	/// - returns: A SignalProducer of the file's data.
+	///
+	/// - warning: The returned producer must be started on a thread with an
+	///            active run loop, or it will never complete.
+	public func readToEndOfFile() -> SignalProducer<Data, NoError> {
+		return SignalProducer { [base] observer, lifetime in
+			lifetime += NotificationCenter.default.reactive
+				.notifications(forName: .NSFileHandleReadToEndOfFileCompletion, object: base)
+				.take(first: 1)
+				.map { $0.userInfo![NSFileHandleNotificationDataItem] as! Data }
+				.observe(observer)
+
+			base.readToEndOfFileInBackgroundAndNotify()
+		}
+	}
+
+	/// Returns a SignalProducer that reads the contents of the file at `url` in
+	/// the background. The URL must be a file URL.
+	///
+	/// - parameters:
+	///   - url: A file URL to read.
+	///
+	/// - returns: A SignalProducer of the file's data, or an error if the file
+	///            could not be opened.
+	///
+	/// - warning: The returned producer must be started on a thread with an
+	///            active run loop, or it will never complete.
+	public static func readFile(at url: URL) -> SignalProducer<Data, AnyError> {
+		return SignalProducer { try FileHandle(forReadingFrom: url) }
+			.flatMap(.latest) { $0.reactive.readToEndOfFile() }
+	}
+}
+
 extension NotificationCenter: ReactiveExtensionsProvider {}
 
 extension Reactive where Base: NotificationCenter {
