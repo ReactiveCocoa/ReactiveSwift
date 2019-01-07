@@ -22,11 +22,11 @@ extension Reactive where Base: FileHandle {
 	/// Returns a SignalProducer that reads the contents of this file in the
 	/// background.
 	///
-	/// - returns: A SignalProducer of the file's data.
+	/// - parameters:
+	///   - scheduler: A run loop scheduler to perform the asynchronous file read.
 	///
-	/// - warning: The returned producer must be started on a thread with an
-	///            active run loop, or it will never complete.
-	public func readToEndOfFile() -> SignalProducer<Data, NoError> {
+	/// - returns: A SignalProducer of the file's data.
+	public func readToEndOfFile(on scheduler: RunLoopScheduler) -> SignalProducer<Data, NoError> {
 		return SignalProducer { [base] observer, lifetime in
 			lifetime += NotificationCenter.default.reactive
 				.notifications(forName: .NSFileHandleReadToEndOfFileCompletion, object: base)
@@ -35,7 +35,7 @@ extension Reactive where Base: FileHandle {
 				.observe(observer)
 
 			base.readToEndOfFileInBackgroundAndNotify()
-		}
+		}.start(on: scheduler)
 	}
 
 	/// Returns a SignalProducer that reads the contents of the file at `url` in
@@ -43,15 +43,13 @@ extension Reactive where Base: FileHandle {
 	///
 	/// - parameters:
 	///   - url: A file URL to read.
+	///   - scheduler: A run loop scheduler to perform the asynchronous file read.
 	///
 	/// - returns: A SignalProducer of the file's data, or an error if the file
 	///            could not be opened.
-	///
-	/// - warning: The returned producer must be started on a thread with an
-	///            active run loop, or it will never complete.
-	public static func readFile(at url: URL) -> SignalProducer<Data, AnyError> {
+	public static func readFile(at url: URL, on scheduler: RunLoopScheduler) -> SignalProducer<Data, AnyError> {
 		return SignalProducer { try FileHandle(forReadingFrom: url) }
-			.flatMap(.latest) { $0.reactive.readToEndOfFile() }
+			.flatMap(.latest) { $0.reactive.readToEndOfFile(on: scheduler) }
 	}
 }
 

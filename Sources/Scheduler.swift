@@ -6,6 +6,7 @@
 //  Copyright (c) 2014 GitHub. All rights reserved.
 //
 
+import CoreFoundation
 import Dispatch
 import Foundation
 
@@ -377,6 +378,94 @@ public final class QueueScheduler: DateScheduler {
 				scheduler.timers.modify { timers in
 					timers.remove(wrappedTimer)
 				}
+			}
+		}
+	}
+}
+
+/// A scheduler backed by a run loop.
+public final class RunLoopScheduler: DateScheduler {
+	/// A singleton `RunLoopScheduler` that always targets the main run loop.
+	public static let main = RunLoopScheduler(runLoop: .main)
+
+	private let runLoop: CFRunLoop
+
+	/// Initializes a scheduler that will target the provided run loop in a thread
+	/// safe way.
+	///
+	/// - parameters:
+	///   - runLoop: The run loop that will be used to schedule work.
+	///
+	/// - note: Like `UIScheduler`, this scheduler will execute work synchronously
+	///         whenever possible, if it detects that it is already running under
+	///         the specified run loop.
+	///
+	/// - note: The scheduler takes no responsibility for running the run loop.
+	///         It assumes that the run loop is already running and configured
+	///         correctly.
+	public init(runLoop: RunLoop) {
+		self.runLoop = runLoop.getCFRunLoop()
+	}
+
+	public var currentDate: Date {
+		return Date()
+	}
+
+	public func schedule(_ action: @escaping () -> Void) -> Disposable? {
+		if CFRunLoopGetCurrent() == runLoop {
+			action()
+			return nil
+		} else {
+			return performInRunLoop(action)
+		}
+	}
+
+	public func schedule(after date: Date, action: @escaping () -> Void) -> Disposable? {
+		return performInRunLoop(action, after: date)
+	}
+
+	public func schedule(after date: Date, interval: DispatchTimeInterval, leeway: DispatchTimeInterval, action: @escaping () -> Void) -> Disposable? {
+		let timer = Timer(
+			fireAt: date,
+			interval: interval.timeInterval,
+			target: self,
+			selector: #selector(perform),
+			userInfo: action,
+			repeats: true
+		)
+		timer.tolerance = leeway.timeInterval
+		CFRunLoopAddTimer(runLoop, timer, .defaultMode)
+
+		return disposable(for: timer)
+	}
+
+	@objc private func perform(_ timer: Timer) {
+		guard timer.isValid, let action = timer.userInfo as? () -> Void else { return }
+		action()
+	}
+
+	private func performInRunLoop(_ action: @escaping () -> Void, after date: Date? = nil) -> Disposable {
+		let timeInterval = date?.timeIntervalSinceNow ?? 0
+
+		let timer = Timer(
+			timeInterval: timeInterval,
+			target: self,
+			selector: #selector(perform),
+			userInfo: action,
+			repeats: false
+		)
+		CFRunLoopAddTimer(runLoop, timer, .defaultMode)
+
+		return disposable(for: timer)
+	}
+
+	private func disposable(for timer: Timer) -> Disposable {
+		return AnyDisposable { [runLoop] in
+			if CFRunLoopGetCurrent() == runLoop {
+				timer.invalidate()
+			} else {
+				CFRunLoopPerformBlock(runLoop, CFRunLoopMode.defaultMode.rawValue, timer.invalidate)
+				CFRunLoopWakeUp(runLoop)
 			}
 		}
 	}
