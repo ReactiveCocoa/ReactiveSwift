@@ -1,5 +1,3 @@
-import Result
-
 // Observation
 
 extension SignalProducer {

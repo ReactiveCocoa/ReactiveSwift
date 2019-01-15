@@ -1,6 +1,5 @@
 import Dispatch
 import Foundation
-import Result
 
 /// A SignalProducer creates Signals that can produce values of type `Value`
 /// and/or fail with errors of type `Error`. If no failure should be possible,

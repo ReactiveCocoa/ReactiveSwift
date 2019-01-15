@@ -6,7 +6,6 @@
 //  Copyright © 2016 GitHub. All rights reserved.
 //
 
-import Result
 import Nimble
 import Quick
 import ReactiveSwift

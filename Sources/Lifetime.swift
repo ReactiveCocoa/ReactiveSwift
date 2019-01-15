@@ -1,5 +1,4 @@
 import Foundation
-import enum Result.NoError
 
 /// Represents the lifetime of an object, and provides a hook to observe when
 /// the object deinitializes.

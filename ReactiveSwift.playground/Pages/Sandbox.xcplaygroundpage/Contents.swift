@@ -12,7 +12,6 @@
  1. Choose `View > Show Debug Area`
  */
 
-import Result
 import ReactiveSwift
 import Foundation
 

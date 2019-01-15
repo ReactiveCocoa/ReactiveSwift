@@ -1,7 +1,6 @@
 import Foundation
 import UIKit
 import ReactiveSwift
-import enum Result.NoError
 
 // These extensions mimics the ReactiveCocoa API, but not in a complete way.
 //

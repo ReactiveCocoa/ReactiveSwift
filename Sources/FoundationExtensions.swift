@@ -8,8 +8,6 @@
 
 import Foundation
 import Dispatch
-import enum Result.NoError
-import struct Result.AnyError
 
 #if os(Linux)
 	import let CDispatch.NSEC_PER_USEC

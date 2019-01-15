@@ -3,7 +3,6 @@ import Darwin.POSIX.pthread
 #else
 import Glibc
 #endif
-import Result
 
 // FIXME: The `Error == NoError` constraint is retained for Swift 4.0.x
 //        compatibility, since `BindingSource` did not impose such constraint

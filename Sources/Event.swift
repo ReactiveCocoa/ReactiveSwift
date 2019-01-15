@@ -1,4 +1,3 @@
-import Result
 import Foundation
 import Dispatch
 

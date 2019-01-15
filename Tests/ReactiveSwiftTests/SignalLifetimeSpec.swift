@@ -8,7 +8,6 @@
 
 import Foundation
 
-import Result
 import Nimble
 import Quick
 import ReactiveSwift

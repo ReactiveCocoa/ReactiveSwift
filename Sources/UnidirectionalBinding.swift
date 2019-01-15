@@ -1,6 +1,5 @@
 import Foundation
 import Dispatch
-import enum Result.NoError
 
 precedencegroup BindingPrecedence {
 	associativity: right

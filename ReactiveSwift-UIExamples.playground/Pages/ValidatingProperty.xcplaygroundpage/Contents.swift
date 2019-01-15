@@ -13,7 +13,6 @@
  1. If you cannot see the playground live view, make sure the Timeline view has been selected for the Assistant Editor.
  */
 import ReactiveSwift
-import Result
 import UIKit
 import PlaygroundSupport
 

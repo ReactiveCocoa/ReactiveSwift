@@ -1,6 +1,5 @@
 import Dispatch
 import Foundation
-import Result
 
 /// `Action` represents a repeatable work like `SignalProducer`. But on top of the
 /// isolation of produced `Signal`s from a `SignalProducer`, `Action` provides

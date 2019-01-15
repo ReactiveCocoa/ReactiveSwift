@@ -1,5 +1,3 @@
-import Result
-
 /// A mutable property that validates mutations before committing them.
 ///
 /// If the property wraps an arbitrary mutable property, changes originated from

@@ -11,7 +11,6 @@
  1. Finally open the `ReactiveSwift.playground`
  1. Choose `View > Show Debug Area`
  */
-import Result
 import ReactiveSwift
 import Foundation
 /*:

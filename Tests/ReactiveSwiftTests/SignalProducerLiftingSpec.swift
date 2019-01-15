@@ -9,7 +9,6 @@
 import Dispatch
 import Foundation
 
-import Result
 @testable import Nimble
 import Quick
 @testable import ReactiveSwift

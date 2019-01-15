@@ -6,8 +6,6 @@
 //  Copyright © 2015 GitHub. All rights reserved.
 //
 
-import enum Result.NoError
-
 /// Describes how a stream of inner streams should be flattened into a stream of values.
 public struct FlattenStrategy {
 	fileprivate enum Kind {
