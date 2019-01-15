@@ -183,9 +183,9 @@ public final class UIScheduler: Scheduler {
 /// be equal.
 private final class DispatchSourceTimerWrapper: Hashable {
 	private let value: DispatchSourceTimer
-	
-	fileprivate var hashValue: Int {
-		return ObjectIdentifier(self).hashValue
+
+	func hash(into hasher: inout Hasher) {
+		hasher.combine(ObjectIdentifier(self))
 	}
 	
 	fileprivate init(_ value: DispatchSourceTimer) {
