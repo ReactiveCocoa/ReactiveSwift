@@ -315,10 +315,10 @@ extension Signal.Event {
 			return { event in
 				switch event {
 				case .value(let value):
-					action(.value(Result(value: value)))
+					action(.value(Result(success: value)))
 
 				case .failed(let error):
-					action(.value(Result(error: error)))
+					action(.value(Result(failure: error)))
 					action(.completed)
 
 				case .completed:
@@ -360,15 +360,15 @@ extension Signal.Event {
 	}
 }
 
-extension Signal.Event where Error == AnyError {
-	internal static func attempt(_ action: @escaping (Value) throws -> Void) -> Transformation<Value, AnyError> {
+extension Signal.Event where Error == Swift.Error {
+	internal static func attempt(_ action: @escaping (Value) throws -> Void) -> Transformation<Value, Error> {
 		return attemptMap { value in
 			try action(value)
 			return value
 		}
 	}
 
-	internal static func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Transformation<U, AnyError> {
+	internal static func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Transformation<U, Error> {
 		return attemptMap { value in
 			Result { try transform(value) }
 		}
@@ -499,7 +499,7 @@ extension Signal.Event where Value: EventProtocol, Error == NoError {
 }
 
 extension Signal.Event where Value: ResultProtocol, Error == NoError {
-	internal static var dematerializeResults: Transformation<Value.Value, Value.Error> {
+	internal static var dematerializeResults: Transformation<Value.Success, Value.Failure> {
 		return { action, _ in
 			return { event in
 				let event = event.map { $0.result }

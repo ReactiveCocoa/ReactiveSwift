@@ -60,14 +60,14 @@ extension Reactive where Base: URLSession {
 	/// - note: This method will not send an error event in the case of a server
 	///         side error (i.e. when a response with status code other than
 	///         200...299 is received).
-	public func data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), AnyError> {
+	public func data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), Error> {
 		return SignalProducer { [base = self.base] observer, lifetime in
 			let task = base.dataTask(with: request) { data, response, error in
 				if let data = data, let response = response {
 					observer.send(value: (data, response))
 					observer.sendCompleted()
 				} else {
-					observer.send(error: AnyError(error ?? defaultSessionError))
+					observer.send(error: error ?? defaultSessionError)
 				}
 			}
 

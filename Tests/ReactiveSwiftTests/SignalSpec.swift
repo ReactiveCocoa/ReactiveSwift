@@ -3178,7 +3178,7 @@ class SignalSpec: QuickSpec {
 
 		describe("attempt throws") {
 			it("should forward original values upon success") {
-				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Error>.pipe()
 				let signal = baseSignal.attempt { _ in
 					_ = try operation(value: 1)
 				}
@@ -3264,7 +3264,7 @@ class SignalSpec: QuickSpec {
 
 		describe("attemptMap throws") {
 			it("should forward mapped values upon success") {
-				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Error>.pipe()
 				let signal = baseSignal.attemptMap { num -> Bool in
 					try operation(value: num % 2 == 0)
 				}
@@ -3284,7 +3284,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should error if a mapping fails") {
-				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Error>.pipe()
 				let signal = baseSignal.attemptMap { _ -> Bool in
 					try operation(value: nil)
 				}

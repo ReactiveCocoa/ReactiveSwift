@@ -117,30 +117,30 @@ private func observingUninhabitedTypeError() -> Never {
 
 /*
 func test() {
-	SignalProducer<Any, AnyError>.never.startWithValues { _ in }
-	Signal<Any, AnyError>.never.observeValues { _ in }
+	SignalProducer<Any, Error>.never.startWithValues { _ in }
+	Signal<Any, Error>.never.observeValues { _ in }
 
-	SignalProducer<Never, AnyError>.never.startWithResult { _ in }
+	SignalProducer<Never, Error>.never.startWithResult { _ in }
 	SignalProducer<Never, NoError>.never.startWithResult { _ in }
 	SignalProducer<Any, NoError>.never.startWithFailed { _ in }
 	SignalProducer<Never, NoError>.never.startWithFailed { _ in }
-	Signal<Never, AnyError>.never.observeResult { _ in }
+	Signal<Never, Error>.never.observeResult { _ in }
 	Signal<Never, NoError>.never.observeResult { _ in }
 	Signal<Any, NoError>.never.observeFailed { _ in }
 	Signal<Never, NoError>.never.observeFailed { _ in }
 
-	SignalProducer<Never, AnyError>.never.flatMap(.latest) { _ in SignalProducer<Int, AnyError>.empty }
-	SignalProducer<Never, AnyError>.never.flatMap(.latest) { _ in SignalProducer<Int, NoError>.empty }
-	SignalProducer<Never, NoError>.never.flatMap(.latest) { _ in SignalProducer<Int, AnyError>.empty }
+	SignalProducer<Never, Error>.never.flatMap(.latest) { _ in SignalProducer<Int, Error>.empty }
+	SignalProducer<Never, Error>.never.flatMap(.latest) { _ in SignalProducer<Int, NoError>.empty }
+	SignalProducer<Never, NoError>.never.flatMap(.latest) { _ in SignalProducer<Int, Error>.empty }
 	SignalProducer<Never, NoError>.never.flatMap(.latest) { _ in SignalProducer<Int, NoError>.empty }
-	SignalProducer<Never, NoError>.never.flatMapError { _ in SignalProducer<Never, AnyError>.empty }
+	SignalProducer<Never, NoError>.never.flatMapError { _ in SignalProducer<Never, Error>.empty }
 	SignalProducer<Never, NoError>.never.flatMapError { _ in SignalProducer<Never, NoError>.empty }
 
-	Signal<Never, AnyError>.never.flatMap(.latest) { _ in SignalProducer<Int, AnyError>.empty }
-	Signal<Never, AnyError>.never.flatMap(.latest) { _ in SignalProducer<Int, NoError>.empty }
-	Signal<Never, NoError>.never.flatMap(.latest) { _ in SignalProducer<Int, AnyError>.empty }
+	Signal<Never, Error>.never.flatMap(.latest) { _ in SignalProducer<Int, Error>.empty }
+	Signal<Never, Error>.never.flatMap(.latest) { _ in SignalProducer<Int, NoError>.empty }
+	Signal<Never, NoError>.never.flatMap(.latest) { _ in SignalProducer<Int, Error>.empty }
 	Signal<Never, NoError>.never.flatMap(.latest) { _ in SignalProducer<Int, NoError>.empty }
-	Signal<Never, NoError>.never.flatMapError { _ in SignalProducer<Never, AnyError>.empty }
+	Signal<Never, NoError>.never.flatMapError { _ in SignalProducer<Never, Error>.empty }
 	Signal<Never, NoError>.never.flatMapError { _ in SignalProducer<Never, NoError>.empty }
 }
 */

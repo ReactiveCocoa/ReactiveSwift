@@ -908,7 +908,7 @@ extension Signal where Value: ResultProtocol, Error == NoError {
 	/// themselves.
 	///
 	/// - returns: A signal that sends values carried by `self` events.
-	public func dematerializeResults() -> Signal<Value.Value, Value.Error> {
+	public func dematerializeResults() -> Signal<Value.Success, Value.Failure> {
 		return flatMapEvent(Signal.Event.dematerializeResults)
 	}
 }
@@ -2211,9 +2211,9 @@ extension Signal where Error == NoError {
 	///   - action: A throwable closure to perform an arbitrary action on the value.
 	///
 	/// - returns: A signal which forwards the successful values of the given action.
-	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, Error> {
 		return self
-			.promoteError(AnyError.self)
+			.promoteError(Error.self)
 			.attempt(action)
 	}
 
@@ -2225,14 +2225,14 @@ extension Signal where Error == NoError {
 	///   - transform: A throwable transform.
 	///
 	/// - returns: A signal which forwards the successfully transformed values.
-	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, Error> {
 		return self
-			.promoteError(AnyError.self)
+			.promoteError(Error.self)
 			.attemptMap(transform)
 	}
 }
 
-extension Signal where Error == AnyError {
+extension Signal where Error == Swift.Error {
 	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.
@@ -2241,7 +2241,7 @@ extension Signal where Error == AnyError {
 	///   - action: A throwable closure to perform an arbitrary action on the value.
 	///
 	/// - returns: A signal which forwards the successful values of the given action.
-	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, AnyError> {
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.attempt(action))
 	}
 
@@ -2253,7 +2253,7 @@ extension Signal where Error == AnyError {
 	///   - transform: A throwable transform.
 	///
 	/// - returns: A signal which forwards the successfully transformed values.
-	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, AnyError> {
+	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.attemptMap(transform))
 	}
 }

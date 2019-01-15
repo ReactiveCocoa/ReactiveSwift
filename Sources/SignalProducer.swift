@@ -481,7 +481,7 @@ extension SignalProducer where Error == NoError {
 	}
 }
 
-extension SignalProducer where Error == AnyError {
+extension SignalProducer where Error == Swift.Error {
 	/// Create a `SignalProducer` that will attempt the given failable operation once for
 	/// each invocation of `start()`.
 	///
@@ -1753,7 +1753,7 @@ extension SignalProducer where Value: ResultProtocol, Error == NoError {
 	/// _values_ into a producer of those events themselves.
 	///
 	/// - returns: A producer that sends values carried by `self` results.
-	public func dematerializeResults() -> SignalProducer<Value.Value, Value.Error> {
+	public func dematerializeResults() -> SignalProducer<Value.Success, Value.Failure> {
 		return core.flatMapEvent(Signal.Event.dematerializeResults)
 	}
 }
@@ -1821,9 +1821,9 @@ extension SignalProducer where Error == NoError {
 	///   - action: A throwable closure to perform an arbitrary action on the value.
 	///
 	/// - returns: A producer which forwards the successful values of the given action.
-	public func attempt(_ action: @escaping (Value) throws -> Void) -> SignalProducer<Value, AnyError> {
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> SignalProducer<Value, Error> {
 		return self
-			.promoteError(AnyError.self)
+			.promoteError(Error.self)
 			.attempt(action)
 	}
 
@@ -1836,14 +1836,14 @@ extension SignalProducer where Error == NoError {
 	///             yield a result.
 	///
 	/// - returns: A producer which forwards the successful results of the given action.
-	public func attemptMap<U>(_ action: @escaping (Value) throws -> U) -> SignalProducer<U, AnyError> {
+	public func attemptMap<U>(_ action: @escaping (Value) throws -> U) -> SignalProducer<U, Error> {
 		return self
-			.promoteError(AnyError.self)
+			.promoteError(Error.self)
 			.attemptMap(action)
 	}
 }
 
-extension SignalProducer where Error == AnyError {
+extension SignalProducer where Error == Swift.Error {
 	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the produced `Signal`
 	/// would propagate the failure and terminate.
@@ -1852,7 +1852,7 @@ extension SignalProducer where Error == AnyError {
 	///   - action: A throwable closure to perform an arbitrary action on the value.
 	///
 	/// - returns: A producer which forwards the successful values of the given action.
-	public func attempt(_ action: @escaping (Value) throws -> Void) -> SignalProducer<Value, AnyError> {
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> SignalProducer<Value, Error> {
 		return core.flatMapEvent(Signal.Event.attempt(action))
 	}
 
@@ -1864,7 +1864,7 @@ extension SignalProducer where Error == AnyError {
 	///   - transform: A throwable transform.
 	///
 	/// - returns: A producer which forwards the successfully transformed values.
-	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> SignalProducer<U, AnyError> {
+	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.attemptMap(transform))
 	}
 }
