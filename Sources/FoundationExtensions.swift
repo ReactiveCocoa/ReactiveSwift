@@ -18,6 +18,7 @@ import struct Result.AnyError
 
 extension FileHandle: ReactiveExtensionsProvider {}
 
+#if !os(Linux)
 extension Reactive where Base: FileHandle {
 	/// Returns a SignalProducer that reads the contents of this file in the
 	/// background.
@@ -52,6 +53,7 @@ extension Reactive where Base: FileHandle {
 			.flatMap(.latest) { $0.reactive.readToEndOfFile(on: scheduler) }
 	}
 }
+#endif
 
 extension NotificationCenter: ReactiveExtensionsProvider {}
 

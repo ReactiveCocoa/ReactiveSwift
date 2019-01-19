@@ -383,6 +383,7 @@ public final class QueueScheduler: DateScheduler {
 	}
 }
 
+#if !os(Linux)
 /// A scheduler backed by a run loop.
 public final class RunLoopScheduler: DateScheduler {
 	/// A singleton `RunLoopScheduler` that always targets the main run loop.
@@ -470,6 +471,7 @@ public final class RunLoopScheduler: DateScheduler {
 		}
 	}
 }
+#endif
 
 /// A scheduler that implements virtualized time, for use in testing.
 public final class TestScheduler: DateScheduler {
