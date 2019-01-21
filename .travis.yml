@@ -69,19 +69,23 @@ matrix:
   include:
     - <<: *xcode
     - <<: *xcode
-      osx_image: xcode10
+      osx_image: xcode10.1
     - <<: *xcode
-      osx_image: xcode10
-      env: XCODE_ARGS="SWIFT_VERSION=4.2"
+      osx_image: xcode10.1
+      env: XCODE_ARGS="SWIFT_VERSION=4.2.1"
     - <<: *cocoapods
     - <<: *swiftpm_darwin
     - <<: *swiftpm_darwin
-      osx_image: xcode10
+      osx_image: xcode10.1
     - <<: *swiftpm_linux
     - <<: *swiftpm_linux
       env:
         - JOB=SwiftPM
-        - SWIFT_VERSION=4.2
+        - SWIFT_VERSION=4.2.1
+    - <<: *swiftpm_linux
+      env:
+        - JOB=SwiftPM
+        - SWIFT_VERSION=5.0-DEVELOPMENT-SNAPSHOT-2019-01-19-a
     - stage: carthage
       script: carthage build --cache-builds --no-skip-current
     - stage: deploy
