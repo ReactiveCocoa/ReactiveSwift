@@ -3,7 +3,7 @@ import Dispatch
 
 /// A push-driven stream that sends Events over time, parameterized by the type
 /// of values being sent (`Value`) and the type of failure that can occur
-/// (`Error`). If no failures should be possible, NoError can be specified for
+/// (`Error`). If no failures should be possible, Never can be specified for
 /// `Error`.
 ///
 /// An observer of a Signal will see the exact same sequence of events as all
@@ -512,7 +512,7 @@ extension Signal {
 	}
 }
 
-extension Signal where Error == NoError {
+extension Signal where Error == Never {
 	/// Observe `self` for all values being emitted.
 	///
 	/// - parameters:
@@ -692,7 +692,7 @@ extension Signal {
 	/// emitted, followed by the completion of the returned `Signal`.
 	///
 	/// ````
-	/// let (signal, observer) = Signal<Int, NoError>.pipe()
+	/// let (signal, observer) = Signal<Int, Never>.pipe()
 	///
 	/// signal
 	///     .collect { values in values.reduce(0, combine: +) == 8 }
@@ -733,7 +733,7 @@ extension Signal {
 	/// emitted, followed by the completion of the returned `Signal`.
 	///
 	/// ````
-	/// let (signal, observer) = Signal<Int, NoError>.pipe()
+	/// let (signal, observer) = Signal<Int, Never>.pipe()
 	///
 	/// signal
 	///     .collect { values, value in value == 7 }
@@ -875,7 +875,7 @@ extension Signal {
 	///         the Event itself and then interrupt.
 	///
 	/// - returns: A signal that sends events as its values.
-	public func materialize() -> Signal<Event, NoError> {
+	public func materialize() -> Signal<Event, Never> {
 		return flatMapEvent(Signal.Event.materialize)
 	}
 
@@ -888,12 +888,12 @@ extension Signal {
 	///         send the `Result.failure` itself and then complete.
 	///
 	/// - returns: A producer that sends results as its values.
-	public func materializeResults() -> Signal<Result<Value, Error>, NoError> {
+	public func materializeResults() -> Signal<Result<Value, Error>, Never> {
 		return flatMapEvent(Signal.Event.materializeResults)
 	}
 }
 
-extension Signal where Value: EventProtocol, Error == NoError {
+extension Signal where Value: EventProtocol, Error == Never {
 	/// Translate a signal of `Event` _values_ into a signal of those events
 	/// themselves.
 	///
@@ -903,7 +903,7 @@ extension Signal where Value: EventProtocol, Error == NoError {
 	}
 }
 
-extension Signal where Value: ResultProtocol, Error == NoError {
+extension Signal where Value: ResultProtocol, Error == Never {
 	/// Translate a signal of `Result` _values_ into a signal of those events
 	/// themselves.
 	///
@@ -990,7 +990,7 @@ extension Signal {
 	///            sampled (possibly multiple times) by `sampler`, then complete
 	///            once both input signals have completed, or interrupt if
 	///            either input signal is interrupted.
-	public func sample<T>(with sampler: Signal<T, NoError>) -> Signal<(Value, T), Error> {
+	public func sample<T>(with sampler: Signal<T, Never>) -> Signal<(Value, T), Error> {
 		return Signal<(Value, T), Error> { observer, lifetime in
 			let state = Atomic(SampleState<Value>())
 
@@ -1060,7 +1060,7 @@ extension Signal {
 	///            multiple times) by `sampler`, then complete once both input
 	///            signals have completed, or interrupt if either input signal
 	///            is interrupted.
-	public func sample(on sampler: Signal<(), NoError>) -> Signal<Value, Error> {
+	public func sample(on sampler: Signal<(), Never>) -> Signal<Value, Error> {
 		return sample(with: sampler)
 			.map { $0.0 }
 	}
@@ -1080,7 +1080,7 @@ extension Signal {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func withLatest<U>(from samplee: Signal<U, NoError>) -> Signal<(Value, U), Error> {
+	public func withLatest<U>(from samplee: Signal<U, Never>) -> Signal<(Value, U), Error> {
 		return Signal<(Value, U), Error> { observer, lifetime in
 			let state = Atomic<U?>(nil)
 
@@ -1120,7 +1120,7 @@ extension Signal {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func withLatest<U>(from samplee: SignalProducer<U, NoError>) -> Signal<(Value, U), Error> {
+	public func withLatest<U>(from samplee: SignalProducer<U, Never>) -> Signal<(Value, U), Error> {
 		return Signal<(Value, U), Error> { observer, lifetime in
 			samplee.startWithSignal { signal, disposable in
 				lifetime += disposable
@@ -1144,7 +1144,7 @@ extension Signal {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
-	public func withLatest<Samplee: SignalProducerConvertible>(from samplee: Samplee) -> Signal<(Value, Samplee.Value), Error> where Samplee.Error == NoError {
+	public func withLatest<Samplee: SignalProducerConvertible>(from samplee: Samplee) -> Signal<(Value, Samplee.Value), Error> where Samplee.Error == Never {
 		return withLatest(from: samplee.producer)
 	}
 }
@@ -1174,7 +1174,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will deliver events until `trigger` sends
 	///            `value` or `completed` events.
-	public func take(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
+	public func take(until trigger: Signal<(), Never>) -> Signal<Value, Error> {
 		return Signal<Value, Error> { observer, lifetime in
 			lifetime += self.observe(observer)
 			lifetime += trigger.observe { event in
@@ -1199,7 +1199,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will deliver events once the `trigger` sends
 	///            `value` or `completed` events.
-	public func skip(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
+	public func skip(until trigger: Signal<(), Never>) -> Signal<Value, Error> {
 		return Signal { observer, lifetime in
 			let disposable = SerialDisposable()
 			lifetime += disposable
@@ -2057,7 +2057,7 @@ extension Signal {
 	}
 }
 
-extension Signal where Error == NoError {
+extension Signal where Error == Never {
 	/// Promote a signal that does not generate failures into one that can.
 	///
 	/// - note: This does not actually cause failures to be generated for the
@@ -2202,7 +2202,7 @@ extension Signal {
 	}
 }
 
-extension Signal where Error == NoError {
+extension Signal where Error == Never {
 	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.

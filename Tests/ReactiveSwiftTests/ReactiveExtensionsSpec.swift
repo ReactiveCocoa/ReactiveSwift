@@ -8,11 +8,11 @@ private final class TestExtensionProvider: ReactiveExtensionsProvider {
 }
 
 extension Reactive where Base: TestExtensionProvider {
-	var instanceProperty: SignalProducer<String, NoError> {
+	var instanceProperty: SignalProducer<String, Never> {
 		return SignalProducer(value: base.instanceProperty)
 	}
 
-	static var staticProperty: SignalProducer<String, NoError> {
+	static var staticProperty: SignalProducer<String, Never> {
 		return SignalProducer(value: Base.staticProperty)
 	}
 }
