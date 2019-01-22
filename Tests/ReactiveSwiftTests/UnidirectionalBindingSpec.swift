@@ -102,6 +102,7 @@ class UnidirectionalBindingSpec: QuickSpec {
 					}
 				}
 			}
+
 			describe("key path binding target") {
 				var target: BindingTarget<Int>!
 				var object: Object!
@@ -200,6 +201,7 @@ class UnidirectionalBindingSpec: QuickSpec {
 				expect(value).toEventually(equal(2))
 				expect(mainQueueCounter.value).toEventually(equal(2))
 			}
+
 			describe("observer binding operator") {
 				it("should forward values to observer") {
 					let targetPipe = Signal<Int?, NoError>.pipe()
