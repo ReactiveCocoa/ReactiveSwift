@@ -85,7 +85,7 @@ matrix:
     - <<: *swiftpm_linux
       env:
         - JOB=SwiftPM
-        - SWIFT_VERSION=5.0-DEVELOPMENT-SNAPSHOT-2019-01-19-a
+        - SWIFT_VERSION=5.0-DEVELOPMENT-SNAPSHOT-2019-01-27-a
     - stage: carthage
       script: carthage build --cache-builds --no-skip-current
     - stage: deploy
