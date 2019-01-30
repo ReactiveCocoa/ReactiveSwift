@@ -8,8 +8,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/antitypical/Result.git", from: "4.1.0"),
-        .package(url: "https://github.com/Quick/Quick.git", from: "1.3.2"),
-        .package(url: "https://github.com/Quick/Nimble.git", from: "7.3.2"),
+        .package(url: "https://github.com/Quick/Quick.git", from: "1.3.4"),
+        .package(url: "https://github.com/Quick/Nimble.git", from: "7.3.3"),
     ],
     targets: [
         .target(name: "ReactiveSwift", dependencies: ["Result"], path: "Sources"),
