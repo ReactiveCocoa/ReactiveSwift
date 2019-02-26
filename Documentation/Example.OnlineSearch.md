@@ -161,13 +161,13 @@ let searchString = textField.reactive.continuousTextValues
 
 For more information and advance usage, check the [Debugging Techniques][] document.
 
-[SignalProducer]: Documentation/ReactivePrimitives.md#signalproducer-deferred-work-that-creates-a-stream-of-values
-[Schedulers]: Documentation/FrameworkOverview.md#Schedulers
-[Signal]: Documentation/ReactivePrimitives.md#signal-a-unidirectional-stream-of-events
-[Events]: Documentation/ReactivePrimitives.md#event-the-basic-transfer-unit-of-an-event-stream
-[Debugging Techniques]: Documentation/DebuggingTechniques.md
+[SignalProducer]: ReactivePrimitives.md#signalproducer-deferred-work-that-creates-a-stream-of-values
+[Schedulers]: FrameworkOverview.md#Schedulers
+[Signal]: ReactivePrimitives.md#signal-a-unidirectional-stream-of-events
+[Events]: ReactivePrimitives.md#event-the-basic-transfer-unit-of-an-event-stream
+[Debugging Techniques]: DebuggingTechniques.md
 
-[retry]: Documentation/BasicOperators.md#retrying
-[flatMapLatest]: Documentation/BasicOperators.md#combining-latest-values
+[retry]: BasicOperators.md#retrying
+[flatMapLatest]: BasicOperators.md#combining-latest-values
 
 [ReactiveCocoa]: https://github.com/ReactiveCocoa/ReactiveCocoa/#readme
