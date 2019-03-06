@@ -14,6 +14,7 @@ public struct FlattenStrategy {
 		case concurrent(limit: UInt)
 		case latest
 		case race
+		case first
 	}
 
 	fileprivate let kind: Kind
@@ -98,6 +99,8 @@ public struct FlattenStrategy {
 	/// Any failure from the inner streams is propagated immediately to the flattened
 	/// stream of values.
 	public static let race = FlattenStrategy(kind: .race)
+
+	public static let first = FlattenStrategy(kind: .first)
 }
 
 extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
@@ -122,6 +125,9 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 
 		case .race:
 			return self.race()
+
+		case .first:
+			return self.first()
 		}
 	}
 }
@@ -164,6 +170,9 @@ extension Signal where Value: SignalProducerConvertible, Error == NoError, Value
 
 		case .race:
 			return self.race()
+
+		case .first:
+			return self.first()
 		}
 	}
 }
@@ -207,6 +216,9 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 
 		case .race:
 			return self.race()
+
+		case .first:
+			return self.first()
 		}
 	}
 }
@@ -249,6 +261,9 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == NoErro
 
 		case .race:
 			return self.race()
+
+		case .first:
+			return self.first()
 		}
 	}
 }
@@ -819,6 +834,94 @@ private struct RaceState {
 	var outerSignalComplete = false
 	var innerSignalComplete = true
 	var isActivated = false
+}
+
+extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
+
+	fileprivate func first() -> Signal<Value.Value, Error> {
+		return Signal<Value.Value, Error> { observer, lifetime in
+			let relayDisposable = CompositeDisposable()
+			lifetime += relayDisposable
+			lifetime += self.observeFirst(observer, relayDisposable)
+		}
+	}
+
+	fileprivate func observeFirst(_ observer: Signal<Value.Value, Error>.Observer, _ relayDisposable: CompositeDisposable) -> Disposable? {
+		let state = Atomic(FirstState())
+
+		return self.observe { event in
+			switch event {
+			case let .value(innerProducer):
+				let isFirstInnerProducer: Bool = state.modify { state in
+					guard !state.hasFirstInnerProducer else {
+						return false
+					}
+
+					state.hasFirstInnerProducer = true
+					return true
+				}
+
+				// Ignore consecutive `innerProducer`s while `isFirstInnerProducer` is true.
+				guard isFirstInnerProducer else { return }
+
+				innerProducer.producer.startWithSignal { innerSignal, innerDisposable in
+					relayDisposable.add(innerDisposable)
+
+					innerSignal.observe { event in
+						switch event {
+						case .completed:
+							let shouldComplete: Bool = state.modify { state in
+								state.hasFirstInnerProducer = false
+								return state.outerSignalComplete
+							}
+
+							if shouldComplete {
+								observer.sendCompleted()
+							}
+
+						case .value, .failed, .interrupted:
+							observer.send(event)
+						}
+					}
+				}
+
+			case let .failed(error):
+				observer.send(error: error)
+
+			case .completed:
+				let shouldComplete: Bool = state.modify { state in
+					state.outerSignalComplete = true
+					return !state.hasFirstInnerProducer
+				}
+
+				if shouldComplete {
+					observer.sendCompleted()
+				}
+
+			case .interrupted:
+				observer.sendInterrupted()
+			}
+		}
+	}
+}
+
+extension SignalProducer where Value: SignalProducerConvertible, Error == Value.Error {
+	fileprivate func first() -> SignalProducer<Value.Value, Error> {
+		return SignalProducer<Value.Value, Error> { observer, lifetime in
+			let relayDisposable = CompositeDisposable()
+			lifetime += relayDisposable
+
+			self.startWithSignal { signal, signalDisposable in
+				lifetime += signalDisposable
+				lifetime += signal.observeFirst(observer, relayDisposable)
+			}
+		}
+	}
+}
+
+private struct FirstState {
+	var outerSignalComplete = false
+	var hasFirstInnerProducer = false
 }
 
 extension Signal {
