@@ -1,14 +1,16 @@
 custom_categories:
   - name: Getting Started 
     children:
+    - ReactivePrimitives
     - BasicOperators
-    - FrameworkOverview
+    - Example.OnlineSearch
+    - RxComparison
+  - name: Advanced Topics
+    children:
+    - APIContracts
     - DebuggingTechniques
-    - DesignGuidelines
   - name: Signal
     children:
-    - Event
-    - Observer
     - Signal
     - SignalProtocol
     - FlattenStrategy
@@ -16,8 +18,6 @@ custom_categories:
     children:
     - SignalProducer
     - SignalProducerProtocol
-    - timer(interval:on:)
-    - timer(interval:on:leeway:)
   - name: Property
     children:
     - Property
@@ -34,7 +34,6 @@ custom_categories:
     - BindingSource
     - BindingTarget
     - BindingTargetProvider
-    - <~(_:_:)
   - name: Scheduler Protocols
     children:
     - DateScheduler
@@ -70,16 +69,8 @@ custom_categories:
     children:
     - Atomic
     - Bag
-    - BagIterator
-    - RemovalToken
     - Optional
     - OptionalProtocol
-  - name: Deprecated
-    children:
-    - AtomicProtocol
-    - ActionProtocol
-    - BindingTargetProtocol
-    - ObserverProtocol
 theme: fullwidth 
 skip_undocumented: true
 readme: README.md
@@ -93,3 +84,4 @@ xcodebuild_arguments:
 author: ReactiveCocoa
 author_url: https://reactivecocoa.io/
 github_url: https://github.com/ReactiveCocoa/ReactiveSwift/
+dash_url: http://reactivecocoa.io/reactiveswift/docs/ReactiveSwift.xml

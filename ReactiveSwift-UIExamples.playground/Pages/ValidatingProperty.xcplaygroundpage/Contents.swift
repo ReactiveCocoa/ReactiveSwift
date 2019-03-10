@@ -1,3 +1,17 @@
+/*:
+ > ## IMPORTANT: To use `ReactiveSwift-UIExamples.playground`, please:
+
+ 1. Retrieve the project dependencies using one of the following terminal commands from the ReactiveSwift project root directory:
+ - `git submodule update --init`
+ **OR**, if you have [Carthage](https://github.com/Carthage/Carthage) installed
+ - `carthage checkout`
+ 1. Open `ReactiveSwift.xcworkspace`
+ 1. Build `Result-iOS` scheme
+ 1. Build `ReactiveSwift-iOS` scheme
+ 1. Finally open the `ReactiveSwift-UIExamples.playground` through the workspace.
+ 1. Choose `View > Assistant Editor > Show Assistant Editor`
+ 1. If you cannot see the playground live view, make sure the Timeline view has been selected for the Assistant Editor.
+ */
 import ReactiveSwift
 import Result
 import UIKit
@@ -16,45 +30,55 @@ final class ViewModel {
 	let emailConfirmation: ValidatingProperty<String, FormError>
 	let termsAccepted: MutableProperty<Bool>
 
-	let reasons: Signal<String, NoError>
-
 	let submit: Action<(), (), FormError>
 
+	let reasons: Signal<String, NoError>
+
 	init(userService: UserService) {
-		email = ValidatingProperty<String, FormError>("") { input in
+        // email: ValidatingProperty<String, FormError>
+		email = ValidatingProperty("") { input in
 			return input.hasSuffix("@reactivecocoa.io") ? .valid : .invalid(.invalidEmail)
 		}
 
-		emailConfirmation = ValidatingProperty<String, FormError>("", with: email) { input, email in
+        // emailConfirmation: ValidatingProperty<String, FormError>
+		emailConfirmation = ValidatingProperty("", with: email) { input, email in
 			return input == email ? .valid : .invalid(.mismatchEmail)
 		}
 
+        // termsAccepted: MutableProperty<Bool>
 		termsAccepted = MutableProperty(false)
 
-		// Aggregate latest failure contexts as a stream of strings.
+		// `validatedEmail` is a property which holds the validated email address if
+		//  the entire form is valid, or it holds `nil` otherwise.
+		//
+		// The condition used in the `map` transform is:
+		// 1. `emailConfirmation` passes validation: `!email.isInvalid`; and
+		// 2. `termsAccepted` is asserted: `accepted`.
+        let validatedEmail: Property<String?> = Property
+            .combineLatest(emailConfirmation.result, termsAccepted)
+			.map { email, accepted -> String? in
+			      return !email.isInvalid && accepted ? email.value! : nil
+			}
+
+		// The action to be invoked when the submit button is pressed.
+		//
+		// Recall that `submit` is an `Action` with no input, i.e. `Input == ()`.
+		// `Action` provides a special initializer in this case: `init(state:)`.
+		// It takes a property of optionals — in our case, `validatedEmail` — and
+		// would disable whenever the property holds `nil`.
+		submit = Action(unwrapping: validatedEmail) { (email: String) in
+			let username = email.stripSuffix("@reactivecocoa.io")!
+
+			return userService.canUseUsername(username)
+				.promoteError(FormError.self)
+				.attemptMap { Result<(), FormError>($0 ? () : nil, failWith: .usernameUnavailable) }
+		}
+
+		// `reason` is an aggregate of latest validation error for the UI to display.
 		reasons = Property.combineLatest(email.result, emailConfirmation.result)
 			.signal
 			.debounce(0.1, on: QueueScheduler.main)
 			.map { [$0, $1].flatMap { $0.error?.reason }.joined(separator: "\n") }
-
-		// A `Property` of the validated username.
-		//
-		// It outputs the valid username for the `Action` to work on, or `nil` if the form
-		// is invalid and the `Action` would be disabled consequently.
-		let validatedEmail = Property.combineLatest(email.result,
-		                                            emailConfirmation.result,
-		                                            termsAccepted)
-			.map { e, ec, t in e.value.flatMap { !ec.isInvalid && t ? $0 : nil } }
-
-		// The action to be invoked when the submit button is pressed.
-		// It enables only if all the controls have passed their validations.
-		submit = Action(input: validatedEmail) { (email: String) in
-			let username = email.stripSuffix("@reactivecocoa.io")!
-
-			return userService.canUseUsername(username)
-				.promoteErrors(FormError.self)
-				.attemptMap { Result<(), FormError>($0 ? () : nil, failWith: .usernameUnavailable) }
-		}
 	}
 }
 

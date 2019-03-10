@@ -1,15 +1,11 @@
 #!/bin/bash
 
+WORKSPACE=ReactiveSwift.xcworkspace
 BUILD_DIRECTORY="build"
 CONFIGURATION=Release
 
-if [[ -z $TRAVIS_XCODE_WORKSPACE ]]; then
-    echo "Error: \$TRAVIS_XCODE_WORKSPACE is not set."
-    exit 1
-fi
-
-if [[ -z $TRAVIS_XCODE_SCHEME ]]; then
-    echo "Error: \$TRAVIS_XCODE_SCHEME is not set!"
+if [[ -z $XCODE_SCHEME ]]; then
+    echo "Error: \$XCODE_SCHEME is not set!"
     exit 1
 fi
 
@@ -30,15 +26,16 @@ fi
 
 set -o pipefail
 xcodebuild $XCODE_ACTION \
-    -workspace "$TRAVIS_XCODE_WORKSPACE" \
-    -scheme "$TRAVIS_XCODE_SCHEME" \
+    -workspace $WORKSPACE \
+    -scheme "$XCODE_SCHEME" \
     -sdk "$XCODE_SDK" \
     -destination "$XCODE_DESTINATION" \
     -derivedDataPath "${BUILD_DIRECTORY}" \
     -configuration $CONFIGURATION \
     ENABLE_TESTABILITY=YES \
     GCC_GENERATE_DEBUGGING_SYMBOLS=NO \
-    RUN_CLANG_STATIC_ANALYZER=NO | xcpretty
+    RUN_CLANG_STATIC_ANALYZER=NO \
+    ${XCODE_ARGS} | xcpretty
 result=$?
 
 if [ "$result" -ne 0 ]; then
@@ -46,7 +43,7 @@ if [ "$result" -ne 0 ]; then
 fi
 
 # Compile code in playgrounds 
-if [[ $XCODE_SDK = "macosx" ]]; then
+if [[ $XCODE_SDK = "macosx" && -n "$XCODE_PLAYGROUND_TARGET" ]]; then
     echo "SDK is $XCODE_SDK, validating playground..."
     . script/validate-playground.sh
 fi

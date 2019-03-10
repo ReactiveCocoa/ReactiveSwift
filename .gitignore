@@ -1,3 +1,6 @@
+# macOS
+.DS_Store
+
 # Xcode
 build/*
 *.pbxuser
@@ -14,6 +17,8 @@ profile
 *.moved-aside
 PlaygroundUtility.remap
 *.xctimeline
+*.xcscmblueprint
+*.o
 
 # SwiftPM
 .build

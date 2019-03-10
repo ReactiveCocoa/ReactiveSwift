@@ -164,7 +164,7 @@ The current value of a property can be obtained from the `value` getter. The
 the property’s current value, followed by all changes over time. The `signal` getter returns a [signal](#signals) that will send all changes over time, but not the initial value.
 
 The `<~` operator can be used to bind properties in different ways. Note that in
-all cases, the target has to be a binding target, represented by the [`BindingTargetProtocol`][BindingTarget]. All mutable property types, represented by the  [`MutablePropertyProtocol`][MutableProperty], are inherently binding targets.
+all cases, the target has to be a binding target, represented by the [`BindingTargetProvider`][BindingTarget]. All mutable property types, represented by the  [`MutablePropertyProtocol`][MutableProperty], are inherently binding targets.
 
 * `property <~ signal` binds a [signal](#signals) to the property, updating the
   property’s value to the latest value sent by the signal.
@@ -194,7 +194,7 @@ For more information about cancellation, see the RAC [Design Guidelines][].
 
 ## Schedulers
 
-A **scheduler**, represented by the [`SchedulerProtocol`][Scheduler] protocol, is a
+A **scheduler**, represented by the [`Scheduler`][Scheduler] protocol, is a
 serial execution queue to perform work or deliver results upon.
 
 [Signals](#signals) and [signal producers](#signal-producers) can be ordered to
@@ -211,7 +211,7 @@ Schedulers are also somewhat similar to `NSOperationQueue`, but schedulers
 do not allow tasks to be reordered or depend on one another.
 
 
-[Design Guidelines]: DesignGuidelines.md
+[Design Guidelines]: APIContracts.md
 [BasicOperators]: BasicOperators.md
 [README]: ../README.md
 [ReactiveCocoa]: https://github.com/ReactiveCocoa/

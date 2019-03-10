@@ -42,7 +42,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				expect(notif).to(beNil())
 			}
 
-			it("should be freed if it is not reachable and no observer is attached") {
+			it("should be disposed of if it is not reachable and no observer is attached") {
 				weak var signal: Signal<Notification, NoError>?
 				var isDisposed = false
 
@@ -55,7 +55,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				}()
 
 				expect(isDisposed) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
 
 				disposable?.dispose()
 
@@ -63,7 +63,7 @@ class FoundationExtensionsSpec: QuickSpec {
 				expect(signal).to(beNil())
 			}
 
-			it("should be not freed if it still has one or more active observers") {
+			it("should be not disposed of if it still has one or more active observers") {
 				weak var signal: Signal<Notification, NoError>?
 				var isDisposed = false
 
@@ -77,12 +77,12 @@ class FoundationExtensionsSpec: QuickSpec {
 				}()
 
 				expect(isDisposed) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
 
 				disposable?.dispose()
 
 				expect(isDisposed) == false
-				expect(signal).toNot(beNil())
+				expect(signal).to(beNil())
 			}
 		}
 
@@ -94,6 +94,13 @@ class FoundationExtensionsSpec: QuickSpec {
 				expect((DispatchTimeInterval.seconds(5) * 0.5).timeInterval).to(beCloseTo(DispatchTimeInterval.milliseconds(2500).timeInterval))
 				expect((DispatchTimeInterval.seconds(1) * 0.25).timeInterval).to(beCloseTo(DispatchTimeInterval.milliseconds(250).timeInterval))
 			}
+			
+			it("should not introduce integer overflow upon scale") {
+				expect((DispatchTimeInterval.seconds(Int.max) * 0.01).timeInterval).to(beCloseTo(10 * DispatchTimeInterval.milliseconds(Int.max).timeInterval, within: 1))
+				expect((DispatchTimeInterval.milliseconds(Int.max) * 0.01).timeInterval).to(beCloseTo(10 * DispatchTimeInterval.microseconds(Int.max).timeInterval, within: 1))
+				expect((DispatchTimeInterval.microseconds(Int.max) * 0.01).timeInterval).to(beCloseTo(10 * DispatchTimeInterval.nanoseconds(Int.max).timeInterval, within: 1))
+				expect((DispatchTimeInterval.seconds(Int.max) * 10).timeInterval) == Double.infinity
+			}
 
 			it("should produce the expected TimeInterval values") {
 				expect(DispatchTimeInterval.seconds(1).timeInterval).to(beCloseTo(1.0))
@@ -103,13 +110,15 @@ class FoundationExtensionsSpec: QuickSpec {
 
 				expect(DispatchTimeInterval.milliseconds(500).timeInterval).to(beCloseTo(0.5))
 				expect(DispatchTimeInterval.milliseconds(250).timeInterval).to(beCloseTo(0.25))
+				expect(DispatchTimeInterval.never.timeInterval) == Double.infinity
 			}
 
 			it("should negate as you'd hope") {
-				expect(-DispatchTimeInterval.seconds(1).timeInterval).to(beCloseTo(-1.0))
-				expect(-DispatchTimeInterval.milliseconds(1).timeInterval).to(beCloseTo(-0.001))
-				expect(-DispatchTimeInterval.microseconds(1).timeInterval).to(beCloseTo(-0.000001, within: 0.0000001))
-				expect(-DispatchTimeInterval.nanoseconds(1).timeInterval).to(beCloseTo(-0.000000001, within: 0.0000000001))
+				expect((-DispatchTimeInterval.seconds(1)).timeInterval).to(beCloseTo(-1.0))
+				expect((-DispatchTimeInterval.milliseconds(1)).timeInterval).to(beCloseTo(-0.001))
+				expect((-DispatchTimeInterval.microseconds(1)).timeInterval).to(beCloseTo(-0.000001, within: 0.0000001))
+				expect((-DispatchTimeInterval.nanoseconds(1)).timeInterval).to(beCloseTo(-0.000000001, within: 0.0000000001))
+				expect((-DispatchTimeInterval.never).timeInterval) == Double.infinity
 			}
 		}
 	}

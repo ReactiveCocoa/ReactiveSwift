@@ -306,15 +306,13 @@ automatically created and passed back.
 
 Disposing of this object will
 [interrupt](#interruption-cancels-outstanding-work-and-usually-propagates-immediately)
-the produced `Signal`, thereby canceling outstanding work and sending an
-`interrupted` [event][Events] to all [observers][], and will also dispose of
-everything added to the [`CompositeDisposable`][CompositeDisposable] in
-[SignalProducer.init].
+the produced `Signal`, thereby sending an
+`interrupted` [event][Events] to all [observers][]. Anything associated with the `Lifetime` of the produced `Signal` is disposed of afterwards.
 
 Note that disposing of one produced `Signal` will not affect other signals created
 by the same `SignalProducer`.
 
-## The Property contract.
+## The Property contract
 
 A property is essentially a `Signal` which guarantees it has an initial value, and its latest value is always available for being read out.
 
@@ -504,16 +502,16 @@ For example:
 ```swift
 producer.start { event in
     switch event {
-    case let .Next(value):
-        print("Next event: \(value)")
+    case let .value(value):
+        print("Value event: \(value)")
 
-    case let .Failed(error):
+    case let .failed(error):
         print("Failed event: \(error)")
 
-    case .Completed:
+    case .completed:
         print("Completed event")
 
-    case .Interrupted:
+    case .interrupted:
         print("Interrupted event")
     }
 }
@@ -543,26 +541,26 @@ This guideline can be safely ignored when the purpose of an operator is to
 synchronously retrieve one or more values from a stream, like `single()` or
 `wait()`.
 
-[CompositeDisposable]: ../ReactiveCocoa/Swift/Disposable.swift
+[CompositeDisposable]: ../Sources/Disposable.swift
 [Disposables]: FrameworkOverview.md#disposables
 [Events]: FrameworkOverview.md#events
 [Framework Overview]: FrameworkOverview.md
-[NoError]: ../ReactiveCocoa/Swift/Errors.swift
+[NoError]: ../Sources/Errors.swift
 [Observers]: FrameworkOverview.md#observers
 [Operators]: BasicOperators.md
 [Properties]: FrameworkOverview.md#properties
 [Schedulers]: FrameworkOverview.md#schedulers
 [Signal Producers]: FrameworkOverview.md#signal-producers
-[Signal.init]: ../ReactiveCocoa/Swift/Signal.swift
-[Signal.pipe]: ../ReactiveCocoa/Swift/Signal.swift
-[SignalProducer.init]: ../ReactiveCocoa/Swift/SignalProducer.swift
+[Signal.init]: ../Sources/Signal.swift
+[Signal.pipe]: ../Sources/Signal.swift
+[SignalProducer.init]: ../Sources/SignalProducer.swift
 [Signals]: FrameworkOverview.md#signals
-[delay]: ../ReactiveCocoa/Swift/Signal.swift
+[delay]: ../Sources/Signal.swift
 [flatten]: BasicOperators.md#flattening-producers
-[lift]: ../ReactiveCocoa/Swift/SignalProducer.swift
-[observe]: ../ReactiveCocoa/Swift/Signal.swift
-[observeOn]: ../ReactiveCocoa/Swift/Signal.swift
-[start]: ../ReactiveCocoa/Swift/SignalProducer.swift
-[startWithSignal]: ../ReactiveCocoa/Swift/SignalProducer.swift
-[take]: ../ReactiveCocoa/Swift/Signal.swift
-[takeUntil]: ../ReactiveCocoa/Swift/Signal.swift
+[lift]: ../Sources/SignalProducer.swift
+[observe]: ../Sources/Signal.swift
+[observeOn]: ../Sources/Signal.swift
+[start]: ../Sources/SignalProducer.swift
+[startWithSignal]: ../Sources/SignalProducer.swift
+[take]: ../Sources/Signal.swift
+[takeUntil]: ../Sources/Signal.swift

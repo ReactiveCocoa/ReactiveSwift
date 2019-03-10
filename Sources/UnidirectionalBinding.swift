@@ -12,37 +12,9 @@ precedencegroup BindingPrecedence {
 infix operator <~ : BindingPrecedence
 
 /// Describes a source which can be bound.
-public protocol BindingSource {
-	associatedtype Value
-	associatedtype Error: Swift.Error
-
-	/// Observe the binding source by sending any events to the given observer.
-	@discardableResult
-	func observe(_ observer: Observer<Value, Error>, during lifetime: Lifetime) -> Disposable?
-}
-
-extension Signal: BindingSource {
-	@discardableResult
-	public func observe(_ observer: Observer, during lifetime: Lifetime) -> Disposable? {
-		return self.take(during: lifetime).observe(observer)
-	}
-}
-
-extension SignalProducer: BindingSource {
-	@discardableResult
-	public func observe(_ observer: ProducedSignal.Observer, during lifetime: Lifetime) -> Disposable? {
-		var disposable: Disposable!
-
-		self
-			.take(during: lifetime)
-			.startWithSignal { signal, signalDisposable in
-				disposable = signalDisposable
-				signal.observe(observer)
-		}
-
-		return disposable
-	}
-}
+public protocol BindingSource: SignalProducerConvertible where Error == NoError {}
+extension Signal: BindingSource where Error == NoError {}
+extension SignalProducer: BindingSource where Error == NoError {}
 
 /// Describes an entity which be bond towards.
 public protocol BindingTargetProvider {
@@ -51,83 +23,84 @@ public protocol BindingTargetProvider {
 	var bindingTarget: BindingTarget<Value> { get }
 }
 
-/// Binds a source to a target, updating the target's value to the latest
-/// value sent by the source.
-///
-/// - note: The binding will automatically terminate when the target is
-///         deinitialized, or when the source sends a `completed` event.
-///
-/// ````
-/// let property = MutableProperty(0)
-/// let signal = Signal({ /* do some work after some time */ })
-/// property <~ signal
-/// ````
-///
-/// ````
-/// let property = MutableProperty(0)
-/// let signal = Signal({ /* do some work after some time */ })
-/// let disposable = property <~ signal
-/// ...
-/// // Terminates binding before property dealloc or signal's
-/// // `completed` event.
-/// disposable.dispose()
-/// ````
-///
-/// - parameters:
-///   - target: A target to be bond to.
-///   - source: A source to bind.
-///
-/// - returns: A disposable that can be used to terminate binding before the
-///            deinitialization of the target or the source's `completed`
-///            event.
-@discardableResult
-public func <~
-	<Provider: BindingTargetProvider, Source: BindingSource>
-	(provider: Provider, source: Source) -> Disposable?
-	where Source.Value == Provider.Value, Source.Error == NoError
-{
-	return source.observe(Observer(value: provider.bindingTarget.action),
-	                      during: provider.bindingTarget.lifetime)
-}
+extension BindingTargetProvider {
+	/// Binds a source to a target, updating the target's value to the latest
+	/// value sent by the source.
+	///
+	/// - note: The binding will automatically terminate when the target is
+	///         deinitialized, or when the source sends a `completed` event.
+	///
+	/// ````
+	/// let property = MutableProperty(0)
+	/// let signal = Signal({ /* do some work after some time */ })
+	/// property <~ signal
+	/// ````
+	///
+	/// ````
+	/// let property = MutableProperty(0)
+	/// let signal = Signal({ /* do some work after some time */ })
+	/// let disposable = property <~ signal
+	/// ...
+	/// // Terminates binding before property dealloc or signal's
+	/// // `completed` event.
+	/// disposable.dispose()
+	/// ````
+	///
+	/// - parameters:
+	///   - target: A target to be bond to.
+	///   - source: A source to bind.
+	///
+	/// - returns: A disposable that can be used to terminate binding before the
+	///            deinitialization of the target or the source's `completed`
+	///            event.
+	@discardableResult
+	public static func <~
+		<Source: BindingSource>
+		(provider: Self, source: Source) -> Disposable?
+		where Source.Value == Value
+	{
+		return source.producer
+			.take(during: provider.bindingTarget.lifetime)
+			.startWithValues(provider.bindingTarget.action)
+	}
 
-/// Binds a source to a target, updating the target's value to the latest
-/// value sent by the source.
-///
-/// - note: The binding will automatically terminate when the target is
-///         deinitialized, or when the source sends a `completed` event.
-///
-/// ````
-/// let property = MutableProperty(0)
-/// let signal = Signal({ /* do some work after some time */ })
-/// property <~ signal
-/// ````
-///
-/// ````
-/// let property = MutableProperty(0)
-/// let signal = Signal({ /* do some work after some time */ })
-/// let disposable = property <~ signal
-/// ...
-/// // Terminates binding before property dealloc or signal's
-/// // `completed` event.
-/// disposable.dispose()
-/// ````
-///
-/// - parameters:
-///   - target: A target to be bond to.
-///   - source: A source to bind.
-///
-/// - returns: A disposable that can be used to terminate binding before the
-///            deinitialization of the target or the source's `completed`
-///            event.
-@discardableResult
-public func <~
-	<Provider: BindingTargetProvider, Source: BindingSource>
-	(provider: Provider, source: Source) -> Disposable?
-	where Provider.Value: OptionalProtocol, Source.Value == Provider.Value.Wrapped, Source.Error == NoError
-{
-	let action = provider.bindingTarget.action
-	return source.observe(Observer(value: { action(Provider.Value(reconstructing: $0)) }),
-	                      during: provider.bindingTarget.lifetime)
+	/// Binds a source to a target, updating the target's value to the latest
+	/// value sent by the source.
+	///
+	/// - note: The binding will automatically terminate when the target is
+	///         deinitialized, or when the source sends a `completed` event.
+	///
+	/// ````
+	/// let property = MutableProperty(0)
+	/// let signal = Signal({ /* do some work after some time */ })
+	/// property <~ signal
+	/// ````
+	///
+	/// ````
+	/// let property = MutableProperty(0)
+	/// let signal = Signal({ /* do some work after some time */ })
+	/// let disposable = property <~ signal
+	/// ...
+	/// // Terminates binding before property dealloc or signal's
+	/// // `completed` event.
+	/// disposable.dispose()
+	/// ````
+	///
+	/// - parameters:
+	///   - target: A target to be bond to.
+	///   - source: A source to bind.
+	///
+	/// - returns: A disposable that can be used to terminate binding before the
+	///            deinitialization of the target or the source's `completed`
+	///            event.
+	@discardableResult
+	public static func <~
+		<Source: BindingSource>
+		(provider: Self, source: Source) -> Disposable?
+		where Value == Source.Value?
+	{
+		return provider <~ source.producer.optionalize()
+	}
 }
 
 /// A binding target that can be used with the `<~` operator.
@@ -139,28 +112,53 @@ public struct BindingTarget<Value>: BindingTargetProvider {
 		return self
 	}
 
-	/// Creates a binding target.
+	/// Creates a binding target which consumes values on the specified scheduler.
+	///
+	/// If no scheduler is specified, the binding target would consume the value
+	/// immediately.
 	///
 	/// - parameters:
+	///   - scheduler: The scheduler on which the `action` consumes the values.
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
 	///   - action: The action to consume values.
-	public init(lifetime: Lifetime, action: @escaping (Value) -> Void) {
-		self.action = action
+	public init(on scheduler: Scheduler = ImmediateScheduler(), lifetime: Lifetime, action: @escaping (Value) -> Void) {
 		self.lifetime = lifetime
+
+		if scheduler is ImmediateScheduler {
+			self.action = action
+		} else {
+			self.action = { value in
+				scheduler.schedule {
+					action(value)
+				}
+			}
+		}
 	}
 
 	/// Creates a binding target which consumes values on the specified scheduler.
 	///
+	/// If no scheduler is specified, the binding target would consume the value
+	/// immediately.
+	///
 	/// - parameters:
-	///   - scheduler: The scheduler on which the `setter` consumes the values.
+	///   - scheduler: The scheduler on which the key path consumes the values.
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
-	///   - action: The action to consume values.
-	public init(on scheduler: Scheduler, lifetime: Lifetime, action: @escaping (Value) -> Void) {
-		let setter: (Value) -> Void = { value in
-			scheduler.schedule {
-				action(value)
-			}
+	///   - object: The object to consume values.
+	///   - keyPath: The key path of the object that consumes values.
+	public init<Object: AnyObject>(on scheduler: Scheduler = ImmediateScheduler(), lifetime: Lifetime, object: Object, keyPath: WritableKeyPath<Object, Value>) {
+		self.init(on: scheduler, lifetime: lifetime) { [weak object] in object?[keyPath: keyPath] = $0 }
+	}
+}
+
+extension Optional: BindingTargetProvider where Wrapped: BindingTargetProvider {
+	public typealias Value = Wrapped.Value
+
+	public var bindingTarget: BindingTarget<Wrapped.Value> {
+		switch self {
+		case let .some(provider):
+			return provider.bindingTarget
+		case .none:
+			return BindingTarget(lifetime: .empty, action: { _ in })
 		}
-		self.init(lifetime: lifetime, action: setter)
 	}
 }

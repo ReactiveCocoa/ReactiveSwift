@@ -19,8 +19,8 @@ import Foundation
 /*:
 ## SignalProducer
 
-A **signal producer**, represented by the [`SignalProducer`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/ReactiveSwift/SignalProducer.swift) type, creates
-[signals](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/ReactiveSwift/Signal.swift) and performs side effects.
+A **signal producer**, represented by the [`SignalProducer`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/SignalProducer.swift) type, creates
+[signals](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/Signal.swift) and performs side effects.
 
 They can be used to represent operations or tasks, like network
 requests, where each invocation of `start()` will create a new underlying
@@ -34,7 +34,7 @@ even be completely different! Unlike a plain signal, no work is started (and
 thus no events are generated) until an observer is attached, and the work is
 restarted anew for each additional observer.
 
-Starting a signal producer returns a [disposable](#disposables) that can be used to
+Starting a signal producer returns a [disposable](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/Disposable.swift) that can be used to
 interrupt/cancel the work associated with the produced signal.
 
 Just like signals, signal producers can also be manipulated via primitives
@@ -57,8 +57,8 @@ scopedExample("Subscription") {
 		observer.send(value: 2)
 	}
 
-	let subscriber1 = Observer<Int, NoError>(value: { print("Subscriber 1 received \($0)") })
-	let subscriber2 = Observer<Int, NoError>(value: { print("Subscriber 2 received \($0)") })
+	let subscriber1 = Signal<Int, NoError>.Observer(value: { print("Subscriber 1 received \($0)") })
+	let subscriber2 = Signal<Int, NoError>.Observer(value: { print("Subscriber 2 received \($0)") })
 
 	print("Subscriber 1 subscribes to producer")
 	producer.start(subscriber1)
@@ -76,7 +76,7 @@ any values.
 scopedExample("`empty`") {
 	let emptyProducer = SignalProducer<Int, NoError>.empty
 
-	let observer = Observer<Int, NoError>(
+	let observer = Signal<Int, NoError>.Observer(
 		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed called") }
@@ -92,7 +92,7 @@ A producer for a Signal that never sends any events to its observers.
 scopedExample("`never`") {
 	let neverProducer = SignalProducer<Int, NoError>.never
 
-	let observer = Observer<Int, NoError>(
+	let observer = Signal<Int, NoError>.Observer(
 		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed not called") }
@@ -432,6 +432,25 @@ scopedExample("`materialize`") {
 		.startWithValues { value in
 			print(value)
 		}
+}
+
+/*:
+ ### `materializeResults`
+
+ Treats all Results from the input producer as plain values, allowing them
+ to be manipulated just like any other value.
+
+ In other words, this brings Results “into the monad.”
+
+ When a Failed event is received, the resulting producer will
+ send the `Result.failure` itself and then complete.
+ */
+scopedExample("`materializeResults`") {
+    SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+        .materializeResults()
+        .startWithValues { value in
+            print(value)
+    }
 }
 
 /*:

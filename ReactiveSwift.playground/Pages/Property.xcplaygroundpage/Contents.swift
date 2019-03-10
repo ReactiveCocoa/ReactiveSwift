@@ -21,7 +21,7 @@ import Foundation
  stores a value and notifies observers about future changes to that value.
  
  - The current value of a property can be obtained from the `value` getter.
- - The `producer` getter returns a [signal producer](SignalProductr) that will send the property’s current value, followed by all changes over time.
+ - The `producer` getter returns a [signal producer](SignalProducer) that will send the property’s current value, followed by all changes over time.
  - The `signal` getter returns a [signal](Signal) that will send all changes over time, but not the initial value.
  
  */
@@ -33,7 +33,7 @@ scopedExample("Creation") {
     // The properties value can be observed via its `producer` or `signal attribute`
     // Note, how the `producer` immediately sends the initial value, but the `signal` only sends new values
     mutableProperty.producer.startWithValues {
-        print("mutableProperty.producer receied \($0)")
+        print("mutableProperty.producer received \($0)")
     }
     mutableProperty.signal.observeValues {
         print("mutableProperty.signal received \($0)")
@@ -67,11 +67,11 @@ scopedExample("Creation") {
  ### Binding
  
  The `<~` operator can be used to bind properties in different ways. Note that in
- all cases, the target has to be a binding target, represented by the [`BindingTargetProtocol`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/UnidirectionalBinding.swift). All mutable property types, represented by the  [`MutablePropertyProtocol`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/Property.swift#L28), are inherently binding targets.
+ all cases, the target has to be a binding target, represented by the [`BindingTargetProvider`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/UnidirectionalBinding.swift). All mutable property types, represented by the  [`MutablePropertyProtocol`](https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/Sources/Property.swift#L38), are inherently binding targets.
  
- * `property <~ signal` binds a [signal](#signals) to the property, updating the
+ * `property <~ signal` binds a [signal](Signal) to the property, updating the
  property’s value to the latest value sent by the signal.
- * `property <~ producer` starts the given [signal producer](#signal-producers),
+ * `property <~ producer` starts the given [signal producer](SignalProducer),
  and binds the property’s value to the latest value sent on the started signal.
  * `property <~ otherProperty` binds one property to another, so that the destination
  property’s value is updated whenever the source property is updated.

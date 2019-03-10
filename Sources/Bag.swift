@@ -6,15 +6,30 @@
 //  Copyright (c) 2014 GitHub. All rights reserved.
 //
 
-/// A uniquely identifying token for removing a value that was inserted into a
-/// Bag.
-public final class RemovalToken {}
-
 /// An unordered, non-unique collection of values of type `Element`.
 public struct Bag<Element> {
-	fileprivate var elements: ContiguousArray<BagElement<Element>> = []
+	/// A uniquely identifying token for removing a value that was inserted into a
+	/// Bag.
+	public struct Token {
+		fileprivate let value: UInt64
+	}
 
-	public init() {}
+	fileprivate var elements: ContiguousArray<Element>
+	fileprivate var tokens: ContiguousArray<UInt64>
+
+	private var nextToken: Token
+
+	public init() {
+		elements = ContiguousArray()
+		tokens = ContiguousArray()
+		nextToken = Token(value: 0)
+	}
+
+	public init<S: Sequence>(_ elements: S) where S.Iterator.Element == Element {
+		self.elements = ContiguousArray(elements)
+		self.nextToken = Token(value: UInt64(self.elements.count))
+		self.tokens = ContiguousArray(0..<nextToken.value)
+	}
 
 	/// Insert the given value into `self`, and return a token that can
 	/// later be passed to `remove(using:)`.
@@ -22,11 +37,16 @@ public struct Bag<Element> {
 	/// - parameters:
 	///   - value: A value that will be inserted.
 	@discardableResult
-	public mutating func insert(_ value: Element) -> RemovalToken {
-		let token = RemovalToken()
-		let element = BagElement(value: value, token: token)
+	public mutating func insert(_ value: Element) -> Token {
+		let token = nextToken
 
-		elements.append(element)
+		// Practically speaking, this would overflow only if we have 101% uptime and we
+		// manage to call `insert(_:)` every 1 ns for 500+ years non-stop.
+		nextToken = Token(value: token.value &+ 1)
+
+		elements.append(value)
+		tokens.append(token.value)
+
 		return token
 	}
 
@@ -36,73 +56,44 @@ public struct Bag<Element> {
 	///
 	/// - parameters:
 	///   - token: A token returned from a call to `insert()`.
-	public mutating func remove(using token: RemovalToken) {
-		let tokenIdentifier = ObjectIdentifier(token)
-		// Removal is more likely for recent objects than old ones.
-		for i in elements.indices.reversed() {
-			if ObjectIdentifier(elements[i].token) == tokenIdentifier {
-				elements.remove(at: i)
-				break
-			}
+	@discardableResult
+	public mutating func remove(using token: Token) -> Element? {
+		guard let index = indices.first(where: { tokens[$0] == token.value }) else {
+			return nil
 		}
+
+		tokens.remove(at: index)
+		return elements.remove(at: index)
 	}
 }
 
-extension Bag: Collection {
-	public typealias Index = Array<Element>.Index
-
-	public var startIndex: Index {
+extension Bag: RandomAccessCollection {
+	public var startIndex: Int {
 		return elements.startIndex
 	}
-	
-	public var endIndex: Index {
+
+	public var endIndex: Int {
 		return elements.endIndex
 	}
 
-	public subscript(index: Index) -> Element {
-		return elements[index].value
+	public subscript(index: Int) -> Element {
+		return elements[index]
 	}
 
-	public func index(after i: Index) -> Index {
-		return i + 1
+	public func makeIterator() -> Iterator {
+		return Iterator(elements.makeIterator())
 	}
 
-	public func makeIterator() -> BagIterator<Element> {
-		return BagIterator(elements)
-	}
-}
+	/// An iterator of `Bag`.
+	public struct Iterator: IteratorProtocol {
+		private var base: ContiguousArray<Element>.Iterator
 
-private struct BagElement<Value> {
-	let value: Value
-	let token: RemovalToken
-}
-
-extension BagElement: CustomStringConvertible {
-	var description: String {
-		return "BagElement(\(value))"
-	}
-}
-
-/// An iterator of `Bag`.
-public struct BagIterator<Element>: IteratorProtocol {
-	private let base: ContiguousArray<BagElement<Element>>
-	private var nextIndex: Int
-	private let endIndex: Int
-
-	fileprivate init(_ base: ContiguousArray<BagElement<Element>>) {
-		self.base = base
-		nextIndex = base.startIndex
-		endIndex = base.endIndex
-	}
-
-	public mutating func next() -> Element? {
-		let currentIndex = nextIndex
-
-		if currentIndex < endIndex {
-			nextIndex = currentIndex + 1
-			return base[currentIndex].value
+		fileprivate init(_ base: ContiguousArray<Element>.Iterator) {
+			self.base = base
 		}
 
-		return nil
+		public mutating func next() -> Element? {
+			return base.next()
+		}
 	}
 }

@@ -4,7 +4,7 @@ This document explains some of the most common operators used in ReactiveCocoa,
 and includes examples demonstrating their use.
 
 Note that “operators”, in this context, refers to functions that transform
-[signals][] and [signal producers][], _not_ custom Swift operators. In other
+[`Signal`s][Signal] and [`SignalProducer`s][SignalProducer], _not_ custom Swift operators. In other
 words, these are composable primitives provided by ReactiveCocoa for working
 with event streams.
 
@@ -387,7 +387,7 @@ The `flatMapError` operator catches any failure that may occur on the input even
 
 ```Swift
 let (signal, observer) = Signal<String, NSError>.pipe()
-let producer = SignalProducer(signal: signal)
+let producer = SignalProducer(signal)
 
 let error = NSError(domain: "domain", code: 0, userInfo: nil)
 
@@ -497,14 +497,14 @@ observer.send(error: NSError(domain: "com.example.foo", code: 42, userInfo: nil)
 
 ### Promote
 
-The `promoteErrors` operator promotes an event stream that does not generate failures into one that can. 
+The `promoteError` operator promotes an event stream that does not generate failures into one that can.
 
 ```Swift
 let (numbersSignal, numbersObserver) = Signal<Int, NoError>.pipe()
 let (lettersSignal, lettersObserver) = Signal<String, NSError>.pipe()
 
 numbersSignal
-    .promoteErrors(NSError.self)
+    .promoteError(NSError.self)
     .combineLatest(with: lettersSignal)
 ```
 
@@ -513,7 +513,7 @@ because some operators to [combine streams](#combining-event-streams) require
 the inputs to have matching error types.
 
 
-[Signals]: FrameworkOverview.md#signals
-[Signal Producers]: FrameworkOverview.md#signal-producers
+[Signal]: ReactivePrimitives.md#signal-a-unidirectional-stream-of-events
+[SignalProducer]: ReactivePrimitives.md#signalproducer-deferred-work-that-creates-a-stream-of-values
 [Observation]: FrameworkOverview.md#observation
 

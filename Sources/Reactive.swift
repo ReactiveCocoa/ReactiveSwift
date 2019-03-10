@@ -4,7 +4,7 @@
 ///         reactive. It is intended for extensions to types that are not owned
 ///         by the module in order to avoid name collisions and return type
 ///         ambiguities.
-public protocol ReactiveExtensionsProvider: class {}
+public protocol ReactiveExtensionsProvider {}
 
 extension ReactiveExtensionsProvider {
 	/// A proxy which hosts reactive extensions for `self`.
