@@ -2200,7 +2200,7 @@ class SignalProducerSpec: QuickSpec {
 			
 		}
 
-		describe("retry(_:when:)") {
+		describe("retry(when:)") {
 			it("should retry forever until `self` sends completed") {
 				let results: [Result<Int, TestError>] = [
 					.failure(.error1),
@@ -2212,7 +2212,7 @@ class SignalProducerSpec: QuickSpec {
 				var retryCount = 0
 
 				let original = SignalProducer.attemptWithResults(results)
-				let producer = original.retry(.merge) { errors in
+				let producer = original.retry { errors in
 					retryCount += 1
 					return errors.flatMap(.merge) { _ in
 						return .init(value: ())	// retry
@@ -2235,7 +2235,7 @@ class SignalProducerSpec: QuickSpec {
 				var retryCount = 0
 
 				let original = SignalProducer.attemptWithResults(results)
-				let producer = original.retry(.merge) { errors in
+				let producer = original.retry { errors in
 					retryCount += 1
 
 					return errors.flatMap(.merge) { error -> SignalProducer<(), TestError> in
@@ -2264,7 +2264,7 @@ class SignalProducerSpec: QuickSpec {
 				var retryCount = 0
 
 				let original = SignalProducer.attemptWithResults(results)
-				let producer = original.retry(.merge) { errors in
+				let producer = original.retry { errors in
 					retryCount += 1
 
 					return errors.flatMap(.merge) { _ in

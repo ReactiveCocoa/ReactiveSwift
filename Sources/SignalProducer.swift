@@ -2318,7 +2318,7 @@ extension SignalProducer {
 	///     either `.error` or `.completed`.
 	///
 	/// - returns: A signal producer that restarts when `when` sends `()` value.
-	public func retry(_ strategy: FlattenStrategy, when: @escaping (Signal<Error, NoError>) -> Signal<(), Error>) -> SignalProducer<Value, Error> {
+	public func retry(when: @escaping (Signal<Error, NoError>) -> Signal<(), Error>) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, lifetime in
 
 			self.startWithSignal { signal, interrupter in
@@ -2335,7 +2335,7 @@ extension SignalProducer {
 				let retrySignal = retryTriggers
 					.flatMapError { _ in .empty }
 					.map { self.producer.materialize() }
-					.flatten(strategy)
+					.flatten(.merge)
 
 				let merged = Signal.merge(signal.materialize(), retrySignal)
 
