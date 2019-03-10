@@ -100,6 +100,19 @@ public struct FlattenStrategy {
 	/// stream of values.
 	public static let race = FlattenStrategy(kind: .race)
 
+	/// Forward only events from the "first inner stream" that sends an event if not exists.
+	/// Other inner streams is disposed of until the first inner stream is completed.
+	/// Note that next inner stream after previous completion can become
+	/// first inner stream again.
+	///
+	/// The flattened stream of values completes only when the stream of streams has completed,
+	/// and first inner stream has completed if exists.
+	///
+	/// Any interruption of inner streams is propagated immediately to the flattened
+	/// stream of values.
+	///
+	/// Any failure from the inner streams is propagated immediately to the flattened
+	/// stream of values.
 	public static let first = FlattenStrategy(kind: .first)
 }
 
@@ -837,7 +850,16 @@ private struct RaceState {
 }
 
 extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
-
+	/// Returns a signal that forwards values from the "first inner producer" if not exists,
+	/// ignoring values sent from other inner producers until first inner producer is completed.
+	/// Note that next inner producer after previous completion can become
+	/// first inner producer again.
+	///
+	/// An error sent on `self` or the first inner producer will be sent on the
+	/// returned signal.
+	///
+	/// The returned signal completes when `self` is completed, and also first inner producer
+	/// is completed if it exists.
 	fileprivate func first() -> Signal<Value.Value, Error> {
 		return Signal<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
@@ -906,6 +928,15 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 }
 
 extension SignalProducer where Value: SignalProducerConvertible, Error == Value.Error {
+	/// Returns a producer that forwards values from the "first inner producer" if not exists,
+	/// ignoring values sent from other inner producers until first inner producer is completed.
+	/// Note that next inner producer after previous completion can become first inner producer again.
+	///
+	/// An error sent on `self` or the first inner producer will be sent on the
+	/// returned producer.
+	///
+	/// The returned signal completes when `self` is completed, and also first inner producer
+	/// is completed if it exists.
 	fileprivate func first() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
