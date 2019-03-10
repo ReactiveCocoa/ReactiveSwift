@@ -184,9 +184,15 @@ public final class UIScheduler: Scheduler {
 private final class DispatchSourceTimerWrapper: Hashable {
 	private let value: DispatchSourceTimer
 	
+	#if swift(>=4.1.50)
+	fileprivate func hash(into hasher: inout Hasher) {
+		hasher.combine(ObjectIdentifier(self))
+	}
+	#else
 	fileprivate var hashValue: Int {
 		return ObjectIdentifier(self).hashValue
 	}
+	#endif
 	
 	fileprivate init(_ value: DispatchSourceTimer) {
 		self.value = value

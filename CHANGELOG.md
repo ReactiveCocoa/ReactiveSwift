@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. Migrated from `hashValue` to `hash(into:)`, fixing deprecation warning in Swift 5 (#707, kudos to @ChristopherRogers)
 1. New operator `materializeResults` and `dematerializeResults` (#679, kudos to @ra1028)
 1. New convenience initializer for `Action` that takes a `ValidatingProperty` as its state (#637, kudos to @Marcocanc)
 1. Fix legacy date implementation. (#683, kudos to @shoheiyokoyama)
