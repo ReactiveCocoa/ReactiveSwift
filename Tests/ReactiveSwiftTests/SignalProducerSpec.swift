@@ -1748,7 +1748,7 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 
-			fdescribe("FlattenStrategy.first") {
+			describe("FlattenStrategy.first") {
 				it("should forward values from the first and third inner producer to send an event") {
 					let (outer, outerObserver) = SignalProducer<SignalProducer<Int, TestError>, TestError>.pipe()
 					let (firstInner, firstInnerObserver) = SignalProducer<Int, TestError>.pipe()
