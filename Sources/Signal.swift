@@ -67,7 +67,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			state = .alive(Bag(), hasDeinitialized: false)
 
 			stateLock = Lock.make()
-			sendLock = Lock.make()
+			sendLock = Lock.PthreadLock(recursive: true)
 			disposable = CompositeDisposable()
 
 			// The generator observer retains the `Signal` core.
