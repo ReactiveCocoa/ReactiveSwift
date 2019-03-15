@@ -68,8 +68,8 @@ aliases:
 matrix:
   include:
     - <<: *xcode
-    # - <<: *xcode
-    #   osx_image: xcode10.2
+    - <<: *xcode
+      osx_image: xcode10.2
     # - <<: *xcode
     #   osx_image: xcode10.2
     #   env: XCODE_ARGS="SWIFT_VERSION=5.0"
@@ -83,10 +83,10 @@ matrix:
       env:
         - JOB=SwiftPM
         - SWIFT_VERSION=4.2.3
-    # - <<: *swiftpm_linux
-    #   env:
-    #     - JOB=SwiftPM
-    #     - SWIFT_VERSION=5.0-DEVELOPMENT-SNAPSHOT-2019-02-28-a
+    - <<: *swiftpm_linux
+      env:
+        - JOB=SwiftPM
+        - SWIFT_VERSION=5.0-DEVELOPMENT-SNAPSHOT-2019-02-28-a
     - stage: carthage
       script: carthage build --cache-builds --no-skip-current
     - stage: deploy
