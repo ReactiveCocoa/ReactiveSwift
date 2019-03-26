@@ -477,7 +477,7 @@ class SignalProducerSpec: QuickSpec {
 
 				var error: TestError?
 				signalProducer.startWithFailed {
-					error = $0.error as? TestError
+					error = $0 as? TestError
 				}
 
 				expect(error) == operationError
@@ -2323,7 +2323,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should be able to fallback to SignalProducer for contextual lookups with explicit value and error type parameters, given an upstream of arbitary error type") {
 				_ = SignalProducer<Int, TestError>.empty
-					.then(.init(result: Result<String, TestError>(value: "")))
+					.then(.init(result: Result<String, TestError>(success: "")))
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups without explicit error type parameter") {
@@ -2343,7 +2343,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should be able to fallback to SignalProducer for contextual lookups with explicit value and error type parameters, given a Never upstream") {
 				_ = SignalProducer<Int, Never>.empty
-					.then(.init(result: Result<String, TestError>(value: "")))
+					.then(.init(result: Result<String, TestError>(success: "")))
 			}
 		}
 

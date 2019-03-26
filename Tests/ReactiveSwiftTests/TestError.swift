@@ -7,7 +7,6 @@
 //
 
 import ReactiveSwift
-import Result
 
 internal enum TestError: Int {
 	case `default` = 0
