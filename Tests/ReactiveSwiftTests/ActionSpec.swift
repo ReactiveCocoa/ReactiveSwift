@@ -457,5 +457,95 @@ class ActionSpec: QuickSpec {
 				expect(values) == [3, 4, -11]
 			}
 		}
+
+		describe("functor") {
+			struct Error: Swift.Error, Equatable {
+				let value: Int
+			}
+			struct Error2: Swift.Error, Equatable {
+				let error: Error
+			}
+
+			it("maps output") {
+				let echo: (Int) -> SignalProducer<Int, Error> = SignalProducer.init(value:)
+
+				let action: Action<Int, Int, Error> = Action<Int, Int, Error>(execute: echo)
+				let action2: Action<Int, String, Error> = action.mapOutput(String.init)
+
+				var values: [Int] = []
+				action.values.observeValues { values.append($0) }
+
+				var values2: [String] = []
+				action2.values.observeValues { values2.append($0) }
+
+				action.apply(1).start()
+				action.apply(2).start()
+				action.apply(3).start()
+
+				expect(values) == [1, 2, 3]
+				expect(values2) == ["1", "2", "3"]
+
+				action2.apply(4).start()
+				action2.apply(5).start()
+
+				expect(values) == [1, 2, 3, 4, 5]
+				expect(values2) == ["1", "2", "3", "4", "5"]
+			}
+
+			it("maps error") {
+				let echo: (Int) -> SignalProducer<Int, Error> = {
+					SignalProducer.init(error: Error(value: $0))
+				}
+
+				let action: Action<Int, Int, Error> = Action<Int, Int, Error>(execute: echo)
+				let action2: Action<Int, Int, Error2> = action.mapError(Error2.init)
+
+				var errors: [Error] = []
+				action.errors.observeValues { errors.append($0) }
+
+				var errors2: [Error2] = []
+				action2.errors.observeValues { errors2.append($0) }
+
+				action.apply(1).start()
+				action.apply(2).start()
+				action.apply(3).start()
+
+				expect(errors) == [1, 2, 3].map(Error.init)
+				expect(errors2) == [1, 2, 3].map(Error.init).map(Error2.init)
+
+				action2.apply(4).start()
+				action2.apply(5).start()
+
+				expect(errors) == [1, 2, 3, 4, 5].map(Error.init)
+				expect(errors2) == [1, 2, 3, 4, 5].map(Error.init).map(Error2.init)
+			}
+
+			it("contramaps input") {
+				let echo: (Int) -> SignalProducer<Int, Error> = SignalProducer.init(value:)
+
+				let action: Action<Int, Int, Error> = Action<Int, Int, Error>(execute: echo)
+				let action2: Action<String, Int, Error> = action.contramapInput { Int($0) ?? -1 }
+
+				var values: [Int] = []
+				action.values.observeValues { values.append($0) }
+
+				var values2: [Int] = []
+				action2.values.observeValues { values2.append($0) }
+
+				action.apply(1).start()
+				action.apply(2).start()
+				action.apply(3).start()
+
+				expect(values) == [1, 2, 3]
+				expect(values2) == [1, 2, 3]
+
+				action2.apply("4").start()
+				action2.apply("foo").start()
+				action2.apply("5").start()
+
+				expect(values) == [1, 2, 3, 4, -1, 5]
+				expect(values2) == [1, 2, 3, 4, -1, 5]
+			}
+		}
 	}
 }
