@@ -68,15 +68,12 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// Whether the action is currently enabled.
 	public let isEnabled: Property<Bool>
 
-	fileprivate init(
+	private init(
 		execute: @escaping (Input) -> SignalProducer<Output, ActionError<Error>>,
 		deinitToken: Lifetime.Token,
 		lifetime: Lifetime,
 		events: Signal<Signal<Output, Error>.Event, NoError>,
-		values: Signal<Output, NoError>,
-		errors: Signal<Error, NoError>,
 		disabledErrors: Signal<(), NoError>,
-		completed: Signal<(), NoError>,
 		isExecuting: Property<Bool>,
 		isEnabled: Property<Bool>
 	) {
@@ -84,10 +81,10 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		self.deinitToken = deinitToken
 		self.lifetime = lifetime
 		self.events = events
-		self.values = values
-		self.errors = errors
 		self.disabledErrors = disabledErrors
-		self.completed = completed
+		self.values = events.filterMap { $0.value }
+		self.errors = events.filterMap { $0.error }
+		self.completed = events.filterMap { $0.isCompleted ? () : nil }
 		self.isExecuting = isExecuting
 		self.isEnabled = isEnabled
 	}
@@ -134,10 +131,6 @@ extension Action {
 			disabledErrorsObserver.sendCompleted()
 			_ = state
 		}
-
-		let values = events.filterMap { $0.value }
-		let errors = events.filterMap { $0.error }
-		let completed = events.filterMap { $0.isCompleted ? () : nil }
 
 		let actionState = MutableProperty(ActionState<State.Value>(isUserEnabled: true, isExecuting: false, value: state.value))
 
@@ -206,10 +199,7 @@ extension Action {
 			deinitToken: deinitToken,
 			lifetime: lifetime,
 			events: events,
-			values: values,
-			errors: errors,
 			disabledErrors: disabledErrors,
-			completed: completed,
 			isExecuting: isExecuting_,
 			isEnabled: isEnabled_
 		)
@@ -427,10 +417,7 @@ extension Action {
 					return .interrupted
 				}
 			},
-			values: values.map(transformOutput),
-			errors: errors.map(transformError),
 			disabledErrors: disabledErrors,
-			completed: completed,
 			isExecuting: isExecuting,
 			isEnabled: isEnabled
 		)
