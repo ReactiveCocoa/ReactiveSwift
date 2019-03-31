@@ -63,7 +63,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// Used to ensure that events are serialized during delivery to observers.
 		private let sendLock: Lock
 
-		fileprivate init(_ generator: (Observer, Lifetime) -> Void) {
+		fileprivate init(_ generator: (Observer<Value, Error>, Lifetime) -> Void) {
 			state = .alive(Bag(), hasDeinitialized: false)
 
 			stateLock = Lock.make()
@@ -152,8 +152,8 @@ public final class Signal<Value, Error: Swift.Error> {
 		///
 		/// - returns: A `Disposable` which can be used to disconnect the observer,
 		///            or `nil` if the signal has already terminated.
-		fileprivate func observe(_ observer: Observer) -> Disposable? {
-			var token: Bag<Observer>.Token?
+		fileprivate func observe(_ observer: Observer<Value, Error>) -> Disposable? {
+			var token: Bag<Observer<Value, Error>>.Token?
 
 			stateLock.lock()
 
@@ -179,7 +179,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		///
 		/// - parameters:
 		///   - token: The token of the observer to remove.
-		private func removeObserver(with token: Bag<Observer>.Token) {
+		private func removeObserver(with token: Bag<Observer<Value, Error>>.Token) {
 			stateLock.lock()
 
 			if case let .alive(observers, hasDeinitialized) = state {
@@ -296,7 +296,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-	public init(_ generator: (Observer, Lifetime) -> Void) {
+	public init(_ generator: (Observer<Value, Error>, Lifetime) -> Void) {
 		core = Core(generator)
 	}
 
@@ -311,7 +311,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - returns: A `Disposable` which can be used to disconnect the observer,
 	///            or `nil` if the signal has already terminated.
 	@discardableResult
-	public func observe(_ observer: Observer) -> Disposable? {
+	public func observe(_ observer: Observer<Value, Error>) -> Disposable? {
 		return core.observe(observer)
 	}
 
@@ -363,11 +363,11 @@ public final class Signal<Value, Error: Swift.Error> {
 		}
 
 		/// The `Signal` is alive.
-		case alive(Bag<Observer>, hasDeinitialized: Bool)
+		case alive(Bag<Observer<Value, Error>>, hasDeinitialized: Bool)
 
 		/// The `Signal` has received a termination event, and is about to be
 		/// terminated.
-		case terminating(Bag<Observer>, TerminationKind)
+		case terminating(Bag<Observer<Value, Error>>, TerminationKind)
 
 		/// The `Signal` has terminated.
 		case terminated
@@ -403,9 +403,9 @@ extension Signal {
 	///                 to be disposed of when the signal terminates.
 	///
 	/// - returns: A 2-tuple of the output end of the pipe as `Signal`, and the input end
-	///            of the pipe as `Signal.Observer`.
-	public static func pipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
-		var observer: Observer!
+	///            of the pipe as `Observer<Value, Error>`.
+	public static func pipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer<Value, Error>) {
+		var observer: Observer<Value, Error>!
 
 		let signal = self.init { innerObserver, lifetime in
 			observer = innerObserver
@@ -451,7 +451,7 @@ extension Signal {
 	/// - returns: A disposable to detach `action` from `self`. `nil` if `self` has
 	///            terminated.
 	@discardableResult
-	public func observe(_ action: @escaping Signal<Value, Error>.Observer.Action) -> Disposable? {
+	public func observe(_ action: @escaping Observer<Value, Error>.Action) -> Disposable? {
 		return observe(Observer(action))
 	}
 

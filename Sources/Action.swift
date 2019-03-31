@@ -29,8 +29,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	}
 
 	private let execute: (Action<Input, Output, Error>, Input) -> SignalProducer<Output, ActionError<Error>>
-	private let eventsObserver: Signal<Event<Output, Error>, NoError>.Observer
-	private let disabledErrorsObserver: Signal<(), NoError>.Observer
+	private let eventsObserver: Observer<Event<Output, Error>, NoError>
+	private let disabledErrorsObserver: Observer<(), NoError>
 
 	private let deinitToken: Lifetime.Token
 

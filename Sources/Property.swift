@@ -516,7 +516,7 @@ public final class Property<Value>: PropertyProtocol {
 	public convenience init(initial: Value, then values: SignalProducer<Value, NoError>) {
 		self.init(unsafeProducer: SignalProducer { observer, lifetime in
 			observer.send(value: initial)
-			lifetime += values.start(Signal.Observer(mappingInterruptedToCompleted: observer))
+			lifetime += values.start(Observer(mappingInterruptedToCompleted: observer))
 		})
 	}
 
@@ -597,7 +597,7 @@ public final class Property<Value>: PropertyProtocol {
 		producer = SignalProducer { [box, relay] observer, lifetime in
 			box.withValue { value in
 				observer.send(value: value!)
-				lifetime += relay.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
+				lifetime += relay.observe(Observer(mappingInterruptedToCompleted: observer))
 			}
 		}
 	}
@@ -632,7 +632,7 @@ extension Property where Value: OptionalProtocol {
 /// Instances of this class are thread-safe.
 public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	private let token: Lifetime.Token
-	private let observer: Signal<Value, NoError>.Observer
+	private let observer: Observer<Value, NoError>
 	private let box: PropertyBox<Value>
 
 	/// The current value of the property.
@@ -658,7 +658,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 		return SignalProducer { [box, signal] observer, lifetime in
 			box.withValue { value in
 				observer.send(value: value)
-				lifetime += signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
+				lifetime += signal.observe(Observer(mappingInterruptedToCompleted: observer))
 			}
 		}
 	}

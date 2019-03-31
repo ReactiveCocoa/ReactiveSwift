@@ -293,7 +293,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 		}
 	}
 
-	fileprivate func observeConcurrent(_ observer: Signal<Value.Value, Error>.Observer, _ limit: UInt, _ lifetime: Lifetime) -> Disposable? {
+	fileprivate func observeConcurrent(_ observer: Observer<Value.Value, Error>, _ limit: UInt, _ lifetime: Lifetime) -> Disposable? {
 		let state = Atomic(ConcurrentFlattenState<Value.Value, Error>(limit: limit))
 
 		func startNextIfNeeded() {
@@ -600,7 +600,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 		}
 	}
 
-	fileprivate func observeSwitchToLatest(_ observer: Signal<Value.Value, Error>.Observer, _ latestInnerDisposable: SerialDisposable) -> Disposable? {
+	fileprivate func observeSwitchToLatest(_ observer: Observer<Value.Value, Error>, _ latestInnerDisposable: SerialDisposable) -> Disposable? {
 		let state = Atomic(LatestState<Value, Error>())
 
 		return self.observe { event in
@@ -718,7 +718,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 		}
 	}
 
-	fileprivate func observeRace(_ observer: Signal<Value.Value, Error>.Observer, _ relayDisposable: CompositeDisposable) -> Disposable? {
+	fileprivate func observeRace(_ observer: Observer<Value.Value, Error>, _ relayDisposable: CompositeDisposable) -> Disposable? {
 		let state = Atomic(RaceState())
 
 		return self.observe { event in
@@ -1082,7 +1082,7 @@ extension Signal {
 
 	fileprivate func observeFlatMapError<Inner: SignalProducerConvertible>(
 		_ handler: @escaping (Error) -> Inner,
-		_ observer: Signal<Value, Inner.Error>.Observer,
+		_ observer: Observer<Value, Inner.Error>,
 		_ serialDisposable: SerialDisposable) -> Disposable? where Inner.Value == Value {
 		return self.observe { event in
 			switch event {

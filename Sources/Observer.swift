@@ -6,10 +6,9 @@
 //  Copyright © 2015 GitHub. All rights reserved.
 //
 
-extension Signal {
 	/// An Observer is a simple wrapper around a function which can receive Events
 	/// (typically from a Signal).
-	public final class Observer {
+	public final class Observer<Value, Error: Swift.Error> {
 		public typealias Action = (Event<Value, Error>) -> Void
 		private let _send: Action
 
@@ -71,7 +70,7 @@ extension Signal {
 			}
 		}
 
-		internal convenience init(mappingInterruptedToCompleted observer: Signal<Value, Error>.Observer) {
+		internal convenience init(mappingInterruptedToCompleted observer: Observer<Value, Error>) {
 			self.init { event in
 				switch event {
 				case .value, .completed, .failed:
@@ -122,11 +121,10 @@ extension Signal {
 			_send(.interrupted)
 		}
 	}
-}
 
 /// FIXME: Cannot be placed in `Deprecations+Removal.swift` if compiling with
 ///        Xcode 9.2.
-extension Signal.Observer {
+extension Observer {
 	/// An action that will be performed upon arrival of the event.
 	@available(*, unavailable, renamed:"send(_:)")
 	public var action: Action { fatalError() }

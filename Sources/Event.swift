@@ -204,7 +204,7 @@ extension Event: EventProtocol {
 //    This operator performs side effect upon interruption.
 
 extension Event {
-	internal typealias Transformation<U, E: Swift.Error> = (@escaping Signal<U, E>.Observer.Action, Lifetime) -> Signal<Value, Error>.Observer.Action
+	internal typealias Transformation<U, E: Swift.Error> = (@escaping Observer<U, E>.Action, Lifetime) -> Observer<Value, Error>.Action
 
 	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
 		return { action, _ in

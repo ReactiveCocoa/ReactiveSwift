@@ -78,7 +78,7 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should be disposed of if no one retains it") {
 				var isDisposed = false
 
-				var observer: Signal<AnyObject, NoError>.Observer!
+				var observer: Observer<AnyObject, NoError>!
 				var signal: Signal<AnyObject, NoError>? = Signal
 					.init { innerObserver, _ in
 						observer = innerObserver
@@ -103,7 +103,7 @@ class SignalLifetimeSpec: QuickSpec {
 			}
 
 			it("should be disposed of when the signal shell has deinitialized with no active observer regardless of whether the generator observer is retained or not") {
-				var observer: Signal<AnyObject, NoError>.Observer?
+				var observer: Observer<AnyObject, NoError>?
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
@@ -120,7 +120,7 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should be disposed of when the generator observer has deinitialized even if it has an observer") {
 				var isDisposed = false
-				var inputObserver: Signal<AnyObject, NoError>.Observer?
+				var inputObserver: Observer<AnyObject, NoError>?
 
 				var disposable: Disposable? = nil
 				weak var signal: Signal<AnyObject, NoError>? = {
@@ -129,7 +129,7 @@ class SignalLifetimeSpec: QuickSpec {
 						lifetime.observeEnded { isDisposed = true }
 					}
 
-					disposable = signal.observe(Signal.Observer())
+					disposable = signal.observe(Observer())
 					return signal
 				}()
 
@@ -330,7 +330,7 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should be disposed of if it is not explicitly retained and its generator observer is not retained") {
 				var disposable: Disposable? = nil
-				var inputObserver: Signal<AnyObject, NoError>.Observer?
+				var inputObserver: Observer<AnyObject, NoError>?
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, NoError>? = {
@@ -340,7 +340,7 @@ class SignalLifetimeSpec: QuickSpec {
 					}
 
 					let transformed = signal.testTransform()
-					disposable = transformed.observe(Signal.Observer())
+					disposable = transformed.observe(Observer())
 					return transformed
 				}()
 
@@ -436,7 +436,7 @@ class SignalLifetimeSpec: QuickSpec {
 
 		describe("observe") {
 			var signal: Signal<Int, TestError>!
-			var observer: Signal<Int, TestError>.Observer!
+			var observer: Observer<Int, TestError>!
 
 			var token: NSObject? = nil
 			weak var weakToken: NSObject?

@@ -64,7 +64,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - startHandler: The starting side effect.
-	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
+	public init(_ startHandler: @escaping (Observer<Value, Error>, Lifetime) -> Void) {
 		self.init(SignalCore {
 			let disposable = CompositeDisposable()
 			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
@@ -265,7 +265,7 @@ internal class SignalProducerCore<Value, Error: Swift.Error> {
 	///
 	/// - returns: A disposable to interrupt the started producer instance.
 	@discardableResult
-	func start(_ generator: (_ upstreamInterruptHandle: Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+	func start(_ generator: (_ upstreamInterruptHandle: Disposable) -> Observer<Value, Error>) -> Disposable {
 		fatalError()
 	}
 
@@ -292,7 +292,7 @@ private final class SignalCore<Value, Error: Swift.Error>: SignalProducerCore<Va
 	}
 
 	@discardableResult
-	override func start(_ generator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+	override func start(_ generator: (Disposable) -> Observer<Value, Error>) -> Disposable {
 		let instance = makeInstance()
 		instance.signal.observe(generator(instance.interruptHandle))
 		instance.observerDidSetup()
@@ -332,7 +332,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 	}
 
 	@discardableResult
-	internal override func start(_ generator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+	internal override func start(_ generator: (Disposable) -> Observer<Value, Error>) -> Disposable {
 		// Collect all resources related to this transformed producer instance.
 		let disposables = CompositeDisposable()
 
@@ -347,7 +347,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 			// Wrap the output sink to enforce the "no event beyond the terminal
 			// event" contract, and the disposal upon termination.
-			let wrappedOutput: Signal<Value, Error>.Observer.Action = { event in
+			let wrappedOutput: Observer<Value, Error>.Action = { event in
 				if !hasDeliveredTerminalEvent {
 					output.send(event)
 
@@ -369,7 +369,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 			let input = transform(wrappedOutput, Lifetime(disposables))
 
 			// Return the input sink to the source producer core.
-			return Signal<SourceValue, SourceError>.Observer(input)
+			return Observer<SourceValue, SourceError>(input)
 		}
 
 		// Manual interruption disposes of `disposables`, which in turn notifies
@@ -410,15 +410,15 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 /// - note: This core does not use `Signal` unless it is requested via `makeInstance()`.
 private final class GeneratorCore<Value, Error: Swift.Error>: SignalProducerCore<Value, Error> {
 	private let isDisposable: Bool
-	private let generator: (Signal<Value, Error>.Observer, Disposable) -> Void
+	private let generator: (Observer<Value, Error>, Disposable) -> Void
 
-	init(isDisposable: Bool = false, _ generator: @escaping (Signal<Value, Error>.Observer, Disposable) -> Void) {
+	init(isDisposable: Bool = false, _ generator: @escaping (Observer<Value, Error>, Disposable) -> Void) {
 		self.isDisposable = isDisposable
 		self.generator = generator
 	}
 
 	@discardableResult
-	internal override func start(_ observerGenerator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+	internal override func start(_ observerGenerator: (Disposable) -> Observer<Value, Error>) -> Disposable {
 		// Object allocation is a considerable overhead. So unless the core is configured
 		// to be disposable, we would reuse the already-disposed, shared `NopDisposable`.
 		let d: Disposable = isDisposable ? _SimpleDisposable() : NopDisposable.shared
@@ -539,7 +539,7 @@ extension SignalProducer {
 	///
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
-	public func start(_ observer: Signal<Value, Error>.Observer = .init()) -> Disposable {
+	public func start(_ observer: Observer<Value, Error> = .init()) -> Disposable {
 		return core.start { _ in observer }
 	}
 
@@ -551,8 +551,8 @@ extension SignalProducer {
 	///
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
-	public func start(_ action: @escaping Signal<Value, Error>.Observer.Action) -> Disposable {
-		return start(Signal.Observer(action))
+	public func start(_ action: @escaping Observer<Value, Error>.Action) -> Disposable {
+		return start(Observer(action))
 	}
 
 	/// Create a `Signal` from `self`, and observe the `Signal` for all values being
@@ -566,7 +566,7 @@ extension SignalProducer {
 	@discardableResult
 	public func startWithResult(_ action: @escaping (Result<Value, Error>) -> Void) -> Disposable {
 		return start(
-			Signal.Observer(
+			Observer(
 				value: { action(.success($0)) },
 				failed: { action(.failure($0)) }
 			)
@@ -581,7 +581,7 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func startWithCompleted(_ action: @escaping () -> Void) -> Disposable {
-		return start(Signal.Observer(completed: action))
+		return start(Observer(completed: action))
 	}
 
 	/// Create a `Signal` from `self`, and observe its failure.
@@ -593,7 +593,7 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func startWithFailed(_ action: @escaping (Error) -> Void) -> Disposable {
-		return start(Signal.Observer(failed: action))
+		return start(Observer(failed: action))
 	}
 
 	/// Create a `Signal` from `self`, and observe its interruption.
@@ -604,7 +604,7 @@ extension SignalProducer {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func startWithInterrupted(_ action: @escaping () -> Void) -> Disposable {
-		return start(Signal.Observer(interrupted: action))
+		return start(Observer(interrupted: action))
 	}
 
 	/// Creates a `Signal` from the producer.
@@ -647,7 +647,7 @@ extension SignalProducer where Error == NoError {
 	/// - returns: A disposable to interrupt the produced `Signal`.
 	@discardableResult
 	public func startWithValues(_ action: @escaping (Value) -> Void) -> Disposable {
-		return start(Signal.Observer(value: action))
+		return start(Observer(value: action))
 	}
 }
 
@@ -2635,7 +2635,7 @@ extension SignalProducer {
 			self
 				.take(during: lifetime)
 				.start { event in
-					let observers: Bag<Signal<Value, Error>.Observer>? = state.modify { state in
+					let observers: Bag<Observer<Value, Error>>? = state.modify { state in
 						defer { state.enqueue(event) }
 						return state.observers
 					}
@@ -2649,7 +2649,7 @@ extension SignalProducer {
 			lifetime.observeEnded { _ = lifetimeToken }
 
 			while true {
-				var result: Result<Bag<Signal<Value, Error>.Observer>.Token?, ReplayError<Value>>!
+				var result: Result<Bag<Observer<Value, Error>>.Token?, ReplayError<Value>>!
 				state.modify {
 					result = $0.observe(observer)
 				}
@@ -2752,7 +2752,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 
 	/// The observers currently attached to the caching producer, or `nil` if the
 	/// caching producer was terminated.
-	var observers: Bag<Signal<Value, Error>.Observer>? = Bag()
+	var observers: Bag<Observer<Value, Error>>? = Bag()
 
 	/// The set of in-flight replay buffers.
 	var replayBuffers: [ObjectIdentifier: [Value]] = [:]
@@ -2778,7 +2778,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	///            with the corresponding removal token would be returned.
 	///            Otherwise, a `Result.failure` with a `ReplayError` would be
 	///            returned.
-	mutating func observe(_ observer: Signal<Value, Error>.Observer) -> Result<Bag<Signal<Value, Error>.Observer>.Token?, ReplayError<Value>> {
+	mutating func observe(_ observer: Observer<Value, Error>) -> Result<Bag<Observer<Value, Error>>.Token?, ReplayError<Value>> {
 		// Since the only use case is `replayLazily`, which always creates a unique
 		// `Observer` for every produced signal, we can use the ObjectIdentifier of
 		// the `Observer` to track them directly.
@@ -2855,7 +2855,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - token: The token of the observer to be removed.
-	mutating func removeObserver(using token: Bag<Signal<Value, Error>.Observer>.Token) {
+	mutating func removeObserver(using token: Bag<Observer<Value, Error>>.Token) {
 		observers?.remove(using: token)
 	}
 }

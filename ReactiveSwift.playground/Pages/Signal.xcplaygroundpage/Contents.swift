@@ -55,8 +55,8 @@ scopedExample("Subscription") {
 	// Signal.pipe is a way to manually control a signal. the returned observer can be used to send values to the signal
 	let (signal, observer) = Signal<Int, NoError>.pipe()
 
-	let subscriber1 = Signal<Int, NoError>.Observer(value: { print("Subscriber 1 received \($0)") } )
-	let subscriber2 = Signal<Int, NoError>.Observer(value: { print("Subscriber 2 received \($0)") } )
+	let subscriber1 = Observer<Int, NoError>(value: { print("Subscriber 1 received \($0)") } )
+	let subscriber2 = Observer<Int, NoError>(value: { print("Subscriber 2 received \($0)") } )
 
 	print("Subscriber 1 subscribes to the signal")
 	signal.observe(subscriber1)
@@ -81,7 +81,7 @@ A Signal that completes immediately without emitting any value.
 scopedExample("`empty`") {
 	let emptySignal = Signal<Int, NoError>.empty
 
-	let observer = Signal<Int, NoError>.Observer(
+	let observer = Observer<Int, NoError>(
 		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed not called") },
@@ -98,7 +98,7 @@ A Signal that never sends any events to its observers.
 scopedExample("`never`") {
 	let neverSignal = Signal<Int, NoError>.never
 
-	let observer = Signal<Int, NoError>.Observer(
+	let observer = Observer<Int, NoError>(
 		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed not called") },
@@ -120,7 +120,7 @@ the memory footprint.
 */
 scopedExample("`uniqueValues`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
-	let subscriber = Signal<Int, NoError>.Observer(value: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	let uniqueSignal = signal.uniqueValues()
 
 	uniqueSignal.observe(subscriber)
@@ -139,7 +139,7 @@ Maps each value in the signal to a new value.
 */
 scopedExample("`map`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
-	let subscriber = Signal<Int, NoError>.Observer(value: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	let mappedSignal = signal.map { $0 * 2 }
 
 	mappedSignal.observe(subscriber)
@@ -153,7 +153,7 @@ Maps errors in the signal to a new error.
 */
 scopedExample("`mapError`") {
 	let (signal, observer) = Signal<Int, NSError>.pipe()
-	let subscriber = Signal<Int, NSError>.Observer(failed: { print("Subscriber received error: \($0)") } )
+	let subscriber = Observer<Int, NSError>(failed: { print("Subscriber received error: \($0)") } )
 	let mappedErrorSignal = signal.mapError { (error:NSError) -> NSError in
 		let userInfo = [NSLocalizedDescriptionKey: "🔥"]
 		let code = error.code + 10000
@@ -172,7 +172,7 @@ Preserves only the values of the signal that pass the given predicate.
 */
 scopedExample("`filter`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
-	let subscriber = Signal<Int, NoError>.Observer(value: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	// subscriber will only receive events with values greater than 12
 	let filteredSignal = signal.filter { $0 > 12 }
 
@@ -193,7 +193,7 @@ scopedExample("`skipNil`") {
 	let (signal, observer) = Signal<Int?, NoError>.pipe()
 	// note that the signal is of type `Int?` and observer is of type `Int`, given we're unwrapping
 	// non-`nil` values
-	let subscriber = Signal<Int, NoError>.Observer(value: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	let skipNilSignal = signal.skipNil()
 
 	skipNilSignal.observe(subscriber)
@@ -208,7 +208,7 @@ Returns a signal that will yield the first `count` values from `self`
 */
 scopedExample("`take(first:)`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
-	let subscriber = Signal<Int, NoError>.Observer(value: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<Int, NoError>(value: { print("Subscriber received \($0)") } )
 	let takeSignal = signal.take(first: 2)
 
 	takeSignal.observe(subscriber)
@@ -228,7 +228,7 @@ scopedExample("`collect`") {
 	let (signal, observer) = Signal<Int, NoError>.pipe()
 	// note that the signal is of type `Int` and observer is of type `[Int]` given we're "collecting"
 	// `Int` values for the lifetime of the signal
-	let subscriber = Signal<[Int], NoError>.Observer(value: { print("Subscriber received \($0)") } )
+	let subscriber = Observer<[Int], NoError>(value: { print("Subscriber received \($0)") } )
 	let collectSignal = signal.collect()
 
 	collectSignal.observe(subscriber)

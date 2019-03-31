@@ -5,7 +5,7 @@ import Result
 // MARK: Unavailable methods in ReactiveSwift 3.0.
 extension Signal {
 	@available(*, unavailable, message:"Use the `Signal.init` that accepts a two-argument generator.")
-	public convenience init(_ generator: (Observer) -> Disposable?) { fatalError() }
+	public convenience init(_ generator: (Observer<Value, Error>) -> Disposable?) { fatalError() }
 }
 
 extension Lifetime {
