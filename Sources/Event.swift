@@ -2,12 +2,11 @@ import Result
 import Foundation
 import Dispatch
 
-extension Signal {
 	/// Represents a signal event.
 	///
 	/// Signals must conform to the grammar:
 	/// `value* (failed | completed | interrupted)?`
-	public enum Event {
+	public enum Event<Value, Error: Swift.Error> {
 		/// A value provided by the signal.
 		case value(Value)
 
@@ -57,7 +56,7 @@ extension Signal {
 		///
 		/// - returns: An event with function applied to a value in case `self` is a
 		///            `value` type of event.
-		public func map<U>(_ f: (Value) -> U) -> Signal<U, Error>.Event {
+		public func map<U>(_ f: (Value) -> U) -> Event<U, Error> {
 			switch self {
 			case let .value(value):
 				return .value(f(value))
@@ -83,7 +82,7 @@ extension Signal {
 		///
 		/// - returns: An event with function applied to an error object in case
 		///            `self` is a `.Failed` type of event.
-		public func mapError<F>(_ f: (Error) -> F) -> Signal<Value, F>.Event {
+		public func mapError<F>(_ f: (Error) -> F) -> Event<Value, F> {
 			switch self {
 			case let .value(value):
 				return .value(value)
@@ -117,10 +116,9 @@ extension Signal {
 			}
 		}
 	}
-}
 
-extension Signal.Event where Value: Equatable, Error: Equatable {
-	public static func == (lhs: Signal<Value, Error>.Event, rhs: Signal<Value, Error>.Event) -> Bool {
+extension Event where Value: Equatable, Error: Equatable {
+	public static func == (lhs: Event<Value, Error>, rhs: Event<Value, Error>) -> Bool {
 		switch (lhs, rhs) {
 		case let (.value(left), .value(right)):
 			return left == right
@@ -140,9 +138,9 @@ extension Signal.Event where Value: Equatable, Error: Equatable {
 	}
 }
 
-extension Signal.Event: Equatable where Value: Equatable, Error: Equatable {}
+extension Event: Equatable where Value: Equatable, Error: Equatable {}
 
-extension Signal.Event: CustomStringConvertible {
+extension Event: CustomStringConvertible {
 	public var description: String {
 		switch self {
 		case let .value(value):
@@ -168,11 +166,11 @@ public protocol EventProtocol {
 	/// be used.
 	associatedtype Error: Swift.Error
 	/// Extracts the event from the receiver.
-	var event: Signal<Value, Error>.Event { get }
+	var event: Event<Value, Error> { get }
 }
 
-extension Signal.Event: EventProtocol {
-	public var event: Signal<Value, Error>.Event {
+extension Event: EventProtocol {
+	public var event: Event<Value, Error> {
 		return self
 	}
 }
@@ -205,7 +203,7 @@ extension Signal.Event: EventProtocol {
 // 4. `on`
 //    This operator performs side effect upon interruption.
 
-extension Signal.Event {
+extension Event {
 	internal typealias Transformation<U, E: Swift.Error> = (@escaping Signal<U, E>.Observer.Action, Lifetime) -> Signal<Value, Error>.Observer.Action
 
 	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
@@ -292,7 +290,7 @@ extension Signal.Event {
 		}
 	}
 
-	internal static var materialize: Transformation<Signal<Value, Error>.Event, NoError> {
+	internal static var materialize: Transformation<Event<Value, Error>, NoError> {
 		return { action, _ in
 			return { event in
 				action(.value(event))
@@ -361,7 +359,7 @@ extension Signal.Event {
 	}
 }
 
-extension Signal.Event where Error == AnyError {
+extension Event where Error == AnyError {
 	internal static func attempt(_ action: @escaping (Value) throws -> Void) -> Transformation<Value, AnyError> {
 		return attemptMap { value in
 			try action(value)
@@ -376,7 +374,7 @@ extension Signal.Event where Error == AnyError {
 	}
 }
 
-extension Signal.Event {
+extension Event {
 	internal static func take(first count: Int) -> Transformation<Value, Error> {
 		assert(count >= 1)
 
@@ -477,7 +475,7 @@ extension Signal.Event {
 	}
 }
 
-extension Signal.Event where Value: EventProtocol, Error == NoError {
+extension Event where Value: EventProtocol, Error == NoError {
 	internal static var dematerialize: Transformation<Value.Value, Value.Error> {
 		return { action, _ in
 			return { event in
@@ -499,7 +497,7 @@ extension Signal.Event where Value: EventProtocol, Error == NoError {
 	}
 }
 
-extension Signal.Event where Value: ResultProtocol, Error == NoError {
+extension Event where Value: ResultProtocol, Error == NoError {
 	internal static var dematerializeResults: Transformation<Value.Value, Value.Error> {
 		return { action, _ in
 			return { event in
@@ -526,7 +524,7 @@ extension Signal.Event where Value: ResultProtocol, Error == NoError {
 	}
 }
 
-extension Signal.Event where Value: OptionalProtocol {
+extension Event where Value: OptionalProtocol {
 	internal static var skipNil: Transformation<Value.Wrapped, Error> {
 		return filterMap { $0.optional }
 	}
@@ -564,7 +562,7 @@ private final class CollectState<Value> {
 	}
 }
 
-extension Signal.Event {
+extension Event {
 	internal static var collect: Transformation<[Value], Error> {
 		return collect { _, _ in false }
 	}
@@ -993,7 +991,7 @@ private struct ThrottleState<Value> {
 	}
 }
 
-extension Signal.Event where Error == NoError {
+extension Event where Error == NoError {
 	internal static func promoteError<F>(_: F.Type) -> Transformation<Value, F> {
 		return { action, _ in
 			return { event in
@@ -1012,7 +1010,7 @@ extension Signal.Event where Error == NoError {
 	}
 }
 
-extension Signal.Event where Value == Never {
+extension Event where Value == Never {
 	internal static func promoteValue<U>(_: U.Type) -> Transformation<U, Error> {
 		return { action, _ in
 			return { event in

@@ -1603,7 +1603,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has completed") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Event<(Int, String), NoError>? = nil
 				withLatestProducer.start { event = $0 }
 
 				sampleeObserver.sendCompleted()
@@ -1611,7 +1611,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has interrupted") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Event<(Int, String), NoError>? = nil
 				withLatestProducer.start { event = $0 }
 
 				sampleeObserver.sendInterrupted()
@@ -1669,7 +1669,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has completed") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Event<(Int, String), NoError>? = nil
 				withLatestProducer.start { event = $0 }
 
 				sampleeObserver.sendCompleted()
@@ -1677,7 +1677,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has interrupted") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Event<(Int, String), NoError>? = nil
 				withLatestProducer.start { event = $0 }
 
 				sampleeObserver.sendInterrupted()
@@ -1812,7 +1812,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 		describe("materialize") {
 			it("should reify events from the signal") {
 				let (producer, observer) = SignalProducer<Int, TestError>.pipe()
-				var latestEvent: Signal<Int, TestError>.Event?
+				var latestEvent: Event<Int, TestError>?
 				producer
 					.materialize()
 					.startWithValues { latestEvent = $0 }
@@ -1842,7 +1842,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 		}
 
 		describe("dematerialize") {
-			typealias IntEvent = Signal<Int, TestError>.Event
+			typealias IntEvent = Event<Int, TestError>
 			var observer: Signal<IntEvent, NoError>.Observer!
 			var dematerialized: SignalProducer<Int, TestError>!
 

@@ -29,7 +29,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	}
 
 	private let execute: (Action<Input, Output, Error>, Input) -> SignalProducer<Output, ActionError<Error>>
-	private let eventsObserver: Signal<Signal<Output, Error>.Event, NoError>.Observer
+	private let eventsObserver: Signal<Event<Output, Error>, NoError>.Observer
 	private let disabledErrorsObserver: Signal<(), NoError>.Observer
 
 	private let deinitToken: Lifetime.Token
@@ -41,7 +41,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///
 	/// In other words, this sends every `Event` from every unit of work that the `Action`
 	/// executes.
-	public let events: Signal<Signal<Output, Error>.Event, NoError>
+	public let events: Signal<Event<Output, Error>, NoError>
 
 	/// A signal of all values generated from all units of work of the `Action`.
 	///
@@ -100,7 +100,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		// `Action` retains its state property.
 		lifetime.observeEnded { _ = state }
 
-		(events, eventsObserver) = Signal<Signal<Output, Error>.Event, NoError>.pipe()
+		(events, eventsObserver) = Signal<Event<Output, Error>, NoError>.pipe()
 		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
 
 		values = events.filterMap { $0.value }

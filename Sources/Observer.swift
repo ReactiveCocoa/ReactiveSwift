@@ -10,7 +10,7 @@ extension Signal {
 	/// An Observer is a simple wrapper around a function which can receive Events
 	/// (typically from a Signal).
 	public final class Observer {
-		public typealias Action = (Event) -> Void
+		public typealias Action = (Event<Value, Error>) -> Void
 		private let _send: Action
 
 		/// Whether the observer should send an `interrupted` event as it deinitializes.
@@ -92,7 +92,7 @@ extension Signal {
 		}
 
 		/// Puts an event into `self`.
-		public func send(_ event: Event) {
+		public func send(_ event: Event<Value, Error>) {
 			_send(event)
 		}
 

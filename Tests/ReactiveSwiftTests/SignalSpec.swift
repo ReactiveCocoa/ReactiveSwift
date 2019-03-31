@@ -274,7 +274,7 @@ class SignalSpec: QuickSpec {
 				let (signal, observer) = Signal<Int, NoError>.pipe()
 
 				var hasSlept = false
-				var events: [Signal<Int, NoError>.Event] = []
+				var events: [Event<Int, NoError>] = []
 
 				// Used to synchronize the `interrupt` sender to only act after the
 				// chosen observer has started sending its event, but before it is done.
@@ -2604,7 +2604,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has completed") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Event<(Int, String), NoError>? = nil
 				withLatestSignal.observe { event = $0 }
 
 				sampleeObserver.sendCompleted()
@@ -2612,7 +2612,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has interrupted") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Event<(Int, String), NoError>? = nil
 				withLatestSignal.observe { event = $0 }
 
 				sampleeObserver.sendInterrupted()
@@ -2670,7 +2670,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has completed") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Event<(Int, String), NoError>? = nil
 				withLatestSignal.observe { event = $0 }
 
 				sampleeObserver.sendCompleted()
@@ -2678,7 +2678,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has interrupted") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Event<(Int, String), NoError>? = nil
 				withLatestSignal.observe { event = $0 }
 
 				sampleeObserver.sendInterrupted()
@@ -2860,7 +2860,7 @@ class SignalSpec: QuickSpec {
 		describe("materialize") {
 			it("should reify events from the signal") {
 				let (signal, observer) = Signal<Int, TestError>.pipe()
-				var latestEvent: Signal<Int, TestError>.Event?
+				var latestEvent: Event<Int, TestError>?
 				signal
 					.materialize()
 					.observeValues { latestEvent = $0 }
@@ -2890,7 +2890,7 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("dematerialize") {
-			typealias IntEvent = Signal<Int, TestError>.Event
+			typealias IntEvent = Event<Int, TestError>
 			var observer: Signal<IntEvent, NoError>.Observer!
 			var dematerialized: Signal<Int, TestError>!
 
