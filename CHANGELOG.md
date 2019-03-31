@@ -1,6 +1,9 @@
 # master
 *Please add new entries at the top.*
 
+# 5.0.1
+1. Fix warnings in Xcode 10.2
+
 # 5.0.0
 
 1. Support Swift 5.0 (Xcode 10.2) (#711, kudos to @ikesyo)
