@@ -3204,7 +3204,7 @@ class SignalSpec: QuickSpec {
 
 				var error: TestError?
 				signal.observeFailed { err in
-					error = err.error as? TestError
+					error = err as? TestError
 				}
 
 				observer.send(value: 42)
@@ -3291,7 +3291,7 @@ class SignalSpec: QuickSpec {
 
 				var error: TestError?
 				signal.observeFailed { err in
-					error = err.error as? TestError
+					error = err as? TestError
 				}
 
 				observer.send(value: 42)

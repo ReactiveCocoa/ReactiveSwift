@@ -646,7 +646,7 @@ class FlattenSpec: QuickSpec {
 
 			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner value and error type parameters, given an upstream of arbitrary error type") {
 				_ = Signal<Int, TestError>.empty
-					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(error: .default)) }
+					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(failure: .default)) }
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups with implicit error type parameter") {
@@ -673,7 +673,7 @@ class FlattenSpec: QuickSpec {
 
 			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a Never upstream") {
 				_ = Signal<Int, Never>.empty
-					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(error: .default)) }
+					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>.failure(.default)) }
 			}
 		}
 
