@@ -14,20 +14,6 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D454807C1A957361009D7229"
-               BuildableName = "Result.framework"
-               BlueprintName = "Result-iOS"
-               ReferencedContainer = "container:Carthage/Checkouts/Result/Result.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "D047260B19E49F82006002AA"
                BuildableName = "ReactiveSwift.framework"
                BlueprintName = "ReactiveSwift-iOS"
@@ -97,15 +83,6 @@
             </BuildableReference>
          </TestableReference>
       </Testables>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D454807C1A957361009D7229"
-            BuildableName = "Result.framework"
-            BlueprintName = "Result-iOS"
-            ReferencedContainer = "container:Carthage/Checkouts/Result/Result.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
@@ -122,10 +99,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D454807C1A957361009D7229"
-            BuildableName = "Result.framework"
-            BlueprintName = "Result-iOS"
-            ReferencedContainer = "container:Carthage/Checkouts/Result/Result.xcodeproj">
+            BlueprintIdentifier = "D047260B19E49F82006002AA"
+            BuildableName = "ReactiveSwift.framework"
+            BlueprintName = "ReactiveSwift-iOS"
+            ReferencedContainer = "container:ReactiveSwift.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <AdditionalOptions>
@@ -137,15 +114,6 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D454807C1A957361009D7229"
-            BuildableName = "Result.framework"
-            BlueprintName = "Result-iOS"
-            ReferencedContainer = "container:Carthage/Checkouts/Result/Result.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
