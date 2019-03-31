@@ -1821,9 +1821,9 @@ extension SignalProducer where Error == Never {
 	///   - action: A throwable closure to perform an arbitrary action on the value.
 	///
 	/// - returns: A producer which forwards the successful values of the given action.
-	public func attempt(_ action: @escaping (Value) throws -> Void) -> SignalProducer<Value, Error> {
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> SignalProducer<Value, Swift.Error> {
 		return self
-			.promoteError(Error.self)
+			.promoteError(Swift.Error.self)
 			.attempt(action)
 	}
 
@@ -1836,9 +1836,9 @@ extension SignalProducer where Error == Never {
 	///             yield a result.
 	///
 	/// - returns: A producer which forwards the successful results of the given action.
-	public func attemptMap<U>(_ action: @escaping (Value) throws -> U) -> SignalProducer<U, Error> {
+	public func attemptMap<U>(_ action: @escaping (Value) throws -> U) -> SignalProducer<U, Swift.Error> {
 		return self
-			.promoteError(Error.self)
+			.promoteError(Swift.Error.self)
 			.attemptMap(action)
 	}
 }

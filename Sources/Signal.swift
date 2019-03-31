@@ -2211,9 +2211,9 @@ extension Signal where Error == Never {
 	///   - action: A throwable closure to perform an arbitrary action on the value.
 	///
 	/// - returns: A signal which forwards the successful values of the given action.
-	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, Error> {
+	public func attempt(_ action: @escaping (Value) throws -> Void) -> Signal<Value, Swift.Error> {
 		return self
-			.promoteError(Error.self)
+			.promoteError(Swift.Error.self)
 			.attempt(action)
 	}
 
@@ -2225,9 +2225,9 @@ extension Signal where Error == Never {
 	///   - transform: A throwable transform.
 	///
 	/// - returns: A signal which forwards the successfully transformed values.
-	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, Error> {
+	public func attemptMap<U>(_ transform: @escaping (Value) throws -> U) -> Signal<U, Swift.Error> {
 		return self
-			.promoteError(Error.self)
+			.promoteError(Swift.Error.self)
 			.attemptMap(transform)
 	}
 }
