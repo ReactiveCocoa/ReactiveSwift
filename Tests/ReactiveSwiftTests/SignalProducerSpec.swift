@@ -2614,7 +2614,7 @@ class SignalProducerSpec: QuickSpec {
 					var last: Int?
 
 					replayedProducer
-						.assumeNevers()
+						.assumeNoErrors()
 						.startWithValues { last = $0 }
 
 					expect(last).to(beNil())
@@ -2648,7 +2648,7 @@ class SignalProducerSpec: QuickSpec {
 					var last: Int?
 
 					replayedProducer
-						.assumeNevers()
+						.assumeNoErrors()
 						.startWithValues { last = $0 }
 					expect(last) == 1
 				}
@@ -2680,7 +2680,7 @@ class SignalProducerSpec: QuickSpec {
 					var values: [Int] = []
 
 					disposable = replayedProducer
-						.assumeNevers()
+						.assumeNoErrors()
 						.startWithValues { values.append($0) }
 					expect(values) == [ 3, 4 ]
 
@@ -2691,7 +2691,7 @@ class SignalProducerSpec: QuickSpec {
 					values = []
 
 					replayedProducer
-						.assumeNevers()
+						.assumeNoErrors()
 						.startWithValues { values.append($0) }
 					expect(values) == [ 4, 5 ]
 				}

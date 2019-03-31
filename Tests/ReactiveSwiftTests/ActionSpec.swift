@@ -253,7 +253,7 @@ class ActionSpec: QuickSpec {
 					var receivedValue: String?
 
 					action.apply(0)
-						.assumeNevers()
+						.assumeNoErrors()
 						.startWithValues {
 							receivedValue = $0
 						}

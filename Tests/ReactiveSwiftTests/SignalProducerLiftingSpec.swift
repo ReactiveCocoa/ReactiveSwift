@@ -1854,7 +1854,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			it("should send values for Value events") {
 				var result: [Int] = []
 				dematerialized
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { result.append($0) }
 
 				expect(result).to(beEmpty())
@@ -1934,7 +1934,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			it("should send values for Value results") {
 				var result: [Int] = []
 				dematerialized
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { result.append($0) }
 
 				expect(result).to(beEmpty())
@@ -1970,7 +1970,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			it("should send the last N values upon completion") {
 				var result: [Int] = []
 				lastThree
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { result.append($0) }
 
 				observer.send(value: 1)
@@ -1986,7 +1986,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 			it("should send less than N values if not enough were received") {
 				var result: [Int] = []
 				lastThree
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { result.append($0) }
 
 				observer.send(value: 1)
@@ -2101,7 +2101,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				var current: Int?
 				producer
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						current = value
 					}
@@ -2137,7 +2137,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				var even: Bool?
 				producer
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						even = value
 					}

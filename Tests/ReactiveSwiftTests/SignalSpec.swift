@@ -2902,7 +2902,7 @@ class SignalSpec: QuickSpec {
 			it("should send values for Value events") {
 				var result: [Int] = []
 				dematerialized
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { result.append($0) }
 
 				expect(result).to(beEmpty())
@@ -2982,7 +2982,7 @@ class SignalSpec: QuickSpec {
 			it("should send values for Value results") {
 				var result: [Int] = []
 				dematerialized
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { result.append($0) }
 
 				expect(result).to(beEmpty())
@@ -3018,7 +3018,7 @@ class SignalSpec: QuickSpec {
 			it("should send the last N values upon completion") {
 				var result: [Int] = []
 				lastThree
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { result.append($0) }
 
 				observer.send(value: 1)
@@ -3034,7 +3034,7 @@ class SignalSpec: QuickSpec {
 			it("should send less than N values if not enough were received") {
 				var result: [Int] = []
 				lastThree
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { result.append($0) }
 
 				observer.send(value: 1)
@@ -3149,7 +3149,7 @@ class SignalSpec: QuickSpec {
 
 				var current: Int?
 				signal
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						current = value
 					}
@@ -3185,7 +3185,7 @@ class SignalSpec: QuickSpec {
 
 				var current: Int?
 				signal
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						current = value
 					}
@@ -3234,7 +3234,7 @@ class SignalSpec: QuickSpec {
 
 				var even: Bool?
 				signal
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						even = value
 					}
@@ -3271,7 +3271,7 @@ class SignalSpec: QuickSpec {
 
 				var even: Bool?
 				signal
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						even = value
 					}

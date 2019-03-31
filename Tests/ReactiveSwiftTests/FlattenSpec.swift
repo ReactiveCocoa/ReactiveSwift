@@ -107,7 +107,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -127,7 +127,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -166,7 +166,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -186,7 +186,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -206,7 +206,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -245,7 +245,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -297,7 +297,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -317,7 +317,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -356,7 +356,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -376,7 +376,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -396,7 +396,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -435,7 +435,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatten(.latest)
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -486,7 +486,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -506,7 +506,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -545,7 +545,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -565,7 +565,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -585,7 +585,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -624,7 +624,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.observeValues { value in
 						observed = value
 					}
@@ -688,7 +688,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -708,7 +708,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -747,7 +747,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -767,7 +767,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -787,7 +787,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
@@ -826,7 +826,7 @@ class FlattenSpec: QuickSpec {
 				var observed: Int? = nil
 				outer
 					.flatMap(.latest) { _ in inner }
-					.assumeNevers()
+					.assumeNoErrors()
 					.startWithValues { value in
 						observed = value
 					}
