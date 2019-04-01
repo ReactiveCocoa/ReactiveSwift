@@ -13,7 +13,7 @@ import ReactiveSwift
 import Dispatch
 
 private extension Signal {
-	typealias Pipe = (output: Observer<Value, Error>, input: Signal<Value, Error>)
+	typealias Pipe = (output: Signal<Value, Error>, input: Signal<Value, Error>.Observer)
 }
 
 private typealias Pipe = Signal<SignalProducer<Int, TestError>, TestError>.Pipe
@@ -1351,7 +1351,7 @@ class FlattenSpec: QuickSpec {
 				outer.flatten(.concurrent(limit: concurrentLimit)).observeValues { values.append($0) }
 
 				var started: [UInt] = []
-				var observers: [Observer<UInt, NoError>] = []
+				var observers: [Signal<UInt, NoError>.Observer] = []
 
 				for i in 0 ..< (concurrentLimit + extra) {
 					let (signal, observer) = Signal<UInt, NoError>.pipe()

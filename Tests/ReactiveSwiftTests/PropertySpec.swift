@@ -1686,7 +1686,7 @@ class PropertySpec: QuickSpec {
 				it("should tear down the binding when the property deallocates") {
 					var isDisposed = false
 
-					var outerObserver: Observer<String, NoError>!
+					var outerObserver: Signal<String, NoError>.Observer!
 
 					// Mitigate the "was written to, but never read" warning.
 					_ = outerObserver

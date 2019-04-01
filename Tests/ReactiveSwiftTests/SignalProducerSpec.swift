@@ -63,7 +63,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should dispose of added disposables upon completion") {
 				let addedDisposable = AnyDisposable()
-				var observer: Observer<(), NoError>!
+				var observer: Signal<(), NoError>.Observer!
 
 				let producer = SignalProducer<(), NoError> { incomingObserver, lifetime in
 					lifetime += addedDisposable
@@ -79,7 +79,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should dispose of added disposables upon error") {
 				let addedDisposable = AnyDisposable()
-				var observer: Observer<(), TestError>!
+				var observer: Signal<(), TestError>.Observer!
 
 				let producer = SignalProducer<(), TestError> { incomingObserver, lifetime in
 					lifetime += addedDisposable
@@ -95,7 +95,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should dispose of added disposables upon interruption") {
 				let addedDisposable = AnyDisposable()
-				var observer: Observer<(), NoError>!
+				var observer: Signal<(), NoError>.Observer!
 
 				let producer = SignalProducer<(), NoError> { incomingObserver, lifetime in
 					lifetime += addedDisposable
@@ -205,7 +205,7 @@ class SignalProducerSpec: QuickSpec {
 
 		describe("init(signal:)") {
 			var signal: Signal<Int, TestError>!
-			var observer: Observer<Int, TestError>!
+			var observer: Signal<Int, TestError>.Observer!
 
 			beforeEach {
 				// Cannot directly assign due to compiler crash on Xcode 7.0.1
@@ -647,7 +647,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should dispose of added disposables upon completion") {
 				let addedDisposable = AnyDisposable()
-				var observer: Observer<Int, TestError>!
+				var observer: Signal<Int, TestError>.Observer!
 
 				let producer = SignalProducer<Int, TestError> { incomingObserver, lifetime in
 					lifetime += addedDisposable
@@ -663,7 +663,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should dispose of added disposables upon error") {
 				let addedDisposable = AnyDisposable()
-				var observer: Observer<Int, TestError>!
+				var observer: Signal<Int, TestError>.Observer!
 
 				let producer = SignalProducer<Int, TestError> { incomingObserver, lifetime in
 					lifetime += addedDisposable
@@ -1107,7 +1107,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("throttle while") {
 			var scheduler: ImmediateScheduler!
 			var shouldThrottle: MutableProperty<Bool>!
-			var observer: Observer<Int, NoError>!
+			var observer: Signal<Int, NoError>.Observer!
 			var producer: SignalProducer<Int, NoError>!
 
 			beforeEach {
@@ -1460,7 +1460,7 @@ class SignalProducerSpec: QuickSpec {
 					var completeB: (() -> Void)!
 					var sendB: (() -> Void)!
 
-					var outerObserver: Observer<SignalProducer<Int, NoError>, NoError>!
+					var outerObserver: Signal<SignalProducer<Int, NoError>, NoError>.Observer!
 					var outerCompleted = false
 
 					var recv = [Int]()
@@ -1749,8 +1749,8 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			describe("interruption") {
-				var innerObserver: Observer<(), NoError>!
-				var outerObserver: Observer<SignalProducer<(), NoError>, NoError>!
+				var innerObserver: Signal<(), NoError>.Observer!
+				var outerObserver: Signal<SignalProducer<(), NoError>, NoError>.Observer!
 				var execute: ((FlattenStrategy) -> Void)!
 
 				var interrupted = false
@@ -2026,7 +2026,7 @@ class SignalProducerSpec: QuickSpec {
 					.single()
 				let result = events?.value
 
-				let expectedEvents: [Event<Int, TestError>] = [
+				let expectedEvents: [Signal<Int, TestError>.Event] = [
 					.value(1),
 					.value(2),
 					.failed(.default),
@@ -2037,7 +2037,7 @@ class SignalProducerSpec: QuickSpec {
 					fail("Invalid result: \(String(describing: result))")
 				} else {
 					// Can't test for equality because Array<T> is not Equatable,
-					// and neither is Event<Value, Error>.
+					// and neither is Signal<Value, Error>.Event.
 					expect(result![0] == expectedEvents[0]) == true
 					expect(result![1] == expectedEvents[1]) == true
 					expect(result![2] == expectedEvents[2]) == true
@@ -2598,7 +2598,7 @@ class SignalProducerSpec: QuickSpec {
 
 		describe("replayLazily") {
 			var producer: SignalProducer<Int, TestError>!
-			var observer: SignalProducer<Int, TestError>.ProducedObserver!
+			var observer: SignalProducer<Int, TestError>.ProducedSignal.Observer!
 
 			var replayedProducer: SignalProducer<Int, TestError>!
 
@@ -3074,7 +3074,7 @@ private func == <T>(left: Expectation<T.Type>, right: Any.Type) {
 }
 
 extension SignalProducer {
-	internal static func pipe() -> (SignalProducer, ProducedObserver) {
+	internal static func pipe() -> (SignalProducer, ProducedSignal.Observer) {
 		let (signal, observer) = ProducedSignal.pipe()
 		let producer = SignalProducer(signal)
 		return (producer, observer)
