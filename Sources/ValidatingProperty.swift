@@ -1,3 +1,4 @@
+/*
 import Result
 
 /// A mutable property that validates mutations before committing them.
@@ -325,3 +326,4 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 		}
 	}
 }
+*/

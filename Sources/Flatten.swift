@@ -1,3 +1,4 @@
+/*
 //
 //  Flatten.swift
 //  ReactiveSwift
@@ -1132,3 +1133,4 @@ extension SignalProducer {
 		return flatMapError { transform($0).producer }
 	}
 }
+*/

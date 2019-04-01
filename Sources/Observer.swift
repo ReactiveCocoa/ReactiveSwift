@@ -8,8 +8,8 @@
 
 /// An Observer is a simple wrapper around a function which can receive Events
 /// (typically from a Signal).
-public final class Observer<Value, Error: Swift.Error> {
-	public typealias Action = (Event<Value, Error>) -> Void
+public final class Observer<GEvent: GEventProtocol> {
+	public typealias Action = (GEvent) -> Void
 	private let _send: Action
 
 	/// Whether the observer should send an `interrupted` event as it deinitializes.
@@ -37,6 +37,38 @@ public final class Observer<Value, Error: Swift.Error> {
 		self.interruptsOnDeinit = false
 	}
 
+	deinit {
+		if interruptsOnDeinit {
+			// Since `Signal` would ensure that only one terminal event would ever be
+			// sent for any given `Signal`, we do not need to assert any condition
+			// here.
+			_send(.interruptedCase)
+		}
+	}
+
+	/// Puts an event into `self`.
+	public func send(_ event: GEvent) {
+		_send(event)
+	}
+
+	/// Puts an `interrupted` event into `self`.
+	public func sendInterrupted() {
+		_send(.interruptedCase)
+	}
+
+	public func contramap<U>(_ transform: @escaping (U) -> GEvent) -> Observer<U> {
+		return Observer<U> { event in
+			self.send(transform(event))
+		}
+	}
+}
+
+extension Observer where GEvent: EventProtocol {
+	public typealias Value = GEvent.Value
+	public typealias Error = GEvent.Error
+}
+
+extension Observer where GEvent: EventProtocol {
 	/// An initializer that accepts closures for different event types.
 	///
 	/// - parameters:
@@ -54,7 +86,7 @@ public final class Observer<Value, Error: Swift.Error> {
 		interrupted: (() -> Void)? = nil
 	) {
 		self.init { event in
-			switch event {
+			switch event.event {
 			case let .value(v):
 				value?(v)
 
@@ -70,9 +102,9 @@ public final class Observer<Value, Error: Swift.Error> {
 		}
 	}
 
-	internal convenience init(mappingInterruptedToCompleted observer: Observer<Value, Error>) {
+	internal convenience init(mappingInterruptedToCompleted observer: Observer<GEvent>) {
 		self.init { event in
-			switch event {
+			switch event.event {
 			case .value, .completed, .failed:
 				observer.send(event)
 			case .interrupted:
@@ -81,26 +113,12 @@ public final class Observer<Value, Error: Swift.Error> {
 		}
 	}
 
-	deinit {
-		if interruptsOnDeinit {
-			// Since `Signal` would ensure that only one terminal event would ever be
-			// sent for any given `Signal`, we do not need to assert any condition
-			// here.
-			_send(.interrupted)
-		}
-	}
-
-	/// Puts an event into `self`.
-	public func send(_ event: Event<Value, Error>) {
-		_send(event)
-	}
-
 	/// Puts a `value` event into `self`.
 	///
 	/// - parameters:
 	///   - value: A value sent with the `value` event.
 	public func send(value: Value) {
-		_send(.value(value))
+		_send(.valueCase(value))
 	}
 
 	/// Puts a failed event into `self`.
@@ -108,18 +126,20 @@ public final class Observer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - error: An error object sent with failed event.
 	public func send(error: Error) {
-		_send(.failed(error))
+		_send(.failedCase(error))
 	}
 
+	public func contramapAsGEvent<U>() -> Observer<U> {
+		return self.contramap { $0 as! GEvent }
+	}
+}
+
+extension Observer where GEvent: CompletableEventProtocol {
 	/// Puts a `completed` event into `self`.
 	public func sendCompleted() {
-		_send(.completed)
+		_send(.completedCase)
 	}
 
-	/// Puts an `interrupted` event into `self`.
-	public func sendInterrupted() {
-		_send(.interrupted)
-	}
 }
 
 /// FIXME: Cannot be placed in `Deprecations+Removal.swift` if compiling with

@@ -1,3 +1,4 @@
+/*
 #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
 import Darwin.POSIX.pthread
 #else
@@ -787,3 +788,4 @@ private final class PropertyBox<Value> {
 		return try action(PropertyStorage(self))
 	}
 }
+*/

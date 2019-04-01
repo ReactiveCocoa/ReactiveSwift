@@ -9,6 +9,14 @@
 /* Begin PBXBuildFile section */
 		02D2602A1C1D6DAF003ACC61 /* SignalLifetimeSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D260291C1D6DAF003ACC61 /* SignalLifetimeSpec.swift */; };
 		02D2602B1C1D6DB8003ACC61 /* SignalLifetimeSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D260291C1D6DAF003ACC61 /* SignalLifetimeSpec.swift */; };
+		1F039A7A2251A48300F75A0B /* GEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F039A792251A48300F75A0B /* GEvent.swift */; };
+		1F039A7B2251A48300F75A0B /* GEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F039A792251A48300F75A0B /* GEvent.swift */; };
+		1F039A7C2251A48300F75A0B /* GEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F039A792251A48300F75A0B /* GEvent.swift */; };
+		1F039A7D2251A48300F75A0B /* GEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F039A792251A48300F75A0B /* GEvent.swift */; };
+		1F039A7F2251A4D300F75A0B /* CompletableEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F039A7E2251A4D300F75A0B /* CompletableEvent.swift */; };
+		1F039A802251A4D300F75A0B /* CompletableEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F039A7E2251A4D300F75A0B /* CompletableEvent.swift */; };
+		1F039A812251A4D300F75A0B /* CompletableEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F039A7E2251A4D300F75A0B /* CompletableEvent.swift */; };
+		1F039A822251A4D300F75A0B /* CompletableEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F039A7E2251A4D300F75A0B /* CompletableEvent.swift */; };
 		4A0AB6721DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */; };
 		4A0AB6731DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */; };
 		4A0AB6741DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */; };
@@ -236,6 +244,8 @@
 
 /* Begin PBXFileReference section */
 		02D260291C1D6DAF003ACC61 /* SignalLifetimeSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalLifetimeSpec.swift; sourceTree = "<group>"; };
+		1F039A792251A48300F75A0B /* GEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GEvent.swift; sourceTree = "<group>"; };
+		1F039A7E2251A4D300F75A0B /* CompletableEvent.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CompletableEvent.swift; sourceTree = "<group>"; };
 		4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReactiveExtensionsSpec.swift; sourceTree = "<group>"; };
 		4A0E10FE1D2A92720065D310 /* Lifetime.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Lifetime.swift; sourceTree = "<group>"; };
 		4A0E11031D2A95200065D310 /* LifetimeSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifetimeSpec.swift; sourceTree = "<group>"; };
@@ -464,6 +474,8 @@
 				D0C312BC19EF2A5800984962 /* Bag.swift */,
 				D0C312BE19EF2A5800984962 /* Disposable.swift */,
 				D08C54B51A69A3DB00AD8286 /* Event.swift */,
+				1F039A792251A48300F75A0B /* GEvent.swift */,
+				1F039A7E2251A4D300F75A0B /* CompletableEvent.swift */,
 				EBCC7DBB1BBF010C00A2AE92 /* Observer.swift */,
 				D871D69E1B3B29A40070F16C /* Optional.swift */,
 				9A090C131DA0309E00EE97CA /* Reactive.swift */,
@@ -897,9 +909,11 @@
 				D85C652D1C0E70E5005A77AD /* Flatten.swift in Sources */,
 				9ABCB1881D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				EBCC7DBF1BBF01E200A2AE92 /* Observer.swift in Sources */,
+				1F039A7D2251A48300F75A0B /* GEvent.swift in Sources */,
 				C79B64801CD52E4E003F2376 /* EventLogger.swift in Sources */,
 				4A0E11021D2A92720065D310 /* Lifetime.swift in Sources */,
 				BE9CF3981D751B71003AE479 /* UnidirectionalBinding.swift in Sources */,
+				1F039A822251A4D300F75A0B /* CompletableEvent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -952,9 +966,11 @@
 				D85C652C1C0E70E4005A77AD /* Flatten.swift in Sources */,
 				9ABCB1871D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				EBCC7DBE1BBF01E200A2AE92 /* Observer.swift in Sources */,
+				1F039A7C2251A48300F75A0B /* GEvent.swift in Sources */,
 				C79B647F1CD52E4D003F2376 /* EventLogger.swift in Sources */,
 				4A0E11011D2A92720065D310 /* Lifetime.swift in Sources */,
 				BE9CF3971D751B71003AE479 /* UnidirectionalBinding.swift in Sources */,
+				1F039A812251A4D300F75A0B /* CompletableEvent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -980,9 +996,11 @@
 				D08C54BA1A69C54300AD8286 /* Property.swift in Sources */,
 				D0D11AB91A6AE87700C1F8B1 /* Action.swift in Sources */,
 				C79B647C1CD52E23003F2376 /* EventLogger.swift in Sources */,
+				1F039A7A2251A48300F75A0B /* GEvent.swift in Sources */,
 				9ABCB1851D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				D08C54B81A69A9D000AD8286 /* SignalProducer.swift in Sources */,
 				BE9CF3951D751B6B003AE479 /* UnidirectionalBinding.swift in Sources */,
+				1F039A7F2251A4D300F75A0B /* CompletableEvent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1035,9 +1053,11 @@
 				C79B647D1CD52E4A003F2376 /* EventLogger.swift in Sources */,
 				D0C312CE19EF2A5800984962 /* Atomic.swift in Sources */,
 				D0C312E819EF2A5800984962 /* Scheduler.swift in Sources */,
+				1F039A7B2251A48300F75A0B /* GEvent.swift in Sources */,
 				D0C312D019EF2A5800984962 /* Bag.swift in Sources */,
 				D0D11ABA1A6AE87700C1F8B1 /* Action.swift in Sources */,
 				BE9CF3961D751B70003AE479 /* UnidirectionalBinding.swift in Sources */,
+				1F039A802251A4D300F75A0B /* CompletableEvent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

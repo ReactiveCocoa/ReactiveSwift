@@ -2,6 +2,9 @@ import Foundation
 import Result
 import Dispatch
 
+/// Signal that emits specialized `Event<Value, Error>`.
+public typealias Signal<Value, Error: Swift.Error> = GSignal<Event<Value, Error>>
+
 /// A push-driven stream that sends Events over time, parameterized by the type
 /// of values being sent (`Value`) and the type of failure that can occur
 /// (`Error`). If no failures should be possible, NoError can be specified for
@@ -18,7 +21,7 @@ import Dispatch
 /// A Signal is kept alive until either of the following happens:
 ///    1. its input observer receives a terminating event; or
 ///    2. it has no active observers, and is not being retained.
-public final class Signal<Value, Error: Swift.Error> {
+public final class GSignal<GEvent: GEventProtocol> {
 	/// The `Signal` core which manages the event stream.
 	///
 	/// A `Signal` is the externally retained shell of the `Signal` core. The separation
@@ -63,7 +66,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// Used to ensure that events are serialized during delivery to observers.
 		private let sendLock: Lock
 
-		fileprivate init(_ generator: (Observer<Value, Error>, Lifetime) -> Void) {
+		fileprivate init(_ generator: (Observer<GEvent>, Lifetime) -> Void) {
 			state = .alive(Bag(), hasDeinitialized: false)
 
 			stateLock = Lock.make()
@@ -74,7 +77,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			generator(Observer(action: self.send, interruptsOnDeinit: true), Lifetime(disposable))
 		}
 
-		private func send(_ event: Event<Value, Error>) {
+		private func send(_ event: GEvent) {
 			if event.isTerminating {
 				// Recursive events are disallowed for `value` events, but are permitted
 				// for termination events. Specifically:
@@ -152,8 +155,8 @@ public final class Signal<Value, Error: Swift.Error> {
 		///
 		/// - returns: A `Disposable` which can be used to disconnect the observer,
 		///            or `nil` if the signal has already terminated.
-		fileprivate func observe(_ observer: Observer<Value, Error>) -> Disposable? {
-			var token: Bag<Observer<Value, Error>>.Token?
+		fileprivate func observe(_ observer: Observer<GEvent>) -> Disposable? {
+			var token: Bag<Observer<GEvent>>.Token?
 
 			stateLock.lock()
 
@@ -179,7 +182,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		///
 		/// - parameters:
 		///   - token: The token of the observer to remove.
-		private func removeObserver(with token: Bag<Observer<Value, Error>>.Token) {
+		private func removeObserver(with token: Bag<Observer<GEvent>>.Token) {
 			stateLock.lock()
 
 			if case let .alive(observers, hasDeinitialized) = state {
@@ -296,7 +299,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-	public init(_ generator: (Observer<Value, Error>, Lifetime) -> Void) {
+	public init(_ generator: (Observer<GEvent>, Lifetime) -> Void) {
 		core = Core(generator)
 	}
 
@@ -311,7 +314,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - returns: A `Disposable` which can be used to disconnect the observer,
 	///            or `nil` if the signal has already terminated.
 	@discardableResult
-	public func observe(_ observer: Observer<Value, Error>) -> Disposable? {
+	public func observe(_ observer: Observer<GEvent>) -> Disposable? {
 		return core.observe(observer)
 	}
 
@@ -330,32 +333,18 @@ public final class Signal<Value, Error: Swift.Error> {
 		// `TerminationKind` is constantly pointer-size large to keep `Signal.Core`
 		// allocation size independent of the actual `Value` and `Error` types.
 		enum TerminationKind {
-			case completed
-			case interrupted
-			case failed(Swift.Error)
+			case terminatingEvent(GEvent)
 			case silent
 
-			init(_ event: Event<Value, Error>) {
-				switch event {
-				case .value:
-					fatalError()
-				case .interrupted:
-					self = .interrupted
-				case let .failed(error):
-					self = .failed(error)
-				case .completed:
-					self = .completed
-				}
+			init(_ event: GEvent) {
+				precondition(event.isTerminating)
+				self = .terminatingEvent(event)
 			}
 
-			func materialize() -> Event<Value, Error>? {
+			func materialize() -> GEvent? {
 				switch self {
-				case .completed:
-					return .completed
-				case .interrupted:
-					return .interrupted
-				case let .failed(error):
-					return .failed(error as! Error)
+				case let .terminatingEvent(event):
+					return event
 				case .silent:
 					return nil
 				}
@@ -363,34 +352,43 @@ public final class Signal<Value, Error: Swift.Error> {
 		}
 
 		/// The `Signal` is alive.
-		case alive(Bag<Observer<Value, Error>>, hasDeinitialized: Bool)
+		case alive(Bag<Observer<GEvent>>, hasDeinitialized: Bool)
 
 		/// The `Signal` has received a termination event, and is about to be
 		/// terminated.
-		case terminating(Bag<Observer<Value, Error>>, TerminationKind)
+		case terminating(Bag<Observer<GEvent>>, TerminationKind)
 
 		/// The `Signal` has terminated.
 		case terminated
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
+	public typealias Value = GEvent.Value
+	public typealias Error = GEvent.Error
+}
+
+extension GSignal {
 	/// A Signal that never sends any events to its observers.
-	public static var never: Signal {
+	public static var never: GSignal {
 		return self.init { observer, lifetime in
 			// If `observer` deinitializes, the `Signal` would interrupt which is
 			// undesirable for `Signal.never`.
 			lifetime.observeEnded { _ = observer }
 		}
 	}
+}
 
+extension GSignal where GEvent: CompletableEventProtocol {
 	/// A Signal that completes immediately without emitting any value.
-	public static var empty: Signal {
+	public static var empty: GSignal {
 		return self.init { observer, _ in
 			observer.sendCompleted()
 		}
 	}
+}
 
+extension GSignal {
 	/// Create a `Signal` that will be controlled by sending events to an
 	/// input observer.
 	///
@@ -403,9 +401,9 @@ extension Signal {
 	///                 to be disposed of when the signal terminates.
 	///
 	/// - returns: A 2-tuple of the output end of the pipe as `Signal`, and the input end
-	///            of the pipe as `Observer<Value, Error>`.
-	public static func pipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer<Value, Error>) {
-		var observer: Observer<Value, Error>!
+	///            of the pipe as `Observer<GEvent>`.
+	public static func pipe(disposable: Disposable? = nil) -> (output: GSignal, input: Observer<GEvent>) {
+		var observer: Observer<GEvent>!
 
 		let signal = self.init { innerObserver, lifetime in
 			observer = innerObserver
@@ -417,29 +415,28 @@ extension Signal {
 }
 
 public protocol SignalProtocol: class {
-	/// The type of values being sent by `self`.
-	associatedtype Value
-
-	/// The type of error that can occur on `self`.
-	associatedtype Error: Swift.Error
+	/// The type of generalized event being sent by `self`.
+	associatedtype GEvent: GEventProtocol
 
 	/// The materialized `self`.
-	var signal: Signal<Value, Error> { get }
+	var signal: GSignal<GEvent> { get }
 }
 
-extension Signal: SignalProtocol {
-	public var signal: Signal<Value, Error> {
+extension GSignal: SignalProtocol {
+	public var signal: GSignal<GEvent> {
 		return self
 	}
 }
 
-extension Signal: SignalProducerConvertible {
+/*
+extension GSignal: SignalProducerConvertible {
 	public var producer: SignalProducer<Value, Error> {
 		return SignalProducer(self)
 	}
 }
+*/
 
-extension Signal {
+extension GSignal {
 	/// Observe `self` for all events being emitted.
 	///
 	/// - note: If `self` has terminated, the closure would be invoked with an
@@ -451,10 +448,12 @@ extension Signal {
 	/// - returns: A disposable to detach `action` from `self`. `nil` if `self` has
 	///            terminated.
 	@discardableResult
-	public func observe(_ action: @escaping Observer<Value, Error>.Action) -> Disposable? {
+	public func observe(_ action: @escaping Observer<GEvent>.Action) -> Disposable? {
 		return observe(Observer(action))
 	}
+}
 
+extension GSignal where GEvent: EventProtocol {
 	/// Observe `self` for all values being emitted, and if any, the failure.
 	///
 	/// - parameters:
@@ -513,7 +512,7 @@ extension Signal {
 	}
 }
 
-extension Signal where Error == NoError {
+extension GSignal where GEvent: EventProtocol, Error == NoError {
 	/// Observe `self` for all values being emitted.
 	///
 	/// - parameters:
@@ -527,7 +526,7 @@ extension Signal where Error == NoError {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Perform an action upon every event from `self`. The action may generate zero or
 	/// more events.
 	///
@@ -544,7 +543,8 @@ extension Signal {
 			// event transformation, and have the resulting events propagated
 			// to the resulting `Signal`.
 			let input = transform(output.send, lifetime)
-			lifetime += self.observe(input)
+			let observer: Observer<GEvent> = Observer(input).contramapAsGEvent()
+			lifetime += self.observe(observer)
 		}
 	}
 
@@ -631,7 +631,7 @@ extension Signal {
 	}
 }
 
-extension Signal where Value: OptionalProtocol {
+extension GSignal where GEvent: EventProtocol, GEvent.Value: OptionalProtocol {
 	/// Unwrap non-`nil` values and forward them on the returned signal, `nil`
 	/// values are dropped.
 	///
@@ -641,7 +641,7 @@ extension Signal where Value: OptionalProtocol {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Take up to `n` values from the signal and then complete.
 	///
 	/// - precondition: `count` must be non-negative number.
@@ -800,7 +800,7 @@ extension Signal {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Combine the latest value of the receiver with the latest value from the
 	/// given signal.
 	///
@@ -818,9 +818,11 @@ extension Signal {
 	///
 	/// - returns: A signal that will yield a tuple containing values of `self`
 	///            and given signal.
+	/*
 	public func combineLatest<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal.combineLatest(self, other)
 	}
+	*/
 	
 	/// Merge the given signal into a single `Signal` that will emit all
 	/// values from both of them, and complete when all of them have completed.
@@ -829,9 +831,11 @@ extension Signal {
 	///   - other: A signal to merge `self`'s value with.
 	///
 	/// - returns: A signal that sends all values of `self` and given signal.
+	/*
 	public func merge(with other: Signal<Value, Error>) -> Signal<Value, Error> {
 		return Signal.merge(self, other)
 	}
+	*/
 
 	/// Delay `value` and `completed` events by the given interval, forwarding
 	/// them on the given scheduler.
@@ -861,7 +865,7 @@ extension Signal {
 	/// - returns:  A signal that will skip the first `count` values, then
 	///             forward everything afterward.
 	public func skip(first count: Int) -> Signal<Value, Error> {
-		guard count != 0 else { return self }
+		guard count != 0 else { return self as! Signal<Value, Error> }
 		return flatMapEvent(Event.skip(first: count))
 	}
 
@@ -894,7 +898,7 @@ extension Signal {
 	}
 }
 
-extension Signal where Value: EventProtocol, Error == NoError {
+extension GSignal where GEvent: EventProtocol, GEvent.Value: EventProtocol, Error == NoError {
 	/// Translate a signal of `Event` _values_ into a signal of those events
 	/// themselves.
 	///
@@ -904,7 +908,7 @@ extension Signal where Value: EventProtocol, Error == NoError {
 	}
 }
 
-extension Signal where Value: ResultProtocol, Error == NoError {
+extension GSignal where GEvent: EventProtocol, GEvent.Value: ResultProtocol, Error == NoError {
 	/// Translate a signal of `Result` _values_ into a signal of those events
 	/// themselves.
 	///
@@ -914,7 +918,7 @@ extension Signal where Value: ResultProtocol, Error == NoError {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Inject side effects to be performed upon the specified signal events.
 	///
 	/// - parameters:
@@ -943,7 +947,8 @@ extension Signal {
 				lifetime.observeEnded(action)
 			}
 
-			lifetime += signal.observe { receivedEvent in
+			lifetime += signal.observe { ev in
+				let receivedEvent = ev.event
 				event?(receivedEvent)
 
 				switch receivedEvent {
@@ -976,7 +981,7 @@ private struct SampleState<Value> {
 	var isSamplerCompleted: Bool = false
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Forward the latest value from `self` with the value from `sampler` as a
 	/// tuple, only when`sampler` sends a `value` event.
 	///
@@ -996,7 +1001,7 @@ extension Signal {
 			let state = Atomic(SampleState<Value>())
 
 			lifetime += self.observe { event in
-				switch event {
+				switch event.event {
 				case let .value(value):
 					state.modify {
 						$0.latestValue = value
@@ -1090,7 +1095,7 @@ extension Signal {
 			}
 
 			lifetime += self.observe { event in
-				switch event {
+				switch event.event {
 				case let .value(value):
 					if let value2 = state.value {
 						observer.send(value: (value, value2))
@@ -1121,6 +1126,7 @@ extension Signal {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
+	/*
 	public func withLatest<U>(from samplee: SignalProducer<U, NoError>) -> Signal<(Value, U), Error> {
 		return Signal<(Value, U), Error> { observer, lifetime in
 			samplee.startWithSignal { signal, disposable in
@@ -1129,6 +1135,7 @@ extension Signal {
 			}
 		}
 	}
+	*/
 
 	/// Forward the latest value from `samplee` with the value from `self` as a
 	/// tuple, only when `self` sends a `value` event.
@@ -1145,12 +1152,14 @@ extension Signal {
 	///            sampled (possibly multiple times) by `self`, then terminate
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
+	/*
 	public func withLatest<Samplee: SignalProducerConvertible>(from samplee: Samplee) -> Signal<(Value, Samplee.Value), Error> where Samplee.Error == NoError {
 		return withLatest(from: samplee.producer)
 	}
+	*/
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Forwards events from `self` until `lifetime` ends, at which point the
 	/// returned signal will complete.
 	///
@@ -1161,7 +1170,7 @@ extension Signal {
 	/// - returns: A signal that will deliver events until `lifetime` ends.
 	public func take(during lifetime: Lifetime) -> Signal<Value, Error> {
 		return Signal<Value, Error> { observer, innerLifetime in
-			innerLifetime += self.observe(observer)
+			innerLifetime += self.observe(observer.contramapAsGEvent())
 			innerLifetime += lifetime.observeEnded(observer.sendCompleted)
 		}
 	}
@@ -1177,7 +1186,7 @@ extension Signal {
 	///            `value` or `completed` events.
 	public func take(until trigger: Signal<(), NoError>) -> Signal<Value, Error> {
 		return Signal<Value, Error> { observer, lifetime in
-			lifetime += self.observe(observer)
+			lifetime += self.observe(observer.contramapAsGEvent())
 			lifetime += trigger.observe { event in
 				switch event {
 				case .value, .completed:
@@ -1208,7 +1217,7 @@ extension Signal {
 			disposable.inner = trigger.observe { event in
 				switch event {
 				case .value, .completed:
-					disposable.inner = self.observe(observer)
+					disposable.inner = self.observe(observer.contramapAsGEvent())
 
 				case .failed, .interrupted:
 					break
@@ -1316,7 +1325,7 @@ extension Signal {
 	}
 }
 
-extension Signal where Value: Equatable {
+extension GSignal where GEvent: EventProtocol, Value: Equatable {
 	/// Forward only values from `self` that are not equal to its immediately preceding
 	/// value.
 	///
@@ -1328,7 +1337,7 @@ extension Signal where Value: Equatable {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Forward only values from `self` that are not considered equivalent to its
 	/// immediately preceding value.
 	///
@@ -1369,6 +1378,7 @@ extension Signal {
 	public func take(untilReplacement signal: Signal<Value, Error>) -> Signal<Value, Error> {
 		return Signal { observer, lifetime in
 			let signalDisposable = self.observe { event in
+				let event = event.event
 				switch event {
 				case .completed:
 					break
@@ -1411,7 +1421,7 @@ extension Signal {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Zip elements of two signals into pairs. The elements of any Nth pair
 	/// are the Nth elements of the two input signals.
 	///
@@ -1419,9 +1429,11 @@ extension Signal {
 	///   - otherSignal: A signal to zip values with.
 	///
 	/// - returns: A signal that sends tuples of `self` and `otherSignal`.
+	/*
 	public func zip<U>(with other: Signal<U, Error>) -> Signal<(Value, U), Error> {
 		return Signal.zip(self, other)
 	}
+	*/
 
 	/// Forward the latest value on `scheduler` after at least `interval`
 	/// seconds have passed since *the returned signal* last sent a value.
@@ -1478,6 +1490,7 @@ extension Signal {
 	///   - scheduler: A scheduler to deliver events on.
 	///
 	/// - returns: A signal that sends values only while `shouldThrottle` is false.
+	/*
 	public func throttle<P: PropertyProtocol>(while shouldThrottle: P, on scheduler: Scheduler) -> Signal<Value, Error>
 		where P.Value == Bool
 	{
@@ -1541,6 +1554,7 @@ extension Signal {
 			}
 		}
 	}
+	*/
 
 	/// Forward the latest value on `scheduler` after at least `interval`
 	/// seconds have passed since `self` last sent a value.
@@ -1578,7 +1592,7 @@ extension Signal {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Forward only those values from `self` that have unique identities across
 	/// the set of all values that have been seen.
 	///
@@ -1595,7 +1609,7 @@ extension Signal {
 	}
 }
 
-extension Signal where Value: Hashable {
+extension GSignal where GEvent: EventProtocol, Value: Hashable {
 	/// Forward only those values from `self` that are unique across the set of
 	/// all values that have been seen.
 	///
@@ -1646,7 +1660,7 @@ private enum AggregateStrategyEvent {
 	case completed
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	// Threading of `CombineLatestStrategy` and `ZipStrategy`.
 	//
 	// The threading models of these strategies mirror that of `Signal.Core` to allow
@@ -1849,7 +1863,9 @@ extension Signal {
 			}
 
 			for (index, action) in builder.startHandlers.enumerated() where !lifetime.hasEnded {
-				lifetime += action(index, strategy) { observer.send($0.map { _ in fatalError() }) }
+				lifetime += action(index, strategy) {
+					observer.send($0.promoteValue(GEvent.Value.self) as! GEvent)
+				}
 			}
 		}
 	}
@@ -2024,7 +2040,7 @@ extension Signal {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Forward events from `self` until `interval`. Then if signal isn't 
 	/// completed yet, fails with `error` on `scheduler`.
 	///
@@ -2053,12 +2069,13 @@ extension Signal {
 				observer.send(error: error)
 			}
 
-			lifetime += self.observe(observer)
+			lifetime += self.observe(observer.contramapAsGEvent())
 		}
 	}
 }
 
-extension Signal where Error == NoError {
+
+extension GSignal where GEvent: EventProtocol, GEvent.Error == NoError {
 	/// Promote a signal that does not generate failures into one that can.
 	///
 	/// - note: This does not actually cause failures to be generated for the
@@ -2086,9 +2103,11 @@ extension Signal where Error == NoError {
 	///
 	/// - returns: A signal that has an instantiatable `ErrorType`.
 	public func promoteError(_: Error.Type = Error.self) -> Signal<Value, Error> {
-		return self
+		return self as! Signal<Value, Error>
 	}
+}
 
+extension GSignal where GEvent: EventProtocol, GEvent.Error == NoError {
 	/// Forward events from `self` until `interval`. Then if signal isn't
 	/// completed yet, fails with `error` on `scheduler`.
 	///
@@ -2116,7 +2135,8 @@ extension Signal where Error == NoError {
 	}
 }
 
-extension Signal where Value == Never {
+/*
+extension GSignal where GEvent: EventProtocol, Value == Never {
 	/// Promote a signal that does not generate values, as indicated by `Never`, to be
 	/// a signal of the given type of value.
 	///
@@ -2140,11 +2160,11 @@ extension Signal where Value == Never {
 	///
 	/// - returns: A signal that forwards all terminal events from `self`.
 	public func promoteValue(_: Value.Type = Value.self) -> Signal<Value, Error> {
-		return self
+		return self as! Signal<Value, Error>
 	}
 }
 
-extension Signal where Value == Bool {
+extension GSignal where GEvent: EventProtocol, Value == Bool {
 	/// Create a signal that computes a logical NOT in the latest values of `self`.
 	///
 	/// - returns: A signal that emits the logical NOT results.
@@ -2175,7 +2195,7 @@ extension Signal where Value == Bool {
 	}
 }
 
-extension Signal {
+extension GSignal where GEvent: EventProtocol {
 	/// Apply an action to every value from `self`, and forward the value if the action
 	/// succeeds. If the action fails with an error, the returned `Signal` would propagate
 	/// the failure and terminate.
@@ -2202,8 +2222,9 @@ extension Signal {
 		return flatMapEvent(Event.attemptMap(transform))
 	}
 }
+*/
 
-extension Signal where Error == NoError {
+extension GSignal where GEvent: EventProtocol, Error == NoError {
 	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.
@@ -2233,7 +2254,7 @@ extension Signal where Error == NoError {
 	}
 }
 
-extension Signal where Error == AnyError {
+extension GSignal where GEvent: EventProtocol, Error == AnyError {
 	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the returned `Signal`
 	/// would propagate the failure and terminate.

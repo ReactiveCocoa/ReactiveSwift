@@ -1,3 +1,4 @@
+/*
 import Dispatch
 import Foundation
 import Result
@@ -373,4 +374,4 @@ extension ActionError where Error: Equatable {
 }
 
 extension ActionError: Equatable where Error: Equatable {}
-
+*/

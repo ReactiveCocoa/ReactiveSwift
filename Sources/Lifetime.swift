@@ -10,8 +10,8 @@ public final class Lifetime {
 	///
 	/// - note: Consider using `Lifetime.observeEnded` if only a closure observer
 	///         is to be attached.
-	public var ended: Signal<Never, NoError> {
-		return Signal { observer, lifetime in
+	public var ended: GSignal<CompletableEvent> {
+		return GSignal { observer, lifetime in
 			lifetime += (disposables += observer.sendCompleted)
 		}
 	}

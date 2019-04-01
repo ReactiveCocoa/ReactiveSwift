@@ -1,3 +1,4 @@
+/*
 //
 //  EventLogger.swift
 //  ReactiveSwift
@@ -172,3 +173,4 @@ private extension LoggingEventProtocol {
 		}
 	}
 }
+*/

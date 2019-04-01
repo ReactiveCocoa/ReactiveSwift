@@ -1,3 +1,4 @@
+/*
 import Result
 
 // Observation
@@ -145,4 +146,5 @@ func test() {
 	Signal<Never, NoError>.never.flatMapError { _ in SignalProducer<Never, AnyError>.empty }
 	Signal<Never, NoError>.never.flatMapError { _ in SignalProducer<Never, NoError>.empty }
 }
+*/
 */

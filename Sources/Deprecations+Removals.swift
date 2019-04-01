@@ -1,3 +1,4 @@
+/*
 import Foundation
 import Dispatch
 import Result
@@ -15,3 +16,4 @@ extension Lifetime {
 }
 
 // MARK: Deprecated types
+*/

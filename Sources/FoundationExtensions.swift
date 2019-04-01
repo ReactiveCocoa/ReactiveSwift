@@ -16,6 +16,7 @@ import struct Result.AnyError
 	import let CDispatch.NSEC_PER_SEC
 #endif
 
+/*
 extension NotificationCenter: ReactiveExtensionsProvider {}
 
 extension Reactive where Base: NotificationCenter {
@@ -78,6 +79,7 @@ extension Reactive where Base: URLSession {
 		}
 	}
 }
+*/
 
 extension Date {
 	internal func addingTimeInterval(_ interval: DispatchTimeInterval) -> Date {

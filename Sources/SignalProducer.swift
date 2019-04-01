@@ -1,3 +1,4 @@
+/*
 import Dispatch
 import Foundation
 import Result
@@ -2915,3 +2916,4 @@ extension SignalProducer where Value == Date, Error == NoError {
 		}
 	}
 }
+*/

@@ -159,7 +159,7 @@ extension Event: CustomStringConvertible {
 }
 
 /// Event protocol for constraining signal extensions
-public protocol EventProtocol {
+public protocol EventProtocol: CompletableEventProtocol {
 	/// The value type of an event.
 	associatedtype Value
 	/// The error type of an event. If errors aren't possible then `NoError` can
@@ -167,11 +167,30 @@ public protocol EventProtocol {
 	associatedtype Error: Swift.Error
 	/// Extracts the event from the receiver.
 	var event: Event<Value, Error> { get }
+
+	static func valueCase(_ value: Value) -> Self
+	static func failedCase(_ error: Error) -> Self
 }
 
 extension Event: EventProtocol {
 	public var event: Event<Value, Error> {
 		return self
+	}
+
+	public static func valueCase(_ value: Value) -> Event {
+		return .value(value)
+	}
+
+	public static func failedCase(_ error: Error) -> Event {
+		return .failed(error)
+	}
+
+	public static var completedCase: Event {
+		return .completed
+	}
+
+	public static var interruptedCase: Event {
+		return .interrupted
 	}
 }
 
@@ -204,7 +223,7 @@ extension Event: EventProtocol {
 //    This operator performs side effect upon interruption.
 
 extension Event {
-	internal typealias Transformation<U, E: Swift.Error> = (@escaping Observer<U, E>.Action, Lifetime) -> Observer<Value, Error>.Action
+	internal typealias Transformation<U, E: Swift.Error> = (@escaping Observer<Event<U, E>>.Action, Lifetime) -> Observer<Event<Value, Error>>.Action
 
 	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
 		return { action, _ in
@@ -1011,6 +1030,17 @@ extension Event where Error == NoError {
 }
 
 extension Event where Value == Never {
+	internal func promoteValue<U>(_: U.Type) -> Event<U, Error> {
+		switch self {
+		case let .failed(error):
+			return .failed(error)
+		case .completed:
+			return .completed
+		case .interrupted:
+			return .interrupted
+		}
+	}
+
 	internal static func promoteValue<U>(_: U.Type) -> Transformation<U, Error> {
 		return { action, _ in
 			return { event in
