@@ -1,6 +1,6 @@
 os: osx
 language: objective-c
-osx_image: xcode10.1
+osx_image: xcode10.2
 before_install: true
 install: true
 branches:
@@ -68,25 +68,10 @@ aliases:
 matrix:
   include:
     - <<: *xcode
-    - <<: *xcode
-      osx_image: xcode10.2
-    # - <<: *xcode
-    #   osx_image: xcode10.2
-    #   env: XCODE_ARGS="SWIFT_VERSION=5.0"
     - <<: *cocoapods
       install: gem update cocoapods
     - <<: *swiftpm_darwin
-    - <<: *swiftpm_darwin
-      osx_image: xcode10.2
     - <<: *swiftpm_linux
-    - <<: *swiftpm_linux
-      env:
-        - JOB=SwiftPM
-        - SWIFT_VERSION=4.2.3
-    - <<: *swiftpm_linux
-      env:
-        - JOB=SwiftPM
-        - SWIFT_VERSION=5.0-DEVELOPMENT-SNAPSHOT-2019-02-28-a
     - stage: carthage
       script: carthage build --cache-builds --no-skip-current
     - stage: deploy

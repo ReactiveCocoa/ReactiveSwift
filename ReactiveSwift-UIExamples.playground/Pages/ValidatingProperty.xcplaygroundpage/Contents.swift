@@ -13,7 +13,6 @@
  1. If you cannot see the playground live view, make sure the Timeline view has been selected for the Assistant Editor.
  */
 import ReactiveSwift
-import Result
 import UIKit
 import PlaygroundSupport
 
@@ -32,7 +31,7 @@ final class ViewModel {
 
 	let submit: Action<(), (), FormError>
 
-	let reasons: Signal<String, NoError>
+	let reasons: Signal<String, Never>
 
 	init(userService: UserService) {
         // email: ValidatingProperty<String, FormError>
@@ -127,9 +126,9 @@ final class ViewController: UIViewController {
 }
 
 final class UserService {
-	let (requestSignal, requestObserver) = Signal<String, NoError>.pipe()
+	let (requestSignal, requestObserver) = Signal<String, Never>.pipe()
 
-	func canUseUsername(_ string: String) -> SignalProducer<Bool, NoError> {
+	func canUseUsername(_ string: String) -> SignalProducer<Bool, Never> {
 		return SignalProducer { observer, disposable in
 			self.requestObserver.send(value: string)
 			observer.send(value: true)

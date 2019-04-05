@@ -1,5 +1,4 @@
 import Foundation
-import enum Result.NoError
 
 /// Represents the lifetime of an object, and provides a hook to observe when
 /// the object deinitializes.
@@ -10,7 +9,7 @@ public final class Lifetime {
 	///
 	/// - note: Consider using `Lifetime.observeEnded` if only a closure observer
 	///         is to be attached.
-	public var ended: Signal<Never, NoError> {
+	public var ended: Signal<Never, Never> {
 		return Signal { observer, lifetime in
 			lifetime += (disposables += observer.sendCompleted)
 		}

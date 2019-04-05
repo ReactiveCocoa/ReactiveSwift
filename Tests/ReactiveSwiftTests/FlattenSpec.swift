@@ -6,7 +6,6 @@
 //  Copyright © 2016 GitHub. All rights reserved.
 //
 
-import Result
 import Nimble
 import Quick
 import ReactiveSwift
@@ -77,7 +76,7 @@ class FlattenSpec: QuickSpec {
 				it("disposes original signal when result signal interrupted") {
 					var disposed = false
 
-					let disposable = SignalProducer<SignalProducer<(), NoError>, NoError> { _, lifetime in
+					let disposable = SignalProducer<SignalProducer<(), Never>, Never> { _, lifetime in
 						lifetime.observeEnded { disposed = true }
 					}
 						.flatten(flattenStrategy)
@@ -118,9 +117,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a TestError Signal") {
+			it("works with Never and a TestError Signal") {
 				typealias Inner = Signal<Int, TestError>
-				typealias Outer = Signal<Inner, NoError>
+				typealias Outer = Signal<Inner, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -138,9 +137,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a NoError Signal") {
-				typealias Inner = Signal<Int, NoError>
-				typealias Outer = Signal<Inner, NoError>
+			it("works with Never and a Never Signal") {
+				typealias Inner = Signal<Int, Never>
+				typealias Outer = Signal<Inner, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -157,8 +156,8 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with TestError and a NoError Signal") {
-				typealias Inner = Signal<Int, NoError>
+			it("works with TestError and a Never Signal") {
+				typealias Inner = Signal<Int, Never>
 				typealias Outer = Signal<Inner, TestError>
 
 				let (inner, innerObserver) = Inner.pipe()
@@ -197,9 +196,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a TestError SignalProducer") {
+			it("works with Never and a TestError SignalProducer") {
 				typealias Inner = SignalProducer<Int, TestError>
-				typealias Outer = Signal<Inner, NoError>
+				typealias Outer = Signal<Inner, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -217,9 +216,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a NoError SignalProducer") {
-				typealias Inner = SignalProducer<Int, NoError>
-				typealias Outer = Signal<Inner, NoError>
+			it("works with Never and a Never SignalProducer") {
+				typealias Inner = SignalProducer<Int, Never>
+				typealias Outer = Signal<Inner, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -236,8 +235,8 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with TestError and a NoError SignalProducer") {
-				typealias Inner = SignalProducer<Int, NoError>
+			it("works with TestError and a Never SignalProducer") {
+				typealias Inner = SignalProducer<Int, Never>
 				typealias Outer = Signal<Inner, TestError>
 
 				let (inner, innerObserver) = Inner.pipe()
@@ -257,7 +256,7 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("works with Sequence as a value") {
-				let (signal, innerObserver) = Signal<[Int], NoError>.pipe()
+				let (signal, innerObserver) = Signal<[Int], Never>.pipe()
 				let sequence = [1, 2, 3]
 				var observedValues = [Int]()
 
@@ -281,8 +280,8 @@ class FlattenSpec: QuickSpec {
 					.flatten(.latest)
 			}
 
-			it("works with Property and NoError") {
-				_ = Signal<Property<Int>, NoError>.empty
+			it("works with Property and Never") {
+				_ = Signal<Property<Int>, Never>.empty
 					.flatten(.latest)
 			}
 		}
@@ -308,9 +307,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a TestError Signal") {
+			it("works with Never and a TestError Signal") {
 				typealias Inner = Signal<Int, TestError>
-				typealias Outer = SignalProducer<Inner, NoError>
+				typealias Outer = SignalProducer<Inner, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -328,9 +327,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a NoError Signal") {
-				typealias Inner = Signal<Int, NoError>
-				typealias Outer = SignalProducer<Inner, NoError>
+			it("works with Never and a Never Signal") {
+				typealias Inner = Signal<Int, Never>
+				typealias Outer = SignalProducer<Inner, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -347,8 +346,8 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with TestError and a NoError Signal") {
-				typealias Inner = Signal<Int, NoError>
+			it("works with TestError and a Never Signal") {
+				typealias Inner = Signal<Int, Never>
 				typealias Outer = SignalProducer<Inner, TestError>
 
 				let (inner, innerObserver) = Inner.pipe()
@@ -387,9 +386,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a TestError SignalProducer") {
+			it("works with Never and a TestError SignalProducer") {
 				typealias Inner = SignalProducer<Int, TestError>
-				typealias Outer = SignalProducer<Inner, NoError>
+				typealias Outer = SignalProducer<Inner, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -407,9 +406,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a NoError SignalProducer") {
-				typealias Inner = SignalProducer<Int, NoError>
-				typealias Outer = SignalProducer<Inner, NoError>
+			it("works with Never and a Never SignalProducer") {
+				typealias Inner = SignalProducer<Int, Never>
+				typealias Outer = SignalProducer<Inner, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -426,8 +425,8 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with TestError and a NoError SignalProducer") {
-				typealias Inner = SignalProducer<Int, NoError>
+			it("works with TestError and a Never SignalProducer") {
+				typealias Inner = SignalProducer<Int, Never>
 				typealias Outer = SignalProducer<Inner, TestError>
 
 				let (inner, innerObserver) = Inner.pipe()
@@ -450,7 +449,7 @@ class FlattenSpec: QuickSpec {
 				let sequence = [1, 2, 3]
 				var observedValues = [Int]()
 
-				let producer = SignalProducer<[Int], NoError>(value: sequence)
+				let producer = SignalProducer<[Int], Never>(value: sequence)
 				producer
 					.flatten()
 					.startWithValues { value in
@@ -470,8 +469,8 @@ class FlattenSpec: QuickSpec {
 					.flatten(.latest)
 			}
 
-			it("works with Property and NoError") {
-				_ = SignalProducer<Property<Int>, NoError>.empty
+			it("works with Property and Never") {
+				_ = SignalProducer<Property<Int>, Never>.empty
 					.flatten(.latest)
 			}
 		}
@@ -497,9 +496,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a TestError Signal") {
+			it("works with Never and a TestError Signal") {
 				typealias Inner = Signal<Int, TestError>
-				typealias Outer = Signal<Int, NoError>
+				typealias Outer = Signal<Int, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -517,9 +516,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a NoError Signal") {
-				typealias Inner = Signal<Int, NoError>
-				typealias Outer = Signal<Int, NoError>
+			it("works with Never and a Never Signal") {
+				typealias Inner = Signal<Int, Never>
+				typealias Outer = Signal<Int, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -536,8 +535,8 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with TestError and a NoError Signal") {
-				typealias Inner = Signal<Int, NoError>
+			it("works with TestError and a Never Signal") {
+				typealias Inner = Signal<Int, Never>
 				typealias Outer = Signal<Int, TestError>
 
 				let (inner, innerObserver) = Inner.pipe()
@@ -576,9 +575,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a TestError SignalProducer") {
+			it("works with Never and a TestError SignalProducer") {
 				typealias Inner = SignalProducer<Int, TestError>
-				typealias Outer = Signal<Int, NoError>
+				typealias Outer = Signal<Int, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -596,9 +595,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a NoError SignalProducer") {
-				typealias Inner = SignalProducer<Int, NoError>
-				typealias Outer = Signal<Int, NoError>
+			it("works with Never and a Never SignalProducer") {
+				typealias Inner = SignalProducer<Int, Never>
+				typealias Outer = Signal<Int, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -615,8 +614,8 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with TestError and a NoError SignalProducer") {
-				typealias Inner = SignalProducer<Int, NoError>
+			it("works with TestError and a Never SignalProducer") {
+				typealias Inner = SignalProducer<Int, Never>
 				typealias Outer = Signal<Int, TestError>
 
 				let (inner, innerObserver) = Inner.pipe()
@@ -640,18 +639,18 @@ class FlattenSpec: QuickSpec {
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
 
-			it("works with Property and NoError") {
-				_ = Signal<Int, NoError>.empty
+			it("works with Property and Never") {
+				_ = Signal<Int, Never>.empty
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner value and error type parameters, given an upstream of arbitrary error type") {
 				_ = Signal<Int, TestError>.empty
-					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(error: .default)) }
+					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(failure: .default)) }
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups with implicit error type parameter") {
-				_ = Signal<Int, NoError>.empty
+				_ = Signal<Int, Never>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
 
@@ -663,7 +662,7 @@ class FlattenSpec: QuickSpec {
 // NOTE: These test cases were disabled as the Swift 4.2 type checker apparently
 // cannot infer the type paramaters when both are absent.
 //			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
-//				_ = Signal<Int, NoError>.empty
+//				_ = Signal<Int, Never>.empty
 //					.flatMap(.latest) { _ in .empty }
 //			}
 //
@@ -672,9 +671,9 @@ class FlattenSpec: QuickSpec {
 //					.flatMap(.latest) { _ in .empty }
 //			}
 
-			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a NoError upstream") {
-				_ = Signal<Int, NoError>.empty
-					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>(error: .default)) }
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a Never upstream") {
+				_ = Signal<Int, Never>.empty
+					.flatMap(.latest) { _ in .init(result: Result<Int, TestError>.failure(.default)) }
 			}
 		}
 
@@ -699,9 +698,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a TestError Signal") {
+			it("works with Never and a TestError Signal") {
 				typealias Inner = Signal<Int, TestError>
-				typealias Outer = SignalProducer<Int, NoError>
+				typealias Outer = SignalProducer<Int, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -719,9 +718,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a NoError Signal") {
-				typealias Inner = Signal<Int, NoError>
-				typealias Outer = SignalProducer<Int, NoError>
+			it("works with Never and a Never Signal") {
+				typealias Inner = Signal<Int, Never>
+				typealias Outer = SignalProducer<Int, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -738,8 +737,8 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with TestError and a NoError Signal") {
-				typealias Inner = Signal<Int, NoError>
+			it("works with TestError and a Never Signal") {
+				typealias Inner = Signal<Int, Never>
 				typealias Outer = SignalProducer<Int, TestError>
 
 				let (inner, innerObserver) = Inner.pipe()
@@ -778,9 +777,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a TestError SignalProducer") {
+			it("works with Never and a TestError SignalProducer") {
 				typealias Inner = SignalProducer<Int, TestError>
-				typealias Outer = SignalProducer<Int, NoError>
+				typealias Outer = SignalProducer<Int, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -798,9 +797,9 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with NoError and a NoError SignalProducer") {
-				typealias Inner = SignalProducer<Int, NoError>
-				typealias Outer = SignalProducer<Int, NoError>
+			it("works with Never and a Never SignalProducer") {
+				typealias Inner = SignalProducer<Int, Never>
+				typealias Outer = SignalProducer<Int, Never>
 
 				let (inner, innerObserver) = Inner.pipe()
 				let (outer, outerObserver) = Outer.pipe()
@@ -817,8 +816,8 @@ class FlattenSpec: QuickSpec {
 				expect(observed) == 4
 			}
 
-			it("works with TestError and a NoError SignalProducer") {
-				typealias Inner = SignalProducer<Int, NoError>
+			it("works with TestError and a Never SignalProducer") {
+				typealias Inner = SignalProducer<Int, Never>
 				typealias Outer = SignalProducer<Int, TestError>
 
 				let (inner, innerObserver) = Inner.pipe()
@@ -842,8 +841,8 @@ class FlattenSpec: QuickSpec {
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
 
-			it("works with Property and NoError") {
-				_ = SignalProducer<Int, NoError>.empty
+			it("works with Property and Never") {
+				_ = SignalProducer<Int, Never>.empty
 					.flatMap(.latest) { _ in Property(value: 0) }
 			}
 
@@ -853,7 +852,7 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups with implicit inner error type parameter") {
-				_ = SignalProducer<Int, NoError>.empty
+				_ = SignalProducer<Int, Never>.empty
 					.flatMap(.latest) { _ in .init(value: 0) }
 			}
 
@@ -865,7 +864,7 @@ class FlattenSpec: QuickSpec {
 // NOTE: These test cases were disabled as the Swift 4.2 type checker apparently
 // cannot infer the type paramaters when both are absent.
 //			it("should be able to fallback to SignalProducer for contextual lookups without explicit inner value and error type parameters") {
-//				_ = SignalProducer<Int, NoError>.empty
+//				_ = SignalProducer<Int, Never>.empty
 //					.flatMap(.latest) { _ in .empty }
 //			}
 //
@@ -874,17 +873,17 @@ class FlattenSpec: QuickSpec {
 //					.flatMap(.latest) { _ in .empty }
 //			}
 
-			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a NoError upstream.") {
-				_ = SignalProducer<Int, NoError>.empty
+			it("should be able to fallback to SignalProducer for contextual lookups with explicit inner and error type parameters, given a Never upstream.") {
+				_ = SignalProducer<Int, Never>.empty
 					.flatMap(.latest) { _ in .init(error: .default) } as SignalProducer<Int, TestError>
 			}
 		}
 
 		describe("Signal.merge()") {
 			it("should emit values from all signals") {
-				let (signal1, observer1) = Signal<Int, NoError>.pipe()
-				let (signal2, observer2) = Signal<Int, NoError>.pipe()
-				let (signal3, observer3) = Signal<Int, NoError>.pipe()
+				let (signal1, observer1) = Signal<Int, Never>.pipe()
+				let (signal2, observer2) = Signal<Int, Never>.pipe()
+				let (signal3, observer3) = Signal<Int, Never>.pipe()
 
 				let mergedSignals = Signal.merge([signal1, signal2, signal3])
 
@@ -907,9 +906,9 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should not stop when one signal completes") {
-				let (signal1, observer1) = Signal<Int, NoError>.pipe()
-				let (signal2, observer2) = Signal<Int, NoError>.pipe()
-				let (signal3, observer3) = Signal<Int, NoError>.pipe()
+				let (signal1, observer1) = Signal<Int, Never>.pipe()
+				let (signal2, observer2) = Signal<Int, Never>.pipe()
+				let (signal3, observer3) = Signal<Int, Never>.pipe()
 
 				let mergedSignals = Signal.merge([signal1, signal2, signal3])
 
@@ -932,9 +931,9 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should complete when all signals complete") {
-				let (signal1, observer1) = Signal<Int, NoError>.pipe()
-				let (signal2, observer2) = Signal<Int, NoError>.pipe()
-				let (signal3, observer3) = Signal<Int, NoError>.pipe()
+				let (signal1, observer1) = Signal<Int, Never>.pipe()
+				let (signal2, observer2) = Signal<Int, Never>.pipe()
+				let (signal3, observer3) = Signal<Int, Never>.pipe()
 
 				let mergedSignals = Signal.merge([signal1, signal2, signal3])
 
@@ -959,8 +958,8 @@ class FlattenSpec: QuickSpec {
 		
 		describe("Signal.merge(with:)") {
 			it("should emit values from both signals") {
-				let (signal1, observer1) = Signal<Int, NoError>.pipe()
-				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				let (signal1, observer1) = Signal<Int, Never>.pipe()
+				let (signal2, observer2) = Signal<Int, Never>.pipe()
 				
 				let mergedSignals = signal1.merge(with: signal2)
 				
@@ -980,8 +979,8 @@ class FlattenSpec: QuickSpec {
 			}
 			
 			it("should not stop when one signal completes") {
-				let (signal1, observer1) = Signal<Int, NoError>.pipe()
-				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				let (signal1, observer1) = Signal<Int, Never>.pipe()
+				let (signal2, observer2) = Signal<Int, Never>.pipe()
 				
 				let mergedSignals = signal1.merge(with: signal2)
 				
@@ -1001,8 +1000,8 @@ class FlattenSpec: QuickSpec {
 			}
 			
 			it("should complete when both signals complete") {
-				let (signal1, observer1) = Signal<Int, NoError>.pipe()
-				let (signal2, observer2) = Signal<Int, NoError>.pipe()
+				let (signal1, observer1) = Signal<Int, Never>.pipe()
+				let (signal2, observer2) = Signal<Int, Never>.pipe()
 				
 				let mergedSignals = signal1.merge(with: signal2)
 				
@@ -1024,9 +1023,9 @@ class FlattenSpec: QuickSpec {
 
 		describe("SignalProducer.merge()") {
 			it("should emit values from all producers") {
-				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
-				let (producer3, observer3) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, Never>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, Never>.pipe()
+				let (producer3, observer3) = SignalProducer<Int, Never>.pipe()
 
 				let mergedProducer = SignalProducer.merge([producer1, producer2, producer3])
 
@@ -1049,9 +1048,9 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should not stop when one producer completes") {
-				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
-				let (producer3, observer3) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, Never>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, Never>.pipe()
+				let (producer3, observer3) = SignalProducer<Int, Never>.pipe()
 
 				let mergedProducer = SignalProducer.merge([producer1, producer2, producer3])
 
@@ -1074,9 +1073,9 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should complete when all producers complete") {
-				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
-				let (producer3, observer3) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, Never>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, Never>.pipe()
+				let (producer3, observer3) = SignalProducer<Int, Never>.pipe()
 
 				let mergedProducer = SignalProducer.merge([producer1, producer2, producer3])
 
@@ -1101,8 +1100,8 @@ class FlattenSpec: QuickSpec {
 		
 		describe("SignalProducer.merge(with:)") {
 			it("should emit values from both producers") {
-				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, Never>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, Never>.pipe()
 				
 				let mergedProducer = producer1.merge(with: producer2)
 				
@@ -1122,8 +1121,8 @@ class FlattenSpec: QuickSpec {
 			}
 			
 			it("should not stop when one producer completes") {
-				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, Never>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, Never>.pipe()
 				
 				let mergedProducer = producer1.merge(with: producer2)
 				
@@ -1143,8 +1142,8 @@ class FlattenSpec: QuickSpec {
 			}
 			
 			it("should complete when both producers complete") {
-				let (producer1, observer1) = SignalProducer<Int, NoError>.pipe()
-				let (producer2, observer2) = SignalProducer<Int, NoError>.pipe()
+				let (producer1, observer1) = SignalProducer<Int, Never>.pipe()
+				let (producer2, observer2) = SignalProducer<Int, Never>.pipe()
 				
 				let mergedProducer = producer1.merge(with: producer2)
 				
@@ -1164,14 +1163,14 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups") {
-				_ = SignalProducer<Int, NoError>.empty
+				_ = SignalProducer<Int, Never>.empty
 					.merge(with: .init(value: 0))
 			}
 		}
 
 		describe("SignalProducer.prefix()") {
 			it("should emit initial value") {
-				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				let (signal, observer) = SignalProducer<Int, Never>.pipe()
 
 				let mergedSignals = signal.prefix(value: 0)
 
@@ -1191,7 +1190,7 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should emit initial value") {
-				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				let (signal, observer) = SignalProducer<Int, Never>.pipe()
 
 				let mergedSignals = signal.prefix(SignalProducer(value: 0))
 
@@ -1211,7 +1210,7 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should accept SignalProducerConvertible conforming type") {
-				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				let (signal, observer) = SignalProducer<Int, Never>.pipe()
 
 				let mergedSignals = signal.prefix(Property(value: 0))
 
@@ -1231,14 +1230,14 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups") {
-				_ = SignalProducer<Int, NoError>.empty
+				_ = SignalProducer<Int, Never>.empty
 					.prefix(.init(value: 0))
 			}
 		}
 
 		describe("SignalProducer.concat()") {
 			it("should emit final value") {
-				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				let (signal, observer) = SignalProducer<Int, Never>.pipe()
 
 				let mergedSignals = signal.concat(value: 4)
 
@@ -1259,7 +1258,7 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should emit final value") {
-				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				let (signal, observer) = SignalProducer<Int, Never>.pipe()
 
 				let mergedSignals = signal.concat(SignalProducer(value: 4))
 
@@ -1280,7 +1279,7 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should accept SignalProducerConvertible conforming type") {
-				let (signal, observer) = SignalProducer<Int, NoError>.pipe()
+				let (signal, observer) = SignalProducer<Int, Never>.pipe()
 
 				let mergedSignals = signal.concat(Property(value: 4))
 
@@ -1335,26 +1334,26 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups") {
-				_ = SignalProducer<Int, NoError>.empty
+				_ = SignalProducer<Int, Never>.empty
 					.concat(.init(value: 0))
 			}
 		}
 
 		describe("FlattenStrategy.concurrent") {
-			func run(_ modifier: (SignalProducer<UInt, NoError>) -> SignalProducer<UInt, NoError>) {
+			func run(_ modifier: (SignalProducer<UInt, Never>) -> SignalProducer<UInt, Never>) {
 				let concurrentLimit: UInt = 4
 				let extra: UInt = 100
 
-				let (outer, outerObserver) = Signal<SignalProducer<UInt, NoError>, NoError>.pipe()
+				let (outer, outerObserver) = Signal<SignalProducer<UInt, Never>, Never>.pipe()
 
 				var values: [UInt] = []
 				outer.flatten(.concurrent(limit: concurrentLimit)).observeValues { values.append($0) }
 
 				var started: [UInt] = []
-				var observers: [Signal<UInt, NoError>.Observer] = []
+				var observers: [Signal<UInt, Never>.Observer] = []
 
 				for i in 0 ..< (concurrentLimit + extra) {
-					let (signal, observer) = Signal<UInt, NoError>.pipe()
+					let (signal, observer) = Signal<UInt, Never>.pipe()
 					observers.append(observer)
 
 					let producer = modifier(SignalProducer(signal).prefix(value: i).on(started: { started.append(i) }))

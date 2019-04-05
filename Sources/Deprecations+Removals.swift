@@ -1,6 +1,5 @@
 import Foundation
 import Dispatch
-import Result
 
 // MARK: Unavailable methods in ReactiveSwift 3.0.
 extension Signal {

@@ -1,6 +1,5 @@
 import Foundation
 import Dispatch
-import enum Result.NoError
 
 precedencegroup BindingPrecedence {
 	associativity: right
@@ -12,9 +11,9 @@ precedencegroup BindingPrecedence {
 infix operator <~ : BindingPrecedence
 
 /// Describes a source which can be bound.
-public protocol BindingSource: SignalProducerConvertible where Error == NoError {}
-extension Signal: BindingSource where Error == NoError {}
-extension SignalProducer: BindingSource where Error == NoError {}
+public protocol BindingSource: SignalProducerConvertible where Error == Never {}
+extension Signal: BindingSource where Error == Never {}
+extension SignalProducer: BindingSource where Error == Never {}
 
 /// Describes an entity which be bond towards.
 public protocol BindingTargetProvider {

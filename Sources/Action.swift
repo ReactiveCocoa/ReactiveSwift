@@ -1,6 +1,5 @@
 import Dispatch
 import Foundation
-import Result
 
 /// `Action` represents a repeatable work like `SignalProducer`. But on top of the
 /// isolation of produced `Signal`s from a `SignalProducer`, `Action` provides
@@ -29,8 +28,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	}
 
 	private let execute: (Action<Input, Output, Error>, Input) -> SignalProducer<Output, ActionError<Error>>
-	private let eventsObserver: Signal<Signal<Output, Error>.Event, NoError>.Observer
-	private let disabledErrorsObserver: Signal<(), NoError>.Observer
+	private let eventsObserver: Signal<Signal<Output, Error>.Event, Never>.Observer
+	private let disabledErrorsObserver: Signal<(), Never>.Observer
 
 	private let deinitToken: Lifetime.Token
 
@@ -41,28 +40,28 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///
 	/// In other words, this sends every `Event` from every unit of work that the `Action`
 	/// executes.
-	public let events: Signal<Signal<Output, Error>.Event, NoError>
+	public let events: Signal<Signal<Output, Error>.Event, Never>
 
 	/// A signal of all values generated from all units of work of the `Action`.
 	///
 	/// In other words, this sends every value from every unit of work that the `Action`
 	/// executes.
-	public let values: Signal<Output, NoError>
+	public let values: Signal<Output, Never>
 
 	/// A signal of all errors generated from all units of work of the `Action`.
 	///
 	/// In other words, this sends every error from every unit of work that the `Action`
 	/// executes.
-	public let errors: Signal<Error, NoError>
+	public let errors: Signal<Error, Never>
 
 	/// A signal of all failed attempts to start a unit of work of the `Action`.
-	public let disabledErrors: Signal<(), NoError>
+	public let disabledErrors: Signal<(), Never>
 
 	/// A signal of all completed events generated from applications of the action.
 	///
 	/// In other words, this will send completed events from every signal generated
 	/// by each SignalProducer returned from apply().
-	public let completed: Signal<(), NoError>
+	public let completed: Signal<(), Never>
 
 	/// Whether the action is currently executing.
 	public let isExecuting: Property<Bool>
@@ -100,8 +99,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		// `Action` retains its state property.
 		lifetime.observeEnded { _ = state }
 
-		(events, eventsObserver) = Signal<Signal<Output, Error>.Event, NoError>.pipe()
-		(disabledErrors, disabledErrorsObserver) = Signal<(), NoError>.pipe()
+		(events, eventsObserver) = Signal<Signal<Output, Error>.Event, Never>.pipe()
+		(disabledErrors, disabledErrorsObserver) = Signal<(), Never>.pipe()
 
 		values = events.filterMap { $0.value }
 		errors = events.filterMap { $0.error }

@@ -8,7 +8,6 @@
 
 import Foundation
 
-import Result
 import Nimble
 import Quick
 import ReactiveSwift
@@ -24,10 +23,10 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should automatically interrupt if the input observer is not retained") {
 				let disposable = AnyDisposable()
-				var outerSignal: Signal<Never, NoError>!
+				var outerSignal: Signal<Never, Never>!
 
 				func scope() {
-					let (signal, observer) = Signal<Never, NoError>.pipe(disposable: disposable)
+					let (signal, observer) = Signal<Never, Never>.pipe(disposable: disposable)
 
 					withExtendedLifetime(observer) {
 						outerSignal = signal
@@ -42,10 +41,10 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should automatically interrupt if the input observer is not retained, even if there are still one or more active observer") {
 				let disposable = AnyDisposable()
 				var isInterrupted = false
-				var outerSignal: Signal<Never, NoError>!
+				var outerSignal: Signal<Never, Never>!
 
 				func scope() {
-					let (signal, observer) = Signal<Never, NoError>.pipe(disposable: disposable)
+					let (signal, observer) = Signal<Never, Never>.pipe(disposable: disposable)
 
 					withExtendedLifetime(observer) {
 						outerSignal = signal
@@ -67,8 +66,8 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should be disposed of if it does not have any observers") {
 				var isDisposed = false
 
-				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal: Signal<AnyObject, NoError> = .never
+				weak var signal: Signal<AnyObject, Never>? = {
+					let signal: Signal<AnyObject, Never> = .never
 					return signal.on(disposed: { isDisposed = true })
 				}()
 				expect(signal).to(beNil())
@@ -78,8 +77,8 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should be disposed of if no one retains it") {
 				var isDisposed = false
 
-				var observer: Signal<AnyObject, NoError>.Observer!
-				var signal: Signal<AnyObject, NoError>? = Signal
+				var observer: Signal<AnyObject, Never>.Observer!
+				var signal: Signal<AnyObject, Never>? = Signal
 					.init { innerObserver, _ in
 						observer = innerObserver
 					}
@@ -103,11 +102,11 @@ class SignalLifetimeSpec: QuickSpec {
 			}
 
 			it("should be disposed of when the signal shell has deinitialized with no active observer regardless of whether the generator observer is retained or not") {
-				var observer: Signal<AnyObject, NoError>.Observer?
+				var observer: Signal<AnyObject, Never>.Observer?
 				var isDisposed = false
 
-				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal: Signal<AnyObject, NoError> = Signal { innerObserver, _ in
+				weak var signal: Signal<AnyObject, Never>? = {
+					let signal: Signal<AnyObject, Never> = Signal { innerObserver, _ in
 						observer = innerObserver
 
 					}
@@ -120,11 +119,11 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should be disposed of when the generator observer has deinitialized even if it has an observer") {
 				var isDisposed = false
-				var inputObserver: Signal<AnyObject, NoError>.Observer?
+				var inputObserver: Signal<AnyObject, Never>.Observer?
 
 				var disposable: Disposable? = nil
-				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal = Signal<AnyObject, NoError> { observer, lifetime in
+				weak var signal: Signal<AnyObject, Never>? = {
+					let signal = Signal<AnyObject, Never> { observer, lifetime in
 						inputObserver = observer
 						lifetime.observeEnded { isDisposed = true }
 					}
@@ -169,8 +168,8 @@ class SignalLifetimeSpec: QuickSpec {
 				var completed = false
 				var isDisposed = false
 
-				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal = Signal<AnyObject, NoError> { observer, _ in
+				weak var signal: Signal<AnyObject, Never>? = {
+					let signal = Signal<AnyObject, Never> { observer, _ in
 						testScheduler.schedule {
 							observer.sendCompleted()
 						}
@@ -194,8 +193,8 @@ class SignalLifetimeSpec: QuickSpec {
 				var interrupted = false
 				var isDisposed = false
 
-				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal = Signal<AnyObject, NoError> { observer, _ in
+				weak var signal: Signal<AnyObject, Never>? = {
+					let signal = Signal<AnyObject, Never> { observer, _ in
 						testScheduler.schedule {
 							observer.sendInterrupted()
 						}
@@ -219,7 +218,7 @@ class SignalLifetimeSpec: QuickSpec {
 		describe("Signal.pipe") {
 			it("should deallocate") {
 				weak var signal: AnyObject? = {
-					let (signal, _) = Signal<(), NoError>.pipe()
+					let (signal, _) = Signal<(), Never>.pipe()
 					return signal
 				}()
 
@@ -289,11 +288,11 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should be alive until interruption if it has at least one observer, despite not being explicitly retained") {
 				let testScheduler = TestScheduler()
 				var interrupted = false
-				weak var weakSignal: Signal<(), NoError>?
+				weak var weakSignal: Signal<(), Never>?
 				var isDisposed = false
 
 				let test = {
-					let (signal, observer) = Signal<(), NoError>.pipe()
+					let (signal, observer) = Signal<(), Never>.pipe()
 					weakSignal = signal
 
 					testScheduler.schedule {
@@ -320,7 +319,7 @@ class SignalLifetimeSpec: QuickSpec {
 		describe("testTransform") {
 			it("should be disposed of") {
 				var isDisposed = false
-				weak var signal: Signal<AnyObject, NoError>? = Signal.never
+				weak var signal: Signal<AnyObject, Never>? = Signal.never
 					.testTransform()
 					.on(disposed: { isDisposed = true })
 
@@ -330,11 +329,11 @@ class SignalLifetimeSpec: QuickSpec {
 
 			it("should be disposed of if it is not explicitly retained and its generator observer is not retained") {
 				var disposable: Disposable? = nil
-				var inputObserver: Signal<AnyObject, NoError>.Observer?
+				var inputObserver: Signal<AnyObject, Never>.Observer?
 				var isDisposed = false
 
-				weak var signal: Signal<AnyObject, NoError>? = {
-					let signal = Signal<AnyObject, NoError> { observer, lifetime in
+				weak var signal: Signal<AnyObject, Never>? = {
+					let signal = Signal<AnyObject, Never> { observer, lifetime in
 						inputObserver = observer
 						lifetime.observeEnded { isDisposed = true }
 					}
@@ -352,7 +351,7 @@ class SignalLifetimeSpec: QuickSpec {
 			}
 
 			it("should deallocate if it is unreachable and has no observer") {
-				let (sourceSignal, sourceObserver) = Signal<Int, NoError>.pipe()
+				let (sourceSignal, sourceObserver) = Signal<Int, Never>.pipe()
 
 				var firstCounter = 0
 				var secondCounter = 0
@@ -388,7 +387,7 @@ class SignalLifetimeSpec: QuickSpec {
 			}
 
 			it("should not deallocate if it is unreachable but still has at least one observer") {
-				let (sourceSignal, sourceObserver) = Signal<Int, NoError>.pipe()
+				let (sourceSignal, sourceObserver) = Signal<Int, Never>.pipe()
 
 				var firstCounter = 0
 				var secondCounter = 0

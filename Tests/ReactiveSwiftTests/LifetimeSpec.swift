@@ -1,7 +1,6 @@
 import Quick
 import Nimble
 import ReactiveSwift
-import Result
 
 final class LifetimeSpec: QuickSpec {
 	override func spec() {

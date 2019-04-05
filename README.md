@@ -75,7 +75,7 @@ ReactiveSwift to your `Cartfile`:
 github "ReactiveCocoa/ReactiveSwift" ~> 5.0
 ```
 
-If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework`, and `Result.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
+If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
 
 #### CocoaPods
 
@@ -100,12 +100,10 @@ of your package in `Package.swift`:
  1. Add the ReactiveSwift repository as a [submodule][] of your
     application’s repository.
  1. Run `git submodule update --init --recursive` from within the ReactiveCocoa folder.
- 1. Drag and drop `ReactiveSwift.xcodeproj` and
-    `Carthage/Checkouts/Result/Result.xcodeproj` into your application’s Xcode
+ 1. Drag and drop `ReactiveSwift.xcodeproj` into your application’s Xcode
     project or workspace.
  1. On the “General” tab of your application target’s settings, add
-    `ReactiveSwift.framework`, and `Result.framework`
-    to the “Embedded Binaries” section.
+    `ReactiveSwift.framework` to the “Embedded Binaries” section.
  1. If your application target does not contain Swift code at all, you should also
     set the `EMBEDDED_CONTENT_CONTAINS_SWIFT` build setting to “Yes”.
 
