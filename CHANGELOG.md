@@ -1,6 +1,10 @@
 # master
 *Please add new entries at the top.*
 
+# 6.0.0
+1. Dropped support for Swift 4.2 (Xcode 9)
+2. Removed dependency on https://github.com/antitypical/Result (#702, kudos to @NachoSoto and @mdiep)
+
 # 5.0.1
 1. Fix warnings in Xcode 10.2
 
