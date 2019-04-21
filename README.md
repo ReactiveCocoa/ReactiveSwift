@@ -116,7 +116,6 @@ We also provide a great Playground, so you can get used to ReactiveCocoa's opera
      - `git submodule update --init --recursive` **OR**, if you have [Carthage][] installed    
      - `carthage checkout`
  1. Open `ReactiveSwift.xcworkspace`
- 1. Build `Result-Mac` scheme
  1. Build `ReactiveSwift-macOS` scheme
  1. Finally open the `ReactiveSwift.playground`
  1. Choose `View > Show Debug Area`
