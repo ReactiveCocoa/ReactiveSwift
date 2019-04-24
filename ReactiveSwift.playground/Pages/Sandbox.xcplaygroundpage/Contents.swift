@@ -42,7 +42,7 @@ extension AsyncValueType {
     }
 }
 
-class AsyncValue<Value, Error: Swift.Error>: AsyncValueType {
+struct AsyncValue<Value, Error: Swift.Error>: AsyncValueType {
     
     // without this swift segfaults :/
     typealias AsyncResult = Result<Value, Error>
@@ -71,7 +71,7 @@ class AsyncValue<Value, Error: Swift.Error>: AsyncValueType {
             .startWithValues(notify)
     }
     
-    required convenience init(_ resolver: @escaping (@escaping ResolveCallback, Lifetime) -> Void) {
+    init(_ resolver: @escaping (@escaping ResolveCallback, Lifetime) -> Void) {
         let resolvingProducer = SignalProducer<State, Never> { obs, life in
             func resolve(_ result: Result<Value, Error>) {
                 switch result {
@@ -85,18 +85,18 @@ class AsyncValue<Value, Error: Swift.Error>: AsyncValueType {
         self.init(state: Property<State>(initial: .pending, then: resolvingProducer))
     }
     
-    required convenience init(_ producer: SignalProducer<Value, Error>) {
+    init(_ producer: SignalProducer<Value, Error>) {
         self.init { resolve, lifetime in
             lifetime += producer.startWithResult(resolve)
         }
     }
     
-    deinit {
-        print("\(type(of:self)) deinit")
-    }
+//    deinit {
+//        print("\(type(of:self)) deinit")
+//    }
 }
 
-class AsyncValueProducer<Value, Error: Swift.Error>: AsyncValueType {
+struct AsyncValueProducer<Value, Error: Swift.Error>: AsyncValueType {
     
     private let producer: SignalProducer<Value, Error>
     
@@ -108,7 +108,7 @@ class AsyncValueProducer<Value, Error: Swift.Error>: AsyncValueType {
         return producer.startWithResult(notify)
     }
     
-    required convenience init(_ resolver: @escaping (@escaping ResolveCallback, Lifetime) -> Void) {
+    init(_ resolver: @escaping (@escaping ResolveCallback, Lifetime) -> Void) {
         let resolvingProducer = SignalProducer<Value, Error> { obs, life in
             func resolve(_ result: Result<Value, Error>) {
                 switch result {
@@ -124,13 +124,13 @@ class AsyncValueProducer<Value, Error: Swift.Error>: AsyncValueType {
         self.init(producer: resolvingProducer)
     }
     
-    required convenience init(_ producer: SignalProducer<Value, Error>) {
+    init(_ producer: SignalProducer<Value, Error>) {
         self.init(producer: producer.take(first: 1))
     }
     
-    deinit {
-        print("\(type(of:self)) deinit")
-    }
+//    deinit {
+//        print("\(type(of:self)) deinit")
+//    }
 }
 
 
