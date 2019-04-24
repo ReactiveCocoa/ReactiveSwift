@@ -175,17 +175,25 @@ let seedProducer = SignalProducer<Int, Never> { obs, _ in
     obs.send(value: seed)
 }
 
-
-let value = AsyncValueProducer(seedProducer)
-    .map {
-        // try changing the below between AsyncValue and AsyncValueProducer
-        AsyncValueProducer($0 + 10)
-    }
-    .when(ready: { print("resolved with value \($0)") })
+let test = {
+    let value =
+        AsyncValueProducer(seedProducer)
+        .map {
+            // try changing the below between AsyncValue and AsyncValueProducer
+            AsyncValue($0 + 10)
+            
+            // NB! Returnign an AsyncValue immediately starts the mapped producer
+            // because an AsyncValue is a hot signal, and it will need to start the
+            // producer in order to try an resolve its value
+        }
+        .when(ready: { print("resolved with value \($0)") })
     
-print("incrementing seed")
-seed += 1
+    print("incrementing seed")
+    seed += 1
 
-print("awaiting result")
-    value.await(notify: { print("await notified with \($0)") })
+    print("awaiting result")
+        value.await(notify: { print("await notified with \($0)") })
+}
 
+test()
+print("end")
