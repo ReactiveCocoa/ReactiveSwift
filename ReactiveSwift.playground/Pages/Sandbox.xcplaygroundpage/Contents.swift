@@ -180,7 +180,8 @@ let test = {
         AsyncValueProducer(seedProducer)
         .map {
             // try changing the below between AsyncValue and AsyncValueProducer
-            AsyncValue($0 + 10)
+            // AsyncValue($0 + 10)
+            AsyncValueProducer($0 + 10)
             
             // NB! Returnign an AsyncValue immediately starts the mapped producer
             // because an AsyncValue is a hot signal, and it will need to start the
@@ -192,7 +193,7 @@ let test = {
     seed += 1
 
     print("awaiting result")
-        value.await(notify: { print("await notified with \($0)") })
+    value.await(notify: { print("await notified with \($0)") })
 }
 
 test()
