@@ -72,7 +72,7 @@ class AsyncValue<Value, Error: Swift.Error>: AsyncValueType {
     }
     
     required convenience init(_ resolver: @escaping (@escaping ResolveCallback, Lifetime) -> Void) {
-        let resolvingProducer = SignalProducer<State, NoError> { obs, life in
+        let resolvingProducer = SignalProducer<State, Never> { obs, life in
             func resolve(_ result: Result<Value, Error>) {
                 switch result {
                 case .success(let value): obs.send(value: .resolved(.success(value)))
@@ -171,7 +171,7 @@ extension AsyncValueType {
 
 var seed = 0
 
-let seedProducer = SignalProducer<Int, NoError> { obs, _ in
+let seedProducer = SignalProducer<Int, Never> { obs, _ in
     obs.send(value: seed)
 }
 
@@ -186,6 +186,6 @@ let value = AsyncValueProducer(seedProducer)
 print("incrementing seed")
 seed += 1
 
-print("awaiting for a result")
+print("awaiting result")
     value.await(notify: { print("await notified with \($0)") })
 
