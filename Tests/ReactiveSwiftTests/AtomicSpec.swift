@@ -18,11 +18,14 @@ class AtomicSpec: QuickSpec {
 			atomic = Atomic(1)
 		}
 
-		it("should read and write the value directly") {
+		it("should read, write and modify the value directly") {
 			expect(atomic.value) == 1
 
 			atomic.value = 2
 			expect(atomic.value) == 2
+
+			atomic.value += 1
+			expect(atomic.value) == 3
 		}
 
 		it("should swap the value atomically") {

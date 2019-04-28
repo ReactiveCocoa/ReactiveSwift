@@ -1,5 +1,6 @@
 # master
 *Please add new entries at the top.*
+1. Add `_modify` accessor to `Atomic.value` (#731, kudos to @p4checo)
 
 # 6.0.0
 1. Dropped support for Swift 4.2 (Xcode 9)
