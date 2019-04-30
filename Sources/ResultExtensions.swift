@@ -3,14 +3,14 @@ extension Result: SignalProducerConvertible {
 		return .init(result: self)
 	}
 	
-	public var value: Success? {
+	internal var value: Success? {
 		switch self {
 		case let .success(value): return value
 		case .failure: return nil
 		}
 	}
 	
-	public var error: Failure? {
+	internal var error: Failure? {
 		switch self {
 		case .success: return nil
 		case let .failure(error): return error
@@ -19,7 +19,7 @@ extension Result: SignalProducerConvertible {
 }
 
 /// A protocol that can be used to constrain associated types as `Result`.
-public protocol ResultProtocol {
+internal protocol ResultProtocol {
 	associatedtype Success
 	associatedtype Failure: Swift.Error
 	
@@ -30,15 +30,15 @@ public protocol ResultProtocol {
 }
 
 extension Result: ResultProtocol {
-	public init(success: Success) {
+	internal init(success: Success) {
 		self = .success(success)
 	}
 	
-	public init(failure: Failure) {
+	internal init(failure: Failure) {
 		self = .failure(failure)
 	}
 	
-	public var result: Result<Success, Failure> {
+	internal var result: Result<Success, Failure> {
 		return self
 	}
 }
