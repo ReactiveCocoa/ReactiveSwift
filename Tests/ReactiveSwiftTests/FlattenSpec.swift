@@ -8,7 +8,7 @@
 
 import Nimble
 import Quick
-import ReactiveSwift
+@testable import ReactiveSwift
 import Dispatch
 
 private extension Signal {
