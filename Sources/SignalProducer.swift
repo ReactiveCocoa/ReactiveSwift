@@ -2169,31 +2169,26 @@ extension SignalProducer {
 		return start(producers, Signal.zip)
 	}
 
-	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping (ReversedCollection<[Signal<Value, Error>]>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
+	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping ([Signal<Value, Error>]) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
 		return SignalProducer<[Value], Error> { observer, lifetime in
-			var producers = Array(producers)
-			var signals: [Signal<Value, Error>] = []
-
+			let producers = Array(producers)
+			var pipes = [(Signal<Value, Error>, Signal<Value, Error>.Observer)]()
+			
 			guard !producers.isEmpty else {
 				observer.sendCompleted()
 				return
 			}
-
-			func start() {
-				guard !producers.isEmpty else {
-					transform(signals.reversed()).observe(observer)
-					return
-				}
-
-				producers.removeLast().producer.startWithSignal { signal, interruptHandle in
-					lifetime += interruptHandle
-					signals.append(signal)
-
-					start()
-				}
+			
+			pipes.reserveCapacity(producers.count)
+			for _ in (0..<producers.count) {
+				pipes.append(Signal<Value, Error>.pipe())
 			}
 
-			start()
+			lifetime += transform(pipes.map { $0.0 }).observe(observer)
+			
+			for (producer, (_, observer)) in Swift.zip(producers, pipes) {
+				lifetime += producer.producer.start(observer)
+			}
 		}
 	}
 }
