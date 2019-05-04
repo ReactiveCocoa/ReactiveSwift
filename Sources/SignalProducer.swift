@@ -2173,7 +2173,7 @@ extension SignalProducer {
 	{
 		return SignalProducer<[Value], Error> { observer, lifetime in
 			let setup = producers.map {
-				(producer: $0, pipe: Signal<Value, Error>.pipe())
+				(producer: $0.producer, pipe: Signal<Value, Error>.pipe())
 			}
 			
 			guard !setup.isEmpty else {
@@ -2184,7 +2184,7 @@ extension SignalProducer {
 			lifetime += transform(AnySequence(setup.lazy.map { $0.pipe.output })).observe(observer)
 			
 			for (producer, pipe) in setup {
-				lifetime += producer.producer.start(pipe.input)
+				lifetime += producer.start(pipe.input)
 			}
 		}
 	}
