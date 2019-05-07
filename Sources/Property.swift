@@ -422,6 +422,17 @@ extension PropertyProtocol where Value == Bool {
 	public func or<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.or)(property)
 	}
+	
+	/// Create a property that computes a logical OR between the latest values of `self`
+	/// and `property`.
+	///
+	/// - parameters:
+	///   - property: Property to be combined with `self`.
+	///
+	/// - returns: A property that contains the logial OR results.
+	public static func or<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
+		return Property(initial: properties.map { $0.value }.or(), then: SignalProducer.or(properties))
+	}
 }
 
 /// A read-only property that can be observed for its changes over time. There

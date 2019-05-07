@@ -134,3 +134,12 @@ extension DispatchTimeInterval {
 		return result
 	}
 }
+
+extension Collection where Element == Bool {
+	/// Returns logical or over all elements or `false` if `self` is empty.
+	///
+	/// - returns: Logical or over all elements or `false` if `self` is empty
+	internal func or() -> Bool {
+		return reduce(false) { $0 || $1 }
+	}
+}
