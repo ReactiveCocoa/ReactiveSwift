@@ -3067,6 +3067,12 @@ class SignalProducerSpec: QuickSpec {
 					expect(value).to(beFalse())
 				}
 			}
+			
+			it("should emit false when array of producers is empty") {
+				SignalProducer.or([]).startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
 
 			it("should work the same way when using signal instead of a producer") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
