@@ -1,5 +1,9 @@
 # master
 *Please add new entries at the top.*
+1. add possibility to use `and` and `or` operators with array of arguments (#735, kudos to @olejnjak)
+   ```swift
+   let property = Property.or([boolProperty1, boolProperty2, boolProperty3])
+   ```
 
 # 6.0.0
 1. Dropped support for Swift 4.2 (Xcode 9)
