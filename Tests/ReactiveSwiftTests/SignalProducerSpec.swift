@@ -2958,7 +2958,7 @@ class SignalProducerSpec: QuickSpec {
 					observer.send(value: true)
 					observer.sendCompleted()
 				}
-				
+
 				producer1.and(producer2).startWithValues { value in
 					expect(value).to(beTrue())
 				}
@@ -2992,7 +2992,7 @@ class SignalProducerSpec: QuickSpec {
 					observer.send(value: false)
 					observer.sendCompleted()
 				}
-				
+
 				producer1.and(producer2).startWithValues { value in
 					expect(value).to(beFalse())
 				}
@@ -3027,7 +3027,7 @@ class SignalProducerSpec: QuickSpec {
 					expect(value).to(beTrue())
 				}
 				observer2.send(value: true)
-				
+
 				observer2.sendCompleted()
 			}
 			
