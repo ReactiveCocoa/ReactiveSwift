@@ -2738,6 +2738,16 @@ extension SignalProducer where Value == Bool {
 	public static func or<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
 		return combineLatest(booleans).map { $0.reduce(false) { $0 || $1 } }
 	}
+	
+	/// Create a producer that computes a logical OR between the latest values of `booleans`.
+	///
+	/// - parameters:
+	///   - booleans: A collection of boolean producers to be combined.
+	///
+	/// - returns: A producer that emits the logical OR results.
+	public static func or<Booleans: SignalProducerConvertible, BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error, BooleansCollection.Element == Booleans {
+		return or(booleans.map { $0.producer })
+	}
 }
 
 /// Represents a recoverable error of an observer not being ready for an
