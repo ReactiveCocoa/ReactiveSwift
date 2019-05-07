@@ -3748,6 +3748,22 @@ class SignalSpec: QuickSpec {
 				observer2.sendCompleted()
 			}
 
+			it("should emit true when all signals emit the same value") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				Signal.and([signal1, signal2, signal3]).observeValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer2.send(value: true)
+				observer3.send(value: true)
+
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+				observer3.sendCompleted()
+			}
+
 			it("should emit false when both signals emits opposite values") {
 				let (signal1, observer1) = Signal<Bool, Never>.pipe()
 				let (signal2, observer2) = Signal<Bool, Never>.pipe()
@@ -3759,6 +3775,22 @@ class SignalSpec: QuickSpec {
 
 				observer1.sendCompleted()
 				observer2.sendCompleted()
+			}
+
+			it("should emit false when any signal emits opposite values") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				Signal.and([signal1, signal2, signal3]).observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer1.send(value: false)
+				observer2.send(value: true)
+				observer3.send(value: false)
+
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+				observer3.sendCompleted()
 			}
 		}
 
@@ -3819,12 +3851,6 @@ class SignalSpec: QuickSpec {
 				observer1.sendCompleted()
 				observer2.sendCompleted()
 				observer3.sendCompleted()
-			}
-
-			it("should emit false when collection of signals is empty") {
-				Signal.or([]).observeValues { value in
-					expect(value).to(beFalse())
-				}
 			}
 		}
 

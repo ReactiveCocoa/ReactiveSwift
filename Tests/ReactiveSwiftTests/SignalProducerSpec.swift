@@ -3045,12 +3045,6 @@ class SignalProducerSpec: QuickSpec {
 				observer3.send(value: true)
 				observer3.sendCompleted()
 			}
-			
-			it("should return true for empty array of producers") {
-				SignalProducer.and([]).startWithValues { value in
-					expect(value).to(beTrue())
-				}
-			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups") {
 				_ = SignalProducer<Bool, Never>.empty
@@ -3124,12 +3118,6 @@ class SignalProducerSpec: QuickSpec {
 				}
 				
 				SignalProducer.or([producer1, producer2, producer3]).startWithValues { value in
-					expect(value).to(beFalse())
-				}
-			}
-			
-			it("should emit false when array of producers is empty") {
-				SignalProducer.or([]).startWithValues { value in
 					expect(value).to(beFalse())
 				}
 			}
