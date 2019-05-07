@@ -2715,7 +2715,17 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical OR results.
 	public func or(_ booleans: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return combineLatest(with: booleans).map { $0.0 || $0.1 }
+		return type(of: self).or([self, booleans])
+	}
+	
+	/// Create a producer that computes a logical OR between the latest values of `booleans`.
+	///
+	/// - parameters:
+	///   - booleans: An array of boolean producers to be combined.
+	///
+	/// - returns: A producer that emits the logical OR results.
+	public static func or(_ booleans: [SignalProducer<Value, Error>]) -> SignalProducer<Value, Error> {
+		return combineLatest(booleans).map { $0.reduce(false) { $0 || $1 } }
 	}
 
 	/// Create a producer that computes a logical OR between the latest values of `self`
