@@ -2693,7 +2693,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical AND results.
 	public func and(_ booleans: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return combineLatest(with: booleans).map { $0.0 && $0.1 }
+		return type(of: self).and([self, booleans])
 	}
 
 	/// Create a producer that computes a logical AND between the latest values of `self`
