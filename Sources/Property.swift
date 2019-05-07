@@ -411,6 +411,16 @@ extension PropertyProtocol where Value == Bool {
 	public func and<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.and)(property)
 	}
+	
+	/// Create a property that computes a logical AND between the latest values of `properties`.
+	///
+	/// - parameters:
+	///   - property: Collection of properties to be combined.
+	///
+	/// - returns: A property that contains the logial AND results.
+	public static func and<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
+		return Property(initial: properties.map { $0.value }.and(), then: SignalProducer.and(properties))
+	}
 
 	/// Create a property that computes a logical OR between the latest values of `self`
 	/// and `property`.
@@ -423,11 +433,10 @@ extension PropertyProtocol where Value == Bool {
 		return self.lift(SignalProducer.or)(property)
 	}
 	
-	/// Create a property that computes a logical OR between the latest values of `self`
-	/// and `property`.
+	/// Create a property that computes a logical OR between the latest values of `properties`.
 	///
 	/// - parameters:
-	///   - property: Property to be combined with `self`.
+	///   - properties: Collection of properties to be combined.
 	///
 	/// - returns: A property that contains the logial OR results.
 	public static func or<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
