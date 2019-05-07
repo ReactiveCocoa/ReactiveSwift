@@ -1631,11 +1631,29 @@ class PropertySpec: QuickSpec {
 					let property2 = MutableProperty(true)
 					expect(property1.and(property2).value).to(beTrue())
 				}
+				
+				it("should emit true when all properties contain the same value") {
+					let property1 = MutableProperty(true)
+					let property2 = MutableProperty(true)
+					let property3 = MutableProperty(true)
+					expect(Property.and([property1, property2, property3]).value).to(beTrue())
+				}
 
 				it("should emit false when both properties contains opposite values") {
 					let property1 = MutableProperty(true)
 					let property2 = MutableProperty(false)
 					expect(property1.and(property2).value).to(beFalse())
+				}
+				
+				it("should emit false when all properties contain opposite values") {
+					let property1 = MutableProperty(false)
+					let property2 = MutableProperty(true)
+					let property3 = MutableProperty(true)
+					expect(Property.and([property1, property2, property3]).value).to(beFalse())
+				}
+
+				it("should emit true when array of properties is empty") {
+					expect(Property.and([Property<Bool>]()).value).to(beTrue())
 				}
 			}
 
