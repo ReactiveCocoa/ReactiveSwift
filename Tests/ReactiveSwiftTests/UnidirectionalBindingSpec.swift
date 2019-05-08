@@ -204,8 +204,8 @@ class UnidirectionalBindingSpec: QuickSpec {
 
 			describe("observer binding operator") {
 				it("should forward values to observer") {
-					let targetPipe = Signal<Int?, NoError>.pipe()
-					let sourcePipe = Signal<Int?, NoError>.pipe()
+					let targetPipe = Signal<Int?, Never>.pipe()
+					let sourcePipe = Signal<Int?, Never>.pipe()
 					let targetProperty = Property<Int?>(initial: nil, then: targetPipe.output)
 					targetPipe.input <~ sourcePipe.output
 					expect(targetProperty.value).to(beNil())
