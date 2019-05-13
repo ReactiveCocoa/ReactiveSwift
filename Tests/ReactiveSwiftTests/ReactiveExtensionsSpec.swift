@@ -1,6 +1,6 @@
 import Nimble
 import Quick
-import ReactiveSwift
+@testable import ReactiveSwift
 
 private final class TestExtensionProvider: ReactiveExtensionsProvider {
 	let instanceProperty = "instance"

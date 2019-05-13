@@ -1,5 +1,7 @@
 # master
 *Please add new entries at the top.*
+1. Fixed Result extensions ambiguity (#733, kudos to @nekrich)
+
 
 # 6.0.0
 1. Dropped support for Swift 4.2 (Xcode 9)
