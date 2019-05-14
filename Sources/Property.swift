@@ -418,7 +418,7 @@ extension PropertyProtocol where Value == Bool {
 	///   - property: Collection of properties to be combined.
 	///
 	/// - returns: A property that contains the logial AND results.
-	public static func and<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
+	public static func all<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
 		return Property(initial: properties.map { $0.value }.reduce(true) { $0 && $1 }, then: SignalProducer.and(properties))
 	}
 
