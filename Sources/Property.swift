@@ -419,7 +419,7 @@ extension PropertyProtocol where Value == Bool {
 	///
 	/// - returns: A property that contains the logial AND results.
 	public static func all<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
-		return Property(initial: properties.map { $0.value }.reduce(true) { $0 && $1 }, then: SignalProducer.and(properties))
+		return Property(initial: properties.map { $0.value }.reduce(true) { $0 && $1 }, then: SignalProducer.all(properties))
 	}
 
 	/// Create a property that computes a logical OR between the latest values of `self`
