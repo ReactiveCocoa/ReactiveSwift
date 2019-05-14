@@ -2947,7 +2947,59 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 		}
-		
+
+		describe("and attribute") {
+			it("should emit true when both producers emits the same value") {
+				let producer1 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+
+				producer1.and(producer2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+			}
+
+			it("should emit false when both producers emits opposite values") {
+				let producer1 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+
+				producer1.and(producer2).startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
+
+			it("should work the same way when using signal instead of a producer") {
+				let producer1 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				producer1.and(signal2).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+				observer2.send(value: true)
+
+				observer2.sendCompleted()
+			}
+
+			it("should be able to fallback to SignalProducer for contextual lookups") {
+				_ = SignalProducer<Bool, Never>.empty
+					.and(.init(value: true))
+				_ = SignalProducer<Bool, Never>.and(.init(value: true))
+			}
+		}
+
 		describe("all attribute") {
 			it("should emit true when all producers emit the same value") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
@@ -3003,115 +3055,6 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
-		describe("and attribute") {
-			it("should emit true when both producers emits the same value") {
-				let producer1 = SignalProducer<Bool, Never> { observer, _ in
-					observer.send(value: true)
-					observer.sendCompleted()
-				}
-				let producer2 = SignalProducer<Bool, Never> { observer, _ in
-					observer.send(value: true)
-					observer.sendCompleted()
-				}
-
-				producer1.and(producer2).startWithValues { value in
-					expect(value).to(beTrue())
-				}
-			}
-
-			it("should emit false when both producers emits opposite values") {
-				let producer1 = SignalProducer<Bool, Never> { observer, _ in
-					observer.send(value: true)
-					observer.sendCompleted()
-				}
-				let producer2 = SignalProducer<Bool, Never> { observer, _ in
-					observer.send(value: false)
-					observer.sendCompleted()
-				}
-
-				producer1.and(producer2).startWithValues { value in
-					expect(value).to(beFalse())
-				}
-			}
-
-			it("should work the same way when using signal instead of a producer") {
-				let producer1 = SignalProducer<Bool, Never> { observer, _ in
-					observer.send(value: true)
-					observer.sendCompleted()
-				}
-				let (signal2, observer2) = Signal<Bool, Never>.pipe()
-				producer1.and(signal2).startWithValues { value in
-					expect(value).to(beTrue())
-				}
-				observer2.send(value: true)
-
-				observer2.sendCompleted()
-			}
-
-			it("should be able to fallback to SignalProducer for contextual lookups") {
-				_ = SignalProducer<Bool, Never>.empty
-					.and(.init(value: true))
-				_ = SignalProducer<Bool, Never>.and(.init(value: true))
-			}
-		}
-        
-        describe("any attribute") {
-            it("should emit true when at least one of the producers in array emits true") {
-                let producer1 = SignalProducer<Bool, Never> { observer, _ in
-                    observer.send(value: true)
-                    observer.sendCompleted()
-                }
-                let producer2 = SignalProducer<Bool, Never> { observer, _ in
-                    observer.send(value: false)
-                    observer.sendCompleted()
-                }
-                let producer3 = SignalProducer<Bool, Never> { observer, _ in
-                    observer.send(value: false)
-                    observer.sendCompleted()
-                }
-
-                SignalProducer.any([producer1, producer2, producer3]).startWithValues { value in
-                    expect(value).to(beTrue())
-                }
-            }
-
-            it("should emit false when all producers in array emit false") {
-                let producer1 = SignalProducer<Bool, Never> { observer, _ in
-                    observer.send(value: false)
-                    observer.sendCompleted()
-                }
-                let producer2 = SignalProducer<Bool, Never> { observer, _ in
-                    observer.send(value: false)
-                    observer.sendCompleted()
-                }
-                let producer3 = SignalProducer<Bool, Never> { observer, _ in
-                    observer.send(value: false)
-                    observer.sendCompleted()
-                }
-
-                SignalProducer.any([producer1, producer2, producer3]).startWithValues { value in
-                    expect(value).to(beFalse())
-                }
-            }
-
-			it("should work the same way when using array of signals instead of an array of producers") {
-				let (signal1, observer1) = Signal<Bool, Never>.pipe()
-				let (signal2, observer2) = Signal<Bool, Never>.pipe()
-				let (signal3, observer3) = Signal<Bool, Never>.pipe()
-				let arrayOfSignals = [signal1, signal2, signal3]
-
-				SignalProducer.any(arrayOfSignals).startWithValues { value in
-					expect(value).to(beTrue())
-				}
-				observer1.send(value: true)
-				observer1.sendCompleted()
-				observer2.send(value: true)
-				observer2.sendCompleted()
-				observer3.send(value: true)
-				observer3.sendCompleted()
-			}
-        }
-
 		describe("or attribute") {
 			it("should emit true when at least one of the producers emits true") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
@@ -3161,6 +3104,63 @@ class SignalProducerSpec: QuickSpec {
 				_ = SignalProducer<Bool, Never>.empty
 					.or(.init(value: true))
 				_ = SignalProducer<Bool, Never>.or(.init(value: true))
+			}
+		}
+
+		describe("any attribute") {
+			it("should emit true when at least one of the producers in array emits true") {
+				let producer1 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: true)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				let producer3 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+
+				SignalProducer.any([producer1, producer2, producer3]).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+			}
+			
+			it("should emit false when all producers in array emit false") {
+				let producer1 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				let producer2 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+				let producer3 = SignalProducer<Bool, Never> { observer, _ in
+					observer.send(value: false)
+					observer.sendCompleted()
+				}
+
+				SignalProducer.any([producer1, producer2, producer3]).startWithValues { value in
+					expect(value).to(beFalse())
+				}
+			}
+			
+			it("should work the same way when using array of signals instead of an array of producers") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				let arrayOfSignals = [signal1, signal2, signal3]
+
+				SignalProducer.any(arrayOfSignals).startWithValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer1.sendCompleted()
+				observer2.send(value: true)
+				observer2.sendCompleted()
+				observer3.send(value: true)
+				observer3.sendCompleted()
 			}
 		}
 

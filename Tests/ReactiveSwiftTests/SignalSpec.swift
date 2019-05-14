@@ -3796,40 +3796,6 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("any attribute") {
-			it("should emit true when at least one of the signals in array emits true") {
-				let (signal1, observer1) = Signal<Bool, Never>.pipe()
-				let (signal2, observer2) = Signal<Bool, Never>.pipe()
-				let (signal3, observer3) = Signal<Bool, Never>.pipe()
-				Signal.any([signal1, signal2, signal3]).observeValues { value in
-					expect(value).to(beTrue())
-				}
-				observer1.send(value: true)
-				observer2.send(value: false)
-				observer3.send(value: false)
-				
-				observer1.sendCompleted()
-				observer2.sendCompleted()
-				observer3.sendCompleted()
-			}
-
-			it("should emit false when all signals in array emits false") {
-				let (signal1, observer1) = Signal<Bool, Never>.pipe()
-				let (signal2, observer2) = Signal<Bool, Never>.pipe()
-				let (signal3, observer3) = Signal<Bool, Never>.pipe()
-				Signal.any([signal1, signal2, signal3]).observeValues { value in
-					expect(value).to(beFalse())
-				}
-				observer1.send(value: false)
-				observer2.send(value: false)
-				observer3.send(value: false)
-				
-				observer1.sendCompleted()
-				observer2.sendCompleted()
-				observer3.sendCompleted()
-			}
-		}
-
 		describe("or attribute") {
 			it("should emit true when at least one of the signals emits true") {
 				let (signal1, observer1) = Signal<Bool, Never>.pipe()
@@ -3855,6 +3821,40 @@ class SignalSpec: QuickSpec {
 
 				observer1.sendCompleted()
 				observer2.sendCompleted()
+			}
+		}
+
+		describe("any attribute") {
+			it("should emit true when at least one of the signals in array emits true") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				Signal.any([signal1, signal2, signal3]).observeValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer2.send(value: false)
+				observer3.send(value: false)
+
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+				observer3.sendCompleted()
+			}
+			
+			it("should emit false when all signals in array emits false") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				Signal.any([signal1, signal2, signal3]).observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer1.send(value: false)
+				observer2.send(value: false)
+				observer3.send(value: false)
+
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+				observer3.sendCompleted()
 			}
 		}
 
