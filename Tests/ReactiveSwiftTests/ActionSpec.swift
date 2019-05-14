@@ -10,7 +10,7 @@ import Foundation
 import Dispatch
 import Nimble
 import Quick
-import ReactiveSwift
+@testable import ReactiveSwift
 
 class ActionSpec: QuickSpec {
 	override func spec() {

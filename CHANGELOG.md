@@ -4,6 +4,7 @@
    ```swift
    let property = Property.or([boolProperty1, boolProperty2, boolProperty3])
    ```
+2. Fixed Result extensions ambiguity (#733, kudos to @nekrich)
 
 # 6.0.0
 1. Dropped support for Swift 4.2 (Xcode 9)

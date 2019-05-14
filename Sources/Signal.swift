@@ -903,12 +903,12 @@ extension Signal where Value: EventProtocol, Error == Never {
 	}
 }
 
-extension Signal where Value: ResultProtocol, Error == Never {
+extension Signal where Error == Never {
 	/// Translate a signal of `Result` _values_ into a signal of those events
 	/// themselves.
 	///
 	/// - returns: A signal that sends values carried by `self` events.
-	public func dematerializeResults() -> Signal<Value.Success, Value.Failure> {
+	public func dematerializeResults<Success, Failure>() -> Signal<Success, Failure> where Value == Result<Success, Failure> {
 		return flatMapEvent(Signal.Event.dematerializeResults)
 	}
 }
