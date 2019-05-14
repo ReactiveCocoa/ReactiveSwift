@@ -3096,7 +3096,7 @@ class SignalProducerSpec: QuickSpec {
 					expect(value).to(beTrue())
 				}
 				observer2.send(value: true)
-				
+
 				observer2.sendCompleted()
 			}
 
