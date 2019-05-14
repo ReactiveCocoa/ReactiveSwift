@@ -396,7 +396,7 @@ extension PropertyProtocol {
 extension PropertyProtocol where Value == Bool {
 	/// Create a property that computes a logical NOT in the latest values of `self`.
 	///
-	/// - returns: A property that contains the logial NOT results.
+	/// - returns: A property that contains the logical NOT results.
 	public func negate() -> Property<Value> {
 		return self.lift { $0.negate() }
 	}
@@ -407,7 +407,7 @@ extension PropertyProtocol where Value == Bool {
 	/// - parameters:
 	///   - property: Property to be combined with `self`.
 	///
-	/// - returns: A property that contains the logial AND results.
+	/// - returns: A property that contains the logical AND results.
 	public func and<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.and)(property)
 	}
@@ -417,7 +417,7 @@ extension PropertyProtocol where Value == Bool {
 	/// - parameters:
 	///   - property: Collection of properties to be combined.
 	///
-	/// - returns: A property that contains the logial AND results.
+	/// - returns: A property that contains the logical AND results.
 	public static func all<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
 		return Property(initial: properties.map { $0.value }.reduce(true) { $0 && $1 }, then: SignalProducer.all(properties))
 	}
@@ -428,7 +428,7 @@ extension PropertyProtocol where Value == Bool {
 	/// - parameters:
 	///   - property: Property to be combined with `self`.
 	///
-	/// - returns: A property that contains the logial OR results.
+	/// - returns: A property that contains the logical OR results.
 	public func or<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.or)(property)
 	}
@@ -438,7 +438,7 @@ extension PropertyProtocol where Value == Bool {
 	/// - parameters:
 	///   - properties: Collection of properties to be combined.
 	///
-	/// - returns: A property that contains the logial OR results.
+	/// - returns: A property that contains the logical OR results.
 	public static func any<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
 		return Property(initial: properties.map { $0.value }.reduce(false) { $0 || $1 }, then: SignalProducer.any(properties))
 	}
