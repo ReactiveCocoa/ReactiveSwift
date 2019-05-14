@@ -2735,7 +2735,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical OR results.
 	public func or(_ booleans: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return type(of: self).or([self, booleans])
+		return type(of: self).any([self, booleans])
 	}
 
 	/// Create a producer that computes a logical OR between the latest values of `self`
@@ -2755,7 +2755,7 @@ extension SignalProducer where Value == Bool {
 	///   - booleans: A collection of boolean producers to be combined.
 	///
 	/// - returns: A producer that emits the logical OR results.
-	public static func or<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
+	public static func any<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
 		return combineLatest(booleans).map { $0.reduce(false) { $0 || $1 } }
 	}
 	
@@ -2765,8 +2765,8 @@ extension SignalProducer where Value == Bool {
 	///   - booleans: A collection of boolean producers to be combined.
 	///
 	/// - returns: A producer that emits the logical OR results.
-	public static func or<Booleans: SignalProducerConvertible, BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error, BooleansCollection.Element == Booleans {
-		return or(booleans.map { $0.producer })
+	public static func any<Booleans: SignalProducerConvertible, BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error, BooleansCollection.Element == Booleans {
+		return any(booleans.map { $0.producer })
 	}
 }
 

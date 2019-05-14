@@ -440,7 +440,7 @@ extension PropertyProtocol where Value == Bool {
 	///
 	/// - returns: A property that contains the logial OR results.
 	public static func any<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
-		return Property(initial: properties.map { $0.value }.reduce(false) { $0 || $1 }, then: SignalProducer.or(properties))
+		return Property(initial: properties.map { $0.value }.reduce(false) { $0 || $1 }, then: SignalProducer.any(properties))
 	}
 }
 
