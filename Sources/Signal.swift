@@ -2159,7 +2159,7 @@ extension Signal where Value == Bool {
 	///
 	/// - returns: A signal that emits the logical AND results.
 	public func and(_ signal: Signal<Value, Error>) -> Signal<Value, Error> {
-		return type(of: self).and([self, signal])
+		return type(of: self).all([self, signal])
 	}
 	
 	/// Create a signal that computes a logical AND between the latest values of `booleans`.
@@ -2168,7 +2168,7 @@ extension Signal where Value == Bool {
 	///   - booleans: A collection of boolean signals to be combined.
 	///
 	/// - returns: A signal that emits the logical AND results.
-	public static func and<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> Signal<Value, Error> where BooleansCollection.Element == Signal<Value, Error> {
+	public static func all<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> Signal<Value, Error> where BooleansCollection.Element == Signal<Value, Error> {
 		return combineLatest(booleans).map { $0.reduce(true) { $0 && $1 } }
 	}
 
