@@ -1,8 +1,8 @@
 # master
 *Please add new entries at the top.*
-1. add possibility to use `and` and `or` operators with array of arguments (#735, kudos to @olejnjak)
+1. add possibility to use `all` and `any` operators with array of arguments (#735, kudos to @olejnjak)
    ```swift
-   let property = Property.or([boolProperty1, boolProperty2, boolProperty3])
+   let property = Property.any([boolProperty1, boolProperty2, boolProperty3])
    ```
 2. Fixed Result extensions ambiguity (#733, kudos to @nekrich)
 
