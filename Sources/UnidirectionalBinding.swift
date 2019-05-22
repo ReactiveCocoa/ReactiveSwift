@@ -123,12 +123,8 @@ extension Signal.Observer {
 		(observer: Signal<Value, Error>.Observer, source: Source) -> Disposable?
 		where Source.Value == Value
 	{
-		return source.producer.start { [weak observer] in
-			switch $0 {
-			case .value(let val):
-				observer?.send(value: val)
-			default: break
-			}
+		return source.producer.startWithValues { [weak observer] in
+			observer?.send(value: $0)
 		}
 	}
 }
