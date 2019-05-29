@@ -102,6 +102,33 @@ extension BindingTargetProvider {
 	}
 }
 
+extension Signal.Observer {
+	/// Binds a source to a target, updating the target's value to the latest
+	/// value sent by the source.
+	///
+	/// - note: Only `value` events will be forwarded to the Observer.
+	///         The binding will automatically terminate when the target is
+	///         deinitialized, or when the source sends a `completed` event.
+	///
+	/// - parameters:
+	///   - target: A target to be bond to.
+	///   - source: A source to bind.
+	///
+	/// - returns: A disposable that can be used to terminate binding before the
+	///            deinitialization of the target or the source's `completed`
+	///            event.
+	@discardableResult
+	public static func <~
+		<Source: BindingSource>
+		(observer: Signal<Value, Error>.Observer, source: Source) -> Disposable?
+		where Source.Value == Value
+	{
+		return source.producer.startWithValues { [weak observer] in
+			observer?.send(value: $0)
+		}
+	}
+}
+
 /// A binding target that can be used with the `<~` operator.
 public struct BindingTarget<Value>: BindingTargetProvider {
 	public let lifetime: Lifetime
