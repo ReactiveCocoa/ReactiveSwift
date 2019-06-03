@@ -1848,7 +1848,7 @@ extension Signal {
 			}
 
 			for (index, action) in builder.startHandlers.enumerated() where !lifetime.hasEnded {
-				lifetime += action(index, strategy) { observer.send($0.map { _ in fatalError() }) }
+				lifetime += action(index, strategy) { observer.send($0.promoteValue()) }
 			}
 		}
 	}
