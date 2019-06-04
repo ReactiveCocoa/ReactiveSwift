@@ -1015,17 +1015,23 @@ extension Signal.Event where Value == Never {
 	internal static func promoteValue<U>(_: U.Type) -> Transformation<U, Error> {
 		return { action, _ in
 			return { event in
-				switch event {
-				case .value:
-					fatalError("Never is impossible to construct")
-				case let .failed(error):
-					action(.failed(error))
-				case .completed:
-					action(.completed)
-				case .interrupted:
-					action(.interrupted)
-				}
+				action(event.promoteValue())
 			}
 		}
 	}
+}
+
+extension Signal.Event where Value == Never {
+	internal func promoteValue<U>() -> Signal<U, Error>.Event {
+        switch event {
+        case .value:
+            fatalError("Never is impossible to construct")
+        case let .failed(error):
+            return .failed(error)
+        case .completed:
+            return .completed
+        case .interrupted:
+            return .interrupted
+        }
+    }
 }
