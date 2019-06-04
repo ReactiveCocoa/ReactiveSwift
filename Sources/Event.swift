@@ -1015,7 +1015,7 @@ extension Signal.Event where Value == Never {
 	internal static func promoteValue<U>(_: U.Type) -> Transformation<U, Error> {
 		return { action, _ in
 			return { event in
-                action(event.promoteValue())
+				action(event.promoteValue())
 			}
 		}
 	}
