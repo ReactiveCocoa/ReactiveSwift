@@ -1639,6 +1639,26 @@ class PropertySpec: QuickSpec {
 				}
 			}
 
+			describe("all attribute") {
+				it("should emit true when all properties contain the same value") {
+					let property1 = MutableProperty(true)
+					let property2 = MutableProperty(true)
+					let property3 = MutableProperty(true)
+					expect(Property.all([property1, property2, property3]).value).to(beTrue())
+				}
+
+				it("should emit false when all properties contain opposite values") {
+					let property1 = MutableProperty(false)
+					let property2 = MutableProperty(true)
+					let property3 = MutableProperty(true)
+					expect(Property.all([property1, property2, property3]).value).to(beFalse())
+				}
+
+				it("should emit true when array of properties is empty") {
+					expect(Property.all([Property<Bool>]()).value).to(beTrue())
+				}
+			}
+
 			describe("or attribute") {
 				it("should emit true when at least one of the properties contains true") {
 					let property1 = MutableProperty(true)
@@ -1650,6 +1670,26 @@ class PropertySpec: QuickSpec {
 					let property1 = MutableProperty(false)
 					let property2 = MutableProperty(false)
 					expect(property1.or(property2).value).to(beFalse())
+				}
+			}
+
+			describe("any attribute") {
+				it("should emit true when at least one of the properties in array contains true") {
+					let property1 = MutableProperty(true)
+					let property2 = MutableProperty(false)
+					let property3 = MutableProperty(false)
+					expect(Property.any([property1, property2, property3]).value).to(beTrue())
+				}
+
+				it("should emit false when all properties in array contain false") {
+					let property1 = MutableProperty(false)
+					let property2 = MutableProperty(false)
+					let property3 = MutableProperty(false)
+					expect(Property.any([property1, property2, property3]).value).to(beFalse())
+				}
+
+				it("should emit false when array of properties is empty") {
+					expect(Property.any([Property<Bool>]()).value).to(beFalse())
 				}
 			}
 		}
