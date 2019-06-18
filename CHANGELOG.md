@@ -1,6 +1,11 @@
 # master
 *Please add new entries at the top.*
 
+# 6.0.1
+
+1. Add support for Xcode 11 / Swift 5.1 (#739, kudos to @NachoSoto)
+
+
 # 6.0.0
 1. Dropped support for Swift 4.2 (Xcode 9)
 2. Removed dependency on https://github.com/antitypical/Result (#702, kudos to @NachoSoto and @mdiep)
