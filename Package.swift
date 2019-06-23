@@ -3,6 +3,9 @@ import PackageDescription
 
 let package = Package(
     name: "ReactiveSwift",
+    platforms: [
+       .watchOS(.v5), .iOS(.v8)
+    ],
     products: [
         .library(name: "ReactiveSwift", targets: ["ReactiveSwift"]),
     ],
