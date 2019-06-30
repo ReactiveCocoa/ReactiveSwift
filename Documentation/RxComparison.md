@@ -47,7 +47,7 @@ the kind of error must be specified in the type system. For example,
 `Signal<Int, AnyError>` is a signal of integer values that may fail with an error
 of type `AnyError`.
 
-More importantly, RAC allows the special type `NoError` to be used instead,
+More importantly, RAC allows the special type `Never` to be used instead,
 which _statically guarantees_ that an event stream is not allowed to send a
 failure. **This eliminates many bugs caused by unexpected failure events.**
 
