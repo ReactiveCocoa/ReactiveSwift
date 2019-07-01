@@ -14,7 +14,7 @@ In both cases errors are related to incorrect assumptions about type. Such issue
 Below is an example of type-error scenario:
 
 ```swift
-SignalProducer<Int, NoError>(value:42)
+SignalProducer<Int, Never>(value:42)
     .on(value: { answer in
         return _
     })
@@ -26,7 +26,7 @@ SignalProducer<Int, NoError>(value:42)
 The code above will not compile with the following error on the `.startWithCompleted` call `error: cannot convert value of type 'Disposable' to closure result type '()'. To find the actual compile error, the chain needs to be broken apart. Add explicit definitions of closure types on each of the steps:
 
 ```swift
-let initialProducer = SignalProducer<Int, NoError>.init(value:42)
+let initialProducer = SignalProducer<Int, Never>.init(value:42)
 let sideEffectProducer = initialProducer.on(value: { (answer: Int) in
     return _
 })

@@ -140,7 +140,7 @@ The `map` operator is used to transform the values in an event stream, creating
 a new stream with the results.
 
 ```Swift
-let (signal, observer) = Signal<String, NoError>.pipe()
+let (signal, observer) = Signal<String, Never>.pipe()
 
 signal
     .map { string in string.uppercased() }
@@ -159,7 +159,7 @@ The `filter` operator is used to only include values in an event stream that
 satisfy a predicate.
 
 ```Swift
-let (signal, observer) = Signal<Int, NoError>.pipe()
+let (signal, observer) = Signal<Int, Never>.pipe()
 
 signal
     .filter { number in number % 2 == 0 }
@@ -180,7 +180,7 @@ combined value. Note that the final value is only sent after the input stream
 completes.
 
 ```Swift
-let (signal, observer) = Signal<Int, NoError>.pipe()
+let (signal, observer) = Signal<Int, Never>.pipe()
 
 signal
     .reduce(1) { $0 * $1 }
@@ -197,7 +197,7 @@ a single array value. Note that the final value is only sent after the input
 stream completes.
 
 ```Swift
-let (signal, observer) = Signal<Int, NoError>.pipe()
+let (signal, observer) = Signal<Int, Never>.pipe()
 
 signal
     .collect()
@@ -226,8 +226,8 @@ least one value. After that, new values on any of the inputs will result in
 a new value on the output.
 
 ```Swift
-let (numbersSignal, numbersObserver) = Signal<Int, NoError>.pipe()
-let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
+let (numbersSignal, numbersObserver) = Signal<Int, Never>.pipe()
+let (lettersSignal, lettersObserver) = Signal<String, Never>.pipe()
 
 let signal = Signal.combineLatest(numbersSignal, lettersSignal)
 signal.observeValues { next in print("Next: \(next)") }
@@ -256,8 +256,8 @@ That means the Nth value of the output stream cannot be sent until each input
 has sent at least N values.
 
 ```Swift
-let (numbersSignal, numbersObserver) = Signal<Int, NoError>.pipe()
-let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
+let (numbersSignal, numbersObserver) = Signal<Int, Never>.pipe()
+let (lettersSignal, lettersObserver) = Signal<String, Never>.pipe()
 
 let signal = Signal.zip(numbersSignal, lettersSignal)
 signal.observeValues { next in print("Next: \(next)") }
@@ -309,9 +309,9 @@ Note, how the values interleave and which values are even included in the result
 The `.merge` strategy immediately forwards every value of the inner event streams to the outer event stream. Any failure sent on the outer event stream or any inner event stream is immediately sent on the flattened event stream and terminates it.
 
 ```Swift
-let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
-let (numbersSignal, numbersObserver) = Signal<String, NoError>.pipe()
-let (signal, observer) = Signal<Signal<String, NoError>, NoError>.pipe()
+let (lettersSignal, lettersObserver) = Signal<String, Never>.pipe()
+let (numbersSignal, numbersObserver) = Signal<String, Never>.pipe()
+let (signal, observer) = Signal<Signal<String, Never>, Never>.pipe()
 
 signal.flatten(.merge).observeValues { print($0) }
 
@@ -334,9 +334,9 @@ numbersObserver.send(value: "3")    // prints "3"
 The `.concat` strategy is used to serialize events of the inner event streams. The outer event stream is started observed. Each subsequent event stream is not observed until the preceeding one has completed. Failures are immediately forwarded to the flattened event stream.
 
 ```Swift
-let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
-let (numbersSignal, numbersObserver) = Signal<String, NoError>.pipe()
-let (signal, observer) = Signal<Signal<String, NoError>, NoError>.pipe()
+let (lettersSignal, lettersObserver) = Signal<String, Never>.pipe()
+let (numbersSignal, numbersObserver) = Signal<String, Never>.pipe()
+let (signal, observer) = Signal<Signal<String, Never>, Never>.pipe()
 
 signal.flatten(.concat).observeValues { print($0) }
 
@@ -361,9 +361,9 @@ numbersObserver.sendCompleted()     // nothing printed
 The `.latest` strategy forwards only values or a failure from the latest input event stream.
 
 ```Swift
-let (lettersSignal, lettersObserver) = Signal<String, NoError>.pipe()
-let (numbersSignal, numbersObserver) = Signal<String, NoError>.pipe()
-let (signal, observer) = Signal<Signal<String, NoError>, NoError>.pipe()
+let (lettersSignal, lettersObserver) = Signal<String, Never>.pipe()
+let (numbersSignal, numbersObserver) = Signal<String, Never>.pipe()
+let (signal, observer) = Signal<Signal<String, Never>, Never>.pipe()
 
 signal.flatten(.latest).observeValues { print($0) }
 
@@ -392,7 +392,7 @@ let producer = SignalProducer(signal)
 let error = NSError(domain: "domain", code: 0, userInfo: nil)
 
 producer
-    .flatMapError { _ in SignalProducer<String, NoError>(value: "Default") }
+    .flatMapError { _ in SignalProducer<String, Never>(value: "Default") }
     .startWithValues { print($0) }
 
 
@@ -500,7 +500,7 @@ observer.send(error: NSError(domain: "com.example.foo", code: 42, userInfo: nil)
 The `promoteError` operator promotes an event stream that does not generate failures into one that can.
 
 ```Swift
-let (numbersSignal, numbersObserver) = Signal<Int, NoError>.pipe()
+let (numbersSignal, numbersObserver) = Signal<Int, Never>.pipe()
 let (lettersSignal, lettersObserver) = Signal<String, NSError>.pipe()
 
 numbersSignal
