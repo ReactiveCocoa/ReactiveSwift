@@ -628,7 +628,7 @@ extension Signal {
 	public func compactMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.compactMap(transform))
 	}
-	
+
 	/// Applies `transform` to values from `signal` and forwards values with non `nil` results unwrapped.
 	/// - parameters:
 	///   - transform: A closure that accepts a value from the `value` event and

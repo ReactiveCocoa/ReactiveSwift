@@ -929,7 +929,7 @@ extension SignalProducer {
 	public func compactMap<U>(_ transform: @escaping (Value) -> U?) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.compactMap(transform))
 	}
-	
+
 	/// Applies `transform` to values from the producer and forwards values with non `nil` results unwrapped.
 	/// - parameters:
 	///   - transform: A closure that accepts a value from the `value` event and
@@ -940,7 +940,7 @@ extension SignalProducer {
 	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> SignalProducer<U, Error> {
 		return core.flatMapEvent(Signal.Event.compactMap(transform))
 	}
-	
+
 	/// Yield the first `count` values from the input producer.
 	///
 	/// - precondition: `count` must be non-negative number.
