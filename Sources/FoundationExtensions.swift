@@ -96,6 +96,8 @@ extension DispatchTimeInterval {
 			return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
 		case .never:
 			return .infinity
+		@unknown default:
+			return .infinity
 		}
 	}
 
@@ -112,6 +114,8 @@ extension DispatchTimeInterval {
 		case let .nanoseconds(ns):
 			return .nanoseconds(-ns)
 		case .never:
+			return .never
+		@unknown default:
 			return .never
 		}
 	}
