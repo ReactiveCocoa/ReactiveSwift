@@ -9,7 +9,7 @@
 extension Signal {
 	/// An Observer is a simple wrapper around a function which can receive Events
 	/// (typically from a Signal).
-	public final class Observer {
+	public class Observer {
 		public typealias Action = (Event) -> Void
 		private let _send: Action
 
@@ -87,7 +87,7 @@ extension Signal {
 				// Since `Signal` would ensure that only one terminal event would ever be
 				// sent for any given `Signal`, we do not need to assert any condition
 				// here.
-				_send(.interrupted)
+				send(.interrupted)
 			}
 		}
 
@@ -100,26 +100,26 @@ extension Signal {
 		///
 		/// - parameters:
 		///   - value: A value sent with the `value` event.
-		public func send(value: Value) {
-			_send(.value(value))
+		@inlinable public func send(value: Value) {
+			send(.value(value))
 		}
 
 		/// Puts a failed event into `self`.
 		///
 		/// - parameters:
 		///   - error: An error object sent with failed event.
-		public func send(error: Error) {
-			_send(.failed(error))
+		@inlinable public func send(error: Error) {
+			send(.failed(error))
 		}
 
 		/// Puts a `completed` event into `self`.
-		public func sendCompleted() {
-			_send(.completed)
+		@inlinable public func sendCompleted() {
+			send(.completed)
 		}
 
 		/// Puts an `interrupted` event into `self`.
-		public func sendInterrupted() {
-			_send(.interrupted)
+		@inlinable public func sendInterrupted() {
+			send(.interrupted)
 		}
 	}
 }

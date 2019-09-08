@@ -45,7 +45,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// ```
 	private let core: Core
 
-	private final class Core {
+	private final class Core: Observer {
 		/// The disposable associated with the signal.
 		///
 		/// Disposing of `disposable` is assumed to remove the generator
@@ -64,11 +64,13 @@ public final class Signal<Value, Error: Swift.Error> {
 
 			disposable = CompositeDisposable()
 
+			super.init(action: { _ in fatalError() }, interruptsOnDeinit: true)
+
 			// The generator observer retains the `Signal` core.
-			generator(Observer(action: self.send, interruptsOnDeinit: true), Lifetime(disposable))
+			generator(self, Lifetime(disposable))
 		}
 
-		private func send(_ event: Event) {
+		override func send(_ event: Event) {
 			enforcer.lock()
 			defer { enforcer.unlock() }
 
