@@ -592,62 +592,88 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	///         signal have both completed.
 	fileprivate func switchToLatest() -> Signal<Value.Value, Error> {
 		return Signal<Value.Value, Error> { observer, lifetime in
-			let serial = SerialDisposable()
-			lifetime += serial
-			lifetime += self.observeSwitchToLatest(observer, serial)
+			lifetime += self.producer.switchToLatest().start(observer)
 		}
 	}
+}
 
-	fileprivate func observeSwitchToLatest(_ observer: Signal<Value.Value, Error>.Observer, _ latestInnerDisposable: SerialDisposable) -> Disposable? {
+extension SignalProducer where Value: SignalProducerConvertible, Error == Value.Error {
+	/// - warning: An error sent on `self` or the latest inner producer will be
+	///            sent on the returned producer.
+	///
+	/// - note: The returned producer completes when `self` and the latest inner
+	///         producer have both completed.
+	///
+	/// - returns: A producer that forwards values from the latest producer sent
+	///            on `self`, ignoring values sent on previous inner producer.
+	fileprivate func switchToLatest() -> SignalProducer<Value.Value, Error> {
+		return SignalProducer<Value.Value, Error>(SwitchToLatestCore(upstream: self.map { $0.producer }))
+	}
+}
+
+private final class SwitchToLatestCore<Value, Error: Swift.Error>: SignalProducerCore<Value, Error> {
+	private let upstream: SignalProducer<SignalProducer<Value, Error>, Error>
+
+	init(upstream: SignalProducer<SignalProducer<Value, Error>, Error>) {
+		self.upstream = upstream
+	}
+
+	@discardableResult
+	internal override func start(_ generator: (Disposable) -> Signal<Value, Error>.Observer) -> Disposable {
+		// Collect all resources related to this transformed producer instance.
+		let disposables = CompositeDisposable()
+
 		let state = Atomic(LatestState<Value, Error>())
+		let latestInnerDisposable = SerialDisposable()
+		disposables += latestInnerDisposable
 
-		return self.observe { event in
+		let observer = generator(disposables)
+
+		disposables += upstream.start { event in
 			switch event {
 			case let .value(p):
-				p.producer.startWithSignal { innerSignal, innerDisposable in
-					state.modify {
-						// When we replace the disposable below, this prevents
-						// the generated Interrupted event from doing any work.
-						$0.replacingInnerSignal = true
-					}
+				state.modify {
+					// When we replace the disposable below, this prevents
+					// the generated Interrupted event from doing any work.
+					$0.replacingInnerSignal = true
+				}
 
-					latestInnerDisposable.inner = innerDisposable
+				latestInnerDisposable.inner = nil
 
-					state.modify {
-						$0.replacingInnerSignal = false
-						$0.innerSignalComplete = false
-					}
+				state.modify {
+					$0.replacingInnerSignal = false
+					$0.innerSignalComplete = false
+				}
 
-					innerSignal.observe { event in
-						switch event {
-						case .interrupted:
-							// If interruption occurred as a result of a new
-							// producer arriving, we don't want to notify our
-							// observer.
-							let shouldComplete: Bool = state.modify { state in
-								if !state.replacingInnerSignal {
-									state.innerSignalComplete = true
-								}
-								return !state.replacingInnerSignal && state.outerSignalComplete
+				latestInnerDisposable.inner = p.start { event in
+					switch event {
+					case .interrupted:
+						// If interruption occurred as a result of a new
+						// producer arriving, we don't want to notify our
+						// observer.
+						let shouldComplete: Bool = state.modify { state in
+							if !state.replacingInnerSignal {
+								state.innerSignalComplete = true
 							}
-
-							if shouldComplete {
-								observer.sendCompleted()
-							}
-
-						case .completed:
-							let shouldComplete: Bool = state.modify {
-								$0.innerSignalComplete = true
-								return $0.outerSignalComplete
-							}
-
-							if shouldComplete {
-								observer.sendCompleted()
-							}
-
-						case .value, .failed:
-							observer.send(event)
+							return !state.replacingInnerSignal && state.outerSignalComplete
 						}
+
+						if shouldComplete {
+							observer.sendCompleted()
+						}
+
+					case .completed:
+						let shouldComplete: Bool = state.modify {
+							$0.innerSignalComplete = true
+							return $0.outerSignalComplete
+						}
+
+						if shouldComplete {
+							observer.sendCompleted()
+						}
+
+					case .value, .failed:
+						observer.send(event)
 					}
 				}
 
@@ -668,92 +694,28 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 				observer.sendInterrupted()
 			}
 		}
+		// Manual interruption disposes of `disposables`, which in turn notifies
+		// the event transformation side effects, and the upstream instance.
+		return disposables
 	}
-}
 
-extension SignalProducer where Value: SignalProducerConvertible, Error == Value.Error {
-	/// - warning: An error sent on `self` or the latest inner producer will be
-	///            sent on the returned producer.
-	///
-	/// - note: The returned producer completes when `self` and the latest inner
-	///         producer have both completed.
-	///
-	/// - returns: A producer that forwards values from the latest producer sent
-	///            on `self`, ignoring values sent on previous inner producer.
-	fileprivate func switchToLatest() -> SignalProducer<Value.Value, Error> {
-		return SignalProducer<Value.Value, Error> { observer, lifetime in
-			let state = Atomic(LatestState<Value, Error>())
-			let latestInnerDisposable = SerialDisposable()
-			lifetime += latestInnerDisposable
+	internal override func makeInstance() -> Instance {
+		let disposable = SerialDisposable()
+		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
 
-			lifetime += self.start { event in
-				switch event {
-				case let .value(p):
-					state.modify {
-						// When we replace the disposable below, this prevents
-						// the generated Interrupted event from doing any work.
-						$0.replacingInnerSignal = true
-					}
-
-					latestInnerDisposable.inner = nil
-
-					state.modify {
-						$0.replacingInnerSignal = false
-						$0.innerSignalComplete = false
-					}
-
-					latestInnerDisposable.inner = p.producer.start { event in
-						switch event {
-						case .interrupted:
-							// If interruption occurred as a result of a new
-							// producer arriving, we don't want to notify our
-							// observer.
-							let shouldComplete: Bool = state.modify { state in
-								if !state.replacingInnerSignal {
-									state.innerSignalComplete = true
-								}
-								return !state.replacingInnerSignal && state.outerSignalComplete
-							}
-
-							if shouldComplete {
-								observer.sendCompleted()
-							}
-
-						case .completed:
-							let shouldComplete: Bool = state.modify {
-								$0.innerSignalComplete = true
-								return $0.outerSignalComplete
-							}
-
-							if shouldComplete {
-								observer.sendCompleted()
-							}
-
-						case .value, .failed:
-							observer.send(event)
-						}
-					}
-
-				case let .failed(error):
-					observer.send(error: error)
-
-				case .completed:
-					let shouldComplete: Bool = state.modify {
-						$0.outerSignalComplete = true
-						return $0.innerSignalComplete
-					}
-
-					if shouldComplete {
-						observer.sendCompleted()
-					}
-
-				case .interrupted:
-					observer.sendInterrupted()
-				}
+		func observerDidSetup() {
+			start { interrupter in
+				disposable.inner = interrupter
+				return observer
 			}
 		}
+
+		return Instance(signal: signal,
+						observerDidSetup: observerDidSetup,
+						interruptHandle: disposable)
 	}
 }
+
 
 private struct LatestState<Value, Error: Swift.Error> {
 	var outerSignalComplete: Bool = false
