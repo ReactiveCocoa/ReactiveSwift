@@ -119,9 +119,9 @@ public final class Signal<Value, Error: Swift.Error> {
 				//
 				// Note that this cannot be `try` since any concurrent observer bag
 				// manipulation might then cause the terminating state being missed.
-				if case .terminating = state {
-					tryToCommitTermination()
-				}
+//				if case .terminating = state {
+//					tryToCommitTermination()
+//				}
 			}
 		}
 
@@ -187,8 +187,8 @@ public final class Signal<Value, Error: Swift.Error> {
 		private func tryToCommitTermination() {
 			// Acquire `stateLock`. If the termination has still not yet been
 			// handled, take it over and bump the status to `terminated`.
-			enforcer.lock()
-			defer { enforcer.unlock() }
+//			enforcer.lock()
+//			defer { enforcer.unlock() }
 
 			if case let .terminating(observers, terminationKind) = state {
 				// Try to acquire the `sendLock`, and fail gracefully since the current
@@ -217,8 +217,8 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// - parameters:
 		///   - stateLock: The `stateLock` acquired by the caller.
 		private func tryToDisposeSilentlyIfQualified() {
-			enforcer.lock()
-			defer { enforcer.unlock() }
+//			enforcer.lock()
+//			defer { enforcer.unlock() }
 
 			if case let .alive(observers, true) = state, observers.isEmpty {
 				// Transition to `terminated` directly only if there is no event delivery
