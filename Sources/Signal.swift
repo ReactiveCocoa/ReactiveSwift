@@ -625,8 +625,19 @@ extension Signal {
 	///                returns a new optional value.
 	///
 	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
+	public func compactMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.compactMap(transform))
+	}
+
+	/// Applies `transform` to values from `signal` and forwards values with non `nil` results unwrapped.
+	/// - parameters:
+	///   - transform: A closure that accepts a value from the `value` event and
+	///                returns a new optional value.
+	///
+	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
+	@available(*, deprecated, renamed: "compactMap")
 	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
-		return flatMapEvent(Signal.Event.filterMap(transform))
+		return flatMapEvent(Signal.Event.compactMap(transform))
 	}
 }
 

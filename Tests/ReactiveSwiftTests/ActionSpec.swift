@@ -138,7 +138,7 @@ class ActionSpec: QuickSpec {
 				var isFirstResponder = false
 
 				action.isEnabled.producer
-					.filterMap { isActionEnabled in !isActionEnabled && isFirstResponder ? () : nil }
+					.compactMap { isActionEnabled in !isActionEnabled && isFirstResponder ? () : nil }
 					.startWithValues { _ in enabled.value = false }
 
 				enabled.value = true
