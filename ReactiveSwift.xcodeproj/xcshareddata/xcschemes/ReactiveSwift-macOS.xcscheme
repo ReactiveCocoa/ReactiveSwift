@@ -81,6 +81,35 @@
                BlueprintName = "ReactiveSwift-macOSTests"
                ReferencedContainer = "container:ReactiveSwift.xcodeproj">
             </BuildableReference>
+            <SkippedTests>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testCombineLatestCreating()">
+               </Test>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testCombineLatestPumping()">
+               </Test>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testFlatMapsCreating()">
+               </Test>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testFlatMapsPumping()">
+               </Test>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testMapFilterCreating()">
+               </Test>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testMapFilterPumping()">
+               </Test>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testPublishSubjectCreating()">
+               </Test>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testPublishSubjectPumping()">
+               </Test>
+               <Test
+                  Identifier = "ReactiveSwiftTests/testPublishSubjectPumpingTwoSubscriptions()">
+               </Test>
+            </SkippedTests>
          </TestableReference>
       </Testables>
       <AdditionalOptions>

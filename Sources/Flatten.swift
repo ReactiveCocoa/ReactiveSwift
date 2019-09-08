@@ -682,12 +682,74 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 	///            on `self`, ignoring values sent on previous inner producer.
 	fileprivate func switchToLatest() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { observer, lifetime in
+			let state = Atomic(LatestState<Value, Error>())
 			let latestInnerDisposable = SerialDisposable()
 			lifetime += latestInnerDisposable
 
-			self.startWithSignal { signal, signalDisposable in
-				lifetime += signalDisposable
-				lifetime += signal.observeSwitchToLatest(observer, latestInnerDisposable)
+			lifetime += self.start { event in
+				switch event {
+				case let .value(p):
+					state.modify {
+						// When we replace the disposable below, this prevents
+						// the generated Interrupted event from doing any work.
+						$0.replacingInnerSignal = true
+					}
+
+					latestInnerDisposable.inner = nil
+
+					state.modify {
+						$0.replacingInnerSignal = false
+						$0.innerSignalComplete = false
+					}
+
+					latestInnerDisposable.inner = p.producer.start { event in
+						switch event {
+						case .interrupted:
+							// If interruption occurred as a result of a new
+							// producer arriving, we don't want to notify our
+							// observer.
+							let shouldComplete: Bool = state.modify { state in
+								if !state.replacingInnerSignal {
+									state.innerSignalComplete = true
+								}
+								return !state.replacingInnerSignal && state.outerSignalComplete
+							}
+
+							if shouldComplete {
+								observer.sendCompleted()
+							}
+
+						case .completed:
+							let shouldComplete: Bool = state.modify {
+								$0.innerSignalComplete = true
+								return $0.outerSignalComplete
+							}
+
+							if shouldComplete {
+								observer.sendCompleted()
+							}
+
+						case .value, .failed:
+							observer.send(event)
+						}
+					}
+
+				case let .failed(error):
+					observer.send(error: error)
+
+				case .completed:
+					let shouldComplete: Bool = state.modify {
+						$0.outerSignalComplete = true
+						return $0.innerSignalComplete
+					}
+
+					if shouldComplete {
+						observer.sendCompleted()
+					}
+
+				case .interrupted:
+					observer.sendInterrupted()
+				}
 			}
 		}
 	}
