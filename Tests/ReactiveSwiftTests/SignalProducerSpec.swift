@@ -995,6 +995,23 @@ class SignalProducerSpec: QuickSpec {
 				expect(ids) == [1, 2]
 				expect(values._bridgeToObjectiveC()) == [[1, 2]]._bridgeToObjectiveC()
 			}
+			
+			it("can deal with hundreds of producers") {
+				let scheduler = QueueScheduler(qos: .default, name: "RACScheduler", targeting: nil)
+				
+				let producers = (0..<700).map { _ -> SignalProducer<Void, Never> in
+					return SignalProducer(value: ())
+				}
+				
+				waitUntil { done in
+					SignalProducer
+						.combineLatest(producers)
+						.start(on: scheduler)
+						.startWithCompleted {
+							done()
+					}
+				}
+			}
 		}
 
 		describe("zip") {
@@ -1031,6 +1048,23 @@ class SignalProducerSpec: QuickSpec {
 
 				expect(ids) == [1, 2]
 				expect(values._bridgeToObjectiveC()) == [[1, 2]]._bridgeToObjectiveC()
+			}
+			
+			it("can deal with hundreds of producers") {
+				let scheduler = QueueScheduler(qos: .default, name: "RACScheduler", targeting: nil)
+				
+				let producers = (0..<700).map { _ -> SignalProducer<Void, Never> in
+					return SignalProducer(value: ())
+				}
+				
+				waitUntil { done in
+					SignalProducer
+						.zip(producers)
+						.start(on: scheduler)
+						.startWithCompleted {
+							done()
+					}
+				}
 			}
 		}
 
