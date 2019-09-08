@@ -57,16 +57,11 @@ public final class Signal<Value, Error: Swift.Error> {
 		private var state: State
 
 		/// Used to ensure that all state accesses are serialized.
-		private let stateLock: Lock
-
-		/// Used to ensure that events are serialized during delivery to observers.
-		private let sendLock: Lock
+		private let enforcer = NSRecursiveLock()
 
 		fileprivate init(_ generator: (Observer, Lifetime) -> Void) {
 			state = .alive(Bag(), hasDeinitialized: false)
 
-			stateLock = Lock.make()
-			sendLock = Lock.make()
 			disposable = CompositeDisposable()
 
 			// The generator observer retains the `Signal` core.
@@ -74,6 +69,9 @@ public final class Signal<Value, Error: Swift.Error> {
 		}
 
 		private func send(_ event: Event) {
+			enforcer.lock()
+			defer { enforcer.unlock() }
+
 			if event.isTerminating {
 				// Recursive events are disallowed for `value` events, but are permitted
 				// for termination events. Specifically:
@@ -94,31 +92,18 @@ public final class Signal<Value, Error: Swift.Error> {
 				// the disposal would be delegated to the current sender, or
 				// occasionally one of the senders waiting on `sendLock`.
 
-				self.stateLock.lock()
-
 				if case let .alive(observers, _) = state {
 					self.state = .terminating(observers, .init(event))
-					self.stateLock.unlock()
-				} else {
-					self.stateLock.unlock()
 				}
 
 				tryToCommitTermination()
 			} else {
-				self.sendLock.lock()
-				self.stateLock.lock()
-
 				if case let .alive(observers, _) = self.state {
-					self.stateLock.unlock()
 
 					for observer in observers {
 						observer.send(event)
 					}
-				} else {
-					self.stateLock.unlock()
 				}
-
-				self.sendLock.unlock()
 
 				// Check if the status has been bumped to `terminating` due to a
 				// terminal event being sent concurrently or recursively.
@@ -134,12 +119,8 @@ public final class Signal<Value, Error: Swift.Error> {
 				//
 				// Note that this cannot be `try` since any concurrent observer bag
 				// manipulation might then cause the terminating state being missed.
-				stateLock.lock()
 				if case .terminating = state {
-					stateLock.unlock()
 					tryToCommitTermination()
-				} else {
-					stateLock.unlock()
 				}
 			}
 		}
@@ -154,15 +135,14 @@ public final class Signal<Value, Error: Swift.Error> {
 		fileprivate func observe(_ observer: Observer) -> Disposable? {
 			var token: Bag<Observer>.Token?
 
-			stateLock.lock()
+			enforcer.lock()
+			defer { enforcer.unlock() }
 
 			if case let .alive(observers, hasDeinitialized) = state {
 				var newObservers = observers
 				token = newObservers.insert(observer)
 				self.state = .alive(newObservers, hasDeinitialized: hasDeinitialized)
 			}
-
-			stateLock.unlock()
 
 			if let token = token {
 				return AnyDisposable { [weak self] in
@@ -179,7 +159,8 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// - parameters:
 		///   - token: The token of the observer to remove.
 		private func removeObserver(with token: Bag<Observer>.Token) {
-			stateLock.lock()
+			enforcer.lock()
+			defer { enforcer.unlock() }
 
 			if case let .alive(observers, hasDeinitialized) = state {
 				var newObservers = observers
@@ -191,10 +172,8 @@ public final class Signal<Value, Error: Swift.Error> {
 				withExtendedLifetime(observer) {
 					// Start the disposal of the `Signal` core if the `Signal` has
 					// deinitialized and there is no active observer.
-					tryToDisposeSilentlyIfQualified(unlocking: stateLock)
+					tryToDisposeSilentlyIfQualified()
 				}
-			} else {
-				stateLock.unlock()
 			}
 		}
 
@@ -208,14 +187,13 @@ public final class Signal<Value, Error: Swift.Error> {
 		private func tryToCommitTermination() {
 			// Acquire `stateLock`. If the termination has still not yet been
 			// handled, take it over and bump the status to `terminated`.
-			stateLock.lock()
+			enforcer.lock()
+			defer { enforcer.unlock() }
 
 			if case let .terminating(observers, terminationKind) = state {
 				// Try to acquire the `sendLock`, and fail gracefully since the current
 				// lock holder would attempt to commit after it is done anyway.
-				if sendLock.try() {
 					state = .terminated
-					stateLock.unlock()
 
 					if let event = terminationKind.materialize() {
 						for observer in observers {
@@ -223,13 +201,9 @@ public final class Signal<Value, Error: Swift.Error> {
 						}
 					}
 
-					sendLock.unlock()
 					disposable.dispose()
 					return
-				}
 			}
-
-			stateLock.unlock()
 		}
 
 		/// Try to dispose of the signal silently if the `Signal` has deinitialized and
@@ -242,34 +216,22 @@ public final class Signal<Value, Error: Swift.Error> {
 		///
 		/// - parameters:
 		///   - stateLock: The `stateLock` acquired by the caller.
-		private func tryToDisposeSilentlyIfQualified(unlocking stateLock: Lock) {
-			assert(!stateLock.try(), "Calling `unconditionallyTerminate` without acquiring `stateLock`.")
+		private func tryToDisposeSilentlyIfQualified() {
+			enforcer.lock()
+			defer { enforcer.unlock() }
 
 			if case let .alive(observers, true) = state, observers.isEmpty {
 				// Transition to `terminated` directly only if there is no event delivery
 				// on going.
-				if sendLock.try() {
 					self.state = .terminated
-					stateLock.unlock()
-					sendLock.unlock()
-
 					disposable.dispose()
-					return
-				}
-
-				self.state = .terminating(Bag(), .silent)
-				stateLock.unlock()
-
-				tryToCommitTermination()
-				return
 			}
-
-			stateLock.unlock()
 		}
 
 		/// Acknowledge the deinitialization of the `Signal`.
 		fileprivate func signalDidDeinitialize() {
-			stateLock.lock()
+			enforcer.lock()
+			defer { enforcer.unlock() }
 
 			// Mark the `Signal` has now deinitialized.
 			if case let .alive(observers, false) = state {
@@ -277,7 +239,7 @@ public final class Signal<Value, Error: Swift.Error> {
 			}
 
 			// Attempt to start the disposal of the signal if it has no active observer.
-			tryToDisposeSilentlyIfQualified(unlocking: stateLock)
+			tryToDisposeSilentlyIfQualified()
 		}
 
 		deinit {
