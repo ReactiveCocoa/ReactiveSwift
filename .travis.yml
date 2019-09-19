@@ -50,7 +50,7 @@ aliases:
     script:
       - swift --version
       - swift build
-      - swift test
+      - TEST=1 swift test
     git:
       submodules: false
     env: JOB=SwiftPM
