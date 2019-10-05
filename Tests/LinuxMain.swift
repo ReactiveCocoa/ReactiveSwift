@@ -12,6 +12,7 @@ Quick.QCKMain([
     FlattenSpec.self,
     FoundationExtensionsSpec.self,
     LifetimeSpec.self,
+    ObservablePropertyWrapperSpec.self,
     PropertySpec.self,
     SchedulerSpec.self,
     SignalLifetimeSpec.self,
