@@ -1,7 +1,8 @@
 # master
 *Please add new entries at the top.*
-1. [SwiftPM] Add platforms (#761, kudos to @ikesyo)
-1. Renamed `filterMap` to `compactMap` and deprecated `filterMap` (#746, kudos to @Marcocanc)
+1. Add @Observable property wrapper and bump the CI to Xcode 11 / Swift 5.1 (#762, kudos to @petrpavlik)
+2. [SwiftPM] Add platforms (#761, kudos to @ikesyo)
+3. Renamed `filterMap` to `compactMap` and deprecated `filterMap` (#746, kudos to @Marcocanc)
 
 # 6.1.0
 
