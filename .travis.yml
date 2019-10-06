@@ -25,7 +25,7 @@ aliases:
       - XCODE_SCHEME=ReactiveSwift-iOS
         XCODE_SDK=iphonesimulator
         XCODE_ACTION="build-for-testing test-without-building"
-        XCODE_DESTINATION="platform=iOS Simulator,name=iPhone 6s"
+        XCODE_DESTINATION="platform=iOS Simulator,name=iPhone X"
         script/build
       - XCODE_SCHEME=ReactiveSwift-tvOS
         XCODE_SDK=appletvsimulator
