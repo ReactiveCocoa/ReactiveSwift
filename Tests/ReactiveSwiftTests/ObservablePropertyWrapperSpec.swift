@@ -33,10 +33,6 @@ class ObservablePropertyWrapperSpec: QuickSpec {
                 expect(counter.value) == 1
                 expect(counter.$value.property.value) == 1
             }
-            it("producer should match underlying peoperty's producer") {
-                let counter = TestCounter()
-                expect(counter.$value.producer) === counter.$value.property.producer
-            }
             it("signal should match underlying peoperty's signal") {
                 let counter = TestCounter()
                 expect(counter.$value.signal) === counter.$value.property.signal
