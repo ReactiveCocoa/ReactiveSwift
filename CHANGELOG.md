@@ -1,5 +1,6 @@
 # master
 *Please add new entries at the top.*
+1. [SwiftPM] Add platforms (#761, kudos to @ikesyo)
 1. Renamed `filterMap` to `compactMap` and deprecated `filterMap` (#746, kudos to @Marcocanc)
 
 # 6.1.0
