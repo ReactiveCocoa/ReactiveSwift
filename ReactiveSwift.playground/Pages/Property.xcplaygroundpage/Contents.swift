@@ -6,12 +6,10 @@
  **OR**, if you have [Carthage](https://github.com/Carthage/Carthage) installed
     - `carthage checkout`
  1. Open `ReactiveSwift.xcworkspace`
- 1. Build `Result-Mac` scheme
  1. Build `ReactiveSwift-macOS` scheme
  1. Finally open the `ReactiveSwift.playground`
  1. Choose `View > Show Debug Area`
  */
-import Result
 import ReactiveSwift
 import Foundation
 /*:
@@ -77,7 +75,7 @@ scopedExample("Creation") {
  property’s value is updated whenever the source property is updated.
  */
 scopedExample("Binding from SignalProducer") {
-    let producer = SignalProducer<Int, NoError> { observer, _ in
+    let producer = SignalProducer<Int, Never> { observer, _ in
         print("New subscription, starting operation")
         observer.send(value: 1)
         observer.send(value: 2)
@@ -92,7 +90,7 @@ scopedExample("Binding from SignalProducer") {
 }
 
 scopedExample("Binding from Signal") {
-    let (signal, observer) = Signal<Int, NoError>.pipe()
+    let (signal, observer) = Signal<Int, Never>.pipe()
     let property = MutableProperty(0)
     property.producer.startWithValues {
         print("Property received \($0)")

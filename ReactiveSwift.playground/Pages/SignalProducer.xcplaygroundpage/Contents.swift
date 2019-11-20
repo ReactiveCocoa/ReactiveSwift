@@ -6,13 +6,11 @@
  **OR**, if you have [Carthage](https://github.com/Carthage/Carthage) installed
     - `carthage checkout`
 1. Open `ReactiveSwift.xcworkspace`
-1. Build `Result-Mac` scheme
 1. Build `ReactiveSwift-macOS` scheme
 1. Finally open the `ReactiveSwift.playground`
 1. Choose `View > Show Debug Area`
 */
 
-import Result
 import ReactiveSwift
 import Foundation
 
@@ -51,14 +49,14 @@ A SignalProducer represents an operation that can be started on demand. Starting
 This means that a subscriber will never miss any values sent by the SignalProducer.
 */
 scopedExample("Subscription") {
-	let producer = SignalProducer<Int, NoError> { observer, _ in
+	let producer = SignalProducer<Int, Never> { observer, _ in
 		print("New subscription, starting operation")
 		observer.send(value: 1)
 		observer.send(value: 2)
 	}
 
-	let subscriber1 = Signal<Int, NoError>.Observer(value: { print("Subscriber 1 received \($0)") })
-	let subscriber2 = Signal<Int, NoError>.Observer(value: { print("Subscriber 2 received \($0)") })
+	let subscriber1 = Signal<Int, Never>.Observer(value: { print("Subscriber 1 received \($0)") })
+	let subscriber2 = Signal<Int, Never>.Observer(value: { print("Subscriber 2 received \($0)") })
 
 	print("Subscriber 1 subscribes to producer")
 	producer.start(subscriber1)
@@ -74,9 +72,9 @@ A producer for a Signal that will immediately complete without sending
 any values.
 */
 scopedExample("`empty`") {
-	let emptyProducer = SignalProducer<Int, NoError>.empty
+	let emptyProducer = SignalProducer<Int, Never>.empty
 
-	let observer = Signal<Int, NoError>.Observer(
+	let observer = Signal<Int, Never>.Observer(
 		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed called") }
@@ -90,9 +88,9 @@ scopedExample("`empty`") {
 A producer for a Signal that never sends any events to its observers.
 */
 scopedExample("`never`") {
-	let neverProducer = SignalProducer<Int, NoError>.never
+	let neverProducer = SignalProducer<Int, Never>.never
 
-	let observer = Signal<Int, NoError>.Observer(
+	let observer = Signal<Int, Never>.Observer(
 		value: { _ in print("value not called") },
 		failed: { _ in print("error not called") },
 		completed: { print("completed not called") }
@@ -114,7 +112,7 @@ scopedExample("`startWithSignal`") {
 	var started = false
 	var value: Int?
 
-	SignalProducer<Int, NoError>(value: 42)
+	SignalProducer<Int, Never>(value: 42)
 		.on(value: {
 			value = $0
 		})
@@ -135,7 +133,7 @@ Returns a Disposable which can be used to interrupt the work associated
 with the Signal, and prevent any future callbacks from being invoked.
 */
 scopedExample("`startWithResult`") {
-	SignalProducer<Int, NoError>(value: 42)
+	SignalProducer<Int, Never>(value: 42)
 		.startWithResult { result in
 			print(result.value)
 		}
@@ -148,13 +146,13 @@ the Signal, which will invoke the given callback when `value` events are
 received.
 
 This method is available only if the producer never emits error, or in
-other words, has an error type of `NoError`.
+other words, has an error type of `Never`.
 
 Returns a Disposable which can be used to interrupt the work associated
 with the Signal, and prevent any future callbacks from being invoked.
 */
 scopedExample("`startWithValues`") {
-	SignalProducer<Int, NoError>(value: 42)
+	SignalProducer<Int, Never>(value: 42)
 		.startWithValues { value in
 			print(value)
 		}
@@ -170,7 +168,7 @@ Returns a Disposable which can be used to interrupt the work associated
 with the Signal.
 */
 scopedExample("`startWithCompleted`") {
-	SignalProducer<Int, NoError>(value: 42)
+	SignalProducer<Int, Never>(value: 42)
 		.startWithCompleted {
 			print("completed called")
 		}
@@ -202,7 +200,7 @@ Returns a Disposable which can be used to interrupt the work associated
 with the Signal.
 */
 scopedExample("`startWithInterrupted`") {
-	let disposable = SignalProducer<Int, NoError>.never
+	let disposable = SignalProducer<Int, Never>.never
 		.startWithInterrupted {
 			print("interrupted called")
 		}
@@ -221,12 +219,12 @@ operator had been applied to each Signal yielded from start().
 */
 scopedExample("`lift`") {
 	var counter = 0
-	let transform: (Signal<Int, NoError>) -> Signal<Int, NoError> = { signal in
+	let transform: (Signal<Int, Never>) -> Signal<Int, Never> = { signal in
 		counter = 42
 		return signal
 	}
 
-	SignalProducer<Int, NoError>(value: 0)
+	SignalProducer<Int, Never>(value: 0)
 		.lift(transform)
 		.startWithValues { _ in
 			print(counter)
@@ -238,7 +236,7 @@ scopedExample("`lift`") {
 Maps each value in the producer to a new value.
 */
 scopedExample("`map`") {
-	SignalProducer<Int, NoError>(value: 1)
+	SignalProducer<Int, Never>(value: 1)
 		.map { $0 + 41 }
 		.startWithValues { value in
 			print(value)
@@ -262,7 +260,7 @@ scopedExample("`mapError`") {
 Preserves only the values of the producer that pass the given predicate.
 */
 scopedExample("`filter`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.filter { $0 > 3 }
 		.startWithValues { value in
 			print(value)
@@ -275,7 +273,7 @@ Returns a producer that will yield the first `count` values from the
 input producer.
 */
 scopedExample("`take(first:)`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.take(first: 2)
 		.startWithValues { value in
 			print(value)
@@ -288,7 +286,7 @@ Forwards all events onto the given scheduler, instead of whichever
 scheduler they originally arrived upon.
 */
 scopedExample("`observe(on:)`") {
-	let baseProducer = SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	let baseProducer = SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 	let completion = { print("is main thread? \(Thread.current.isMainThread)") }
 
 	baseProducer
@@ -304,7 +302,7 @@ scopedExample("`observe(on:)`") {
 Returns a producer that will yield an array of values until it completes.
 */
 scopedExample("`collect`") {
-	SignalProducer<Int, NoError> { observer, disposable in
+	SignalProducer<Int, Never> { observer, disposable in
 		observer.send(value: 1)
 		observer.send(value: 2)
 		observer.send(value: 3)
@@ -322,7 +320,7 @@ scopedExample("`collect`") {
 Returns a producer that will yield an array of values until it reaches a certain count.
 */
 scopedExample("`collect(count:)`") {
-	SignalProducer<Int, NoError> { observer, disposable in
+	SignalProducer<Int, Never> { observer, disposable in
 		observer.send(value: 1)
 		observer.send(value: 2)
 		observer.send(value: 3)
@@ -345,7 +343,7 @@ array may not match `predicate`. Alternatively, if were not collected any
 values will sent an empty array of values.
 */
 scopedExample("`collect(_:)` matching values inclusively") {
-	SignalProducer<Int, NoError> { observer, disposable in
+	SignalProducer<Int, Never> { observer, disposable in
 		observer.send(value: 1)
 		observer.send(value: 2)
 		observer.send(value: 3)
@@ -368,7 +366,7 @@ array may not match `predicate`. Alternatively, if were not collected any
 values will sent an empty array of values.
 */
 scopedExample("`collect(_:)` matching values exclusively") {
-	SignalProducer<Int, NoError> { observer, disposable in
+	SignalProducer<Int, Never> { observer, disposable in
 		observer.send(value: 1)
 		observer.send(value: 2)
 		observer.send(value: 3)
@@ -391,8 +389,8 @@ least one value each. If either producer is interrupted, the returned producer
 will also be interrupted.
 */
 scopedExample("`combineLatest(with:)`") {
-	let producer1 = SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
-	let producer2 = SignalProducer<Int, NoError>([ 1, 2 ])
+	let producer1 = SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
+	let producer2 = SignalProducer<Int, Never>([ 1, 2 ])
 
 	producer1
 		.combineLatest(with: producer2)
@@ -407,7 +405,7 @@ Returns a producer that will skip the first `count` values, then forward
 everything afterward.
 */
 scopedExample("`skip(first:)`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.skip(first: 2)
 		.startWithValues { value in
 			print(value)
@@ -427,7 +425,7 @@ the Event itself and then complete. When an Interrupted event is received,
 the resulting producer will send the Event itself and then interrupt.
 */
 scopedExample("`materialize`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.materialize()
 		.startWithValues { value in
 			print(value)
@@ -446,7 +444,7 @@ scopedExample("`materialize`") {
  send the `Result.failure` itself and then complete.
  */
 scopedExample("`materializeResults`") {
-    SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+    SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
         .materializeResults()
         .startWithValues { value in
             print(value)
@@ -466,8 +464,8 @@ multiple times) by `sampler`, then complete once both input producers have
 completed, or interrupt if either input producer is interrupted.
 */
 scopedExample("`sample(on:)`") {
-	let baseProducer = SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
-	let sampledOnProducer = SignalProducer<Int, NoError>([ 1, 2 ])
+	let baseProducer = SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
+	let sampledOnProducer = SignalProducer<Int, Never>([ 1, 2 ])
 		.map { _ in () }
 
 	baseProducer
@@ -485,7 +483,7 @@ is the current value. `initial` is supplied as the first member when `self`
 sends its first value.
 */
 scopedExample("`combinePrevious`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.combinePrevious(42)
 		.startWithValues { value in
 			print("\(value)")
@@ -501,7 +499,7 @@ producer returned from `scan`. That result is then passed to `combine` as the
 first argument when the next value is emitted, and so on.
 */
 scopedExample("`scan`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.scan(0, +)
 		.startWithValues { value in
 			print(value)
@@ -513,7 +511,7 @@ scopedExample("`scan`") {
 Like `scan`, but sends only the final value and then immediately completes.
 */
 scopedExample("`reduce`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.reduce(0, +)
 		.startWithValues { value in
 			print(value)
@@ -526,7 +524,7 @@ Forwards only those values from `self` which do not pass `isRepeat` with
 respect to the previous value. The first value is always forwarded.
 */
 scopedExample("`skipRepeats`") {
-	SignalProducer<Int, NoError>([ 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 2, 2, 2, 4 ])
+	SignalProducer<Int, Never>([ 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 2, 2, 2, 4 ])
 		.skipRepeats(==)
 		.startWithValues { value in
 			print(value)
@@ -540,7 +538,7 @@ at which point the returned signal behaves exactly like `self`.
 */
 scopedExample("`skip(while:)`") {
 	// Note that trailing closure is used for `skip(while:)`.
-	SignalProducer<Int, NoError>([ 3, 3, 3, 3, 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 3, 3, 3, 3, 1, 2, 3, 4 ])
 		.skip { $0 > 2 }
 		.startWithValues { value in
 			print(value)
@@ -558,9 +556,9 @@ from `replacement` instead, regardless of whether `self` has sent events
 already.
 */
 scopedExample("`take(untilReplacement:)`") {
-	let (replacementSignal, incomingReplacementObserver) = Signal<Int, NoError>.pipe()
+	let (replacementSignal, incomingReplacementObserver) = Signal<Int, Never>.pipe()
 
-	let baseProducer = SignalProducer<Int, NoError> { incomingObserver, _ in
+	let baseProducer = SignalProducer<Int, Never> { incomingObserver, _ in
 		incomingObserver.send(value: 1)
 		incomingObserver.send(value: 2)
 		incomingObserver.send(value: 3)
@@ -585,7 +583,7 @@ Waits until `self` completes and then forwards the final `count` values
 on the returned producer.
 */
 scopedExample("`take(last:)`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.take(last: 2)
 		.startWithValues { value in
 			print(value)
@@ -598,7 +596,7 @@ Unwraps non-`nil` values and forwards them on the returned signal, `nil`
 values are dropped.
 */
 scopedExample("`skipNil`") {
-	SignalProducer<Int?, NoError>([ nil, 1, 2, nil, 3, 4, nil ])
+	SignalProducer<Int?, Never>([ nil, 1, 2, nil, 3, 4, nil ])
 		.skipNil()
 		.startWithValues { value in
 			print(value)
@@ -612,8 +610,8 @@ Zips elements of two producers into pairs. The elements of any Nth pair
 are the Nth elements of the two input producers.
 */
 scopedExample("`zip(with:)`") {
-	let baseProducer = SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
-	let zippedProducer = SignalProducer<Int, NoError>([ 42, 43 ])
+	let baseProducer = SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
+	let zippedProducer = SignalProducer<Int, Never>([ 42, 43 ])
 
 	baseProducer
 		.zip(with: zippedProducer)
@@ -630,7 +628,7 @@ an equivalent signal producer.
 scopedExample("`repeat`") {
 	var counter = 0
 
-	SignalProducer<(), NoError> { observer, disposable in
+	SignalProducer<(), Never> { observer, disposable in
 		counter += 1
 		observer.sendCompleted()
 	}
@@ -670,8 +668,8 @@ which case `replacement` will not be started, and none of its events will be
 be forwarded. All values sent from `producer` are ignored.
 */
 scopedExample("`then`") {
-	let baseProducer = SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
-	let thenProducer = SignalProducer<Int, NoError>(value: 42)
+	let baseProducer = SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
+	let thenProducer = SignalProducer<Int, Never>(value: 42)
 
 	baseProducer
 		.then(thenProducer)
@@ -705,7 +703,7 @@ a layer of caching in front of another `SignalProducer`.
 This operator has the same semantics as `SignalProducer.buffer`.
 */
 scopedExample("`replayLazily(upTo:)`") {
-	let baseProducer = SignalProducer<Int, NoError>([ 1, 2, 3, 4, 42 ])
+	let baseProducer = SignalProducer<Int, Never>([ 1, 2, 3, 4, 42 ])
 		.replayLazily(upTo: 2)
 
 	baseProducer.startWithValues { value in
@@ -731,7 +729,7 @@ If `self` or any of the created producers fail, the returned producer
 will forward that failure immediately.
 */
 scopedExample("`flatMap(.latest)`") {
-	SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
+	SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
 		.flatMap(.latest) { SignalProducer(value: $0 + 3) }
 		.startWithValues { value in
 			print(value)
@@ -745,7 +743,7 @@ that starts in its place.
 */
 scopedExample("`flatMapError`") {
 	SignalProducer<Int, NSError>(error: NSError(domain: "flatMapError", code: 42, userInfo: nil))
-		.flatMapError { SignalProducer<Int, NoError>(value: $0.code) }
+		.flatMapError { SignalProducer<Int, Never>(value: $0.code) }
 		.startWithValues { value in
 			print(value)
 		}
@@ -762,8 +760,8 @@ sampled (possibly multiple times) by `sampler`, then complete once both
 input producers have completed, or interrupt if either input producer is interrupted.
 */
 scopedExample("`sample(with:)`") {
-	let producer = SignalProducer<Int, NoError>([ 1, 2, 3, 4 ])
-	let sampler = SignalProducer<String, NoError>([ "a", "b" ])
+	let producer = SignalProducer<Int, Never>([ 1, 2, 3, 4 ])
+	let sampler = SignalProducer<String, Never>([ "a", "b" ])
 
 	let result = producer.sample(with: sampler)
 
@@ -778,7 +776,7 @@ Logs all events that the receiver sends.
 By default, it will print to the standard output.
 */
 scopedExample("`log events`") {
-	let baseProducer = SignalProducer<Int, NoError>([ 1, 2, 3, 4, 42 ])
+	let baseProducer = SignalProducer<Int, Never>([ 1, 2, 3, 4, 42 ])
 	
  	baseProducer
  		.logEvents(identifier: "Playground is fun!")

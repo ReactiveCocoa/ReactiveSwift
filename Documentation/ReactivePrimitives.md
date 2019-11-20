@@ -13,7 +13,7 @@ The owner of a `Signal` has unilateral control of the event stream. Observers ma
 A `Signal` is like a live TV feed — you can observe and react to the content, but you cannot have a side effect on the live feed or the TV station.
 
 ```swift
-let channel: Signal<Program, NoError> = tvStation.channelOne
+let channel: Signal<Program, Never> = tvStation.channelOne
 channel.observeValues { program in ... }
 ```
 

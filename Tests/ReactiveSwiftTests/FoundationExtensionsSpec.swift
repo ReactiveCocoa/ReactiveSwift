@@ -8,7 +8,6 @@
 
 import Foundation
 import Dispatch
-import Result
 import Nimble
 import Quick
 @testable import ReactiveSwift
@@ -43,7 +42,7 @@ class FoundationExtensionsSpec: QuickSpec {
 			}
 
 			it("should be disposed of if it is not reachable and no observer is attached") {
-				weak var signal: Signal<Notification, NoError>?
+				weak var signal: Signal<Notification, Never>?
 				var isDisposed = false
 
 				let disposable: Disposable? = {
@@ -64,7 +63,7 @@ class FoundationExtensionsSpec: QuickSpec {
 			}
 
 			it("should be not disposed of if it still has one or more active observers") {
-				weak var signal: Signal<Notification, NoError>?
+				weak var signal: Signal<Notification, Never>?
 				var isDisposed = false
 
 				let disposable: Disposable? = {

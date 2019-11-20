@@ -3,9 +3,8 @@ import Darwin.POSIX.pthread
 #else
 import Glibc
 #endif
-import Result
 
-// FIXME: The `Error == NoError` constraint is retained for Swift 4.0.x
+// FIXME: The `Error == Never` constraint is retained for Swift 4.0.x
 //        compatibility, since `BindingSource` did not impose such constraint
 //        due to the absence of conditional conformance.
 
@@ -25,7 +24,7 @@ public protocol PropertyProtocol: class, BindingSource {
 	///
 	/// - note: If `self` is a composed property, the producer would be
 	///         bound to the lifetime of its sources.
-	var producer: SignalProducer<Value, NoError> { get }
+	var producer: SignalProducer<Value, Never> { get }
 
 	/// A signal that will send the property's changes over time. It
 	/// completes when the property has deinitialized, or has no further
@@ -33,7 +32,7 @@ public protocol PropertyProtocol: class, BindingSource {
 	///
 	/// - note: If `self` is a composed property, the signal would be
 	///         bound to the lifetime of its sources.
-	var signal: Signal<Value, NoError> { get }
+	var signal: Signal<Value, Never> { get }
 }
 
 /// Represents an observable property that can be mutated directly.
@@ -82,12 +81,12 @@ public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
 
 extension PropertyProtocol {
 	/// Lifts a unary SignalProducer operator to operate upon PropertyProtocol instead.
-	fileprivate func lift<U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> SignalProducer<U, NoError>) -> Property<U> {
+	fileprivate func lift<U>(_ transform: @escaping (SignalProducer<Value, Never>) -> SignalProducer<U, Never>) -> Property<U> {
 		return Property(unsafeProducer: transform(producer))
 	}
 
 	/// Lifts a binary SignalProducer operator to operate upon PropertyProtocol instead.
-	fileprivate func lift<P: PropertyProtocol, U>(_ transform: @escaping (SignalProducer<Value, NoError>) -> (SignalProducer<P.Value, NoError>) -> SignalProducer<U, NoError>) -> (P) -> Property<U> {
+	fileprivate func lift<P: PropertyProtocol, U>(_ transform: @escaping (SignalProducer<Value, Never>) -> (SignalProducer<P.Value, Never>) -> SignalProducer<U, Never>) -> (P) -> Property<U> {
 		return { other in
 			return Property(unsafeProducer: transform(self.producer)(other.producer))
 		}
@@ -397,7 +396,7 @@ extension PropertyProtocol {
 extension PropertyProtocol where Value == Bool {
 	/// Create a property that computes a logical NOT in the latest values of `self`.
 	///
-	/// - returns: A property that contains the logial NOT results.
+	/// - returns: A property that contains the logical NOT results.
 	public func negate() -> Property<Value> {
 		return self.lift { $0.negate() }
 	}
@@ -408,9 +407,19 @@ extension PropertyProtocol where Value == Bool {
 	/// - parameters:
 	///   - property: Property to be combined with `self`.
 	///
-	/// - returns: A property that contains the logial AND results.
+	/// - returns: A property that contains the logical AND results.
 	public func and<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.and)(property)
+	}
+	
+	/// Create a property that computes a logical AND between the latest values of `properties`.
+	///
+	/// - parameters:
+	///   - property: Collection of properties to be combined.
+	///
+	/// - returns: A property that contains the logical AND results.
+	public static func all<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
+		return Property(initial: properties.map { $0.value }.reduce(true) { $0 && $1 }, then: SignalProducer.all(properties))
 	}
 
 	/// Create a property that computes a logical OR between the latest values of `self`
@@ -419,9 +428,19 @@ extension PropertyProtocol where Value == Bool {
 	/// - parameters:
 	///   - property: Property to be combined with `self`.
 	///
-	/// - returns: A property that contains the logial OR results.
+	/// - returns: A property that contains the logical OR results.
 	public func or<P: PropertyProtocol>(_ property: P) -> Property<Value> where P.Value == Value {
 		return self.lift(SignalProducer.or)(property)
+	}
+	
+	/// Create a property that computes a logical OR between the latest values of `properties`.
+	///
+	/// - parameters:
+	///   - properties: Collection of properties to be combined.
+	///
+	/// - returns: A property that contains the logical OR results.
+	public static func any<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
+		return Property(initial: properties.map { $0.value }.reduce(false) { $0 || $1 }, then: SignalProducer.any(properties))
 	}
 }
 
@@ -465,14 +484,14 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - note: If `self` is a composed property, the producer would be
 	///         bound to the lifetime of its sources.
-	public let producer: SignalProducer<Value, NoError>
+	public let producer: SignalProducer<Value, Never>
 
 	/// A signal that will send the property's changes over time, then
 	/// complete when the property has deinitialized or has no further changes.
 	///
 	/// - note: If `self` is a composed property, the signal would be
 	///         bound to the lifetime of its sources.
-	public let signal: Signal<Value, NoError>
+	public let signal: Signal<Value, Never>
 
 	/// Initializes a constant property.
 	///
@@ -481,7 +500,7 @@ public final class Property<Value>: PropertyProtocol {
 	public init(value: Value) {
 		_value = { value }
 		producer = SignalProducer(value: value)
-		signal = Signal<Value, NoError>.empty
+		signal = Signal<Value, Never>.empty
 	}
 
 	/// Initializes an existential property which wraps the given property.
@@ -513,7 +532,7 @@ public final class Property<Value>: PropertyProtocol {
 	///   - initial: Starting value for the property.
 	///   - values: A producer that will start immediately and send values to
 	///             the property.
-	public convenience init(initial: Value, then values: SignalProducer<Value, NoError>) {
+	public convenience init(initial: Value, then values: SignalProducer<Value, Never>) {
 		self.init(unsafeProducer: SignalProducer { observer, lifetime in
 			observer.send(value: initial)
 			lifetime += values.start(Signal.Observer(mappingInterruptedToCompleted: observer))
@@ -527,7 +546,7 @@ public final class Property<Value>: PropertyProtocol {
 	///   - initial: Starting value for the property.
 	///   - values: A producer that will start immediately and send values to
 	///             the property.
-	public convenience init<Values: SignalProducerConvertible>(initial: Value, then values: Values) where Values.Value == Value, Values.Error == NoError {
+	public convenience init<Values: SignalProducerConvertible>(initial: Value, then values: Values) where Values.Value == Value, Values.Error == Never {
 		self.init(initial: initial, then: values.producer)
 	}
 
@@ -546,7 +565,7 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - parameters:
 	///   - unsafeProducer: The composed producer for creating the property.
-	fileprivate init(unsafeProducer: SignalProducer<Value, NoError>) {
+	fileprivate init(unsafeProducer: SignalProducer<Value, Never>) {
 		// The ownership graph:
 		//
 		// ------------     weak  -----------    strong ------------------
@@ -562,7 +581,7 @@ public final class Property<Value>: PropertyProtocol {
 		// A composed property tracks its active consumers through its relay signal, and
 		// interrupts `unsafeProducer` if the relay signal terminates.
 		let disposable = SerialDisposable()
-		let (relay, observer) = Signal<Value, NoError>.pipe(disposable: disposable)
+		let (relay, observer) = Signal<Value, Never>.pipe(disposable: disposable)
 
 		disposable.inner = unsafeProducer.start { [weak box] event in
 			// `observer` receives `interrupted` only as a result of the termination of
@@ -611,7 +630,7 @@ extension Property where Value: OptionalProtocol {
 	///   - initial: Starting value for the property.
 	///   - values: A producer that will start immediately and send values to
 	///             the property.
-	public convenience init(initial: Value, then values: SignalProducer<Value.Wrapped, NoError>) {
+	public convenience init(initial: Value, then values: SignalProducer<Value.Wrapped, Never>) {
 		self.init(initial: initial, then: values.map(Value.init(reconstructing:)))
 	}
 
@@ -622,7 +641,7 @@ extension Property where Value: OptionalProtocol {
 	///   - initial: Starting value for the property.
 	///   - values: A producer that will start immediately and send values to
 	///             the property.
-	public convenience init<Values: SignalProducerConvertible>(initial: Value, then values: Values) where Values.Value == Value.Wrapped, Values.Error == NoError {
+	public convenience init<Values: SignalProducerConvertible>(initial: Value, then values: Values) where Values.Value == Value.Wrapped, Values.Error == Never {
 		self.init(initial: initial, then: values.producer)
 	}
 }
@@ -632,7 +651,7 @@ extension Property where Value: OptionalProtocol {
 /// Instances of this class are thread-safe.
 public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	private let token: Lifetime.Token
-	private let observer: Signal<Value, NoError>.Observer
+	private let observer: Signal<Value, Never>.Observer
 	private let box: PropertyBox<Value>
 
 	/// The current value of the property.
@@ -649,12 +668,12 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 
 	/// A signal that will send the property's changes over time,
 	/// then complete when the property has deinitialized.
-	public let signal: Signal<Value, NoError>
+	public let signal: Signal<Value, Never>
 
 	/// A producer for Signals that will send the property's current value,
 	/// followed by all changes over time, then complete when the property has
 	/// deinitialized.
-	public var producer: SignalProducer<Value, NoError> {
+	public var producer: SignalProducer<Value, Never> {
 		return SignalProducer { [box, signal] observer, lifetime in
 			box.withValue { value in
 				observer.send(value: value)

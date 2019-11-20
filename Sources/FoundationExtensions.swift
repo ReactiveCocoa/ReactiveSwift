@@ -7,9 +7,10 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
 import Dispatch
-import enum Result.NoError
-import struct Result.AnyError
 
 #if os(Linux)
 	import let CDispatch.NSEC_PER_USEC
@@ -29,7 +30,7 @@ extension Reactive where Base: NotificationCenter {
 	///
 	/// - note: The signal does not terminate naturally. Observers must be
 	///         explicitly disposed to avoid leaks.
-	public func notifications(forName name: Notification.Name?, object: AnyObject? = nil) -> Signal<Notification, NoError> {
+	public func notifications(forName name: Notification.Name?, object: AnyObject? = nil) -> Signal<Notification, Never> {
 		return Signal { [base = self.base] observer, lifetime in
 			let notificationObserver = base.addObserver(forName: name, object: object, queue: nil) { notification in
 				observer.send(value: notification)
@@ -62,14 +63,14 @@ extension Reactive where Base: URLSession {
 	/// - note: This method will not send an error event in the case of a server
 	///         side error (i.e. when a response with status code other than
 	///         200...299 is received).
-	public func data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), AnyError> {
+	public func data(with request: URLRequest) -> SignalProducer<(Data, URLResponse), Error> {
 		return SignalProducer { [base = self.base] observer, lifetime in
 			let task = base.dataTask(with: request) { data, response, error in
 				if let data = data, let response = response {
 					observer.send(value: (data, response))
 					observer.sendCompleted()
 				} else {
-					observer.send(error: AnyError(error ?? defaultSessionError))
+					observer.send(error: error ?? defaultSessionError)
 				}
 			}
 
@@ -98,6 +99,8 @@ extension DispatchTimeInterval {
 			return TimeInterval(ns) / TimeInterval(NSEC_PER_SEC)
 		case .never:
 			return .infinity
+		@unknown default:
+			return .infinity
 		}
 	}
 
@@ -114,6 +117,8 @@ extension DispatchTimeInterval {
 		case let .nanoseconds(ns):
 			return .nanoseconds(-ns)
 		case .never:
+			return .never
+		@unknown default:
 			return .never
 		}
 	}

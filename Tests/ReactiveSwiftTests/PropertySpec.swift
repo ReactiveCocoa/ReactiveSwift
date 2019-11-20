@@ -8,7 +8,6 @@
 
 import Foundation
 import Dispatch
-import Result
 import Nimble
 import Quick
 @testable import ReactiveSwift
@@ -191,7 +190,7 @@ class PropertySpec: QuickSpec {
 			}
 
 			it("should not deadlock on recursive value access") {
-				let (producer, observer) = SignalProducer<Int, NoError>.pipe()
+				let (producer, observer) = SignalProducer<Int, Never>.pipe()
 				let property = MutableProperty(0)
 				var value: Int?
 
@@ -205,7 +204,7 @@ class PropertySpec: QuickSpec {
 			}
 
 			it("should not deadlock on recursive value access with a closure") {
-				let (producer, observer) = SignalProducer<Int, NoError>.pipe()
+				let (producer, observer) = SignalProducer<Int, Never>.pipe()
 				let property = MutableProperty(0)
 				var value: Int?
 
@@ -614,7 +613,7 @@ class PropertySpec: QuickSpec {
 					}
 
 					it("should complete its producer and signal even if the upstream interrupts") {
-						let (signal, observer) = Signal<String, NoError>.pipe()
+						let (signal, observer) = Signal<String, Never>.pipe()
 
 						let property = Property(initial: initialPropertyValue, then: SignalProducer(signal))
 
@@ -636,7 +635,7 @@ class PropertySpec: QuickSpec {
 						var producerCompleted = false
 						var signalInterrupted = false
 
-						let (signal, observer) = Signal<Int, NoError>.pipe()
+						let (signal, observer) = Signal<Int, Never>.pipe()
 						var property: Property<Int>? = Property(initial: 1, then: SignalProducer(signal))
 						let propertySignal = property!.signal
 
@@ -673,7 +672,7 @@ class PropertySpec: QuickSpec {
 
 				describe("from a value and Signal") {
 					it("should initially take on the supplied value, then values sent on the signal") {
-						let (signal, observer) = Signal<String, NoError>.pipe()
+						let (signal, observer) = Signal<String, Never>.pipe()
 
 						let property = Property(initial: initialPropertyValue, then: signal)
 
@@ -685,7 +684,7 @@ class PropertySpec: QuickSpec {
 					}
 
 					it("should complete its producer and signal even if the upstream interrupts") {
-						let (signal, observer) = Signal<String, NoError>.pipe()
+						let (signal, observer) = Signal<String, Never>.pipe()
 
 						let property = Property(initial: initialPropertyValue, then: signal)
 
@@ -707,7 +706,7 @@ class PropertySpec: QuickSpec {
 						var producerCompleted = false
 						var signalInterrupted = false
 
-						let (signal, observer) = Signal<Int, NoError>.pipe()
+						let (signal, observer) = Signal<Int, Never>.pipe()
 						var property: Property<Int>? = Property(initial: 1, then: signal)
 						let propertySignal = property!.signal
 
@@ -1640,6 +1639,26 @@ class PropertySpec: QuickSpec {
 				}
 			}
 
+			describe("all attribute") {
+				it("should emit true when all properties contain the same value") {
+					let property1 = MutableProperty(true)
+					let property2 = MutableProperty(true)
+					let property3 = MutableProperty(true)
+					expect(Property.all([property1, property2, property3]).value).to(beTrue())
+				}
+
+				it("should emit false when all properties contain opposite values") {
+					let property1 = MutableProperty(false)
+					let property2 = MutableProperty(true)
+					let property3 = MutableProperty(true)
+					expect(Property.all([property1, property2, property3]).value).to(beFalse())
+				}
+
+				it("should emit true when array of properties is empty") {
+					expect(Property.all([Property<Bool>]()).value).to(beTrue())
+				}
+			}
+
 			describe("or attribute") {
 				it("should emit true when at least one of the properties contains true") {
 					let property1 = MutableProperty(true)
@@ -1653,12 +1672,32 @@ class PropertySpec: QuickSpec {
 					expect(property1.or(property2).value).to(beFalse())
 				}
 			}
+
+			describe("any attribute") {
+				it("should emit true when at least one of the properties in array contains true") {
+					let property1 = MutableProperty(true)
+					let property2 = MutableProperty(false)
+					let property3 = MutableProperty(false)
+					expect(Property.any([property1, property2, property3]).value).to(beTrue())
+				}
+
+				it("should emit false when all properties in array contain false") {
+					let property1 = MutableProperty(false)
+					let property2 = MutableProperty(false)
+					let property3 = MutableProperty(false)
+					expect(Property.any([property1, property2, property3]).value).to(beFalse())
+				}
+
+				it("should emit false when array of properties is empty") {
+					expect(Property.any([Property<Bool>]()).value).to(beFalse())
+				}
+			}
 		}
 
 		describe("binding") {
 			describe("from a Signal") {
 				it("should update the property with values sent from the signal") {
-					let (signal, observer) = Signal<String, NoError>.pipe()
+					let (signal, observer) = Signal<String, Never>.pipe()
 
 					let mutableProperty = MutableProperty(initialPropertyValue)
 
@@ -1672,7 +1711,7 @@ class PropertySpec: QuickSpec {
 				}
 
 				it("should tear down the binding when disposed") {
-					let (signal, observer) = Signal<String, NoError>.pipe()
+					let (signal, observer) = Signal<String, Never>.pipe()
 
 					let mutableProperty = MutableProperty(initialPropertyValue)
 
@@ -1686,13 +1725,13 @@ class PropertySpec: QuickSpec {
 				it("should tear down the binding when the property deallocates") {
 					var isDisposed = false
 
-					var outerObserver: Signal<String, NoError>.Observer!
+					var outerObserver: Signal<String, Never>.Observer!
 
 					// Mitigate the "was written to, but never read" warning.
 					_ = outerObserver
 
-					var signal: Signal<String, NoError>? = {
-						let (signal, observer) = Signal<String, NoError>.pipe()
+					var signal: Signal<String, Never>? = {
+						let (signal, observer) = Signal<String, Never>.pipe()
 						outerObserver = observer
 						return signal.on(disposed: { isDisposed = true })
 					}()
@@ -1720,7 +1759,7 @@ class PropertySpec: QuickSpec {
 			describe("from a SignalProducer") {
 				it("should start a signal and update the property with its values") {
 					let signalValues = [initialPropertyValue, subsequentPropertyValue]
-					let signalProducer = SignalProducer<String, NoError>(signalValues)
+					let signalProducer = SignalProducer<String, Never>(signalValues)
 
 					let mutableProperty = MutableProperty(initialPropertyValue)
 
@@ -1730,7 +1769,7 @@ class PropertySpec: QuickSpec {
 				}
 
 				it("should tear down the binding when disposed") {
-					let (signalProducer, observer) = SignalProducer<String, NoError>.pipe()
+					let (signalProducer, observer) = SignalProducer<String, Never>.pipe()
 
 					let mutableProperty = MutableProperty(initialPropertyValue)
 					let disposable = mutableProperty <~ signalProducer
@@ -1742,7 +1781,7 @@ class PropertySpec: QuickSpec {
 				}
 
 				it("should tear down the binding when the property deallocates") {
-					let (signal, observer) = Signal<String, NoError>.pipe()
+					let (signal, observer) = Signal<String, Never>.pipe()
 					let signalProducer = SignalProducer(signal)
 
 					var mutableProperty: MutableProperty<String>? = MutableProperty(initialPropertyValue)
