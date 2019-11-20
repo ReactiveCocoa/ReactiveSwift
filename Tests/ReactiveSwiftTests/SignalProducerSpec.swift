@@ -1877,7 +1877,6 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 
-
 			describe("interruption") {
 				var innerObserver: Signal<(), NoError>.Observer!
 				var outerObserver: Signal<SignalProducer<(), NoError>, NoError>.Observer!
