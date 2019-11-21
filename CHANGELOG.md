@@ -1,7 +1,7 @@
 # master
 *Please add new entries at the top.*
 
-1. `FlattenStrategy.first` is introduced. (#713, kudos to @inamiy)
+1. `FlattenStrategy.throttle` is introduced. (#713, kudos to @inamiy)
 1. Updated `README.md` to reflect Swift 5.1 compatibility and point snippets to 6.1.0 (#763, kudos to @Marcocanc)
 1. Update travis to Xcode 11.1 and Swift 5.1 (#764, kudos @petrpavlik)
 1. [SwiftPM] Add platforms (#761, kudos to @ikesyo)
