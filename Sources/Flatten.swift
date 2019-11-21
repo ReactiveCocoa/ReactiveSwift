@@ -12,7 +12,7 @@ public struct FlattenStrategy {
 		case concurrent(limit: UInt)
 		case latest
 		case race
-		case first
+		case throttle
 	}
 
 	fileprivate let kind: Kind
@@ -111,7 +111,7 @@ public struct FlattenStrategy {
 	///
 	/// Any failure from the inner streams is propagated immediately to the flattened
 	/// stream of values.
-	public static let first = FlattenStrategy(kind: .first)
+	public static let throttle = FlattenStrategy(kind: .throttle)
 }
 
 extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
@@ -137,8 +137,8 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 		case .race:
 			return self.race()
 
-		case .first:
-			return self.first()
+		case .throttle:
+			return self.throttle()
 		}
 	}
 }
@@ -182,8 +182,8 @@ extension Signal where Value: SignalProducerConvertible, Error == Never, Value.E
 		case .race:
 			return self.race()
 
-		case .first:
-			return self.first()
+		case .throttle:
+			return self.throttle()
 		}
 	}
 }
@@ -228,8 +228,8 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 		case .race:
 			return self.race()
 
-		case .first:
-			return self.first()
+		case .throttle:
+			return self.throttle()
 		}
 	}
 }
@@ -273,8 +273,8 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Never,
 		case .race:
 			return self.race()
 
-		case .first:
-			return self.first()
+		case .throttle:
+			return self.throttle()
 		}
 	}
 }
@@ -858,16 +858,16 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	///
 	/// The returned signal completes when `self` is completed, and also first inner producer
 	/// is completed if it exists.
-	fileprivate func first() -> Signal<Value.Value, Error> {
+	fileprivate func throttle() -> Signal<Value.Value, Error> {
 		return Signal<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
 			lifetime += relayDisposable
-			lifetime += self.observeFirst(observer, relayDisposable)
+			lifetime += self.observeThrottle(observer, relayDisposable)
 		}
 	}
 
-	fileprivate func observeFirst(_ observer: Signal<Value.Value, Error>.Observer, _ relayDisposable: CompositeDisposable) -> Disposable? {
-		let state = Atomic(FirstState())
+	fileprivate func observeThrottle(_ observer: Signal<Value.Value, Error>.Observer, _ relayDisposable: CompositeDisposable) -> Disposable? {
+		let state = Atomic(ThrottleState())
 
 		return self.observe { event in
 			switch event {
@@ -935,20 +935,20 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 	///
 	/// The returned signal completes when `self` is completed, and also first inner producer
 	/// is completed if it exists.
-	fileprivate func first() -> SignalProducer<Value.Value, Error> {
+	fileprivate func throttle() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
 			lifetime += relayDisposable
 
 			self.startWithSignal { signal, signalDisposable in
 				lifetime += signalDisposable
-				lifetime += signal.observeFirst(observer, relayDisposable)
+				lifetime += signal.observeThrottle(observer, relayDisposable)
 			}
 		}
 	}
 }
 
-private struct FirstState {
+private struct ThrottleState {
 	var outerSignalComplete = false
 	var hasFirstInnerProducer = false
 }
