@@ -1,10 +1,11 @@
 # master
 *Please add new entries at the top.*
 
+1. `FlattenStrategy.throttle` is introduced. (#713, kudos to @inamiy)
 1. Updated `README.md` to reflect Swift 5.1 compatibility and point snippets to 6.1.0 (#763, kudos to @Marcocanc)
 1. Update travis to Xcode 11.1 and Swift 5.1 (#764, kudos @petrpavlik)
-2. [SwiftPM] Add platforms (#761, kudos to @ikesyo)
-3. Renamed `filterMap` to `compactMap` and deprecated `filterMap` (#746, kudos to @Marcocanc)
+1. [SwiftPM] Add platforms (#761, kudos to @ikesyo)
+1. Renamed `filterMap` to `compactMap` and deprecated `filterMap` (#746, kudos to @Marcocanc)
 
 # 6.1.0
 
@@ -24,7 +25,6 @@
 * If you have used `Result` only as dependency of `ReactiveSwift`, remove all instances of `import Result`, `import enum Result.NoError` or `import struct Result.AnyError` and remove the `Result` Framework from your project.
 * Replace all cases where `NoError` was used in a `Signal` or `SignalProducer` with `Never`
 * Replace all cases where `AnyError` was used in a `Signal` or `SignalProducer` with `Swift.Error`
-
 
 # 5.0.1
 1. Fix warnings in Xcode 10.2
