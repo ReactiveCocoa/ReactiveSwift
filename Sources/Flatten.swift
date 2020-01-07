@@ -98,10 +98,10 @@ public struct FlattenStrategy {
 	/// stream of values.
 	public static let race = FlattenStrategy(kind: .race)
 
-	/// Forward only events from the "first inner stream" that sends an event if not exists.
-	/// Other inner streams is disposed of until the first inner stream is completed.
-	/// Note that next inner stream after previous completion can become
-	/// first inner stream again.
+	/// Given a first inner stream, all subsequent inner streams sent by the upstream would
+	/// be dropped until the first inner stream has completed. The whole process repeats
+	/// indefinitely until the upstream terminates. The behavior is akin to `throttle(_:on:)`
+	/// except for operating in the domain of streams instead of time.
 	///
 	/// The flattened stream of values completes only when the stream of streams has completed,
 	/// and first inner stream has completed if exists.
