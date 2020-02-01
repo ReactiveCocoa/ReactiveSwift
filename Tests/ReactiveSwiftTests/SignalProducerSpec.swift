@@ -1254,6 +1254,41 @@ class SignalProducerSpec: QuickSpec {
 				expect(values) == []
 				expect(completed) == true
 			}
+
+			context("starting the producer twice") {
+				it("should deviver the same values") {
+					var values1: [Int] = []
+					var values2: [Int] = []
+					producer.startWithValues { value in
+						values1.append(value)
+					}
+					producer.startWithValues { value in
+						values2.append(value)
+					}
+
+					expect(values1) == []
+					expect(values2) == []
+
+					observer.send(value: 1)
+					observer.send(value: 2)
+
+					scheduler.advance(by: .milliseconds(1500))
+					expect(values1) == [ 2 ]
+					expect(values2) == [ 2 ]
+
+					observer.send(value: 3)
+					scheduler.advance(by: .milliseconds(1500))
+					expect(values1) == [ 2, 3 ]
+					expect(values2) == [ 2, 3 ]
+
+					observer.send(value: 4)
+					observer.sendCompleted()
+					scheduler.run()
+
+					expect(values1) == [ 2, 3 ]
+					expect(values2) == [ 2, 3 ]
+				}
+			}
 		}
 
 		describe("debounce without discarding the latest value when terminated") {
@@ -1363,6 +1398,41 @@ class SignalProducerSpec: QuickSpec {
 				expect(completed) == false
 				scheduler.advance()
 				expect(completed) == true
+			}
+
+			context("starting the producer twice") {
+				it("should deviver the same values") {
+					var values1: [Int] = []
+					var values2: [Int] = []
+					producer.startWithValues { value in
+						values1.append(value)
+					}
+					producer.startWithValues { value in
+						values2.append(value)
+					}
+
+					expect(values1) == []
+					expect(values2) == []
+
+					observer.send(value: 1)
+					observer.send(value: 2)
+
+					scheduler.advance(by: .milliseconds(1500))
+					expect(values1) == [ 2 ]
+					expect(values2) == [ 2 ]
+
+					observer.send(value: 3)
+					scheduler.advance(by: .milliseconds(1500))
+					expect(values1) == [ 2, 3 ]
+					expect(values2) == [ 2, 3 ]
+
+					observer.send(value: 4)
+					observer.sendCompleted()
+					scheduler.run()
+
+					expect(values1) == [ 2, 3, 4 ]
+					expect(values2) == [ 2, 3, 4 ]
+				}
 			}
 		}
 
