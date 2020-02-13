@@ -2188,6 +2188,7 @@ extension SignalProducer {
 			}
 			
 			guard !setup.isEmpty else {
+				observer.send(value: [])
 				observer.sendCompleted()
 				return
 			}
