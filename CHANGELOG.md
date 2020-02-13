@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. Joining an empty list of producers results in sending an event on the joined signal which contains the empty list, before the signal is completed. This becomes relevant, when the list of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no event is sent only when the producers list is empty, then the observer gets staleld and e.g. the ui won't update.
 1. Fixed `SignalProducer.debounce` operator that, when started more than once, would not deliver values on producers started after the first time. (#772, kudos to @gpambrozio)
 1. `FlattenStrategy.throttle` is introduced. (#713, kudos to @inamiy)
 1. Updated `README.md` to reflect Swift 5.1 compatibility and point snippets to 6.1.0 (#763, kudos to @Marcocanc)
