@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. Improved performance of joining signals by a factor of around 5. This enables joining of 1000 and more signals in a reasonable amount of time.
 1. Fixed `SignalProducer.debounce` operator that, when started more than once, would not deliver values on producers started after the first time. (#772, kudos to @gpambrozio)
 1. `FlattenStrategy.throttle` is introduced. (#713, kudos to @inamiy)
 1. Updated `README.md` to reflect Swift 5.1 compatibility and point snippets to 6.1.0 (#763, kudos to @Marcocanc)
