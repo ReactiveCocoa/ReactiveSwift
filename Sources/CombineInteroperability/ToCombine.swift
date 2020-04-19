@@ -2,21 +2,13 @@
 import Combine
 
 extension SignalProducerConvertible {
-	@available(macOS 10.15, *)
-	@available(iOS 13.0, *)
-	@available(tvOS 13.0, *)
-	@available(macCatalyst 13.0, *)
-	@available(watchOS 6.0, *)
+	@available(macOS 10.15, iOS 13.0, tvOS 13.0, macCatalyst 13.0, watchOS 6.0, *)
 	public func publisher() -> ProducerPublisher<Value, Error> {
 		ProducerPublisher(base: producer)
 	}
 }
 
-@available(macOS 10.15, *)
-@available(iOS 13.0, *)
-@available(tvOS 13.0, *)
-@available(macCatalyst 13.0, *)
-@available(watchOS 6.0, *)
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, macCatalyst 13.0, watchOS 6.0, *)
 public struct ProducerPublisher<Output, Failure: Swift.Error>: Publisher {
 	public let base: SignalProducer<Output, Failure>
 
