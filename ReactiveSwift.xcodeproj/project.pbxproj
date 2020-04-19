@@ -66,10 +66,18 @@
 		9A1D067D1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
 		9A1D067E1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
 		9A1D067F1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
-		9A5865DF244CEF9800AADB58 /* CombineInteroperability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865DE244CEF9800AADB58 /* CombineInteroperability.swift */; };
-		9A5865E0244CEF9800AADB58 /* CombineInteroperability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865DE244CEF9800AADB58 /* CombineInteroperability.swift */; };
-		9A5865E1244CEF9800AADB58 /* CombineInteroperability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865DE244CEF9800AADB58 /* CombineInteroperability.swift */; };
-		9A5865E2244CEF9800AADB58 /* CombineInteroperability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865DE244CEF9800AADB58 /* CombineInteroperability.swift */; };
+		9A5865DF244CEF9800AADB58 /* ToCombine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865DE244CEF9800AADB58 /* ToCombine.swift */; };
+		9A5865E0244CEF9800AADB58 /* ToCombine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865DE244CEF9800AADB58 /* ToCombine.swift */; };
+		9A5865E1244CEF9800AADB58 /* ToCombine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865DE244CEF9800AADB58 /* ToCombine.swift */; };
+		9A5865E2244CEF9800AADB58 /* ToCombine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865DE244CEF9800AADB58 /* ToCombine.swift */; };
+		9A5865E5244CFD4900AADB58 /* FromCombine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865E4244CFD4900AADB58 /* FromCombine.swift */; };
+		9A5865E6244CFD4900AADB58 /* FromCombine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865E4244CFD4900AADB58 /* FromCombine.swift */; };
+		9A5865E7244CFD4900AADB58 /* FromCombine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865E4244CFD4900AADB58 /* FromCombine.swift */; };
+		9A5865E8244CFD4900AADB58 /* FromCombine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865E4244CFD4900AADB58 /* FromCombine.swift */; };
+		9A5865EA244CFE9000AADB58 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865E9244CFE9000AADB58 /* Utilities.swift */; };
+		9A5865EB244CFE9000AADB58 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865E9244CFE9000AADB58 /* Utilities.swift */; };
+		9A5865EC244CFE9000AADB58 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865E9244CFE9000AADB58 /* Utilities.swift */; };
+		9A5865ED244CFE9000AADB58 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5865E9244CFE9000AADB58 /* Utilities.swift */; };
 		9A67963B1F6056B90058C5B4 /* UninhabitedTypeGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */; };
 		9A67963C1F6059420058C5B4 /* UninhabitedTypeGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */; };
 		9A67963D1F6059430058C5B4 /* UninhabitedTypeGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */; };
@@ -244,7 +252,9 @@
 		9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingPropertySpec.swift; sourceTree = "<group>"; };
 		9A1B824020835EEC00EB7C09 /* ResultExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ResultExtensions.swift; sourceTree = "<group>"; };
 		9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnidirectionalBindingSpec.swift; sourceTree = "<group>"; };
-		9A5865DE244CEF9800AADB58 /* CombineInteroperability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombineInteroperability.swift; sourceTree = "<group>"; };
+		9A5865DE244CEF9800AADB58 /* ToCombine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToCombine.swift; sourceTree = "<group>"; };
+		9A5865E4244CFD4900AADB58 /* FromCombine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FromCombine.swift; sourceTree = "<group>"; };
+		9A5865E9244CFE9000AADB58 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UninhabitedTypeGuards.swift; sourceTree = "<group>"; };
 		9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeprecationSpec.swift; sourceTree = "<group>"; };
 		9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingProperty.swift; sourceTree = "<group>"; };
@@ -385,6 +395,16 @@
 			path = tvOS;
 			sourceTree = "<group>";
 		};
+		9A5865E3244CFD2A00AADB58 /* CombineInteroperability */ = {
+			isa = PBXGroup;
+			children = (
+				9A5865DE244CEF9800AADB58 /* ToCombine.swift */,
+				9A5865E4244CFD4900AADB58 /* FromCombine.swift */,
+				9A5865E9244CFE9000AADB58 /* Utilities.swift */,
+			);
+			path = CombineInteroperability;
+			sourceTree = "<group>";
+		};
 		A97451321B3A935E00F48E55 /* watchOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -459,7 +479,7 @@
 				9A090C131DA0309E00EE97CA /* Reactive.swift */,
 				D0C312C819EF2A5800984962 /* Scheduler.swift */,
 				C79B647B1CD52E23003F2376 /* EventLogger.swift */,
-				9A5865DE244CEF9800AADB58 /* CombineInteroperability.swift */,
+				9A5865E3244CFD2A00AADB58 /* CombineInteroperability */,
 				D03B4A3919F4C25F009E02AC /* Signals */,
 				D03B4A3B19F4C281009E02AC /* Extensions */,
 				9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */,
@@ -875,7 +895,8 @@
 				57A4D1B61BA13D7A00F7D4B1 /* Event.swift in Sources */,
 				57A4D1B81BA13D7A00F7D4B1 /* Scheduler.swift in Sources */,
 				9A9100E21E0E6E680093E346 /* ValidatingProperty.swift in Sources */,
-				9A5865E2244CEF9800AADB58 /* CombineInteroperability.swift in Sources */,
+				9A5865E2244CEF9800AADB58 /* ToCombine.swift in Sources */,
+				9A5865ED244CFE9000AADB58 /* Utilities.swift in Sources */,
 				57A4D1B91BA13D7A00F7D4B1 /* Action.swift in Sources */,
 				57A4D1BA1BA13D7A00F7D4B1 /* Property.swift in Sources */,
 				9A090C171DA0309E00EE97CA /* Reactive.swift in Sources */,
@@ -888,6 +909,7 @@
 				57A4D1C01BA13D7A00F7D4B1 /* FoundationExtensions.swift in Sources */,
 				D85C652D1C0E70E5005A77AD /* Flatten.swift in Sources */,
 				9ABCB1881D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
+				9A5865E8244CFD4900AADB58 /* FromCombine.swift in Sources */,
 				EBCC7DBF1BBF01E200A2AE92 /* Observer.swift in Sources */,
 				C79B64801CD52E4E003F2376 /* EventLogger.swift in Sources */,
 				4A0E11021D2A92720065D310 /* Lifetime.swift in Sources */,
@@ -931,7 +953,8 @@
 				A9B315BE1B3940810001CB9C /* Event.swift in Sources */,
 				A9B315C01B3940810001CB9C /* Scheduler.swift in Sources */,
 				9A9100E11E0E6E680093E346 /* ValidatingProperty.swift in Sources */,
-				9A5865E1244CEF9800AADB58 /* CombineInteroperability.swift in Sources */,
+				9A5865E1244CEF9800AADB58 /* ToCombine.swift in Sources */,
+				9A5865EC244CFE9000AADB58 /* Utilities.swift in Sources */,
 				A9B315C11B3940810001CB9C /* Action.swift in Sources */,
 				A9B315C21B3940810001CB9C /* Property.swift in Sources */,
 				9A090C161DA0309E00EE97CA /* Reactive.swift in Sources */,
@@ -944,6 +967,7 @@
 				A9B315C81B3940810001CB9C /* FoundationExtensions.swift in Sources */,
 				D85C652C1C0E70E4005A77AD /* Flatten.swift in Sources */,
 				9ABCB1871D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
+				9A5865E7244CFD4900AADB58 /* FromCombine.swift in Sources */,
 				EBCC7DBE1BBF01E200A2AE92 /* Observer.swift in Sources */,
 				C79B647F1CD52E4D003F2376 /* EventLogger.swift in Sources */,
 				4A0E11011D2A92720065D310 /* Lifetime.swift in Sources */,
@@ -960,7 +984,8 @@
 				D0C312D319EF2A5800984962 /* Disposable.swift in Sources */,
 				9A9100DF1E0E6E620093E346 /* ValidatingProperty.swift in Sources */,
 				EBCC7DBC1BBF010C00A2AE92 /* Observer.swift in Sources */,
-				9A5865DF244CEF9800AADB58 /* CombineInteroperability.swift in Sources */,
+				9A5865DF244CEF9800AADB58 /* ToCombine.swift in Sources */,
+				9A5865EA244CFE9000AADB58 /* Utilities.swift in Sources */,
 				D03B4A3D19F4C39A009E02AC /* FoundationExtensions.swift in Sources */,
 				9A090C141DA0309E00EE97CA /* Reactive.swift in Sources */,
 				D08C54B31A69A2AE00AD8286 /* Signal.swift in Sources */,
@@ -973,6 +998,7 @@
 				D0C312CD19EF2A5800984962 /* Atomic.swift in Sources */,
 				D08C54BA1A69C54300AD8286 /* Property.swift in Sources */,
 				D0D11AB91A6AE87700C1F8B1 /* Action.swift in Sources */,
+				9A5865E5244CFD4900AADB58 /* FromCombine.swift in Sources */,
 				C79B647C1CD52E23003F2376 /* EventLogger.swift in Sources */,
 				9ABCB1851D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				D08C54B81A69A9D000AD8286 /* SignalProducer.swift in Sources */,
@@ -1016,7 +1042,8 @@
 				D0C312D419EF2A5800984962 /* Disposable.swift in Sources */,
 				D08C54B91A69A9D100AD8286 /* SignalProducer.swift in Sources */,
 				9A9100E01E0E6E670093E346 /* ValidatingProperty.swift in Sources */,
-				9A5865E0244CEF9800AADB58 /* CombineInteroperability.swift in Sources */,
+				9A5865E0244CEF9800AADB58 /* ToCombine.swift in Sources */,
+				9A5865EB244CFE9000AADB58 /* Utilities.swift in Sources */,
 				9ABCB1861D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				EBCC7DBD1BBF01E100A2AE92 /* Observer.swift in Sources */,
 				9A090C151DA0309E00EE97CA /* Reactive.swift in Sources */,
@@ -1029,6 +1056,7 @@
 				D08C54B71A69A3DB00AD8286 /* Event.swift in Sources */,
 				C79B647D1CD52E4A003F2376 /* EventLogger.swift in Sources */,
 				D0C312CE19EF2A5800984962 /* Atomic.swift in Sources */,
+				9A5865E6244CFD4900AADB58 /* FromCombine.swift in Sources */,
 				D0C312E819EF2A5800984962 /* Scheduler.swift in Sources */,
 				D0C312D019EF2A5800984962 /* Bag.swift in Sources */,
 				D0D11ABA1A6AE87700C1F8B1 /* Action.swift in Sources */,

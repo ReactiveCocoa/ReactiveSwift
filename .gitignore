@@ -23,6 +23,7 @@ PlaygroundUtility.remap
 # SwiftPM
 .build
 Packages
+.swiftpm
 
 # Carthage
 Carthage/Build
