@@ -3,6 +3,11 @@ import Combine
 
 extension SignalProducerConvertible {
 	@available(macOS 10.15, iOS 13.0, tvOS 13.0, macCatalyst 13.0, watchOS 6.0, *)
+	public func eraseToAnyPublisher() -> AnyPublisher<Value, Error> {
+		publisher().eraseToAnyPublisher()
+	}
+
+	@available(macOS 10.15, iOS 13.0, tvOS 13.0, macCatalyst 13.0, watchOS 6.0, *)
 	public func publisher() -> ProducerPublisher<Value, Error> {
 		ProducerPublisher(base: producer)
 	}
