@@ -364,7 +364,6 @@ class PropertySpec: QuickSpec {
 						let property = Property(capturing: constantProperty)
 
 						var sentValue: String?
-						var signalSentValue: String?
 						var producerCompleted = false
 						var signalInterrupted = false
 						var hasUnexpectedEventsEmitted = false
@@ -390,7 +389,6 @@ class PropertySpec: QuickSpec {
 						}
 
 						expect(sentValue) == initialPropertyValue
-						expect(signalSentValue).to(beNil())
 						expect(producerCompleted) == true
 						expect(signalInterrupted) == true
 						expect(hasUnexpectedEventsEmitted) == false
@@ -400,6 +398,7 @@ class PropertySpec: QuickSpec {
 						var property = Optional(MutableProperty(1))
 						weak var weakProperty = property
 						var existential = Optional(Property(capturing: property!))
+						_ = existential
 
 						expect(weakProperty).toNot(beNil())
 
@@ -419,7 +418,6 @@ class PropertySpec: QuickSpec {
 						let property = Property(constantProperty)
 
 						var sentValue: String?
-						var signalSentValue: String?
 						var producerCompleted = false
 						var signalInterrupted = false
 						var hasUnexpectedEventsEmitted = false
@@ -445,7 +443,6 @@ class PropertySpec: QuickSpec {
 						}
 
 						expect(sentValue) == initialPropertyValue
-						expect(signalSentValue).to(beNil())
 						expect(producerCompleted) == true
 						expect(signalInterrupted) == true
 						expect(hasUnexpectedEventsEmitted) == false
@@ -914,10 +911,12 @@ class PropertySpec: QuickSpec {
 					}
 
 					expect(getAnotherValue()) == 10203
+					expect(secondResult) == 10203
 
 					A.value = 4
 					expect(getValue()) == 204
 					expect(getAnotherValue()) == 10204
+					expect(secondResult) == 10204
 				}
 			}
 
@@ -1044,6 +1043,7 @@ class PropertySpec: QuickSpec {
 					///
 					/// https://github.com/ReactiveCocoa/ReactiveCocoa/pull/3042
 					expect(getAnotherValue()) == 10202
+					expect(secondResult) == 10202
 				}
 
 				it("should be consistent between combined and nested zipped properties") {
@@ -1092,6 +1092,7 @@ class PropertySpec: QuickSpec {
 					expect(firstResult) == 202
 
 					expect(getAnotherValue()) == 10202
+					expect(secondResult) == 10202
 
 					/// Zip `D` with `anotherZipped`.
 					let yetAnotherZipped = anotherZipped.zip(with: D)
@@ -1117,7 +1118,7 @@ class PropertySpec: QuickSpec {
 					var zippedProperty = Optional(property.zip(with: otherProperty))
 					zippedProperty!.producer.start { event in
 						switch event {
-						case let .value(left, right):
+						case let .value((left, right)):
 							result.append("\(left)\(right)")
 						case .completed:
 							completed = true

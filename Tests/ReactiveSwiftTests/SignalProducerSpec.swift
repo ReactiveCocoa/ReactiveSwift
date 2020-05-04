@@ -32,6 +32,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should not release signal observers when given disposable is disposed") {
 				var lifetime: Lifetime!
+				_ = lifetime
 
 				let producer = SignalProducer<Int, Never> { observer, innerLifetime in
 					lifetime = innerLifetime

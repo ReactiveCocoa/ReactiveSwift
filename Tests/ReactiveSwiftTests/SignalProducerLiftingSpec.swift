@@ -1781,7 +1781,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				zipped.start { event in
 					switch event {
-					case let .value(left, right):
+					case let .value((left, right)):
 						result.append("\(left)\(right)")
 					case .completed:
 						completed = true
