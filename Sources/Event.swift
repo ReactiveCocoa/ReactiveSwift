@@ -47,6 +47,11 @@ extension Signal {
 			}
 		}
 
+		/// Return the equivalent termination, or `nil` if `self` carries a value event.
+		public var termination: Termination? {
+			Termination(self)
+		}
+
 		/// Lift the given closure over the event's value.
 		///
 		/// - important: The closure is called only on `value` type events.
@@ -115,26 +120,16 @@ extension Signal {
 				return nil
 			}
 		}
-	}
-}
 
-extension Signal.Event where Value: Equatable, Error: Equatable {
-	public static func == (lhs: Signal<Value, Error>.Event, rhs: Signal<Value, Error>.Event) -> Bool {
-		switch (lhs, rhs) {
-		case let (.value(left), .value(right)):
-			return left == right
-
-		case let (.failed(left), .failed(right)):
-			return left == right
-
-		case (.completed, .completed):
-			return true
-
-		case (.interrupted, .interrupted):
-			return true
-
-		default:
-			return false
+		public init(_ event: Termination) {
+			switch event {
+			case .completed:
+				self = .completed
+			case .interrupted:
+				self = .interrupted
+			case let .failed(error):
+				self = .failed(error)
+			}
 		}
 	}
 }

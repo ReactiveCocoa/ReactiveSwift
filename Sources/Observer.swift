@@ -11,7 +11,9 @@ extension Signal {
 	/// (typically from a Signal).
 	public final class Observer {
 		public typealias Action = (Event) -> Void
-		private let _send: Action
+
+		private let valueSink: (Value) -> Void
+		private let terminationSink: (Termination) -> Void
 
 		/// Whether the observer should send an `interrupted` event as it deinitializes.
 		private let interruptsOnDeinit: Bool
@@ -23,18 +25,20 @@ extension Signal {
 		///   - action: A closure to lift over received event.
 		///   - interruptsOnDeinit: `true` if the observer should send an `interrupted`
 		///                         event as it deinitializes. `false` otherwise.
-		internal init(action: @escaping Action, interruptsOnDeinit: Bool) {
-			self._send = action
+		internal init(value: @escaping (Value) -> Void, termination: @escaping (Termination) -> Void, interruptsOnDeinit: Bool) {
+			self.valueSink = value
+			self.terminationSink = termination
 			self.interruptsOnDeinit = interruptsOnDeinit
 		}
 
-		/// An initializer that accepts a closure accepting an event for the 
+		/// An initializer that accepts a closure accepting an event for the
 		/// observer.
 		///
 		/// - parameters:
 		///   - action: A closure to lift over received event.
-		public init(_ action: @escaping Action) {
-			self._send = action
+		public init(value: @escaping (Value) -> Void, termination: @escaping (Termination) -> Void) {
+			self.valueSink = value
+			self.terminationSink = termination
 			self.interruptsOnDeinit = false
 		}
 
@@ -54,32 +58,33 @@ extension Signal {
 			completed: (() -> Void)? = nil,
 			interrupted: (() -> Void)? = nil
 		) {
-			self.init { event in
-				switch event {
-				case let .value(v):
-					value?(v)
-
-				case let .failed(error):
-					failed?(error)
-
-				case .completed:
-					completed?()
-
-				case .interrupted:
-					interrupted?()
+			self.init(
+				value: { value?($0) },
+				termination: { termination in
+					switch termination {
+					case .completed:
+						completed?()
+					case .interrupted:
+						interrupted?()
+					case let .failed(error):
+						failed?(error)
+					}
 				}
-			}
+			)
 		}
 
 		internal convenience init(mappingInterruptedToCompleted observer: Signal<Value, Error>.Observer) {
-			self.init { event in
-				switch event {
-				case .value, .completed, .failed:
-					observer.send(event)
-				case .interrupted:
-					observer.sendCompleted()
+			self.init(
+				value: observer.valueSink,
+				termination: { [sink = observer.terminationSink] termination in
+					switch termination {
+					case .completed, .failed:
+						sink(termination)
+					case .interrupted:
+						sink(.completed)
+					}
 				}
-			}
+			)
 		}
 
 		deinit {
@@ -87,13 +92,22 @@ extension Signal {
 				// Since `Signal` would ensure that only one terminal event would ever be
 				// sent for any given `Signal`, we do not need to assert any condition
 				// here.
-				_send(.interrupted)
+				terminationSink(.interrupted)
 			}
 		}
 
 		/// Puts an event into `self`.
 		public func send(_ event: Event) {
-			_send(event)
+			switch event {
+			case let .value(value):
+				valueSink(value)
+			case .completed:
+				terminationSink(.completed)
+			case .interrupted:
+				terminationSink(.interrupted)
+			case let .failed(error):
+				terminationSink(.failed(error))
+			}
 		}
 
 		/// Puts a `value` event into `self`.
@@ -101,7 +115,7 @@ extension Signal {
 		/// - parameters:
 		///   - value: A value sent with the `value` event.
 		public func send(value: Value) {
-			_send(.value(value))
+			valueSink(value)
 		}
 
 		/// Puts a failed event into `self`.
@@ -109,17 +123,17 @@ extension Signal {
 		/// - parameters:
 		///   - error: An error object sent with failed event.
 		public func send(error: Error) {
-			_send(.failed(error))
+			terminationSink(.failed(error))
 		}
 
 		/// Puts a `completed` event into `self`.
 		public func sendCompleted() {
-			_send(.completed)
+			terminationSink(.completed)
 		}
 
 		/// Puts an `interrupted` event into `self`.
 		public func sendInterrupted() {
-			_send(.interrupted)
+			terminationSink(.interrupted)
 		}
 	}
 }
