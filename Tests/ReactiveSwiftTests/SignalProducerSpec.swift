@@ -3286,10 +3286,16 @@ class SignalProducerSpec: QuickSpec {
 						.start()
 
 					disposable.dispose()
-					expect(deinitValues) == 0
+
+					withExtendedLifetime(producer) {
+						expect(deinitValues) == 0
+					}
 
 					producer = nil
-					expect(deinitValues) == 0
+
+					withExtendedLifetime(replayedProducer) {
+						expect(deinitValues) == 0
+					}
 
 					replayedProducer = nil
 					expect(deinitValues) == 1

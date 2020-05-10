@@ -103,9 +103,12 @@ class PropertySpec: QuickSpec {
 				var mutableProperty: MutableProperty? = MutableProperty(initialPropertyValue)
 				var signalCompleted = false
 
-				mutableProperty!.signal.observeCompleted { signalCompleted = true }
+				withExtendedLifetime(mutableProperty) {
+					_ = $0!.signal.observeCompleted { signalCompleted = true }
+				}
 
 				mutableProperty = nil
+				expect(mutableProperty).to(beNil())
 				expect(signalCompleted) == true
 			}
 
@@ -252,14 +255,17 @@ class PropertySpec: QuickSpec {
 				var property = Optional(MutableProperty<Int>(1))
 
 				var isEnded = false
-				property!.lifetime.observeEnded {
-					isEnded = true
+
+				withExtendedLifetime(property!) { property in
+					property.lifetime.observeEnded {
+						isEnded = true
+					}
+
+					expect(isEnded) == false
+
+					property.value = 2
+					expect(isEnded) == false
 				}
-
-				expect(isEnded) == false
-
-				property!.value = 2
-				expect(isEnded) == false
 
 				property = nil
 				expect(isEnded) == true
@@ -532,24 +538,33 @@ class PropertySpec: QuickSpec {
 						var thirdMappedProperty = Optional(secondMappedProperty!.map { $0 + 2 })
 
 						firstMappedProperty!.signal.observeCompleted { signalCompleted += 1	}
-						secondMappedProperty!.signal.observeCompleted { signalCompleted += 1	}
+						secondMappedProperty!.signal.observeCompleted { signalCompleted += 1 }
 						thirdMappedProperty!.signal.observeCompleted { signalCompleted += 1	}
 
-						firstMappedProperty!.producer.startWithCompleted { producerCompleted += 1	}
-						secondMappedProperty!.producer.startWithCompleted { producerCompleted += 1	}
-						thirdMappedProperty!.producer.startWithCompleted { producerCompleted += 1	}
+						firstMappedProperty!.producer.startWithCompleted { producerCompleted += 1 }
+						secondMappedProperty!.producer.startWithCompleted { producerCompleted += 1 }
+						thirdMappedProperty!.producer.startWithCompleted { producerCompleted += 1 }
 
 						firstMappedProperty = nil
-						expect(signalCompleted) == 0
-						expect(producerCompleted) == 0
+
+						withExtendedLifetime(secondMappedProperty) {
+							expect(signalCompleted) == 0
+							expect(producerCompleted) == 0
+						}
 
 						secondMappedProperty = nil
-						expect(signalCompleted) == 0
-						expect(producerCompleted) == 0
+
+						withExtendedLifetime(property) {
+							expect(signalCompleted) == 0
+							expect(producerCompleted) == 0
+						}
 
 						property = nil
-						expect(signalCompleted) == 3
-						expect(producerCompleted) == 3
+
+						withExtendedLifetime(thirdMappedProperty!) {
+							expect(signalCompleted) == 3
+							expect(producerCompleted) == 3
+						}
 
 						thirdMappedProperty = nil
 						expect(signalCompleted) == 3
@@ -1381,29 +1396,39 @@ class PropertySpec: QuickSpec {
 							outerProperty!.value = thirdProperty!
 							thirdProperty!.value = 21
 
-							expect(receivedValues) == [ 0 ]
-							expect(completed) == false
+							withExtendedLifetime(firstProperty) {
+								expect(receivedValues) == [ 0 ]
+								expect(completed) == false
 
-							secondProperty!.value = 12
-							thirdProperty!.value = 22
+								secondProperty!.value = 12
+								thirdProperty!.value = 22
 
-							expect(receivedValues) == [ 0 ]
-							expect(completed) == false
+								expect(receivedValues) == [ 0 ]
+								expect(completed) == false
+							}
 
 							firstProperty = nil
 
-							expect(receivedValues) == [ 0, 12 ]
-							expect(completed) == false
+							withExtendedLifetime(secondProperty) {
+								expect(receivedValues) == [ 0, 12 ]
+								expect(completed) == false
+							}
 
 							secondProperty = nil
 
-							expect(receivedValues) == [ 0, 12, 22 ]
-							expect(completed) == false
+							withExtendedLifetime(outerProperty) {
+								expect(receivedValues) == [ 0, 12, 22 ]
+								expect(completed) == false
+							}
 
 							outerProperty = nil
-							expect(completed) == false
+
+							withExtendedLifetime(thirdProperty) {
+								expect(completed) == false
+							}
 
 							thirdProperty = nil
+
 							expect(completed) == true
 							expect(errored) == false
 						}
@@ -1449,21 +1474,30 @@ class PropertySpec: QuickSpec {
 							secondProperty!.value = 12
 							thirdProperty!.value = 22
 
-							expect(receivedValues) == [ 0, 10, 11, 20, 21, 12, 22 ]
-							expect(completed) == false
+							withExtendedLifetime(firstProperty) {
+								expect(receivedValues) == [ 0, 10, 11, 20, 21, 12, 22 ]
+								expect(completed) == false
+							}
 
 							firstProperty = nil
 
-							expect(receivedValues) == [ 0, 10, 11, 20, 21, 12, 22 ]
-							expect(completed) == false
+							withExtendedLifetime(secondProperty) {
+								expect(receivedValues) == [ 0, 10, 11, 20, 21, 12, 22 ]
+								expect(completed) == false
+							}
 
 							secondProperty = nil
 
-							expect(receivedValues) == [ 0, 10, 11, 20, 21, 12, 22 ]
-							expect(completed) == false
+							withExtendedLifetime(outerProperty) {
+								expect(receivedValues) == [ 0, 10, 11, 20, 21, 12, 22 ]
+								expect(completed) == false
+							}
 
 							outerProperty = nil
-							expect(completed) == false
+
+							withExtendedLifetime(thirdProperty) {
+								expect(completed) == false
+							}
 
 							thirdProperty = nil
 							expect(completed) == true
@@ -1512,9 +1546,11 @@ class PropertySpec: QuickSpec {
 							thirdProperty!.value = 22
 							thirdProperty = nil
 
-							expect(receivedValues) == [ 0, 10, 11, 20, 21, 22 ]
-							expect(errored) == false
-							expect(completed) == false
+							withExtendedLifetime(outerProperty) {
+								expect(receivedValues) == [ 0, 10, 11, 20, 21, 22 ]
+								expect(errored) == false
+								expect(completed) == false
+							}
 
 							outerProperty = nil
 							expect(errored) == false
@@ -1607,9 +1643,11 @@ class PropertySpec: QuickSpec {
 							thirdProperty!.value = 22
 							thirdProperty = nil
 
-							expect(receivedValues) == [ "0", "10", "11", "20", "21", "22" ]
-							expect(errored) == false
-							expect(completed) == false
+							withExtendedLifetime(outerProperty) {
+								expect(receivedValues) == [ "0", "10", "11", "20", "21", "22" ]
+								expect(errored) == false
+								expect(completed) == false
+							}
 
 							outerProperty = nil
 							expect(errored) == false
@@ -1728,9 +1766,6 @@ class PropertySpec: QuickSpec {
 
 					var outerObserver: Signal<String, Never>.Observer!
 
-					// Mitigate the "was written to, but never read" warning.
-					_ = outerObserver
-
 					var signal: Signal<String, Never>? = {
 						let (signal, observer) = Signal<String, Never>.pipe()
 						outerObserver = observer
@@ -1740,13 +1775,18 @@ class PropertySpec: QuickSpec {
 
 					var mutableProperty: MutableProperty<String>? = MutableProperty(initialPropertyValue)
 
-					mutableProperty! <~ signal!
+					withExtendedLifetime((mutableProperty!, signal!)) { property, signal -> Void in
+						property <~ signal
+					}
+
 					signal = nil
 
-					// The binding attached an observer to the signal, so it cannot
-					// be disposed of.
-					expect(weakSignal).to(beNil())
-					expect(isDisposed) == false
+					withExtendedLifetime((mutableProperty!, outerObserver!)) {
+						// The binding attached an observer to the signal, so it cannot
+						// be disposed of.
+						expect(weakSignal).to(beNil())
+						expect(isDisposed) == false
+					}
 
 					// The deinitialization should tear down the binding, which would
 					// remove the last observer from the signal, causing it to
@@ -1848,7 +1888,11 @@ class PropertySpec: QuickSpec {
 					var destinationProperty: MutableProperty<String>? = MutableProperty("")
 
 					var isDisposed = false
-					destinationProperty! <~ sourceProperty.producer.on(disposed: { isDisposed = true })
+
+					_ = withExtendedLifetime(destinationProperty) {
+						$0! <~ sourceProperty.producer.on(disposed: { isDisposed = true })
+					}
+
 					expect(isDisposed) == false
 
 					destinationProperty = nil
