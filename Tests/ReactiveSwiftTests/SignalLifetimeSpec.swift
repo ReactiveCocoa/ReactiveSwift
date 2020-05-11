@@ -91,6 +91,8 @@ class SignalLifetimeSpec: QuickSpec {
 					expect(isDisposed) == false
 
 					var reference = signal
+					_ = reference
+
 					signal = nil
 					expect(weakSignal).toNot(beNil())
 					expect(isDisposed) == false
@@ -118,10 +120,12 @@ class SignalLifetimeSpec: QuickSpec {
 			}
 
 			it("should be disposed of when the generator observer has deinitialized even if it has an observer") {
-				var isDisposed = false
 				var inputObserver: Signal<AnyObject, Never>.Observer?
-
 				var disposable: Disposable? = nil
+				_ = (inputObserver, disposable)
+
+				var isDisposed = false
+
 				weak var signal: Signal<AnyObject, Never>? = {
 					let signal = Signal<AnyObject, Never> { observer, lifetime in
 						inputObserver = observer
@@ -330,6 +334,8 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should be disposed of if it is not explicitly retained and its generator observer is not retained") {
 				var disposable: Disposable? = nil
 				var inputObserver: Signal<AnyObject, Never>.Observer?
+				_ = (disposable, inputObserver)
+
 				var isDisposed = false
 
 				weak var signal: Signal<AnyObject, Never>? = {

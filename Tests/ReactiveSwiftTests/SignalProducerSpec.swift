@@ -32,6 +32,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should not release signal observers when given disposable is disposed") {
 				var lifetime: Lifetime!
+				_ = lifetime
 
 				let producer = SignalProducer<Int, Never> { observer, innerLifetime in
 					lifetime = innerLifetime
@@ -3285,10 +3286,16 @@ class SignalProducerSpec: QuickSpec {
 						.start()
 
 					disposable.dispose()
-					expect(deinitValues) == 0
+
+					withExtendedLifetime(producer) {
+						expect(deinitValues) == 0
+					}
 
 					producer = nil
-					expect(deinitValues) == 0
+
+					withExtendedLifetime(replayedProducer) {
+						expect(deinitValues) == 0
+					}
 
 					replayedProducer = nil
 					expect(deinitValues) == 1

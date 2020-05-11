@@ -219,9 +219,7 @@ class SchedulerSpec: QuickSpec {
 					expect{count}.toEventually(equal(timesToRun))
 				}
 				
-				it("should repeatedly run actions after a given date when the disposable is not retained") {
-					let disposable = SerialDisposable()
-					
+				it("should repeatedly run actions after a given date when the disposable is not retained") {				
 					var count = 0
 					let timesToIncrement = 3
 					

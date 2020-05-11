@@ -145,7 +145,9 @@ class SignalSpec: QuickSpec {
 					lifetime += disposable
 				}
 
-				expect(disposable.isDisposed) == true
+				withExtendedLifetime(signal) {
+					expect(disposable.isDisposed) == true
+				}
 			}
 
 			it("should dispose of the returned disposable if the signal has completed in the generator") {
@@ -157,7 +159,9 @@ class SignalSpec: QuickSpec {
 					lifetime += disposable
 				}
 
-				expect(disposable.isDisposed) == true
+				withExtendedLifetime(signal) {
+					expect(disposable.isDisposed) == true
+				}
 			}
 
 			it("should dispose of the returned disposable if the signal has failed in the generator") {
@@ -169,7 +173,9 @@ class SignalSpec: QuickSpec {
 					lifetime += disposable
 				}
 
-				expect(disposable.isDisposed) == true
+				withExtendedLifetime(signal) {
+					expect(disposable.isDisposed) == true
+				}
 			}
 		}
 
@@ -230,10 +236,12 @@ class SignalSpec: QuickSpec {
 				let disposable = AnyDisposable()
 				let (signal, observer) = Signal<(), Never>.pipe(disposable: disposable)
 
-				expect(disposable.isDisposed) == false
+				withExtendedLifetime(signal) {
+					expect(disposable.isDisposed) == false
 
-				observer.sendCompleted()
-				expect(disposable.isDisposed) == true
+					observer.sendCompleted()
+					expect(disposable.isDisposed) == true
+				}
 			}
 
 			context("memory") {
@@ -262,7 +270,6 @@ class SignalSpec: QuickSpec {
 		describe("interruption") {
 			it("should not send events after sending an interrupted event") {
 				let queue: DispatchQueue
-				let counter = Atomic<Int>(0)
 
 				if #available(macOS 10.10, *) {
 					queue = DispatchQueue.global(qos: .userInitiated)
@@ -327,7 +334,6 @@ class SignalSpec: QuickSpec {
 					DispatchQueue.concurrentPerform(iterations: iterations) { _ in
 						let (signal, observer) = Signal<(), Never>.pipe()
 
-						var isInterrupted = false
 						signal.observeInterrupted { counter.modify { $0 += 1 } }
 
 						// Used to synchronize the `value` sender and the `interrupt`
@@ -2777,7 +2783,7 @@ class SignalSpec: QuickSpec {
 
 				zipped.observe { event in
 					switch event {
-					case let .value(left, right):
+					case let .value((left, right)):
 						result.append("\(left)\(right)")
 					case .completed:
 						completed = true
@@ -2804,7 +2810,7 @@ class SignalSpec: QuickSpec {
 
 				zipped.observe { event in
 					switch event {
-					case let .value(left, right):
+					case let .value((left, right)):
 						result.append("\(left)\(right)")
 					case .completed:
 						completed = true
@@ -2830,7 +2836,7 @@ class SignalSpec: QuickSpec {
 
 				zipped.observe { event in
 					switch event {
-					case let .value(left, right):
+					case let .value((left, right)):
 						result.append("\(left)\(right)")
 					case .completed:
 						completed = true
