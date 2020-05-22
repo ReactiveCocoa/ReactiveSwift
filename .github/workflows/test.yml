@@ -28,3 +28,4 @@ jobs:
       - name: Test via xcodebuild
         run: |
           xcodebuild clean test -workspace ReactiveSwift.xcworkspace ${{ matrix.destination }} CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES
+
