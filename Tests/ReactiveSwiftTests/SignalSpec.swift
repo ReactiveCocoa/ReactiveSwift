@@ -836,7 +836,7 @@ class SignalSpec: QuickSpec {
 
 		describe("scanMap(_:_:)") {
 			it("should update state and output separately") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.scanMap(false) { state, value -> (Bool, String) in
 					return (true, state ? "\(value)" : "initial")
 				}
@@ -860,7 +860,7 @@ class SignalSpec: QuickSpec {
 
 		describe("scanMap(into:_:)") {
 			it("should update state and output separately") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.scanMap(into: false) { (state: inout Bool, value: Int) -> String in
 					defer { state = true }
 					return state ? "\(value)" : "initial"

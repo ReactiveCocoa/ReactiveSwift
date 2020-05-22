@@ -425,7 +425,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 		describe("scanMap(_:_:)") {
 			it("should update state and output separately") {
-				let (baseProducer, observer) = SignalProducer<Int, NoError>.pipe()
+				let (baseProducer, observer) = SignalProducer<Int, Never>.pipe()
 				let producer = baseProducer.scanMap(false) { state, value -> (Bool, String) in
 					return (true, state ? "\(value)" : "initial")
 				}
@@ -449,7 +449,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 		describe("scanMap(into:_:)") {
 			it("should update state and output separately") {
-				let (baseProducer, observer) = SignalProducer<Int, NoError>.pipe()
+				let (baseProducer, observer) = SignalProducer<Int, Never>.pipe()
 				let producer = baseProducer.scanMap(into: false) { (state: inout Bool, value: Int) -> String in
 					defer { state = true }
 					return state ? "\(value)" : "initial"
