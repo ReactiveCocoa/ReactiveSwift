@@ -15,12 +15,12 @@ jobs:
         uses: actions/cache@v1
         id: dependency-cache
         with:
-          path: Carthage/Build
-          key: carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
+          path: Carthage
+          key: 2-carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
       - name: Pull dependencies
         if: steps.dependency-cache.outputs.cache-hit != 'true'
         run: |
-          swift package resolve
+          carthage checkout
       - name: Carthage verification
         run: |
           carthage build --cache-builds --no-skip-current
