@@ -834,6 +834,55 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("scanMap(_:_:)") {
+			it("should update state and output separately") {
+				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let signal = baseSignal.scanMap(false) { state, value -> (Bool, String) in
+					return (true, state ? "\(value)" : "initial")
+				}
+
+				var lastValue: String?
+
+				signal.observeValues { lastValue = $0 }
+
+				expect(lastValue).to(beNil())
+
+				observer.send(value: 1)
+				expect(lastValue) == "initial"
+
+				observer.send(value: 2)
+				expect(lastValue) == "2"
+
+				observer.send(value: 3)
+				expect(lastValue) == "3"
+			}
+		}
+
+		describe("scanMap(into:_:)") {
+			it("should update state and output separately") {
+				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let signal = baseSignal.scanMap(into: false) { (state: inout Bool, value: Int) -> String in
+					defer { state = true }
+					return state ? "\(value)" : "initial"
+				}
+
+				var lastValue: String?
+
+				signal.observeValues { lastValue = $0 }
+
+				expect(lastValue).to(beNil())
+
+				observer.send(value: 1)
+				expect(lastValue) == "initial"
+
+				observer.send(value: 2)
+				expect(lastValue) == "2"
+
+				observer.send(value: 3)
+				expect(lastValue) == "3"
+			}
+		}
+
 		describe("reduce(_:_:)") {
 			it("should accumulate one value") {
 				let (baseSignal, observer) = Signal<Int, Never>.pipe()

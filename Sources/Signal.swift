@@ -1324,6 +1324,34 @@ extension Signal {
 	public func scan<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.scan(into: initialResult, nextPartialResult))
 	}
+
+	/// Accumulate all values from `self` as `State`, and send the value as `U`.
+	///
+	/// - parameters:
+	///   - initialState: The state to use as the initial accumulating state.
+	///   - next: A closure that combines the accumulating state and the latest value
+	///           from `self`. The result would be "next state" and "output" where
+	///           "output" would be forwarded and "next state" would be used in the
+	///           next call of `next`.
+	///
+	/// - returns: A producer that sends the output that is computed from the accumuation.
+	public func scanMap<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.scanMap(initialState, next))
+	}
+
+	/// Accumulate all values from `self` as `State`, and send the value as `U`.
+	///
+	/// - parameters:
+	///   - initialState: The state to use as the initial accumulating state.
+	///   - next: A closure that combines the accumulating state and the latest value
+	///           from `self`. The result would be "next state" and "output" where
+	///           "output" would be forwarded and "next state" would be used in the
+	///           next call of `next`.
+	///
+	/// - returns: A producer that sends the output that is computed from the accumuation.
+	public func scanMap<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Signal<U, Error> {
+		return flatMapEvent(Signal.Event.scanMap(into: initialState, next))
+	}
 }
 
 extension Signal where Value: Equatable {
