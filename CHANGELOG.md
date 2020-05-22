@@ -1,7 +1,25 @@
 # master
 *Please add new entries at the top.*
 
-1. Joining an empty sequence of producers can now send an event on the joined signal producer by providing the `noUpstreamSentinel` parameter. This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no event is sent only when the producers sequence is empty, then the observer gets stalled and e.g. the ui won't update.
+1. `Property` and `MutableProperty` can now be used as property wrapper. Note that they remain a reference type container, so it may not be appropriate to use them in types requiring value semantics. (#781)
+   ```swift
+   class ViewModel {
+     @MutableProperty var count: Int = 0
+
+     func subscribe() {
+       self.$count.producer.startWithValues {
+         print("`count` has changed to \(count)")
+       }
+     }
+
+     func increment() {
+       print("count prior to increment: \(count)")
+       self.$count.modify { $0 += 1 }
+     }
+   }
+   ```
+
+1. Joining an empty sequence of producers can now send an event on the joined signal producer by providing the `noUpstreamSentinel` parameter. This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no event is sent only when the producers sequence is empty, then the observer gets stalled and e.g. the ui won't update. (#774, kudos to @rocketnik)
 
 # 6.2.1
 

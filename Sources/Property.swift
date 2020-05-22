@@ -470,12 +470,23 @@ extension PropertyProtocol where Value == Bool {
 /// deinitializing.
 ///
 /// Note that composed properties do not retain any of its sources.
+@propertyWrapper
 public final class Property<Value>: PropertyProtocol {
 	private let _value: () -> Value
 
 	/// The current value of the property.
 	public var value: Value {
 		return _value()
+	}
+
+	@inlinable
+	public var wrappedValue: Value {
+		return value
+	}
+
+	@inlinable
+	public var projectedValue: Property<Value> {
+		return self
 	}
 
 	/// A producer for Signals that will send the property's current
@@ -649,6 +660,7 @@ extension Property where Value: OptionalProtocol {
 /// A mutable property of type `Value` that allows observation of its changes.
 ///
 /// Instances of this class are thread-safe.
+@propertyWrapper
 public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	private let token: Lifetime.Token
 	private let observer: Signal<Value, Never>.Observer
@@ -661,6 +673,17 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	public var value: Value {
 		get { return box.value }
 		set { modify { $0 = newValue } }
+	}
+
+	@inlinable
+	public var wrappedValue: Value {
+		get { value }
+		set { value = newValue }
+	}
+
+	@inlinable
+	public var projectedValue: MutableProperty<Value> {
+		return self
 	}
 
 	/// The lifetime of the property.
@@ -694,6 +717,14 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 		/// `value`. Note that recursive sets will still deadlock because the
 		/// underlying producer prevents sending recursive events.
 		box = PropertyBox(initialValue)
+	}
+
+	/// Initializes a mutable property that first takes on `initialValue`
+	///
+	/// - parameters:
+	///   - initialValue: Starting value for the mutable property.
+	public convenience init(wrappedValue: Value) {
+		self.init(wrappedValue)
 	}
 
 	/// Atomically replaces the contents of the variable.
