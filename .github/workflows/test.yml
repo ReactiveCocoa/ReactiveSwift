@@ -15,17 +15,44 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Dependency Cache
+      - name: Recover cached dependencies
         uses: actions/cache@v1
         id: dependency-cache
         with:
           path: Carthage/Checkouts
           key: carthage-${{ hashFiles('Cartfile.resolved') }}
-      - name: Pull Dependencies If Needed
+      - name: Pull dependencies
         if: steps.dependency-cache.outputs.cache-hit != 'true'
         run: |
           carthage checkout
       - name: Test via xcodebuild
         run: |
           xcodebuild clean test -workspace ReactiveSwift.xcworkspace ${{ matrix.destination }} CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES
+
+  swiftpm-linux:
+    name: SwiftPM Linux
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Swift
+        uses: sersoft-gmbh/SwiftyActions@v1
+        with:
+          release-version: 5.2.2
+          platform: ubuntu-18.04
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Recover cached dependencies
+        uses: actions/cache@v1
+        id: dependency-cache
+        with:
+          path: .build
+          key: swiftpm-linux-${{ hashFiles('Package.resolved') }}
+      - name: Pull dependencies
+        if: steps.dependency-cache.outputs.cache-hit != 'true'
+        run: |
+          swift package resolve
+      - name: Test via SwiftPM
+        run: |
+          swift --version
+          swift build
+          swift test
 

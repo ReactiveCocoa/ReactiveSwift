@@ -1,0 +1,65 @@
+#on:
+#  push:
+#    branches:
+#      - master
+
+on: pull_request
+name: Verification
+jobs:
+  carthage:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Recover cached dependencies
+        uses: actions/cache@v1
+        id: dependency-cache
+        with:
+          path: Carthage/Build
+          key: carthage-verification-${{ hashFiles('Cartfile.resolved') }}
+      - name: Pull dependencies
+        if: steps.dependency-cache.outputs.cache-hit != 'true'
+        run: |
+          swift package resolve
+      - name: Carthage verification
+        run: |
+          carthage build --cache-builds --no-skip-current
+      - name: Clean up for cache
+        run: |
+          shopt -s globstar
+          rm -rf ./Carthage/Build/**/ReactiveSwift.framework
+
+  swiftpm-macos:
+    name: SwiftPM macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Recover cached dependencies
+        uses: actions/cache@v1
+        id: dependency-cache
+        with:
+          path:
+            - .build/checkouts
+            - .build/repositories
+            - .build/dependencies-state.json
+          key: swiftpm-macos-${{ hashFiles('Package.resolved') }}
+      - name: Pull dependencies
+        if: steps.dependency-cache.outputs.cache-hit != 'true'
+        run: |
+          swift package resolve
+      - name: Test via SwiftPM
+        run: |
+          swift --version
+          swift build
+
+  cocoapods:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: CocoaPods verification
+        run: |
+          pod repo update
+          pod lib lint --use-libraries
+
