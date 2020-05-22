@@ -36,7 +36,7 @@ jobs:
       - name: Swift
         uses: sersoft-gmbh/SwiftyActions@v1
         with:
-          release-version: 5.2.2
+          release-version: 5.2.4
           platform: ubuntu-18.04
       - name: Checkout
         uses: actions/checkout@v2
