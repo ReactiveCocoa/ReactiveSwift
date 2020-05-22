@@ -2098,8 +2098,8 @@ extension SignalProducer {
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`. Will return an empty `SignalProducer` if the sequence is empty.
-	public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
-		return start(producers, Signal.combineLatest)
+    public static func combineLatest<S: Sequence>(_ producers: S, noUpstreamSentinel: [S.Iterator.Element.Value]? = nil) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
+        return start(producers, noUpstreamSentinel: noUpstreamSentinel, Signal.combineLatest)
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
@@ -2176,11 +2176,11 @@ extension SignalProducer {
 
 	/// Zips the values of all the given producers, in the manner described by
 	/// `zipWith`. Will return an empty `SignalProducer` if the sequence is empty.
-	public static func zip<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
-		return start(producers, Signal.zip)
+	public static func zip<S: Sequence>(_ producers: S, noUpstreamSentinel: [S.Iterator.Element.Value]? = nil) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
+		return start(producers, noUpstreamSentinel: noUpstreamSentinel, Signal.zip)
 	}
 
-	private static func start<S: Sequence>(_ producers: S, _ transform: @escaping (AnySequence<Signal<Value, Error>>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error
+	private static func start<S: Sequence>(_ producers: S, noUpstreamSentinel: [S.Iterator.Element.Value]?, _ transform: @escaping (AnySequence<Signal<Value, Error>>) -> Signal<[Value], Error>) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error
 	{
 		return SignalProducer<[Value], Error> { observer, lifetime in
 			let setup = producers.map {
@@ -2188,6 +2188,9 @@ extension SignalProducer {
 			}
 			
 			guard !setup.isEmpty else {
+                if let noUpstreamSentinel = noUpstreamSentinel {
+                    observer.send(value: noUpstreamSentinel)
+                }
 				observer.sendCompleted()
 				return
 			}
@@ -2717,7 +2720,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical AND results.
 	public static func all<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
-		return combineLatest(booleans).map { $0.reduce(true) { $0 && $1 } }
+		return combineLatest(booleans, noUpstreamSentinel: []).map { $0.reduce(true) { $0 && $1 } }
 	}
 	
 	/// Create a producer that computes a logical AND between the latest values of `booleans`.
@@ -2759,7 +2762,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical OR results.
 	public static func any<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
-		return combineLatest(booleans).map { $0.reduce(false) { $0 || $1 } }
+		return combineLatest(booleans, noUpstreamSentinel: []).map { $0.reduce(false) { $0 || $1 } }
 	}
 	
 	/// Create a producer that computes a logical OR between the latest values of `booleans`.

@@ -318,13 +318,13 @@ extension PropertyProtocol {
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`. Returns nil if the sequence is empty.
-	public static func combineLatest<S: Sequence>(_ properties: S) -> Property<[S.Iterator.Element.Value]>? where S.Iterator.Element: PropertyProtocol {
+	public static func combineLatest<S: Sequence>(_ properties: S, noUpstreamSentinel: [S.Iterator.Element.Value]? = nil) -> Property<[S.Iterator.Element.Value]>? where S.Iterator.Element: PropertyProtocol {
 		let producers = properties.map { $0.producer }
 		guard !producers.isEmpty else {
 			return nil
 		}
 
-		return Property(unsafeProducer: SignalProducer.combineLatest(producers))
+		return Property(unsafeProducer: SignalProducer.combineLatest(producers, noUpstreamSentinel: noUpstreamSentinel))
 	}
 
 	/// Zips the values of all the given properties, in the manner described by
@@ -383,13 +383,13 @@ extension PropertyProtocol {
 
 	/// Zips the values of all the given properties, in the manner described by
 	/// `zip(with:)`. Returns nil if the sequence is empty.
-	public static func zip<S: Sequence>(_ properties: S) -> Property<[S.Iterator.Element.Value]>? where S.Iterator.Element: PropertyProtocol {
+	public static func zip<S: Sequence>(_ properties: S, noUpstreamSentinel: [S.Iterator.Element.Value]? = nil) -> Property<[S.Iterator.Element.Value]>? where S.Iterator.Element: PropertyProtocol {
 		let producers = properties.map { $0.producer }
 		guard !producers.isEmpty else {
 			return nil
 		}
 
-		return Property(unsafeProducer: SignalProducer.zip(producers))
+		return Property(unsafeProducer: SignalProducer.zip(producers, noUpstreamSentinel: noUpstreamSentinel))
 	}
 }
 
