@@ -19,7 +19,11 @@
    }
    ```
 
-1. Joining an empty sequence of producers can now send an event on the joined signal producer by providing the `noUpstreamSentinel` parameter. This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no event is sent only when the producers sequence is empty, then the observer gets stalled and e.g. the ui won't update. (#774, kudos to @rocketnik)
+1. When `combineLatest` or `zip` over a sequence of `SignalProducer`s or `Property`s, you can now specify an optional `emptySentinel` parameter, which would be used when the sequence is empty.
+
+   This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no value is sent when the sequence is empty, the observer gets terminated silently, and, e.g., the UI would not be updated.
+
+  (#774, kudos to @rocketnik)
 
 # 6.2.1
 
