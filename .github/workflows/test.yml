@@ -34,11 +34,9 @@ jobs:
     name: SwiftPM Linux
     runs-on: ubuntu-18.04
     steps:
-      - name: Swift
-        uses: sersoft-gmbh/SwiftyActions@v1
-        with:
-          release-version: 5.2.4
-          platform: ubuntu-18.04
+      - name: Install Swift
+        run: |
+          eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
       - name: Checkout
         uses: actions/checkout@v2
       - name: Recover cached dependencies
