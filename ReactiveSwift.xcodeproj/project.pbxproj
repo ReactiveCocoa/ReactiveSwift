@@ -33,6 +33,9 @@
 		57A4D1BE1BA13D7A00F7D4B1 /* Bag.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C312BC19EF2A5800984962 /* Bag.swift */; };
 		57A4D1C01BA13D7A00F7D4B1 /* FoundationExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03B4A3C19F4C39A009E02AC /* FoundationExtensions.swift */; };
 		57A4D20A1BA13D7A00F7D4B1 /* ReactiveSwift.h in Headers */ = {isa = PBXBuildFile; fileRef = D04725EF19E49ED7006002AA /* ReactiveSwift.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		5B8CAB7F24787D6500717AB5 /* QueueScheduler+Factory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8CAB7E24787D6500717AB5 /* QueueScheduler+Factory.swift */; };
+		5B8CAB8024787D6500717AB5 /* QueueScheduler+Factory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8CAB7E24787D6500717AB5 /* QueueScheduler+Factory.swift */; };
+		5B8CAB8124787D6500717AB5 /* QueueScheduler+Factory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8CAB7E24787D6500717AB5 /* QueueScheduler+Factory.swift */; };
 		7DFBED081CDB8C9500EE435B /* ReactiveSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57A4D2411BA13D7A00F7D4B1 /* ReactiveSwift.framework */; };
 		7DFBED1E1CDB8D7000EE435B /* ReactiveSwift.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 57A4D2411BA13D7A00F7D4B1 /* ReactiveSwift.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7DFBED1F1CDB8D7800EE435B /* Quick.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = D037672B19EDA75D00A782A9 /* Quick.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -235,6 +238,7 @@
 		57A4D2451BA13F9700F7D4B1 /* tvOS-Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Base.xcconfig"; sourceTree = "<group>"; };
 		57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Framework.xcconfig"; sourceTree = "<group>"; };
 		57A4D2471BA13F9700F7D4B1 /* tvOS-StaticLibrary.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-StaticLibrary.xcconfig"; sourceTree = "<group>"; };
+		5B8CAB7E24787D6500717AB5 /* QueueScheduler+Factory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "QueueScheduler+Factory.swift"; sourceTree = "<group>"; };
 		7DFBED031CDB8C9500EE435B /* ReactiveSwiftTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReactiveSwiftTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A090C131DA0309E00EE97CA /* Reactive.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Reactive.swift; sourceTree = "<group>"; };
 		9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingPropertySpec.swift; sourceTree = "<group>"; };
@@ -505,6 +509,7 @@
 				D05E662419EDD82000904ACA /* Nimble.framework */,
 				D037672B19EDA75D00A782A9 /* Quick.framework */,
 				BFA6B94A1A76044800C846D1 /* SignalProducerNimbleMatchers.swift */,
+				5B8CAB7E24787D6500717AB5 /* QueueScheduler+Factory.swift */,
 				D04725FB19E49ED7006002AA /* Info.plist */,
 			);
 			name = "Supporting Files";
@@ -908,6 +913,7 @@
 				7DFBED2F1CDB8DE300EE435B /* TestError.swift in Sources */,
 				7DFBED301CDB8DE300EE435B /* TestLogger.swift in Sources */,
 				9A1D067F1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */,
+				5B8CAB8124787D6500717AB5 /* QueueScheduler+Factory.swift in Sources */,
 				9A1A4F9F1E16AE55006F3039 /* ValidatingPropertySpec.swift in Sources */,
 				4A0E11061D2A95200065D310 /* LifetimeSpec.swift in Sources */,
 				7DFBED6D1CDB8F7D00EE435B /* SignalProducerNimbleMatchers.swift in Sources */,
@@ -991,6 +997,7 @@
 				02D2602B1C1D6DB8003ACC61 /* SignalLifetimeSpec.swift in Sources */,
 				D0C3130C19EF2B1F00984962 /* DisposableSpec.swift in Sources */,
 				9A1D067D1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */,
+				5B8CAB7F24787D6500717AB5 /* QueueScheduler+Factory.swift in Sources */,
 				9A1A4F9D1E16AE50006F3039 /* ValidatingPropertySpec.swift in Sources */,
 				D0A2260B1A72E6C500D33B74 /* SignalProducerSpec.swift in Sources */,
 				D8024DB21B2E1BB0005E6B9A /* SignalProducerLiftingSpec.swift in Sources */,
@@ -1046,6 +1053,7 @@
 				CA6F28511C52626B001879D2 /* FlattenSpec.swift in Sources */,
 				579504341BB8A34300A5E482 /* BagSpec.swift in Sources */,
 				9A1D067E1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */,
+				5B8CAB8024787D6500717AB5 /* QueueScheduler+Factory.swift in Sources */,
 				9A1A4F9E1E16AE50006F3039 /* ValidatingPropertySpec.swift in Sources */,
 				4A0E11051D2A95200065D310 /* LifetimeSpec.swift in Sources */,
 				02D2602A1C1D6DAF003ACC61 /* SignalLifetimeSpec.swift in Sources */,
@@ -1367,6 +1375,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263219E49FE8006002AA /* iOS-Application.xcconfig */;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
@@ -1377,6 +1386,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263219E49FE8006002AA /* iOS-Application.xcconfig */;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
@@ -1441,6 +1451,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263219E49FE8006002AA /* iOS-Application.xcconfig */;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
@@ -1505,6 +1516,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263219E49FE8006002AA /* iOS-Application.xcconfig */;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
