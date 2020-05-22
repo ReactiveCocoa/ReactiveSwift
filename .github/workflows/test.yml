@@ -5,6 +5,7 @@ jobs:
     name: Test
     runs-on: macos-latest
     strategy:
+        fail-fast: false
         matrix:
           destination:
             - clean test -scheme "ReactiveSwift-iOS" -destination "platform=iOS Simulator,name=iPhone 11 Pro"
