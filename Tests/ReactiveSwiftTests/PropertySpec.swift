@@ -310,9 +310,40 @@ class PropertySpec: QuickSpec {
 					}
 				}
 			}
+
+			it("can be used as property wrapper") {
+				struct Container {
+					@MutableProperty var counter = 0
+				}
+
+				let container = Container()
+				expect(container.counter) == 0
+
+				container.counter += 1
+				expect(container.counter) == 1
+
+				container.$counter.modify { $0 += 2 }
+				expect(container.counter) == 3
+			}
 		}
 
 		describe("Property") {
+			it("can be used as property wrapper") {
+				struct Container {
+					@Property var counter: Int
+				}
+
+				let mutableCounter = MutableProperty(0)
+				let container = Container(counter: Property(capturing: mutableCounter))
+				expect(container.counter) == 0
+
+				mutableCounter.value = 1
+				expect(container.counter) == 1
+
+				mutableCounter.modify { $0 += 2 }
+				expect(container.counter) == 3
+			}
+
 			describe("constant property") {
 				it("should have the value given at initialization") {
 					let constantProperty = Property(value: initialPropertyValue)
