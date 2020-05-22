@@ -1052,20 +1052,28 @@ class SignalProducerSpec: QuickSpec {
 			}
 			
 			it("can deal with hundreds of producers") {
-				let scheduler = QueueScheduler(qos: .default, name: "RACScheduler", targeting: nil)
+				let scheduler = TestScheduler()
 				
-				let producers = (0..<700).map { _ -> SignalProducer<Void, Never> in
-					return SignalProducer(value: ())
+				let producers = (0..<1024).map { _ -> SignalProducer<UInt, Never> in
+					return SignalProducer(value: .max)
 				}
+
+				var values: [[UInt]] = []
+				var isCompleted = false
 				
-				waitUntil { done in
-					SignalProducer
-						.zip(producers)
-						.start(on: scheduler)
-						.startWithCompleted {
-							done()
-					}
-				}
+				SignalProducer
+					.zip(producers)
+					.start(on: scheduler)
+					.on(completed: { isCompleted = true }, value: { values.append($0) })
+					.start()
+
+				expect(values) == []
+				expect(isCompleted) == false
+
+				scheduler.advance()
+
+				expect(values) == [Array(repeating: .max, count: 1024)]
+				expect(isCompleted) == true
 			}
 		}
 
