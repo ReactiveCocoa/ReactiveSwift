@@ -1,5 +1,3 @@
-import Result
-
 /// A mutable property that validates mutations before committing them.
 ///
 /// If the property wraps an arbitrary mutable property, changes originated from
@@ -37,11 +35,11 @@ public final class ValidatingProperty<Value, ValidationError: Swift.Error>: Muta
 	/// A producer for Signals that will send the property's current value,
 	/// followed by all changes over time, then complete when the property has
 	/// deinitialized.
-	public let producer: SignalProducer<Value, NoError>
+	public let producer: SignalProducer<Value, Never>
 
 	/// A signal that will send the property's changes over time,
 	/// then complete when the property has deinitialized.
-	public let signal: Signal<Value, NoError>
+	public let signal: Signal<Value, Never>
 
 	/// The lifetime of the property.
 	public let lifetime: Lifetime

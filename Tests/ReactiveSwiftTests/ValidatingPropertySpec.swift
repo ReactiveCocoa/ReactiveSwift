@@ -1,7 +1,6 @@
 import Quick
 import Nimble
 import ReactiveSwift
-import Result
 
 class ValidatingPropertySpec: QuickSpec {
 	override func spec() {

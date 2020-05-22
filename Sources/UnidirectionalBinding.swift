@@ -1,6 +1,5 @@
 import Foundation
 import Dispatch
-import enum Result.NoError
 
 precedencegroup BindingPrecedence {
 	associativity: right
@@ -12,9 +11,9 @@ precedencegroup BindingPrecedence {
 infix operator <~ : BindingPrecedence
 
 /// Describes a source which can be bound.
-public protocol BindingSource: SignalProducerConvertible where Error == NoError {}
-extension Signal: BindingSource where Error == NoError {}
-extension SignalProducer: BindingSource where Error == NoError {}
+public protocol BindingSource: SignalProducerConvertible where Error == Never {}
+extension Signal: BindingSource where Error == Never {}
+extension SignalProducer: BindingSource where Error == Never {}
 
 /// Describes an entity which be bond towards.
 public protocol BindingTargetProvider {
@@ -100,6 +99,33 @@ extension BindingTargetProvider {
 		where Value == Source.Value?
 	{
 		return provider <~ source.producer.optionalize()
+	}
+}
+
+extension Signal.Observer {
+	/// Binds a source to a target, updating the target's value to the latest
+	/// value sent by the source.
+	///
+	/// - note: Only `value` events will be forwarded to the Observer.
+	///         The binding will automatically terminate when the target is
+	///         deinitialized, or when the source sends a `completed` event.
+	///
+	/// - parameters:
+	///   - target: A target to be bond to.
+	///   - source: A source to bind.
+	///
+	/// - returns: A disposable that can be used to terminate binding before the
+	///            deinitialization of the target or the source's `completed`
+	///            event.
+	@discardableResult
+	public static func <~
+		<Source: BindingSource>
+		(observer: Signal<Value, Error>.Observer, source: Source) -> Disposable?
+		where Source.Value == Value
+	{
+		return source.producer.startWithValues { [weak observer] in
+			observer?.send(value: $0)
+		}
 	}
 }
 

@@ -1,7 +1,6 @@
 import Foundation
 import UIKit
 import ReactiveSwift
-import Result
 
 public class FormView: UIView {
 	let _lifetime = Lifetime.Token()

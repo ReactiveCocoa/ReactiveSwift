@@ -5,7 +5,7 @@
 </p>
 <br />
 
-[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](#carthage) [![CocoaPods compatible](https://img.shields.io/cocoapods/v/ReactiveSwift.svg)](#cocoapods) [![SwiftPM compatible](https://img.shields.io/badge/SwiftPM-compatible-orange.svg)](#swift-package-manager) [![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveSwift.svg)](https://github.com/ReactiveCocoa/ReactiveSwift/releases) ![Swift 4.2](https://img.shields.io/badge/Swift-4.2-orange.svg) ![platforms](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux-lightgrey.svg)
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](#carthage) [![CocoaPods compatible](https://img.shields.io/cocoapods/v/ReactiveSwift.svg)](#cocoapods) [![SwiftPM compatible](https://img.shields.io/badge/SwiftPM-compatible-orange.svg)](#swift-package-manager) [![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveSwift.svg)](https://github.com/ReactiveCocoa/ReactiveSwift/releases) ![Swift 5.1](https://img.shields.io/badge/Swift-5.1-orange.svg) ![platforms](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux-lightgrey.svg)
 
 🎉 [Getting Started](#getting-started) 🚄 [Release Roadmap](#release-roadmap)
 
@@ -72,10 +72,10 @@ If you use [Carthage][] to manage your dependencies, simply add
 ReactiveSwift to your `Cartfile`:
 
 ```
-github "ReactiveCocoa/ReactiveSwift" ~> 5.0
+github "ReactiveCocoa/ReactiveSwift" ~> 6.1
 ```
 
-If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework`, and `Result.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
+If you use Carthage to build your dependencies, make sure you have added `ReactiveSwift.framework` to the "_Linked Frameworks and Libraries_" section of your target, and have included them in your Carthage framework copying build phase.
 
 #### CocoaPods
 
@@ -83,7 +83,7 @@ If you use [CocoaPods][] to manage your dependencies, simply add
 ReactiveSwift to your `Podfile`:
 
 ```
-pod 'ReactiveSwift', '~> 5.0'
+pod 'ReactiveSwift', '~> 6.1'
 ```
 
 #### Swift Package Manager
@@ -92,7 +92,7 @@ If you use Swift Package Manager, simply add ReactiveSwift as a dependency
 of your package in `Package.swift`:
 
 ```
-.package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "5.0.0")
+.package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.1.0")
 ```
 
 #### Git submodule
@@ -100,12 +100,10 @@ of your package in `Package.swift`:
  1. Add the ReactiveSwift repository as a [submodule][] of your
     application’s repository.
  1. Run `git submodule update --init --recursive` from within the ReactiveCocoa folder.
- 1. Drag and drop `ReactiveSwift.xcodeproj` and
-    `Carthage/Checkouts/Result/Result.xcodeproj` into your application’s Xcode
+ 1. Drag and drop `ReactiveSwift.xcodeproj` into your application’s Xcode
     project or workspace.
  1. On the “General” tab of your application target’s settings, add
-    `ReactiveSwift.framework`, and `Result.framework`
-    to the “Embedded Binaries” section.
+    `ReactiveSwift.framework` to the “Embedded Binaries” section.
  1. If your application target does not contain Swift code at all, you should also
     set the `EMBEDDED_CONTENT_CONTAINS_SWIFT` build setting to “Yes”.
 
@@ -118,7 +116,6 @@ We also provide a great Playground, so you can get used to ReactiveCocoa's opera
      - `git submodule update --init --recursive` **OR**, if you have [Carthage][] installed    
      - `carthage checkout`
  1. Open `ReactiveSwift.xcworkspace`
- 1. Build `Result-Mac` scheme
  1. Build `ReactiveSwift-macOS` scheme
  1. Finally open the `ReactiveSwift.playground`
  1. Choose `View > Show Debug Area`
@@ -131,7 +128,7 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 
 ### Plan of Record
 #### ABI stability release
-ReactiveSwift is expected to declare library ABI stability when Swift rolls out resilence support. Until then, ReactiveSwift would incrementally adopt new language features that help move towards to goal. The ETA is Swift 5.
+ReactiveSwift is expected to declare library ABI stability when Swift rolls out resilence support. Until then, ReactiveSwift would incrementally adopt new language features that help move towards to goal.
 
 [Core Reactive Primitives]: Documentation/ReactivePrimitives.md
 [Basic Operators]: Documentation/BasicOperators.md

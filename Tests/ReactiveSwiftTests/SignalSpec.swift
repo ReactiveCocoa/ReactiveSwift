@@ -9,7 +9,6 @@
 import Foundation
 import Dispatch
 
-import Result
 import Nimble
 import Quick
 @testable import ReactiveSwift
@@ -25,7 +24,7 @@ class SignalSpec: QuickSpec {
 
 			it("should run the generator immediately") {
 				var didRunGenerator = false
-				_ = Signal<AnyObject, NoError> { observer, _ in
+				_ = Signal<AnyObject, Never> { observer, _ in
 					didRunGenerator = true
 				}
 
@@ -35,7 +34,7 @@ class SignalSpec: QuickSpec {
 			it("should forward events to observers") {
 				let numbers = [ 1, 2, 5 ]
 
-				let signal: Signal<Int, NoError> = Signal { observer, _ in
+				let signal: Signal<Int, Never> = Signal { observer, _ in
 					testScheduler.schedule {
 						for number in numbers {
 							observer.send(value: number)
@@ -93,7 +92,7 @@ class SignalSpec: QuickSpec {
 			it("should dispose of returned disposable upon completion") {
 				let disposable = AnyDisposable()
 				
-				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
+				let signal: Signal<AnyObject, Never> = Signal { observer, lifetime in
 					testScheduler.schedule {
 						observer.sendCompleted()
 					}
@@ -116,7 +115,7 @@ class SignalSpec: QuickSpec {
 			it("should dispose of returned disposable upon interrupted") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
+				let signal: Signal<AnyObject, Never> = Signal { observer, lifetime in
 					testScheduler.schedule {
 						observer.sendInterrupted()
 					}
@@ -140,25 +139,29 @@ class SignalSpec: QuickSpec {
 			it("should dispose of the returned disposable if the signal has interrupted in the generator") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
+				let signal: Signal<AnyObject, Never> = Signal { observer, lifetime in
 					observer.sendInterrupted()
 					expect(disposable.isDisposed) == false
 					lifetime += disposable
 				}
 
-				expect(disposable.isDisposed) == true
+				withExtendedLifetime(signal) {
+					expect(disposable.isDisposed) == true
+				}
 			}
 
 			it("should dispose of the returned disposable if the signal has completed in the generator") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<AnyObject, NoError> = Signal { observer, lifetime in
+				let signal: Signal<AnyObject, Never> = Signal { observer, lifetime in
 					observer.sendCompleted()
 					expect(disposable.isDisposed) == false
 					lifetime += disposable
 				}
 
-				expect(disposable.isDisposed) == true
+				withExtendedLifetime(signal) {
+					expect(disposable.isDisposed) == true
+				}
 			}
 
 			it("should dispose of the returned disposable if the signal has failed in the generator") {
@@ -170,13 +173,15 @@ class SignalSpec: QuickSpec {
 					lifetime += disposable
 				}
 
-				expect(disposable.isDisposed) == true
+				withExtendedLifetime(signal) {
+					expect(disposable.isDisposed) == true
+				}
 			}
 		}
 
 		describe("Signal.empty") {
 			it("should interrupt its observers without emitting any value") {
-				let signal = Signal<(), NoError>.empty
+				let signal = Signal<(), Never>.empty
 
 				var hasUnexpectedEventsEmitted = false
 				var signalInterrupted = false
@@ -197,7 +202,7 @@ class SignalSpec: QuickSpec {
 
 		describe("Signal.pipe") {
 			it("should forward events to observers") {
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let (signal, observer) = Signal<Int, Never>.pipe()
 
 				var fromSignal: [Int] = []
 				var completed = false
@@ -229,17 +234,19 @@ class SignalSpec: QuickSpec {
 
 			it("should dispose the supplied disposable when the signal terminates") {
 				let disposable = AnyDisposable()
-				let (signal, observer) = Signal<(), NoError>.pipe(disposable: disposable)
+				let (signal, observer) = Signal<(), Never>.pipe(disposable: disposable)
 
-				expect(disposable.isDisposed) == false
+				withExtendedLifetime(signal) {
+					expect(disposable.isDisposed) == false
 
-				observer.sendCompleted()
-				expect(disposable.isDisposed) == true
+					observer.sendCompleted()
+					expect(disposable.isDisposed) == true
+				}
 			}
 
 			context("memory") {
 				it("should not crash allocating memory with a few observers") {
-					let (signal, observer) = Signal<Int, NoError>.pipe()
+					let (signal, observer) = Signal<Int, Never>.pipe()
 
 					#if os(Linux)
 						func autoreleasepool(invoking code: () -> Void) {
@@ -263,7 +270,6 @@ class SignalSpec: QuickSpec {
 		describe("interruption") {
 			it("should not send events after sending an interrupted event") {
 				let queue: DispatchQueue
-				let counter = Atomic<Int>(0)
 
 				if #available(macOS 10.10, *) {
 					queue = DispatchQueue.global(qos: .userInitiated)
@@ -271,10 +277,10 @@ class SignalSpec: QuickSpec {
 					queue = DispatchQueue.global(priority: .high)
 				}
 
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let (signal, observer) = Signal<Int, Never>.pipe()
 
 				var hasSlept = false
-				var events: [Signal<Int, NoError>.Event] = []
+				var events: [Signal<Int, Never>.Event] = []
 
 				// Used to synchronize the `interrupt` sender to only act after the
 				// chosen observer has started sending its event, but before it is done.
@@ -326,9 +332,8 @@ class SignalSpec: QuickSpec {
 
 				queue.async(group: group) {
 					DispatchQueue.concurrentPerform(iterations: iterations) { _ in
-						let (signal, observer) = Signal<(), NoError>.pipe()
+						let (signal, observer) = Signal<(), Never>.pipe()
 
-						var isInterrupted = false
 						signal.observeInterrupted { counter.modify { $0 += 1 } }
 
 						// Used to synchronize the `value` sender and the `interrupt`
@@ -366,7 +371,7 @@ class SignalSpec: QuickSpec {
 			it("should stop forwarding events when disposed") {
 				let disposable = AnyDisposable()
 
-				let signal: Signal<Int, NoError> = Signal { observer, lifetime in
+				let signal: Signal<Int, Never> = Signal { observer, lifetime in
 					testScheduler.schedule {
 						for number in [ 1, 2 ] {
 							observer.send(value: number)
@@ -393,19 +398,19 @@ class SignalSpec: QuickSpec {
 
 			it("should not trigger side effects") {
 				var runCount = 0
-				let signal: Signal<(), NoError> = Signal { observer, _ in
+				let signal: Signal<(), Never> = Signal { observer, _ in
 					runCount += 1
 				}
 
 				expect(runCount) == 1
 
-				signal.observe(Signal<(), NoError>.Observer())
+				signal.observe(Signal<(), Never>.Observer())
 				expect(runCount) == 1
 			}
 
 			it("should release observer after termination") {
 				weak var testStr: NSMutableString?
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let (signal, observer) = Signal<Int, Never>.pipe()
 
 				let test = {
 					let innerStr = NSMutableString(string: "")
@@ -427,7 +432,7 @@ class SignalSpec: QuickSpec {
 
 			it("should release observer after interruption") {
 				weak var testStr: NSMutableString?
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let (signal, observer) = Signal<Int, Never>.pipe()
 
 				let test = {
 					let innerStr = NSMutableString(string: "")
@@ -454,7 +459,7 @@ class SignalSpec: QuickSpec {
 		describe("trailing closure") {
 			it("receives next values") {
 				var values = [Int]()
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let (signal, observer) = Signal<Int, Never>.pipe()
 
 				signal.observeValues { value in
 					values.append(value)
@@ -487,7 +492,7 @@ class SignalSpec: QuickSpec {
 
 		describe("map") {
 			it("should transform the values of the signal") {
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let (signal, observer) = Signal<Int, Never>.pipe()
 				let mappedSignal = signal.map { String($0 + 1) }
 
 				var lastValue: String?
@@ -507,7 +512,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should replace the values of the signal to constant new value") {
-				let (signal, observer) = Signal<String, NoError>.pipe()
+				let (signal, observer) = Signal<String, Never>.pipe()
 				let mappedSignal = signal.map(value: 1)
 
 				var lastValue: Int?
@@ -525,7 +530,7 @@ class SignalSpec: QuickSpec {
 			}
 			
 			it("should support key paths") {
-				let (signal, observer) = Signal<String, NoError>.pipe()
+				let (signal, observer) = Signal<String, Never>.pipe()
 				let mappedSignal = signal.map(\String.count)
 				
 				var lastValue: Int?
@@ -565,9 +570,9 @@ class SignalSpec: QuickSpec {
 				var token: Lifetime.Token!
 				var lifetime: Lifetime!
 				var destination: [String] = []
-				var tupleSignal: Signal<(character: String, other: Int), NoError>!
-				var tupleObserver: Signal<(character: String, other: Int), NoError>.Observer!
-				var theLens: Signal<String, NoError>!
+				var tupleSignal: Signal<(character: String, other: Int), Never>!
+				var tupleObserver: Signal<(character: String, other: Int), Never>.Observer!
+				var theLens: Signal<String, Never>!
 				var getterCounter: Int = 0
 				var lensScheduler: TestScheduler!
 				var targetScheduler: TestScheduler!
@@ -578,7 +583,7 @@ class SignalSpec: QuickSpec {
 					token = Lifetime.Token()
 					lifetime = Lifetime(token)
 
-					let (producer, observer) = Signal<(character: String, other: Int), NoError>.pipe()
+					let (producer, observer) = Signal<(character: String, other: Int), Never>.pipe()
 					tupleSignal = producer
 					tupleObserver = observer
 
@@ -659,7 +664,7 @@ class SignalSpec: QuickSpec {
 
 		describe("filter") {
 			it("should omit values from the signal") {
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let (signal, observer) = Signal<Int, Never>.pipe()
 				let mappedSignal = signal.filter { $0 % 2 == 0 }
 
 				var lastValue: Int?
@@ -679,10 +684,10 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("filterMap") {
+		describe("compactMap") {
 			it("should omit values from the signal that are nil after the transformation") {
-				let (signal, observer) = Signal<String, NoError>.pipe()
-				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				let (signal, observer) = Signal<String, Never>.pipe()
+				let mappedSignal: Signal<Int, Never> = signal.compactMap(Int.init)
 
 				var lastValue: Int?
 
@@ -702,7 +707,7 @@ class SignalSpec: QuickSpec {
 
 			it("should stop emiting values after an error") {
 				let (signal, observer) = Signal<String, TestError>.pipe()
-				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				let mappedSignal: Signal<Int, TestError> = signal.compactMap(Int.init)
 
 				var lastValue: Int?
 
@@ -724,8 +729,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should stop emiting values after a complete") {
-				let (signal, observer) = Signal<String, NoError>.pipe()
-				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				let (signal, observer) = Signal<String, Never>.pipe()
+				let mappedSignal: Signal<Int, Never> = signal.compactMap(Int.init)
 
 				var lastValue: Int?
 
@@ -743,8 +748,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should send completed") {
-				let (signal, observer) = Signal<String, NoError>.pipe()
-				let mappedSignal: Signal<Int, NoError> = signal.filterMap { Int.init($0) }
+				let (signal, observer) = Signal<String, Never>.pipe()
+				let mappedSignal: Signal<Int, Never> = signal.compactMap(Int.init)
 
 				var completed: Bool = false
 
@@ -756,7 +761,7 @@ class SignalSpec: QuickSpec {
 
 			it("should send failure") {
 				let (signal, observer) = Signal<String, TestError>.pipe()
-				let mappedSignal: Signal<Int, TestError> = signal.filterMap { Int.init($0) }
+				let mappedSignal: Signal<Int, TestError> = signal.compactMap(Int.init)
 
 				var failure: TestError?
 
@@ -769,7 +774,7 @@ class SignalSpec: QuickSpec {
 
 		describe("skipNil") {
 			it("should forward only non-nil values") {
-				let (signal, observer) = Signal<Int?, NoError>.pipe()
+				let (signal, observer) = Signal<Int?, Never>.pipe()
 				let mappedSignal = signal.skipNil()
 
 				var lastValue: Int?
@@ -793,7 +798,7 @@ class SignalSpec: QuickSpec {
 
 		describe("scan(_:_:)") {
 			it("should incrementally accumulate a value") {
-				let (baseSignal, observer) = Signal<String, NoError>.pipe()
+				let (baseSignal, observer) = Signal<String, Never>.pipe()
 				let signal = baseSignal.scan("", +)
 
 				var lastValue: String?
@@ -812,7 +817,7 @@ class SignalSpec: QuickSpec {
 
 		describe("scan(into:_:)") {
 			it("should incrementally accumulate a value") {
-				let (baseSignal, observer) = Signal<String, NoError>.pipe()
+				let (baseSignal, observer) = Signal<String, Never>.pipe()
 				let signal = baseSignal.scan(into: "") { $0 += $1 }
 
 				var lastValue: String?
@@ -829,9 +834,58 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("scanMap(_:_:)") {
+			it("should update state and output separately") {
+				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let signal = baseSignal.scanMap(false) { state, value -> (Bool, String) in
+					return (true, state ? "\(value)" : "initial")
+				}
+
+				var lastValue: String?
+
+				signal.observeValues { lastValue = $0 }
+
+				expect(lastValue).to(beNil())
+
+				observer.send(value: 1)
+				expect(lastValue) == "initial"
+
+				observer.send(value: 2)
+				expect(lastValue) == "2"
+
+				observer.send(value: 3)
+				expect(lastValue) == "3"
+			}
+		}
+
+		describe("scanMap(into:_:)") {
+			it("should update state and output separately") {
+				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let signal = baseSignal.scanMap(into: false) { (state: inout Bool, value: Int) -> String in
+					defer { state = true }
+					return state ? "\(value)" : "initial"
+				}
+
+				var lastValue: String?
+
+				signal.observeValues { lastValue = $0 }
+
+				expect(lastValue).to(beNil())
+
+				observer.send(value: 1)
+				expect(lastValue) == "initial"
+
+				observer.send(value: 2)
+				expect(lastValue) == "2"
+
+				observer.send(value: 3)
+				expect(lastValue) == "3"
+			}
+		}
+
 		describe("reduce(_:_:)") {
 			it("should accumulate one value") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.reduce(1, +)
 
 				var lastValue: Int?
@@ -864,7 +918,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should send the initial value if none are received") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.reduce(1, +)
 
 				var lastValue: Int?
@@ -893,7 +947,7 @@ class SignalSpec: QuickSpec {
 
 		describe("reduce(into:_:)") {
 			it("should accumulate one value") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.reduce(into: 1) { $0 += $1 }
 
 				var lastValue: Int?
@@ -926,7 +980,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should send the initial value if none are received") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.reduce(into: 1) { $0 += $1 }
 
 				var lastValue: Int?
@@ -955,7 +1009,7 @@ class SignalSpec: QuickSpec {
 
 		describe("skip") {
 			it("should skip initial values") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.skip(first: 1)
 
 				var lastValue: Int?
@@ -971,7 +1025,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not skip any values when 0") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.skip(first: 0)
 
 				var lastValue: Int?
@@ -989,7 +1043,7 @@ class SignalSpec: QuickSpec {
 
 		describe("skipRepeats") {
 			it("should skip duplicate Equatable values") {
-				let (baseSignal, observer) = Signal<Bool, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Bool, Never>.pipe()
 				let signal = baseSignal.skipRepeats()
 
 				var values: [Bool] = []
@@ -1011,7 +1065,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should skip values according to a predicate") {
-				let (baseSignal, observer) = Signal<String, NoError>.pipe()
+				let (baseSignal, observer) = Signal<String, Never>.pipe()
 				let signal = baseSignal.skipRepeats { $0.count == $1.count }
 
 				var values: [String] = []
@@ -1047,7 +1101,7 @@ class SignalSpec: QuickSpec {
 					)
 				}
 
-				let (baseSignal, observer) = Signal<Item, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Item, Never>.pipe()
 				baseSignal.skipRepeats { $0.payload == $1.payload }.observeValues { _ in }
 
 				observer.send(value: item(true))
@@ -1069,7 +1123,7 @@ class SignalSpec: QuickSpec {
 
 		describe("uniqueValues") {
 			it("should skip values that have been already seen") {
-				let (baseSignal, observer) = Signal<String, NoError>.pipe()
+				let (baseSignal, observer) = Signal<String, Never>.pipe()
 				let signal = baseSignal.uniqueValues()
 
 				var values: [String] = []
@@ -1098,13 +1152,13 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("skipWhile") {
-			var signal: Signal<Int, NoError>!
-			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
 
 			var lastValue: Int?
 
 			beforeEach {
-				let (baseSignal, incomingObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
 
 				signal = baseSignal.skip { $0 < 2 }
 				observer = incomingObserver
@@ -1138,15 +1192,15 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("skipUntil") {
-			var signal: Signal<Int, NoError>!
-			var observer: Signal<Int, NoError>.Observer!
-			var triggerObserver: Signal<(), NoError>.Observer!
+			var signal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
+			var triggerObserver: Signal<(), Never>.Observer!
 
 			var lastValue: Int? = nil
 
 			beforeEach {
-				let (baseSignal, incomingObserver) = Signal<Int, NoError>.pipe()
-				let (triggerSignal, incomingTriggerObserver) = Signal<(), NoError>.pipe()
+				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
+				let (triggerSignal, incomingTriggerObserver) = Signal<(), Never>.pipe()
 
 				signal = baseSignal.skip(until: triggerSignal)
 				observer = incomingObserver
@@ -1195,7 +1249,7 @@ class SignalSpec: QuickSpec {
 
 		describe("take") {
 			it("should take initial values") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.take(first: 2)
 
 				var lastValue: Int?
@@ -1227,7 +1281,7 @@ class SignalSpec: QuickSpec {
 				let numbers = [ 1, 2, 4, 4, 5 ]
 				let testScheduler = TestScheduler()
 
-				var signal: Signal<Int, NoError> = Signal { observer, _ in
+				var signal: Signal<Int, Never> = Signal { observer, _ in
 					testScheduler.schedule {
 						for number in numbers {
 							observer.send(value: number)
@@ -1249,7 +1303,7 @@ class SignalSpec: QuickSpec {
 				let numbers = [ 1, 2, 4, 4, 5 ]
 				let testScheduler = TestScheduler()
 
-				let signal: Signal<Int, NoError> = Signal { observer, _ in
+				let signal: Signal<Int, Never> = Signal { observer, _ in
 					testScheduler.schedule {
 						for number in numbers {
 							observer.send(value: number)
@@ -1282,7 +1336,7 @@ class SignalSpec: QuickSpec {
 
 		describe("collect") {
 			it("should collect all values") {
-				let (original, observer) = Signal<Int, NoError>.pipe()
+				let (original, observer) = Signal<Int, Never>.pipe()
 				let signal = original.collect()
 				let expectedResult = [ 1, 2, 3 ]
 
@@ -1303,7 +1357,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should complete with an empty array if there are no values") {
-				let (original, observer) = Signal<Int, NoError>.pipe()
+				let (original, observer) = Signal<Int, Never>.pipe()
 				let signal = original.collect()
 
 				var result: [Int]?
@@ -1329,7 +1383,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should collect an exact count of values") {
-				let (original, observer) = Signal<Int, NoError>.pipe()
+				let (original, observer) = Signal<Int, Never>.pipe()
 
 				let signal = original.collect(count: 3)
 
@@ -1359,7 +1413,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should collect values until it matches a certain value") {
-				let (original, observer) = Signal<Int, NoError>.pipe()
+				let (original, observer) = Signal<Int, Never>.pipe()
 
 				let signal = original.collect { _, value in value != 5 }
 
@@ -1384,7 +1438,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should collect values until it matches a certain condition on values") {
-				let (original, observer) = Signal<Int, NoError>.pipe()
+				let (original, observer) = Signal<Int, Never>.pipe()
 
 				let signal = original.collect { values in values.reduce(0, +) == 10 }
 
@@ -1410,16 +1464,16 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("takeUntil") {
-			var signal: Signal<Int, NoError>!
-			var observer: Signal<Int, NoError>.Observer!
-			var triggerObserver: Signal<(), NoError>.Observer!
+			var signal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
+			var triggerObserver: Signal<(), Never>.Observer!
 
 			var lastValue: Int? = nil
 			var completed: Bool = false
 
 			beforeEach {
-				let (baseSignal, incomingObserver) = Signal<Int, NoError>.pipe()
-				let (triggerSignal, incomingTriggerObserver) = Signal<(), NoError>.pipe()
+				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
+				let (triggerSignal, incomingTriggerObserver) = Signal<(), Never>.pipe()
 
 				signal = baseSignal.take(until: triggerSignal)
 				observer = incomingObserver
@@ -1480,16 +1534,16 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("takeUntilReplacement") {
-			var signal: Signal<Int, NoError>!
-			var observer: Signal<Int, NoError>.Observer!
-			var replacementObserver: Signal<Int, NoError>.Observer!
+			var signal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
+			var replacementObserver: Signal<Int, Never>.Observer!
 
 			var lastValue: Int? = nil
 			var completed: Bool = false
 
 			beforeEach {
-				let (baseSignal, incomingObserver) = Signal<Int, NoError>.pipe()
-				let (replacementSignal, incomingReplacementObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
+				let (replacementSignal, incomingReplacementObserver) = Signal<Int, Never>.pipe()
 
 				signal = baseSignal.take(untilReplacement: replacementSignal)
 				observer = incomingObserver
@@ -1540,11 +1594,11 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("takeWhile") {
-			var signal: Signal<Int, NoError>!
-			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
 
 			beforeEach {
-				let (baseSignal, incomingObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
 				signal = baseSignal.take { $0 <= 4 }
 				observer = incomingObserver
 			}
@@ -1599,7 +1653,7 @@ class SignalSpec: QuickSpec {
 		describe("observeOn") {
 			it("should send events on the given scheduler") {
 				let testScheduler = TestScheduler()
-				let (signal, observer) = Signal<Int, NoError>.pipe()
+				let (signal, observer) = Signal<Int, Never>.pipe()
 
 				var result: [Int] = []
 
@@ -1619,7 +1673,7 @@ class SignalSpec: QuickSpec {
 		describe("delay") {
 			it("should send events on the given scheduler after the interval") {
 				let testScheduler = TestScheduler()
-				let signal: Signal<Int, NoError> = Signal { observer, _ in
+				let signal: Signal<Int, Never> = Signal { observer, _ in
 					testScheduler.schedule {
 						observer.send(value: 1)
 					}
@@ -1678,13 +1732,13 @@ class SignalSpec: QuickSpec {
 
 		describe("throttle") {
 			var scheduler: TestScheduler!
-			var observer: Signal<Int, NoError>.Observer!
-			var signal: Signal<Int, NoError>!
+			var observer: Signal<Int, Never>.Observer!
+			var signal: Signal<Int, Never>!
 
 			beforeEach {
 				scheduler = TestScheduler()
 
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				observer = baseObserver
 
 				signal = baseSignal.throttle(1, on: scheduler)
@@ -1778,14 +1832,14 @@ class SignalSpec: QuickSpec {
 		describe("throttle while") {
 			var scheduler: ImmediateScheduler!
 			var shouldThrottle: MutableProperty<Bool>!
-			var observer: Signal<Int, NoError>.Observer!
-			var signal: Signal<Int, NoError>!
+			var observer: Signal<Int, Never>.Observer!
+			var signal: Signal<Int, Never>!
 
 			beforeEach {
 				scheduler = ImmediateScheduler()
 				shouldThrottle = MutableProperty(false)
 
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				observer = baseObserver
 
 				signal = baseSignal.throttle(while: shouldThrottle, on: scheduler)
@@ -1869,13 +1923,13 @@ class SignalSpec: QuickSpec {
 
 		describe("debounce discarding the latest value when terminated") {
 			var scheduler: TestScheduler!
-			var observer: Signal<Int, NoError>.Observer!
-			var signal: Signal<Int, NoError>!
+			var observer: Signal<Int, Never>.Observer!
+			var signal: Signal<Int, Never>!
 
 			beforeEach {
 				scheduler = TestScheduler()
 
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				observer = baseObserver
 
 				signal = baseSignal.debounce(1, on: scheduler, discardWhenCompleted: true)
@@ -1956,13 +2010,13 @@ class SignalSpec: QuickSpec {
 		
 		describe("debounce without discarding the latest value when terminated") {
 			var scheduler: TestScheduler!
-			var observer: Signal<Int, NoError>.Observer!
-			var signal: Signal<Int, NoError>!
+			var observer: Signal<Int, Never>.Observer!
+			var signal: Signal<Int, Never>!
 			
 			beforeEach {
 				scheduler = TestScheduler()
 				
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				observer = baseObserver
 				
 				signal = baseSignal.debounce(1, on: scheduler, discardWhenCompleted: false)
@@ -2065,13 +2119,13 @@ class SignalSpec: QuickSpec {
 		
 		describe("collect(every:on:skipEmpty:discardWhenCompleted:) where skipEmpty is false, discardWhenCompleted is false") {
 			var scheduler: TestScheduler!
-			var observer: Signal<Int, NoError>.Observer!
-			var signal: Signal<[Int], NoError>!
+			var observer: Signal<Int, Never>.Observer!
+			var signal: Signal<[Int], Never>!
 			
 			beforeEach {
 				scheduler = TestScheduler()
 				
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				observer = baseObserver
 				
 				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: false, discardWhenCompleted: false)
@@ -2165,13 +2219,13 @@ class SignalSpec: QuickSpec {
 		
 		describe("collect(every:on:skipEmpty:discardWhenCompleted:) where skipEmpty is false, discardWhenCompleted is true") {
 			var scheduler: TestScheduler!
-			var observer: Signal<Int, NoError>.Observer!
-			var signal: Signal<[Int], NoError>!
+			var observer: Signal<Int, Never>.Observer!
+			var signal: Signal<[Int], Never>!
 			
 			beforeEach {
 				scheduler = TestScheduler()
 				
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				observer = baseObserver
 				
 				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: false, discardWhenCompleted: true)
@@ -2264,13 +2318,13 @@ class SignalSpec: QuickSpec {
 		
 		describe("collect(every:on:skipEmpty:discardWhenCompleted:) where skipEmpty is true, discardWhenCompleted is false") {
 			var scheduler: TestScheduler!
-			var observer: Signal<Int, NoError>.Observer!
-			var signal: Signal<[Int], NoError>!
+			var observer: Signal<Int, Never>.Observer!
+			var signal: Signal<[Int], Never>!
 			
 			beforeEach {
 				scheduler = TestScheduler()
 				
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				observer = baseObserver
 				
 				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: true, discardWhenCompleted: false)
@@ -2356,13 +2410,13 @@ class SignalSpec: QuickSpec {
 		
 		describe("collect(every:on:skipEmpty:) where skipEmpty is true, discardWhenCompleted is true") {
 			var scheduler: TestScheduler!
-			var observer: Signal<Int, NoError>.Observer!
-			var signal: Signal<[Int], NoError>!
+			var observer: Signal<Int, Never>.Observer!
+			var signal: Signal<[Int], Never>!
 			
 			beforeEach {
 				scheduler = TestScheduler()
 				
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				observer = baseObserver
 				
 				signal = baseSignal.collect(every: .seconds(1), on: scheduler, skipEmpty: true, discardWhenCompleted: true)
@@ -2446,13 +2500,13 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("sampleWith") {
-			var sampledSignal: Signal<(Int, String), NoError>!
-			var observer: Signal<Int, NoError>.Observer!
-			var samplerObserver: Signal<String, NoError>.Observer!
+			var sampledSignal: Signal<(Int, String), Never>!
+			var observer: Signal<Int, Never>.Observer!
+			var samplerObserver: Signal<String, Never>.Observer!
 
 			beforeEach {
-				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
-				let (sampler, incomingSamplerObserver) = Signal<String, NoError>.pipe()
+				let (signal, incomingObserver) = Signal<Int, Never>.pipe()
+				let (sampler, incomingSamplerObserver) = Signal<String, Never>.pipe()
 				sampledSignal = signal.sample(with: sampler)
 				observer = incomingObserver
 				samplerObserver = incomingSamplerObserver
@@ -2499,13 +2553,13 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("sampleOn") {
-			var sampledSignal: Signal<Int, NoError>!
-			var observer: Signal<Int, NoError>.Observer!
-			var samplerObserver: Signal<(), NoError>.Observer!
+			var sampledSignal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
+			var samplerObserver: Signal<(), Never>.Observer!
 
 			beforeEach {
-				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
-				let (sampler, incomingSamplerObserver) = Signal<(), NoError>.pipe()
+				let (signal, incomingObserver) = Signal<Int, Never>.pipe()
+				let (sampler, incomingSamplerObserver) = Signal<(), Never>.pipe()
 				sampledSignal = signal.sample(on: sampler)
 				observer = incomingObserver
 				samplerObserver = incomingSamplerObserver
@@ -2552,13 +2606,13 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("withLatest(from: signal)") {
-			var withLatestSignal: Signal<(Int, String), NoError>!
-			var observer: Signal<Int, NoError>.Observer!
-			var sampleeObserver: Signal<String, NoError>.Observer!
+			var withLatestSignal: Signal<(Int, String), Never>!
+			var observer: Signal<Int, Never>.Observer!
+			var sampleeObserver: Signal<String, Never>.Observer!
 
 			beforeEach {
-				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
-				let (samplee, incomingSampleeObserver) = Signal<String, NoError>.pipe()
+				let (signal, incomingObserver) = Signal<Int, Never>.pipe()
+				let (samplee, incomingSampleeObserver) = Signal<String, Never>.pipe()
 				withLatestSignal = signal.withLatest(from: samplee)
 				observer = incomingObserver
 				sampleeObserver = incomingSampleeObserver
@@ -2604,7 +2658,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has completed") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Signal<(Int, String), Never>.Event? = nil
 				withLatestSignal.observe { event = $0 }
 
 				sampleeObserver.sendCompleted()
@@ -2612,7 +2666,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has interrupted") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Signal<(Int, String), Never>.Event? = nil
 				withLatestSignal.observe { event = $0 }
 
 				sampleeObserver.sendInterrupted()
@@ -2621,13 +2675,13 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("withLatest(from: producer)") {
-			var withLatestSignal: Signal<(Int, String), NoError>!
-			var observer: Signal<Int, NoError>.Observer!
-			var sampleeObserver: Signal<String, NoError>.Observer!
+			var withLatestSignal: Signal<(Int, String), Never>!
+			var observer: Signal<Int, Never>.Observer!
+			var sampleeObserver: Signal<String, Never>.Observer!
 
 			beforeEach {
-				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
-				let (samplee, incomingSampleeObserver) = SignalProducer<String, NoError>.pipe()
+				let (signal, incomingObserver) = Signal<Int, Never>.pipe()
+				let (samplee, incomingSampleeObserver) = SignalProducer<String, Never>.pipe()
 				withLatestSignal = signal.withLatest(from: samplee)
 				observer = incomingObserver
 				sampleeObserver = incomingSampleeObserver
@@ -2670,7 +2724,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has completed") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Signal<(Int, String), Never>.Event? = nil
 				withLatestSignal.observe { event = $0 }
 
 				sampleeObserver.sendCompleted()
@@ -2678,7 +2732,7 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not affect when samplee has interrupted") {
-				var event: Signal<(Int, String), NoError>.Event? = nil
+				var event: Signal<(Int, String), Never>.Event? = nil
 				withLatestSignal.observe { event = $0 }
 
 				sampleeObserver.sendInterrupted()
@@ -2686,19 +2740,19 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should be able to fallback to SignalProducer for contextual lookups") {
-				_ = Signal<Int, NoError>.empty
+				_ = Signal<Int, Never>.empty
 					.withLatest(from: .init(value: 0))
 			}
 		}
 
 		describe("combineLatestWith") {
-			var combinedSignal: Signal<(Int, Double), NoError>!
-			var observer: Signal<Int, NoError>.Observer!
-			var otherObserver: Signal<Double, NoError>.Observer!
+			var combinedSignal: Signal<(Int, Double), Never>!
+			var observer: Signal<Int, Never>.Observer!
+			var otherObserver: Signal<Double, Never>.Observer!
 
 			beforeEach {
-				let (signal, incomingObserver) = Signal<Int, NoError>.pipe()
-				let (otherSignal, incomingOtherObserver) = Signal<Double, NoError>.pipe()
+				let (signal, incomingObserver) = Signal<Int, Never>.pipe()
+				let (otherSignal, incomingOtherObserver) = Signal<Double, Never>.pipe()
 				combinedSignal = signal.combineLatest(with: otherSignal)
 				observer = incomingObserver
 				otherObserver = incomingOtherObserver
@@ -2734,13 +2788,13 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("zipWith") {
-			var leftObserver: Signal<Int, NoError>.Observer!
-			var rightObserver: Signal<String, NoError>.Observer!
-			var zipped: Signal<(Int, String), NoError>!
+			var leftObserver: Signal<Int, Never>.Observer!
+			var rightObserver: Signal<String, Never>.Observer!
+			var zipped: Signal<(Int, String), Never>!
 
 			beforeEach {
-				let (leftSignal, incomingLeftObserver) = Signal<Int, NoError>.pipe()
-				let (rightSignal, incomingRightObserver) = Signal<String, NoError>.pipe()
+				let (leftSignal, incomingLeftObserver) = Signal<Int, Never>.pipe()
+				let (rightSignal, incomingRightObserver) = Signal<String, Never>.pipe()
 
 				leftObserver = incomingLeftObserver
 				rightObserver = incomingRightObserver
@@ -2778,7 +2832,7 @@ class SignalSpec: QuickSpec {
 
 				zipped.observe { event in
 					switch event {
-					case let .value(left, right):
+					case let .value((left, right)):
 						result.append("\(left)\(right)")
 					case .completed:
 						completed = true
@@ -2805,7 +2859,7 @@ class SignalSpec: QuickSpec {
 
 				zipped.observe { event in
 					switch event {
-					case let .value(left, right):
+					case let .value((left, right)):
 						result.append("\(left)\(right)")
 					case .completed:
 						completed = true
@@ -2831,7 +2885,7 @@ class SignalSpec: QuickSpec {
 
 				zipped.observe { event in
 					switch event {
-					case let .value(left, right):
+					case let .value((left, right)):
 						result.append("\(left)\(right)")
 					case .completed:
 						completed = true
@@ -2891,11 +2945,11 @@ class SignalSpec: QuickSpec {
 
 		describe("dematerialize") {
 			typealias IntEvent = Signal<Int, TestError>.Event
-			var observer: Signal<IntEvent, NoError>.Observer!
+			var observer: Signal<IntEvent, Never>.Observer!
 			var dematerialized: Signal<Int, TestError>!
 
 			beforeEach {
-				let (signal, incomingObserver) = Signal<IntEvent, NoError>.pipe()
+				let (signal, incomingObserver) = Signal<IntEvent, Never>.pipe()
 				observer = incomingObserver
 				dematerialized = signal.dematerialize()
 			}
@@ -2971,11 +3025,11 @@ class SignalSpec: QuickSpec {
 
 		describe("dematerializeResults") {
 			typealias IntResult = Result<Int, TestError>
-			var observer: Signal<IntResult, NoError>.Observer!
+			var observer: Signal<IntResult, Never>.Observer!
 			var dematerialized: Signal<Int, TestError>!
 
 			beforeEach {
-				let (signal, incomingObserver) = Signal<IntResult, NoError>.pipe()
+				let (signal, incomingObserver) = Signal<IntResult, Never>.pipe()
 				observer = incomingObserver
 				dematerialized = signal.dematerializeResults()
 			}
@@ -3133,8 +3187,8 @@ class SignalSpec: QuickSpec {
 				expect(errored) == true
 			}
 
-			it("should be available for NoError") {
-				let signal: Signal<Int, TestError> = Signal<Int, NoError>.never
+			it("should be available for Never") {
+				let signal: Signal<Int, TestError> = Signal<Int, Never>.never
 					.timeout(after: 2, raising: TestError.default, on: testScheduler)
 
 				_ = signal
@@ -3179,7 +3233,7 @@ class SignalSpec: QuickSpec {
 
 		describe("attempt throws") {
 			it("should forward original values upon success") {
-				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Error>.pipe()
 				let signal = baseSignal.attempt { _ in
 					_ = try operation(value: 1)
 				}
@@ -3198,22 +3252,22 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should error if an attempt fails") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.attempt { _ in
 					_ = try operation(value: nil) as Int
 				}
 
 				var error: TestError?
 				signal.observeFailed { err in
-					error = err.error as? TestError
+					error = err as? TestError
 				}
 
 				observer.send(value: 42)
 				expect(error) == TestError.default
 			}
 
-			it("should allow throwing closures with NoError") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+			it("should allow throwing closures with Never") {
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.attempt { _ in
 					_ = try operation(value: 1)
 				}
@@ -3265,7 +3319,7 @@ class SignalSpec: QuickSpec {
 
 		describe("attemptMap throws") {
 			it("should forward mapped values upon success") {
-				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Error>.pipe()
 				let signal = baseSignal.attemptMap { num -> Bool in
 					try operation(value: num % 2 == 0)
 				}
@@ -3285,22 +3339,22 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should error if a mapping fails") {
-				let (baseSignal, observer) = Signal<Int, AnyError>.pipe()
+				let (baseSignal, observer) = Signal<Int, Error>.pipe()
 				let signal = baseSignal.attemptMap { _ -> Bool in
 					try operation(value: nil)
 				}
 
 				var error: TestError?
 				signal.observeFailed { err in
-					error = err.error as? TestError
+					error = err as? TestError
 				}
 
 				observer.send(value: 42)
 				expect(error) == TestError.default
 			}
 
-			it("should allow throwing closures with NoError") {
-				let (baseSignal, observer) = Signal<Int, NoError>.pipe()
+			it("should allow throwing closures with Never") {
+				let (baseSignal, observer) = Signal<Int, Never>.pipe()
 				let signal = baseSignal.attemptMap { num in
 					try operation(value: num % 2 == 0)
 				}
@@ -3314,15 +3368,15 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("combinePrevious") {
-			var signal: Signal<Int, NoError>!
-			var observer: Signal<Int, NoError>.Observer!
+			var signal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
 			let initialValue: Int = 0
 			var latestValues: (Int, Int)?
 
 			beforeEach {
 				latestValues = nil
 
-				let (baseSignal, baseObserver) = Signal<Int, NoError>.pipe()
+				let (baseSignal, baseObserver) = Signal<Int, Never>.pipe()
 				(signal, observer) = (baseSignal, baseObserver)
 			}
 
@@ -3356,8 +3410,8 @@ class SignalSpec: QuickSpec {
 
 		describe("AggregateBuilder") {
 			it("should not deadlock upon disposal") {
-				let (a, aObserver) = Signal<(), NoError>.pipe()
-				let (b, bObserver) = Signal<(), NoError>.pipe()
+				let (a, aObserver) = Signal<(), Never>.pipe()
+				let (b, bObserver) = Signal<(), Never>.pipe()
 
 				Signal.zip(a, b)
 					.take(first: 1)
@@ -3368,8 +3422,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not deadlock upon recursive completion of the sources") {
-				let (a, aObserver) = Signal<(), NoError>.pipe()
-				let (b, bObserver) = Signal<(), NoError>.pipe()
+				let (a, aObserver) = Signal<(), Never>.pipe()
+				let (b, bObserver) = Signal<(), Never>.pipe()
 
 				Signal.zip(a, b)
 					.observeValues { _ in
@@ -3381,8 +3435,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not deadlock upon recursive interruption of the sources") {
-				let (a, aObserver) = Signal<(), NoError>.pipe()
-				let (b, bObserver) = Signal<(), NoError>.pipe()
+				let (a, aObserver) = Signal<(), Never>.pipe()
+				let (b, bObserver) = Signal<(), Never>.pipe()
 
 				Signal.zip(a, b)
 					.observeResult { _ in
@@ -3407,8 +3461,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not deadlock upon disposal") {
-				let (a, aObserver) = Signal<(), NoError>.pipe()
-				let (b, bObserver) = Signal<(), NoError>.pipe()
+				let (a, aObserver) = Signal<(), Never>.pipe()
+				let (b, bObserver) = Signal<(), Never>.pipe()
 
 				Signal.combineLatest(a, b)
 					.take(first: 1)
@@ -3419,8 +3473,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not deadlock upon recursive completion of the sources") {
-				let (a, aObserver) = Signal<(), NoError>.pipe()
-				let (b, bObserver) = Signal<(), NoError>.pipe()
+				let (a, aObserver) = Signal<(), Never>.pipe()
+				let (b, bObserver) = Signal<(), Never>.pipe()
 
 				Signal.combineLatest(a, b)
 					.observeValues { _ in
@@ -3432,8 +3486,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should not deadlock upon recursive interruption of the sources") {
-				let (a, aObserver) = Signal<(), NoError>.pipe()
-				let (b, bObserver) = Signal<(), NoError>.pipe()
+				let (a, aObserver) = Signal<(), Never>.pipe()
+				let (b, bObserver) = Signal<(), Never>.pipe()
 
 				Signal.combineLatest(a, b)
 					.observeResult { _ in
@@ -3459,12 +3513,12 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("combineLatest") {
-			var signalA: Signal<Int, NoError>!
-			var signalB: Signal<Int, NoError>!
-			var signalC: Signal<Int, NoError>!
-			var observerA: Signal<Int, NoError>.Observer!
-			var observerB: Signal<Int, NoError>.Observer!
-			var observerC: Signal<Int, NoError>.Observer!
+			var signalA: Signal<Int, Never>!
+			var signalB: Signal<Int, Never>!
+			var signalC: Signal<Int, Never>!
+			var observerA: Signal<Int, Never>.Observer!
+			var observerB: Signal<Int, Never>.Observer!
+			var observerC: Signal<Int, Never>.Observer!
 
 			var combinedValues: [Int]?
 			var completed: Bool!
@@ -3473,9 +3527,9 @@ class SignalSpec: QuickSpec {
 				combinedValues = nil
 				completed = false
 
-				let (baseSignalA, baseObserverA) = Signal<Int, NoError>.pipe()
-				let (baseSignalB, baseObserverB) = Signal<Int, NoError>.pipe()
-				let (baseSignalC, baseObserverC) = Signal<Int, NoError>.pipe()
+				let (baseSignalA, baseObserverA) = Signal<Int, Never>.pipe()
+				let (baseSignalB, baseObserverB) = Signal<Int, Never>.pipe()
+				let (baseSignalC, baseObserverC) = Signal<Int, Never>.pipe()
 
 				signalA = baseSignalA
 				signalB = baseSignalB
@@ -3563,12 +3617,12 @@ class SignalSpec: QuickSpec {
 		}
 
 		describe("zip") {
-			var signalA: Signal<Int, NoError>!
-			var signalB: Signal<Int, NoError>!
-			var signalC: Signal<Int, NoError>!
-			var observerA: Signal<Int, NoError>.Observer!
-			var observerB: Signal<Int, NoError>.Observer!
-			var observerC: Signal<Int, NoError>.Observer!
+			var signalA: Signal<Int, Never>!
+			var signalB: Signal<Int, Never>!
+			var signalC: Signal<Int, Never>!
+			var observerA: Signal<Int, Never>.Observer!
+			var observerB: Signal<Int, Never>.Observer!
+			var observerC: Signal<Int, Never>.Observer!
 
 			var zippedValues: [Int]?
 			var completed: Bool!
@@ -3577,9 +3631,9 @@ class SignalSpec: QuickSpec {
 				zippedValues = nil
 				completed = false
 
-				let (baseSignalA, baseObserverA) = Signal<Int, NoError>.pipe()
-				let (baseSignalB, baseObserverB) = Signal<Int, NoError>.pipe()
-				let (baseSignalC, baseObserverC) = Signal<Int, NoError>.pipe()
+				let (baseSignalA, baseObserverA) = Signal<Int, Never>.pipe()
+				let (baseSignalB, baseObserverB) = Signal<Int, Never>.pipe()
+				let (baseSignalC, baseObserverC) = Signal<Int, Never>.pipe()
 
 				signalA = baseSignalA
 				signalB = baseSignalB
@@ -3678,7 +3732,7 @@ class SignalSpec: QuickSpec {
 
 					let logger = TestLogger(expectations: expectations)
 
-					let (signal, observer) = Signal<Int, NoError>.pipe()
+					let (signal, observer) = Signal<Int, Never>.pipe()
 					signal
 						.logEvents(logger: logger.logEvent)
 						.observe { _ in }
@@ -3726,7 +3780,7 @@ class SignalSpec: QuickSpec {
 
 		describe("negated attribute") {
 			it("should return the negate of a value in a Boolean signal") {
-				let (signal, observer) = Signal<Bool, NoError>.pipe()
+				let (signal, observer) = Signal<Bool, Never>.pipe()
 				signal.negate().observeValues { value in
 					expect(value).to(beFalse())
 				}
@@ -3737,8 +3791,8 @@ class SignalSpec: QuickSpec {
 
 		describe("and attribute") {
 			it("should emit true when both signals emits the same value") {
-				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
-				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
 				signal1.and(signal2).observeValues { value in
 					expect(value).to(beTrue())
 				}
@@ -3750,8 +3804,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should emit false when both signals emits opposite values") {
-				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
-				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
 				signal1.and(signal2).observeValues { value in
 					expect(value).to(beFalse())
 				}
@@ -3762,11 +3816,45 @@ class SignalSpec: QuickSpec {
 				observer2.sendCompleted()
 			}
 		}
+		
+		describe("all attribute") {
+			it("should emit false when any signal emits opposite values") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				Signal.all([signal1, signal2, signal3]).observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer1.send(value: false)
+				observer2.send(value: true)
+				observer3.send(value: false)
+
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+				observer3.sendCompleted()
+			}
+
+			it("should emit true when all signals emit the same value") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				Signal.all([signal1, signal2, signal3]).observeValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer2.send(value: true)
+				observer3.send(value: true)
+
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+				observer3.sendCompleted()
+			}
+		}
 
 		describe("or attribute") {
 			it("should emit true when at least one of the signals emits true") {
-				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
-				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
 				signal1.or(signal2).observeValues { value in
 					expect(value).to(beTrue())
 				}
@@ -3778,8 +3866,8 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should emit false when both signals emits false") {
-				let (signal1, observer1) = Signal<Bool, NoError>.pipe()
-				let (signal2, observer2) = Signal<Bool, NoError>.pipe()
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
 				signal1.or(signal2).observeValues { value in
 					expect(value).to(beFalse())
 				}
@@ -3791,12 +3879,46 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("any attribute") {
+			it("should emit true when at least one of the signals in array emits true") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				Signal.any([signal1, signal2, signal3]).observeValues { value in
+					expect(value).to(beTrue())
+				}
+				observer1.send(value: true)
+				observer2.send(value: false)
+				observer3.send(value: false)
+
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+				observer3.sendCompleted()
+			}
+			
+			it("should emit false when all signals in array emits false") {
+				let (signal1, observer1) = Signal<Bool, Never>.pipe()
+				let (signal2, observer2) = Signal<Bool, Never>.pipe()
+				let (signal3, observer3) = Signal<Bool, Never>.pipe()
+				Signal.any([signal1, signal2, signal3]).observeValues { value in
+					expect(value).to(beFalse())
+				}
+				observer1.send(value: false)
+				observer2.send(value: false)
+				observer3.send(value: false)
+
+				observer1.sendCompleted()
+				observer2.sendCompleted()
+				observer3.sendCompleted()
+			}
+		}
+
 		describe("promoteError") {
 			it("should infer the error type from the context") {
 				let combined: Any = Signal
-					.combineLatest(Signal<Int, NoError>.never.promoteError(),
+					.combineLatest(Signal<Int, Never>.never.promoteError(),
 					               Signal<Double, TestError>.never,
-					               Signal<Float, NoError>.never.promoteError(),
+					               Signal<Float, Never>.never.promoteError(),
 					               Signal<UInt, POSIXError>.never.flatMapError { _ in .empty })
 
 				expect(combined is Signal<(Int, Double, Float, UInt), TestError>) == true
@@ -3805,11 +3927,11 @@ class SignalSpec: QuickSpec {
 
 		describe("promoteValue") {
 			it("should infer the value type from the context") {
-				let completable = Signal<Never, NoError>.never
-				let producer: Signal<Int, NoError> = Signal<Int, NoError>.never
+				let completable = Signal<Never, Never>.never
+				let producer: Signal<Int, Never> = Signal<Int, Never>.never
 					.flatMap(.latest) { _ in completable.promoteValue() }
 
-				expect((producer as Any) is Signal<Int, NoError>) == true
+				expect((producer as Any) is Signal<Int, Never>) == true
 			}
 		}
 	}

@@ -1,6 +1,60 @@
 # master
 *Please add new entries at the top.*
 
+1. `Property` and `MutableProperty` can now be used as property wrapper. Note that they remain a reference type container, so it may not be appropriate to use them in types requiring value semantics. (#781)
+   ```swift
+   class ViewModel {
+     @MutableProperty var count: Int = 0
+
+     func subscribe() {
+       self.$count.producer.startWithValues {
+         print("`count` has changed to \(count)")
+       }
+     }
+
+     func increment() {
+       print("count prior to increment: \(count)")
+       self.$count.modify { $0 += 1 }
+     }
+   }
+   ```
+
+1. Joining an empty sequence of producers can now send an event on the joined signal producer by providing the `noUpstreamSentinel` parameter. This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no event is sent only when the producers sequence is empty, then the observer gets stalled and e.g. the ui won't update. (#774, kudos to @rocketnik)
+
+# 6.2.1
+
+1. Improved performance of joining signals by a factor of around 5. This enables joining of 1000 and more signals in a reasonable amount of time.
+1. Fixed `SignalProducer.debounce` operator that, when started more than once, would not deliver values on producers started after the first time. (#772, kudos to @gpambrozio)
+1. `FlattenStrategy.throttle` is introduced. (#713, kudos to @inamiy)
+1. Updated `README.md` to reflect Swift 5.1 compatibility and point snippets to 6.1.0 (#763, kudos to @Marcocanc)
+1. Update travis to Xcode 11.1 and Swift 5.1 (#764, kudos @petrpavlik)
+1. [SwiftPM] Add platforms (#761, kudos to @ikesyo)
+1. Renamed `filterMap` to `compactMap` and deprecated `filterMap` (#746, kudos to @Marcocanc)
+
+# 6.1.0
+
+1. add possibility to use `all` and `any` operators with array of arguments (#735, kudos to @olejnjak)
+   ```swift
+   let property = Property.any([boolProperty1, boolProperty2, boolProperty3])
+   ```
+1. Fixed Result extensions ambiguity (#733, kudos to @nekrich)
+1. Add `<~` binding operator to `Signal.Observer` (#635, kudos to @Marcocanc)
+
+# 6.0.0
+
+1. Dropped support for Swift 4.2 (Xcode 9)
+2. Removed dependency on https://github.com/antitypical/Result (#702, kudos to @NachoSoto and @mdiep)
+
+**Upgrade to 6.0.0**
+
+* If you have used `Result` only as dependency of `ReactiveSwift`, remove all instances of `import Result`, `import enum Result.NoError` or `import struct Result.AnyError` and remove the `Result` Framework from your project.
+* Replace all cases where `NoError` was used in a `Signal` or `SignalProducer` with `Never`
+* Replace all cases where `AnyError` was used in a `Signal` or `SignalProducer` with `Swift.Error`
+
+# 5.0.1
+
+1. Fix warnings in Xcode 10.2
+
 # 5.0.0
 
 1. Support Swift 5.0 (Xcode 10.2) (#711, kudos to @ikesyo)
@@ -9,6 +63,7 @@
 1. New operator `materializeResults` and `dematerializeResults` (#679, kudos to @ra1028)
 1. New convenience initializer for `Action` that takes a `ValidatingProperty` as its state (#637, kudos to @Marcocanc)
 1. Fix legacy date implementation. (#683, kudos to @shoheiyokoyama)
+1. New operator `scanMap`. (#695, kudos to @inamiy)
 
 # 4.0.0
 

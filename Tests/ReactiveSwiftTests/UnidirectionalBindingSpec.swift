@@ -1,6 +1,5 @@
 import Dispatch
 
-import Result
 import Nimble
 import Quick
 @testable import ReactiveSwift
@@ -201,6 +200,18 @@ class UnidirectionalBindingSpec: QuickSpec {
 				property.value = 2
 				expect(value).toEventually(equal(2))
 				expect(mainQueueCounter.value).toEventually(equal(2))
+			}
+
+			describe("observer binding operator") {
+				it("should forward values to observer") {
+					let targetPipe = Signal<Int?, Never>.pipe()
+					let sourcePipe = Signal<Int?, Never>.pipe()
+					let targetProperty = Property<Int?>(initial: nil, then: targetPipe.output)
+					targetPipe.input <~ sourcePipe.output
+					expect(targetProperty.value).to(beNil())
+					sourcePipe.input.send(value: 1)
+					expect(targetProperty.value).to(equal(1))
+				}
 			}
 		}
 	}

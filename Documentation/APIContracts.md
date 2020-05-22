@@ -107,7 +107,7 @@ Consequently, failures should only be used to represent “abnormal” terminati
 event describing the result might be more appropriate.
 
 If an event stream can _never_ fail, it should be parameterized with the
-special [`NoError`][NoError] type, which statically guarantees that a `failed`
+special `Never` type, which statically guarantees that a `failed`
 event cannot be sent upon the stream.
 
 #### `completion` indicates success
@@ -545,7 +545,6 @@ synchronously retrieve one or more values from a stream, like `single()` or
 [Disposables]: FrameworkOverview.md#disposables
 [Events]: FrameworkOverview.md#events
 [Framework Overview]: FrameworkOverview.md
-[NoError]: ../Sources/Errors.swift
 [Observers]: FrameworkOverview.md#observers
 [Operators]: BasicOperators.md
 [Properties]: FrameworkOverview.md#properties
