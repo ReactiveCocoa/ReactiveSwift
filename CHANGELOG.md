@@ -1,7 +1,10 @@
 # master
 *Please add new entries at the top.*
 
+1. Joining an empty sequence of producers can now send an event on the joined signal producer by providing the `noUpstreamSentinel` parameter. This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no event is sent only when the producers sequence is empty, then the observer gets stalled and e.g. the ui won't update.
+
 # 6.2.1
+
 1. Improved performance of joining signals by a factor of around 5. This enables joining of 1000 and more signals in a reasonable amount of time.
 1. Fixed `SignalProducer.debounce` operator that, when started more than once, would not deliver values on producers started after the first time. (#772, kudos to @gpambrozio)
 1. `FlattenStrategy.throttle` is introduced. (#713, kudos to @inamiy)
@@ -20,6 +23,7 @@
 1. Add `<~` binding operator to `Signal.Observer` (#635, kudos to @Marcocanc)
 
 # 6.0.0
+
 1. Dropped support for Swift 4.2 (Xcode 9)
 2. Removed dependency on https://github.com/antitypical/Result (#702, kudos to @NachoSoto and @mdiep)
 
@@ -30,6 +34,7 @@
 * Replace all cases where `AnyError` was used in a `Signal` or `SignalProducer` with `Swift.Error`
 
 # 5.0.1
+
 1. Fix warnings in Xcode 10.2
 
 # 5.0.0

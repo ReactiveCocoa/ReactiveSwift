@@ -1680,7 +1680,7 @@ extension Signal {
 					return true
 				}
 
-				_haveAllSentInitial = values.allSatisfy{ !($0 is Placeholder) }
+				_haveAllSentInitial = values.allSatisfy { !($0 is Placeholder) }
 				return _haveAllSentInitial
 			}
 		}
