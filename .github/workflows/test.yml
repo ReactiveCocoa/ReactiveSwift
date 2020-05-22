@@ -7,11 +7,11 @@ jobs:
     strategy:
         matrix:
           destination:
-            - -scheme "ReactiveSwift-iOS" -destination "platform=iOS Simulator,name=iPhone 11 Pro"
-            - -scheme "ReactiveSwift-tvOS" -destination "platform=tvOS Simulator,name=Apple TV 4K"
-            - -scheme "ReactiveSwift-watchOS" -destination "platform=watchOS Simulator,name=Apple Watch Series 5 - 44mm"
-            - -scheme "ReactiveSwift-iOS" -destination "platform=macOS,variant=Mac Catalyst"
-            - -scheme "ReactiveSwift-macOS" -destination "platform=macOS,arch=x86_64"
+            - clean test -scheme "ReactiveSwift-iOS" -destination "platform=iOS Simulator,name=iPhone 11 Pro"
+            - clean test -scheme "ReactiveSwift-tvOS" -destination "platform=tvOS Simulator,name=Apple TV 4K"
+            - clean build -scheme "ReactiveSwift-watchOS" -destination "platform=watchOS Simulator,name=Apple Watch Series 5 - 44mm"
+            - clean test -scheme "ReactiveSwift-iOS" -destination "platform=macOS,variant=Mac Catalyst"
+            - clean test -scheme "ReactiveSwift-macOS" -destination "platform=macOS,arch=x86_64"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -27,7 +27,7 @@ jobs:
           carthage checkout
       - name: Test via xcodebuild
         run: |
-          xcodebuild clean test -workspace ReactiveSwift.xcworkspace ${{ matrix.destination }} CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES
+          xcodebuild ${{ matrix.destination }} -workspace ReactiveSwift.xcworkspace CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES
 
   swiftpm-linux:
     name: SwiftPM Linux
