@@ -2051,7 +2051,7 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 
-			describe("FlattenStrategy.throttle") {
+			describe("FlattenStrategy.dropOnBackpressure") {
 				it("should forward values from the first and third inner producer to send an event") {
 					let (outer, outerObserver) = SignalProducer<SignalProducer<Int, TestError>, TestError>.pipe()
 					let (firstInner, firstInnerObserver) = SignalProducer<Int, TestError>.pipe()
@@ -2062,7 +2062,7 @@ class SignalProducerSpec: QuickSpec {
 					var errored = false
 					var completed = false
 
-					outer.flatten(.throttle).start { event in
+					outer.flatten(.dropOnBackpressure).start { event in
 						switch event {
 						case let .value(value):
 							receivedValues.append(value)
@@ -2125,14 +2125,14 @@ class SignalProducerSpec: QuickSpec {
 					let inner = SignalProducer<Int, TestError>(error: .default)
 					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>(value: inner)
 
-					let result = outer.flatten(.throttle).first()
+					let result = outer.flatten(.dropOnBackpressure).first()
 					expect(result?.error) == TestError.default
 				}
 
 				it("should forward an error from the outer producer") {
 					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>(error: .default)
 
-					let result = outer.flatten(.throttle).first()
+					let result = outer.flatten(.dropOnBackpressure).first()
 					expect(result?.error) == TestError.default
 				}
 
@@ -2141,7 +2141,7 @@ class SignalProducerSpec: QuickSpec {
 					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>(value: inner)
 
 					var completed = false
-					outer.flatten(.throttle).startWithCompleted {
+					outer.flatten(.dropOnBackpressure).startWithCompleted {
 						completed = true
 					}
 
@@ -2152,7 +2152,7 @@ class SignalProducerSpec: QuickSpec {
 					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>.empty
 
 					var completed = false
-					outer.flatten(.throttle).startWithCompleted {
+					outer.flatten(.dropOnBackpressure).startWithCompleted {
 						completed = true
 					}
 
@@ -2164,7 +2164,7 @@ class SignalProducerSpec: QuickSpec {
 					let outer = SignalProducer<SignalProducer<Int, TestError>, TestError>(value: inner)
 
 					var completed = false
-					outer.flatten(.throttle).startWithCompleted {
+					outer.flatten(.dropOnBackpressure).startWithCompleted {
 						completed = true
 					}
 
@@ -2173,7 +2173,7 @@ class SignalProducerSpec: QuickSpec {
 
 				it("should not deadlock") {
 					let producer = SignalProducer<Int, Never>(value: 1)
-						.flatMap(.throttle) { _ in SignalProducer(value: 10) }
+						.flatMap(.dropOnBackpressure) { _ in SignalProducer(value: 10) }
 
 					let result = producer.take(first: 1).last()
 					expect(result?.value) == 10

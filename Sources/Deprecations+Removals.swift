@@ -1,6 +1,12 @@
 import Foundation
 import Dispatch
 
+extension FlattenStrategy {
+	/// Renamed to `dropOnBackpressure`.
+	@available(*, deprecated, renamed:"dropOnBackpressure")
+	public static var throttle: FlattenStrategy { .dropOnBackpressure }
+}
+
 // MARK: Unavailable methods in ReactiveSwift 3.0.
 extension Signal {
 	@available(*, unavailable, message:"Use the `Signal.init` that accepts a two-argument generator.")

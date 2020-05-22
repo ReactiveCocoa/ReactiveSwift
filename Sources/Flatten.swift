@@ -12,7 +12,7 @@ public struct FlattenStrategy {
 		case concurrent(limit: UInt)
 		case latest
 		case race
-		case throttle
+		case dropOnBackpressure
 	}
 
 	fileprivate let kind: Kind
@@ -98,10 +98,9 @@ public struct FlattenStrategy {
 	/// stream of values.
 	public static let race = FlattenStrategy(kind: .race)
 
-	/// Given a first inner stream, all subsequent inner streams sent by the upstream would
-	/// be dropped until the first inner stream has completed. The whole process repeats
-	/// indefinitely until the upstream terminates. The behavior is akin to `throttle(_:on:)`
-	/// except for operating in the domain of streams instead of time.
+	/// Upon reception of a first inner stream, `dropOnBackpressure` ignores all subsequent inner streams until the said
+	/// first inner stream is completed. The whole process repeats indefinitely until the upstream terminates. The
+	/// behavior is akin to `throttle(_:on:)`, but operating in the domain of streams instead the domain of time.
 	///
 	/// The flattened stream of values completes only when the stream of streams has completed,
 	/// and first inner stream has completed if exists.
@@ -111,7 +110,7 @@ public struct FlattenStrategy {
 	///
 	/// Any failure from the inner streams is propagated immediately to the flattened
 	/// stream of values.
-	public static let throttle = FlattenStrategy(kind: .throttle)
+	public static let dropOnBackpressure = FlattenStrategy(kind: .dropOnBackpressure)
 }
 
 extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
@@ -137,8 +136,8 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 		case .race:
 			return self.race()
 
-		case .throttle:
-			return self.throttle()
+		case .dropOnBackpressure:
+			return self.dropOnBackpressure()
 		}
 	}
 }
@@ -182,8 +181,8 @@ extension Signal where Value: SignalProducerConvertible, Error == Never, Value.E
 		case .race:
 			return self.race()
 
-		case .throttle:
-			return self.throttle()
+		case .dropOnBackpressure:
+			return self.dropOnBackpressure()
 		}
 	}
 }
@@ -228,8 +227,8 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 		case .race:
 			return self.race()
 
-		case .throttle:
-			return self.throttle()
+		case .dropOnBackpressure:
+			return self.dropOnBackpressure()
 		}
 	}
 }
@@ -273,8 +272,8 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Never,
 		case .race:
 			return self.race()
 
-		case .throttle:
-			return self.throttle()
+		case .dropOnBackpressure:
+			return self.dropOnBackpressure()
 		}
 	}
 }
@@ -858,16 +857,16 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	///
 	/// The returned signal completes when `self` is completed, and also first inner producer
 	/// is completed if it exists.
-	fileprivate func throttle() -> Signal<Value.Value, Error> {
+	fileprivate func dropOnBackpressure() -> Signal<Value.Value, Error> {
 		return Signal<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
 			lifetime += relayDisposable
-			lifetime += self.observeThrottle(observer, relayDisposable)
+			lifetime += self.observeDropOnBackpressure(observer, relayDisposable)
 		}
 	}
 
-	fileprivate func observeThrottle(_ observer: Signal<Value.Value, Error>.Observer, _ relayDisposable: CompositeDisposable) -> Disposable? {
-		let state = Atomic(ThrottleState())
+	fileprivate func observeDropOnBackpressure(_ observer: Signal<Value.Value, Error>.Observer, _ relayDisposable: CompositeDisposable) -> Disposable? {
+		let state = Atomic(DropOnBackpressureState())
 
 		return self.observe { event in
 			switch event {
@@ -935,20 +934,20 @@ extension SignalProducer where Value: SignalProducerConvertible, Error == Value.
 	///
 	/// The returned signal completes when `self` is completed, and also first inner producer
 	/// is completed if it exists.
-	fileprivate func throttle() -> SignalProducer<Value.Value, Error> {
+	fileprivate func dropOnBackpressure() -> SignalProducer<Value.Value, Error> {
 		return SignalProducer<Value.Value, Error> { observer, lifetime in
 			let relayDisposable = CompositeDisposable()
 			lifetime += relayDisposable
 
 			self.startWithSignal { signal, signalDisposable in
 				lifetime += signalDisposable
-				lifetime += signal.observeThrottle(observer, relayDisposable)
+				lifetime += signal.observeDropOnBackpressure(observer, relayDisposable)
 			}
 		}
 	}
 }
 
-private struct ThrottleState {
+private struct DropOnBackpressureState {
 	var outerSignalComplete = false
 	var hasFirstInnerProducer = false
 }
