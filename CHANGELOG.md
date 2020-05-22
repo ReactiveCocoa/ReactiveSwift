@@ -21,6 +21,8 @@
 
 1. Joining an empty sequence of producers can now send an event on the joined signal producer by providing the `noUpstreamSentinel` parameter. This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no event is sent only when the producers sequence is empty, then the observer gets stalled and e.g. the ui won't update. (#774, kudos to @rocketnik)
 
+1. The `throttle` flatten strategy has been renamed to `dropOnBackpressure`. (#783)
+
 # 6.2.1
 
 1. Improved performance of joining signals by a factor of around 5. This enables joining of 1000 and more signals in a reasonable amount of time.
