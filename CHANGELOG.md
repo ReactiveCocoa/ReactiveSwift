@@ -1,6 +1,24 @@
 # master
 *Please add new entries at the top.*
 
+1. `Property` and `MutableProperty` can now be used as property wrapper. Note that they remain a reference type container, so it may not be appropriate to use them in types requiring value semantics. (#781)
+   ```swift
+   class ViewModel {
+     @MutableProperty var count: Int = 0
+
+     func subscribe() {
+       self.$count.producer.startWithValues {
+         print("`count` has changed to \(count)")
+       }
+     }
+
+     func increment() {
+       print("count prior to increment: \(count)")
+       self.$count.modify { $0 += 1 }
+     }
+   }
+   ```
+
 # 6.2.1
 1. Improved performance of joining signals by a factor of around 5. This enables joining of 1000 and more signals in a reasonable amount of time.
 1. Fixed `SignalProducer.debounce` operator that, when started more than once, would not deliver values on producers started after the first time. (#772, kudos to @gpambrozio)
