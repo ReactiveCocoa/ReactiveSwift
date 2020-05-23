@@ -1378,14 +1378,7 @@ class FlattenSpec: QuickSpec {
 			}
 
 			it("should asynchronously merge up to the stated limit, buffer any subsequent producers and dequeue them in the submission order") {
-				let scheduler: QueueScheduler
-
-				if #available(macOS 10.10, *) {
-					scheduler = QueueScheduler()
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue.global(priority: .default))
-				}
-
+				let scheduler = QueueScheduler.makeForTesting()
 				run { $0.start(on: scheduler) }
 			}
 		}

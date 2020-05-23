@@ -952,6 +952,30 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("combineLatest") {
+			it("should emit the empty sentinel when no producer is given") {
+				let producer = SignalProducer<String, Never>.combineLatest(
+					EmptyCollection<SignalProducer<String, Never>>(),
+					emptySentinel: ["empty"]
+				)
+
+				var values = [[String]]()
+				var isCompleted = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						isCompleted = true
+					case .interrupted, .failed:
+						break
+					}
+				}
+
+				expect(values) == [["empty"]]
+				expect(isCompleted) == true
+			}
+
 			it("should combine the events to one array") {
 				let (producerA, observerA) = SignalProducer<Int, Never>.pipe()
 				let (producerB, observerB) = SignalProducer<Int, Never>.pipe()
@@ -1016,6 +1040,30 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("zip") {
+			it("should emit the empty sentinel when no producer is given") {
+				let producer = SignalProducer<String, Never>.zip(
+					EmptyCollection<SignalProducer<String, Never>>(),
+					emptySentinel: ["empty"]
+				)
+
+				var values = [[String]]()
+				var isCompleted = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						isCompleted = true
+					case .interrupted, .failed:
+						break
+					}
+				}
+
+				expect(values) == [["empty"]]
+				expect(isCompleted) == true
+			}
+
 			it("should zip the events to one array") {
 				let producerA = SignalProducer<Int, Never>([ 1, 2 ])
 				let producerB = SignalProducer<Int, Never>([ 3, 4 ])
@@ -1052,20 +1100,28 @@ class SignalProducerSpec: QuickSpec {
 			}
 			
 			it("can deal with hundreds of producers") {
-				let scheduler = QueueScheduler(qos: .default, name: "RACScheduler", targeting: nil)
+				let scheduler = TestScheduler()
 				
-				let producers = (0..<700).map { _ -> SignalProducer<Void, Never> in
-					return SignalProducer(value: ())
+				let producers = (0..<1024).map { _ -> SignalProducer<UInt, Never> in
+					return SignalProducer(value: .max)
 				}
+
+				var values: [[UInt]] = []
+				var isCompleted = false
 				
-				waitUntil { done in
-					SignalProducer
-						.zip(producers)
-						.start(on: scheduler)
-						.startWithCompleted {
-							done()
-					}
-				}
+				SignalProducer
+					.zip(producers)
+					.start(on: scheduler)
+					.on(completed: { isCompleted = true }, value: { values.append($0) })
+					.start()
+
+				expect(values) == []
+				expect(isCompleted) == false
+
+				scheduler.advance()
+
+				expect(values) == [Array(repeating: .max, count: 1024)]
+				expect(isCompleted) == true
 			}
 		}
 
@@ -1099,13 +1155,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("shouldn't overflow on a real scheduler") {
-				let scheduler: QueueScheduler
-				if #available(OSX 10.10, *) {
-					scheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
-
+				let scheduler = QueueScheduler.makeForTesting()
 				let producer = SignalProducer.timer(interval: .seconds(3), on: scheduler)
 				producer
 					.start()
@@ -2784,23 +2834,11 @@ class SignalProducerSpec: QuickSpec {
 			it("should start a signal then block on the first value") {
 				let (_signal, observer) = Signal<Int, Never>.pipe()
 
-				let forwardingScheduler: QueueScheduler
-
-				if #available(OSX 10.10, *) {
-					forwardingScheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					forwardingScheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let forwardingScheduler = QueueScheduler.makeForTesting()
 
 				let producer = SignalProducer(_signal.delay(0.1, on: forwardingScheduler))
 
-				let observingScheduler: QueueScheduler
-
-				if #available(OSX 10.10, *) {
-					observingScheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					observingScheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let observingScheduler = QueueScheduler.makeForTesting()
 
 				var result: Int?
 
@@ -2833,23 +2871,12 @@ class SignalProducerSpec: QuickSpec {
 		describe("single") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, Never>.pipe()
-				let forwardingScheduler: QueueScheduler
 
-				if #available(OSX 10.10, *) {
-					forwardingScheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					forwardingScheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let forwardingScheduler = QueueScheduler.makeForTesting()
 
 				let producer = SignalProducer(_signal.delay(0.1, on: forwardingScheduler))
 
-				let observingScheduler: QueueScheduler
-
-				if #available(OSX 10.10, *) {
-					observingScheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					observingScheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let observingScheduler = QueueScheduler.makeForTesting()
 
 				var result: Int?
 
@@ -2886,13 +2913,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("last") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, Never>.pipe()
-				let scheduler: QueueScheduler
-
-				if #available(*, OSX 10.10) {
-					scheduler = QueueScheduler(name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let scheduler = QueueScheduler.makeForTesting()
 				let producer = SignalProducer(_signal.delay(0.1, on: scheduler))
 
 				var result: Result<Int, Never>?
@@ -2940,12 +2961,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("wait") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, Never>.pipe()
-				let scheduler: QueueScheduler
-				if #available(*, OSX 10.10) {
-					scheduler = QueueScheduler(name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let scheduler = QueueScheduler.makeForTesting()
 				let producer = SignalProducer(_signal.delay(0.1, on: scheduler))
 
 				var result: Result<(), Never>?
@@ -3001,12 +3017,7 @@ class SignalProducerSpec: QuickSpec {
 
 		describe("take") {
 			it("Should not start concat'ed producer if the first one sends a value when using take(1)") {
-				let scheduler: QueueScheduler
-				if #available(OSX 10.10, *) {
-					scheduler = QueueScheduler(name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let scheduler = QueueScheduler.makeForTesting()
 
 				// Delaying producer1 from sending a value to test whether producer2 is started in the mean-time.
 				let producer1 = SignalProducer<Int, Never> { handler, _ in
@@ -3440,6 +3451,29 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("all attribute") {
+			it("should emit true when no producer is given") {
+				let producer = SignalProducer<Bool, Never>.all(
+					EmptyCollection<SignalProducer<Bool, Never>>()
+				)
+
+				var values = [Bool]()
+				var isCompleted = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						isCompleted = true
+					case .interrupted, .failed:
+						break
+					}
+				}
+
+				expect(values) == [true]
+				expect(isCompleted) == true
+			}
+
 			it("should emit true when all producers emit the same value") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
 					observer.send(value: true)
@@ -3547,6 +3581,29 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("any attribute") {
+			it("should emit false when no producer is given") {
+				let producer = SignalProducer<Bool, Never>.any(
+					EmptyCollection<SignalProducer<Bool, Never>>()
+				)
+
+				var values = [Bool]()
+				var isCompleted = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						isCompleted = true
+					case .interrupted, .failed:
+						break
+					}
+				}
+
+				expect(values) == [false]
+				expect(isCompleted) == true
+			}
+
 			it("should emit true when at least one of the producers in array emits true") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
 					observer.send(value: true)
