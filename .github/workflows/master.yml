@@ -15,19 +15,12 @@ jobs:
         uses: actions/cache@v1
         id: dependency-cache
         with:
-          path: Carthage
-          key: 2-carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
-      - name: Pull dependencies
-        if: steps.dependency-cache.outputs.cache-hit != 'true'
-        run: |
-          carthage checkout
+          path: ~/Library/Caches/org.carthage.CarthageKit/SharedCache/
+          key: 3-carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
       - name: Carthage verification
         run: |
+          carthage checkout
           carthage build --cache-builds --no-skip-current
-      - name: Clean up for cache
-        run: |
-          shopt -s globstar
-          rm -rf ./Carthage/Build/**/ReactiveSwift.framework
 
   swiftpm-macos:
     name: SwiftPM macOS
