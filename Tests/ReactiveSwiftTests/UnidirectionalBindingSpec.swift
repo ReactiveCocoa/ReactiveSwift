@@ -182,12 +182,7 @@ class UnidirectionalBindingSpec: QuickSpec {
 				                           lifetime: lifetime,
 				                           action: setter)
 
-				let scheduler: QueueScheduler
-				if #available(OSX 10.10, *) {
-					scheduler = QueueScheduler()
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "com.reactivecocoa.ReactiveSwift.UnidirectionalBindingSpec"))
-				}
+				let scheduler = QueueScheduler.makeForTesting()
 
 				let property = MutableProperty(1)
 				target <~ property.producer

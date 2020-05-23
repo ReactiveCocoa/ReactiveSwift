@@ -1052,20 +1052,28 @@ class SignalProducerSpec: QuickSpec {
 			}
 			
 			it("can deal with hundreds of producers") {
-				let scheduler = QueueScheduler(qos: .default, name: "RACScheduler", targeting: nil)
+				let scheduler = TestScheduler()
 				
-				let producers = (0..<700).map { _ -> SignalProducer<Void, Never> in
-					return SignalProducer(value: ())
+				let producers = (0..<1024).map { _ -> SignalProducer<UInt, Never> in
+					return SignalProducer(value: .max)
 				}
+
+				var values: [[UInt]] = []
+				var isCompleted = false
 				
-				waitUntil { done in
-					SignalProducer
-						.zip(producers)
-						.start(on: scheduler)
-						.startWithCompleted {
-							done()
-					}
-				}
+				SignalProducer
+					.zip(producers)
+					.start(on: scheduler)
+					.on(completed: { isCompleted = true }, value: { values.append($0) })
+					.start()
+
+				expect(values) == []
+				expect(isCompleted) == false
+
+				scheduler.advance()
+
+				expect(values) == [Array(repeating: .max, count: 1024)]
+				expect(isCompleted) == true
 			}
 		}
 
@@ -1099,13 +1107,7 @@ class SignalProducerSpec: QuickSpec {
 			}
 
 			it("shouldn't overflow on a real scheduler") {
-				let scheduler: QueueScheduler
-				if #available(OSX 10.10, *) {
-					scheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
-
+				let scheduler = QueueScheduler.makeForTesting()
 				let producer = SignalProducer.timer(interval: .seconds(3), on: scheduler)
 				producer
 					.start()
@@ -2784,23 +2786,11 @@ class SignalProducerSpec: QuickSpec {
 			it("should start a signal then block on the first value") {
 				let (_signal, observer) = Signal<Int, Never>.pipe()
 
-				let forwardingScheduler: QueueScheduler
-
-				if #available(OSX 10.10, *) {
-					forwardingScheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					forwardingScheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let forwardingScheduler = QueueScheduler.makeForTesting()
 
 				let producer = SignalProducer(_signal.delay(0.1, on: forwardingScheduler))
 
-				let observingScheduler: QueueScheduler
-
-				if #available(OSX 10.10, *) {
-					observingScheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					observingScheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let observingScheduler = QueueScheduler.makeForTesting()
 
 				var result: Int?
 
@@ -2833,23 +2823,12 @@ class SignalProducerSpec: QuickSpec {
 		describe("single") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, Never>.pipe()
-				let forwardingScheduler: QueueScheduler
 
-				if #available(OSX 10.10, *) {
-					forwardingScheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					forwardingScheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let forwardingScheduler = QueueScheduler.makeForTesting()
 
 				let producer = SignalProducer(_signal.delay(0.1, on: forwardingScheduler))
 
-				let observingScheduler: QueueScheduler
-
-				if #available(OSX 10.10, *) {
-					observingScheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					observingScheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let observingScheduler = QueueScheduler.makeForTesting()
 
 				var result: Int?
 
@@ -2886,13 +2865,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("last") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, Never>.pipe()
-				let scheduler: QueueScheduler
-
-				if #available(*, OSX 10.10) {
-					scheduler = QueueScheduler(name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let scheduler = QueueScheduler.makeForTesting()
 				let producer = SignalProducer(_signal.delay(0.1, on: scheduler))
 
 				var result: Result<Int, Never>?
@@ -2940,12 +2913,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("wait") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, Never>.pipe()
-				let scheduler: QueueScheduler
-				if #available(*, OSX 10.10) {
-					scheduler = QueueScheduler(name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let scheduler = QueueScheduler.makeForTesting()
 				let producer = SignalProducer(_signal.delay(0.1, on: scheduler))
 
 				var result: Result<(), Never>?
@@ -3001,12 +2969,7 @@ class SignalProducerSpec: QuickSpec {
 
 		describe("take") {
 			it("Should not start concat'ed producer if the first one sends a value when using take(1)") {
-				let scheduler: QueueScheduler
-				if #available(OSX 10.10, *) {
-					scheduler = QueueScheduler(name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let scheduler = QueueScheduler.makeForTesting()
 
 				// Delaying producer1 from sending a value to test whether producer2 is started in the mean-time.
 				let producer1 = SignalProducer<Int, Never> { handler, _ in
