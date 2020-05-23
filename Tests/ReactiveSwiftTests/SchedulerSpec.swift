@@ -140,13 +140,7 @@ class SchedulerSpec: QuickSpec {
 		describe("QueueScheduler") {
 			it("should run enqueued actions on a global queue") {
 				var didRun = false
-
-				let scheduler: QueueScheduler
-				if #available(OSX 10.10, *) {
-					scheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-				} else {
-					scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-				}
+				let scheduler = QueueScheduler.makeForTesting()
 
 				scheduler.schedule {
 					didRun = true
@@ -160,11 +154,7 @@ class SchedulerSpec: QuickSpec {
 				var scheduler: QueueScheduler!
 
 				beforeEach {
-					if #available(OSX 10.10, *) {
-						scheduler = QueueScheduler(qos: .default, name: "\(#file):\(#line)")
-					} else {
-						scheduler = QueueScheduler(queue: DispatchQueue(label: "\(#file):\(#line)"))
-					}
+					scheduler = QueueScheduler.makeForTesting()
 					scheduler.queue.suspend()
 				}
 
