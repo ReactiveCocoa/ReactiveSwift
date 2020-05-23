@@ -18,7 +18,7 @@ jobs:
         uses: actions/cache@v1
         id: dependency-cache
         with:
-          path: ~/Library/Caches/org.carthage.CarthageKit/SharedCache/
+          path: ~/Library/Caches/org.carthage.CarthageKit
           key: 3-carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
       - name: Carthage verification
         run: |
