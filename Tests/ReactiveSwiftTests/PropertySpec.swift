@@ -854,6 +854,16 @@ class PropertySpec: QuickSpec {
 					otherProperty = MutableProperty(initialOtherPropertyValue)
 				}
 
+				it("should emit the empty sentinel when no property is given") {
+					let property = Property<String>.combineLatest(
+						EmptyCollection<Property<String>>(),
+						emptySentinel: ["empty"]
+					)
+
+					expect(property).toNot(beNil())
+					expect(property.value) == ["empty"]
+				}
+
 				it("should forward the latest values from both inputs") {
 					let combinedProperty = property.combineLatest(with: otherProperty)
 					var latest: (String, String)?
@@ -973,6 +983,16 @@ class PropertySpec: QuickSpec {
 				beforeEach {
 					property = MutableProperty(initialPropertyValue)
 					otherProperty = MutableProperty(initialOtherPropertyValue)
+				}
+
+				it("should emit the empty sentinel when no property is given") {
+					let property = Property<String>.zip(
+						EmptyCollection<Property<String>>(),
+						emptySentinel: ["empty"]
+					)
+
+					expect(property).toNot(beNil())
+					expect(property.value) == ["empty"]
 				}
 
 				it("should combine pairs") {
@@ -1710,6 +1730,15 @@ class PropertySpec: QuickSpec {
 			}
 
 			describe("all attribute") {
+				it("should return a property with constant true when no producer is given") {
+					let property = Property<Bool>.all(
+						EmptyCollection<Property<Bool>>()
+					)
+
+					expect(property).toNot(beNil())
+					expect(property.value) == true
+				}
+
 				it("should emit true when all properties contain the same value") {
 					let property1 = MutableProperty(true)
 					let property2 = MutableProperty(true)
@@ -1744,6 +1773,15 @@ class PropertySpec: QuickSpec {
 			}
 
 			describe("any attribute") {
+				it("should return a property with constant false when no producer is given") {
+					let property = Property<Bool>.any(
+						EmptyCollection<Property<Bool>>()
+					)
+
+					expect(property).toNot(beNil())
+					expect(property.value) == false
+				}
+
 				it("should emit true when at least one of the properties in array contains true") {
 					let property1 = MutableProperty(true)
 					let property2 = MutableProperty(false)
