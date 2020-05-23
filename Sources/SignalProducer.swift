@@ -2126,14 +2126,14 @@ extension SignalProducer {
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`. Will return an empty `SignalProducer` if the sequence is empty.
-    public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
-        return start(producers, Signal.combineLatest)
+	public static func combineLatest<S: Sequence>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
+		return start(producers, Signal.combineLatest)
 	}
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`. If no producer is given, the resulting producer will constantly return `emptySentinel`.
-    public static func combineLatest<S: Sequence>(_ producers: S, emptySentinel: [S.Iterator.Element.Value]) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
-        return start(producers, emptySentinel: emptySentinel, Signal.combineLatest)
+	public static func combineLatest<S: Sequence>(_ producers: S, emptySentinel: [S.Iterator.Element.Value]) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
+		return start(producers, emptySentinel: emptySentinel, Signal.combineLatest)
 	}
 
 	/// Zips the values of all the given producers, in the manner described by
@@ -2216,8 +2216,8 @@ extension SignalProducer {
 
 	/// Combines the values of all the given producers, in the manner described by
 	/// `zip(with:)`. If no producer is given, the resulting producer will constantly return `emptySentinel`.
-    public static func zip<S: Sequence>(_ producers: S, emptySentinel: [S.Iterator.Element.Value]) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
-        return start(producers, emptySentinel: emptySentinel, Signal.zip)
+	public static func zip<S: Sequence>(_ producers: S, emptySentinel: [S.Iterator.Element.Value]) -> SignalProducer<[Value], Error> where S.Iterator.Element: SignalProducerConvertible, S.Iterator.Element.Value == Value, S.Iterator.Element.Error == Error {
+		return start(producers, emptySentinel: emptySentinel, Signal.zip)
 	}
 
 	private static func start<S: Sequence>(
