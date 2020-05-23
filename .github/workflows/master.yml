@@ -19,7 +19,7 @@ jobs:
         id: dependency-cache
         with:
           path: ~/Library/Caches/org.carthage.CarthageKit
-          key: 3-carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
+          key: 4-carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
       - name: Carthage verification
         run: |
           carthage checkout
