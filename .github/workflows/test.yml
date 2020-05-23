@@ -7,12 +7,7 @@ jobs:
     strategy:
         fail-fast: false
         matrix:
-          destination:
-            - clean test -scheme "ReactiveSwift-iOS" -destination "platform=iOS Simulator,name=iPhone 11 Pro"
-            - clean test -scheme "ReactiveSwift-tvOS" -destination "platform=tvOS Simulator,name=Apple TV 4K"
-            - clean build -scheme "ReactiveSwift-watchOS" -destination "platform=watchOS Simulator,name=Apple Watch Series 5 - 44mm"
-            - clean test -scheme "ReactiveSwift-iOS" -destination "platform=macOS,variant=Mac Catalyst"
-            - clean test -scheme "ReactiveSwift-macOS" -destination "platform=macOS,arch=x86_64"
+          destination: [macOS, macCatalyst, iOS, tvOS, watchOS]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -28,7 +23,45 @@ jobs:
           carthage checkout
       - name: Test via xcodebuild
         run: |
-          xcodebuild ${{ matrix.destination }} -workspace ReactiveSwift.xcworkspace CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=YES
+          ACTION=test
+          DESTINATION=unknown
+          SCHEME=unknown
+
+          case "${{ matrix.destination }}" in
+          "iOS")
+            DESTINATION="platform=iOS Simulator,name=iPhone 11 Pro"
+            SCHEME=ReactiveSwift-iOS
+            ;;
+          "tvOS")
+            DESTINATION="platform=tvOS Simulator,name=Apple TV 4K"
+            SCHEME=ReactiveSwift-tvOS
+            ;;
+          "watchOS")
+            ACTION=build
+            DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 5 - 44mm"
+            SCHEME=ReactiveSwift-watchOS
+            ;;
+          "macCatalyst")
+            DESTINATION="platform=macOS,variant=Mac Catalyst"
+            SCHEME=ReactiveSwift-iOS
+            ;;
+          "macOS")
+            DESTINATION="platform=macOS,arch=x86_64"
+            SCHEME=ReactiveSwift-macOS
+            ;;
+          *)
+            echo "Unknown destination."
+            exit 1
+            ;;
+          esac
+
+          xcodebuild clean ${ACTION} \
+            -destination "${DESTINATION}" \
+            -scheme ${SCHEME} \
+            -workspace ReactiveSwift.xcworkspace \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=YES
 
   swiftpm-linux:
     name: SwiftPM Linux
