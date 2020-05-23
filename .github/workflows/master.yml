@@ -1,12 +1,15 @@
-#on:
-#  push:
-#    branches:
-#      - master
-
-on: pull_request
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [labeled]
+    branches:
+      - master
 name: Verification
 jobs:
   carthage:
+    if: ${{ github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.label.name == 'ci:verify' ) }}
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -23,6 +26,7 @@ jobs:
           carthage build --cache-builds --no-skip-current
 
   swiftpm-macos:
+    if: ${{ github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.label.name == 'ci:verify' ) }}
     name: SwiftPM macOS
     runs-on: macos-latest
     steps:
@@ -37,6 +41,7 @@ jobs:
           swift build
 
   cocoapods:
+    if: ${{ github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.label.name == 'ci:verify' ) }}
     runs-on: macos-latest
     steps:
       - name: Checkout
