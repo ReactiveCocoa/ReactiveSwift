@@ -2772,6 +2772,8 @@ extension SignalProducer where Value == Bool {
 	}
 	
 	/// Create a producer that computes a logical AND between the latest values of `booleans`.
+    ///
+    /// If no producer is given in `booleans`, the resulting producer constantly emits `true`.
 	///
 	/// - parameters:
 	///   - booleans: A collection of boolean producers to be combined.
@@ -2805,7 +2807,7 @@ extension SignalProducer where Value == Bool {
 	
 	/// Create a producer that computes a logical OR between the latest values of `booleans`.
 	///
-	/// If no producer is given in `booleans`, the resulting producer constantly emits `true`.
+	/// If no producer is given in `booleans`, the resulting producer constantly emits `false`.
 	///
 	/// - parameters:
 	///   - booleans: A collection of boolean producers to be combined.
@@ -2817,7 +2819,7 @@ extension SignalProducer where Value == Bool {
 	
 	/// Create a producer that computes a logical OR between the latest values of `booleans`.
 	///
-	/// If no producer is given in `booleans`, the resulting producer constantly emits `true`.
+	/// If no producer is given in `booleans`, the resulting producer constantly emits `false`.
 	///
 	/// - parameters:
 	///   - booleans: A collection of boolean producers to be combined.

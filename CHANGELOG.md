@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+# 6.3.0
 1. `Property` and `MutableProperty` can now be used as property wrapper. Note that they remain a reference type container, so it may not be appropriate to use them in types requiring value semantics. (#781)
    ```swift
    class ViewModel {
