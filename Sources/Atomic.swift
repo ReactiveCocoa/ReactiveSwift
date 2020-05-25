@@ -178,7 +178,7 @@ internal class Lock {
 			switch status {
 			case 0:
 				return true
-			case EBUSY, EAGAIN:
+			case EBUSY, EAGAIN, EDEADLK:
 				return false
 			default:
 				assertionFailure("Unexpected pthread mutex error code: \(status)")
