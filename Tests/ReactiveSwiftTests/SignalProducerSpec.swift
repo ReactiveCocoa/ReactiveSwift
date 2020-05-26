@@ -952,6 +952,30 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("combineLatest") {
+			it("should emit the empty sentinel when no producer is given") {
+				let producer = SignalProducer<String, Never>.combineLatest(
+					EmptyCollection<SignalProducer<String, Never>>(),
+					emptySentinel: ["empty"]
+				)
+
+				var values = [[String]]()
+				var isCompleted = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						isCompleted = true
+					case .interrupted, .failed:
+						break
+					}
+				}
+
+				expect(values) == [["empty"]]
+				expect(isCompleted) == true
+			}
+
 			it("should combine the events to one array") {
 				let (producerA, observerA) = SignalProducer<Int, Never>.pipe()
 				let (producerB, observerB) = SignalProducer<Int, Never>.pipe()
@@ -1016,6 +1040,30 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("zip") {
+			it("should emit the empty sentinel when no producer is given") {
+				let producer = SignalProducer<String, Never>.zip(
+					EmptyCollection<SignalProducer<String, Never>>(),
+					emptySentinel: ["empty"]
+				)
+
+				var values = [[String]]()
+				var isCompleted = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						isCompleted = true
+					case .interrupted, .failed:
+						break
+					}
+				}
+
+				expect(values) == [["empty"]]
+				expect(isCompleted) == true
+			}
+
 			it("should zip the events to one array") {
 				let producerA = SignalProducer<Int, Never>([ 1, 2 ])
 				let producerB = SignalProducer<Int, Never>([ 3, 4 ])
@@ -3403,6 +3451,29 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("all attribute") {
+			it("should emit true when no producer is given") {
+				let producer = SignalProducer<Bool, Never>.all(
+					EmptyCollection<SignalProducer<Bool, Never>>()
+				)
+
+				var values = [Bool]()
+				var isCompleted = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						isCompleted = true
+					case .interrupted, .failed:
+						break
+					}
+				}
+
+				expect(values) == [true]
+				expect(isCompleted) == true
+			}
+
 			it("should emit true when all producers emit the same value") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
 					observer.send(value: true)
@@ -3510,6 +3581,29 @@ class SignalProducerSpec: QuickSpec {
 		}
 
 		describe("any attribute") {
+			it("should emit false when no producer is given") {
+				let producer = SignalProducer<Bool, Never>.any(
+					EmptyCollection<SignalProducer<Bool, Never>>()
+				)
+
+				var values = [Bool]()
+				var isCompleted = false
+
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						values.append(value)
+					case .completed:
+						isCompleted = true
+					case .interrupted, .failed:
+						break
+					}
+				}
+
+				expect(values) == [false]
+				expect(isCompleted) == true
+			}
+
 			it("should emit true when at least one of the producers in array emits true") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
 					observer.send(value: true)

@@ -1,6 +1,11 @@
 # master
 *Please add new entries at the top.*
 
+1. Fix a debug assertion in `Lock.try()` that could be raised in earlier OS versions (< iOS 10.0, < macOS 10.12). (#747, #788)
+
+   Specifically, ReactiveSwift now recognizes `EDEADLK` as expected error code from `pthread_mutex_trylock` alongside `0`, `EBUSY` and `EAGAIN`.
+
+# 6.3.0
 1. `Property` and `MutableProperty` can now be used as property wrapper. Note that they remain a reference type container, so it may not be appropriate to use them in types requiring value semantics. (#781)
    ```swift
    class ViewModel {
@@ -19,7 +24,11 @@
    }
    ```
 
-1. Joining an empty sequence of producers can now send an event on the joined signal producer by providing the `noUpstreamSentinel` parameter. This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no event is sent only when the producers sequence is empty, then the observer gets stalled and e.g. the ui won't update. (#774, kudos to @rocketnik)
+1. When `combineLatest` or `zip` over a sequence of `SignalProducer`s or `Property`s, you can now specify an optional `emptySentinel` parameter, which would be used when the sequence is empty.
+
+   This becomes relevant, when the sequence of producers is calculated from some other Signal and the signal resulting from the joined producers is observed. If no value is sent when the sequence is empty, the observer gets terminated silently, and, e.g., the UI would not be updated.
+
+  (#774, kudos to @rocketnik)
 
 1. The `throttle` flatten strategy has been renamed to `dropOnBackpressure`. (#783)
 
