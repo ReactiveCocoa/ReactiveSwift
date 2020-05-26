@@ -1,6 +1,10 @@
 # master
 *Please add new entries at the top.*
 
+1. Fix a debug assertion in `Lock.try()` that could be raised in earlier OS versions (< iOS 10.0, < macOS 10.12). (#747, #788)
+
+   Specifically, ReactiveSwift now recognizes `EDEADLK` as expected error code from `pthread_mutex_trylock` alongside `0`, `EBUSY` and `EAGAIN`.
+
 # 6.3.0
 1. `Property` and `MutableProperty` can now be used as property wrapper. Note that they remain a reference type container, so it may not be appropriate to use them in types requiring value semantics. (#781)
    ```swift
