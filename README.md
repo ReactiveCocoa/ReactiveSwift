@@ -39,6 +39,15 @@ Learn about the **[Core Reactive Primitives][]** in ReactiveSwift, and **[Basic 
 	</td>
 	<td><p>Composable unidirectional data flow with ReactiveSwift.</p></td>
 </tr>
+<tr>
+	<td>ReactiveSwift Composable Architecture</td>
+	<td>
+		<a href="https://github.com/trading-point/reactiveswift-composable-architecture">trading-point/reactiveswift-composable-architecture</a>
+		<br />
+		<a href="https://github.com/trading-point/reactiveswift-composable-architecture/releases"><img src="https://img.shields.io/github/release/trading-point/reactiveswift-composable-architecture.svg" /><a>
+	</td>
+	<td><p>The <a href="https://github.com/pointfreeco/swift-composable-architecture">Pointfree Composable Architecture</a> using ReactiveSwift instead of Combine.</p></td>
+</tr>
 </table>	
 
 ## What is ReactiveSwift in a nutshell?
