@@ -14,7 +14,7 @@
 Learn about the **[Core Reactive Primitives][]** in ReactiveSwift, and **[Basic Operators][]** available offered by these primitives.
 
 ### Extended modules
-  
+
 <table>
 <tr>
 	<th>Module</th>
@@ -48,7 +48,7 @@ Learn about the **[Core Reactive Primitives][]** in ReactiveSwift, and **[Basic 
 	</td>
 	<td><p>The <a href="https://github.com/pointfreeco/swift-composable-architecture">Pointfree Composable Architecture</a> using ReactiveSwift instead of Combine.</p></td>
 </tr>
-</table>	
+</table>
 
 ## What is ReactiveSwift in a nutshell?
 __ReactiveSwift__ offers composable, declarative and flexible primitives that are built around the grand concept of ___streams of values over time___.
@@ -68,6 +68,8 @@ code and state to bridge the gap.
    Contracts of the ReactiveSwift primitives, Best Practices with ReactiveSwift, and Guidelines on implementing custom operators.
 
 1. **[Debugging Techniques][]**
+
+1. **[RxSwift Migration Cheatsheet][]**
 
 ## Installation
 
@@ -120,7 +122,7 @@ We also provide a Playground, so you can get used to ReactiveCocoa's operators. 
 
  1. Clone the ReactiveSwift repository.
  1. Retrieve the project dependencies using one of the following terminal commands from the ReactiveSwift project root directory:
-     - `git submodule update --init --recursive` **OR**, if you have [Carthage][] installed    
+     - `git submodule update --init --recursive` **OR**, if you have [Carthage][] installed
      - `carthage checkout`
  1. Open `ReactiveSwift.xcworkspace`
  1. Build `ReactiveSwift-macOS` scheme
@@ -143,6 +145,7 @@ ReactiveSwift has no plan to declare ABI and module stability at the moment. It 
 [API Contracts]: Documentation/APIContracts.md
 [API Reference]: http://reactivecocoa.io/reactiveswift/docs/latest/
 [Debugging Techniques]: Documentation/DebuggingTechniques.md
+[RxSwift Migration Cheatsheet]: Documentation/RxCheatsheet.md
 [Online Searching]: Documentation/Example.OnlineSearch.md
 [_UI Examples_ playground]: https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/ReactiveSwift-UIExamples.playground/Pages/ValidatingProperty.xcplaygroundpage/Contents.swift
 
