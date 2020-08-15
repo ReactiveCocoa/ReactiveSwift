@@ -205,7 +205,7 @@ extension Signal where Value: SignalProducerConvertible, Value.Error == Never {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProducerConvertible, Error == Value.Error {
+extension Producer where Constraint == OfMany, Value: SignalProducerConvertible, Error == Value.Error {
 	/// Flattens the inner producers sent upon `producer` (into a single
 	/// producer of values), according to the semantics of the given strategy.
 	///
@@ -234,7 +234,7 @@ extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProd
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProducerConvertible, Error == Never {
+extension Producer where Constraint == OfMany, Value: SignalProducerConvertible, Error == Never {
 	/// Flattens the inner producers sent upon `producer` (into a single
 	/// producer of values), according to the semantics of the given strategy.
 	///
@@ -253,7 +253,7 @@ extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProd
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProducerConvertible, Error == Never, Value.Error == Never {
+extension Producer where Constraint == OfMany, Value: SignalProducerConvertible, Error == Never, Value.Error == Never {
 	/// Flattens the inner producers sent upon `producer` (into a single
 	/// producer of values), according to the semantics of the given strategy.
 	///
@@ -279,7 +279,7 @@ extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProd
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProducerConvertible, Value.Error == Never {
+extension Producer where Constraint == OfMany, Value: SignalProducerConvertible, Value.Error == Never {
 	/// Flattens the inner producers sent upon `signal` (into a single signal of
 	/// values), according to the semantics of the given strategy.
 	///
@@ -303,7 +303,7 @@ extension Signal where Value: Sequence {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: Sequence {
+extension Producer where Constraint == OfMany, Value: Sequence {
 	/// Flattens the `sequence` value sent by `signal`.
 	public func flatten() -> SignalProducer<Value.Iterator.Element, Error> {
 		return self.flatMap(.merge, SignalProducer<Value.Iterator.Element, Never>.init)
@@ -386,7 +386,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProducerConvertible, Error == Value.Error {
+extension Producer where Constraint == OfMany, Value: SignalProducerConvertible, Error == Value.Error {
 	fileprivate func concurrent(limit: UInt) -> SignalProducer<Value.Value, Error> {
 		precondition(limit > 0, "The concurrent limit must be greater than zero.")
 
@@ -400,7 +400,7 @@ extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProd
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint {
+extension Producer where Constraint == OfMany {
 	/// `concat`s `next` onto `self`.
 	///
 	/// - parameters:
@@ -409,7 +409,7 @@ extension Producer where Constraint: ProducerOfManyConstraint {
 	/// - returns: A producer that will start `self` and then on completion of
 	///            `self` - will start `next`.
 	public func concat(_ next: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return SignalProducer<SignalProducer<Value, Error>, Error>([ _self, next ]).flatten(.concat)
+		return SignalProducer<SignalProducer<Value, Error>, Error>([ self, next ]).flatten(.concat)
 	}
 
 	/// `concat`s `next` onto `self`.
@@ -551,7 +551,7 @@ extension Signal {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint {
+extension Producer where Constraint == OfMany {
  	/// Merges the given producers into a single `SignalProducer` that will emit
 	/// all values from each of them, and complete when all of them have
 	/// completed.
@@ -699,7 +699,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProducerConvertible, Error == Value.Error {
+extension Producer where Constraint == OfMany, Value: SignalProducerConvertible, Error == Value.Error {
 	/// - warning: An error sent on `self` or the latest inner producer will be
 	///            sent on the returned producer.
 	///
@@ -820,7 +820,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProducerConvertible, Error == Value.Error {
+extension Producer where Constraint == OfMany, Value: SignalProducerConvertible, Error == Value.Error {
 	/// Returns a producer that forwards values from the "first input producer to send an event"
 	/// (winning producer) that is sent on `self`, ignoring values sent from other inner producers.
 	///
@@ -925,7 +925,7 @@ extension Signal where Value: SignalProducerConvertible, Error == Value.Error {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Value: SignalProducerConvertible, Error == Value.Error {
+extension Producer where Constraint == OfMany, Value: SignalProducerConvertible, Error == Value.Error {
 	/// Returns a producer that forwards values from the "first inner producer" if not exists,
 	/// ignoring values sent from other inner producers until first inner producer is completed.
 	/// Note that next inner producer after previous completion can become first inner producer again.
@@ -1071,7 +1071,7 @@ extension Signal where Error == Never {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint {
+extension Producer where Constraint == OfMany {
 	/// Maps each event from `self` to a new producer, then flattens the
 	/// resulting producers (into a producer of values), according to the
 	/// semantics of the given strategy.
@@ -1133,7 +1133,7 @@ extension Producer where Constraint: ProducerOfManyConstraint {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint, Error == Never {
+extension Producer where Constraint == OfMany, Error == Never {
 	/// Maps each event from `self` to a new producer, then flattens the
 	/// resulting producers (into a producer of values), according to the
 	/// semantics of the given strategy.

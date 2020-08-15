@@ -3682,7 +3682,7 @@ private func == <T>(left: Expectation<T.Type>, right: Any.Type) {
 	}.requireNonNil)
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint {
+extension Producer where Constraint == OfMany {
 	internal static func pipe() -> (SignalProducer<Value, Error>, ProducedSignal.Observer) {
 		let (signal, observer) = ProducedSignal.pipe()
 		let producer = SignalProducer(signal)

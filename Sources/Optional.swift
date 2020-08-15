@@ -34,7 +34,7 @@ extension Signal {
 	}
 }
 
-extension Producer where Constraint: ProducerOfManyConstraint {
+extension Producer where Constraint == OfMany {
 	/// Turns each value into an Optional.
 	internal func optionalize() -> SignalProducer<Value?, Error> {
 		return lift { $0.optionalize() }
