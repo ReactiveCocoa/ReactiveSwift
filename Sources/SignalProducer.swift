@@ -43,6 +43,11 @@ public struct Producer<Constraint: ProducerConstraint, Value, Error: Swift.Error
 	/// - parameters:
 	///   - core: The `SignalProducer` core.
 	internal init(_ core: SignalProducerCore<Value, Error>) {
+		precondition(
+			Constraint.self != NoValue.self || Value.self == Never.self,
+			"A Producer with NoValue constraint should not be instantiable with Value != Never."
+		)
+
 		self.core = core
 	}
 
