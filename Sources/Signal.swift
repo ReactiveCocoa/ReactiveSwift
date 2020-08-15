@@ -690,7 +690,7 @@ extension Signal {
 	///
 	/// - returns: A signal that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
-        return Signal<U, E> { output, lifetime in
+        return Signal<U, E>.nonSerializing { output, lifetime in
 			// Create an input sink whose events would go through the given
 			// event transformation, and have the resulting events propagated
 			// to the resulting `Signal`.
