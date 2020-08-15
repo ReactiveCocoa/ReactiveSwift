@@ -11,8 +11,21 @@ public struct Multiple<U>: ProducerOfManyConstraint {
 	public typealias Value = U
 }
 
+public protocol ProducerOfOneConstraint: ProducerConstraint {}
+
+public struct One<U>: ProducerOfOneConstraint {
+	public typealias Value = U
+}
+
+public protocol CompletableConstraint: ProducerConstraint {}
+extension Never: CompletableConstraint {
+	public typealias Value = Never
+}
+
 public typealias SignalProducer<Value, Error: Swift.Error> = Producer<Multiple<Value>, Error>
 public typealias ProducerOfMany<Value, Error: Swift.Error> = Producer<Multiple<Value>, Error>
+public typealias ProducerOfOne<Value, Error: Swift.Error> = Producer<One<Value>, Error>
+public typealias Completable<Value, Error: Swift.Error> = Producer<Never, Error>
 
 /// A SignalProducer creates Signals that can produce values of type `Value`
 /// and/or fail with errors of type `Error`. If no failure should be possible,
