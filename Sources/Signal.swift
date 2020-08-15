@@ -1100,7 +1100,7 @@ extension Signal {
 		disposed: (() -> Void)? = nil,
 		value: ((Value) -> Void)? = nil
 	) -> Signal<Value, Error> {
-		return Signal { observer, lifetime in
+		return Signal.nonSerializing { observer, lifetime in
 			if let action = disposed {
 				lifetime.observeEnded(action)
 			}
@@ -1244,7 +1244,7 @@ extension Signal {
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
 	public func withLatest<U>(from samplee: Signal<U, Never>) -> Signal<(Value, U), Error> {
-		return Signal<(Value, U), Error> { observer, lifetime in
+		return Signal<(Value, U), Error>.nonSerializing { observer, lifetime in
 			let state = Atomic<U?>(nil)
 
 			lifetime += samplee.observeValues { value in
