@@ -20,7 +20,7 @@ public enum LoggingEvent {
 	public enum SignalProducer: String, CaseIterable {
 		case starting, started, value, completed, failed, terminated, disposed, interrupted
 
-		@available(*, deprecated, renamed:"Use `allCases` instead.")
+		@available(*, deprecated, message:"Use `allCases` instead.")
 		public static var allEvents: Set<SignalProducer> { Set(allCases) }
 	}
 }
