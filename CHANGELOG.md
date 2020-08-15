@@ -1,6 +1,14 @@
 # master
 *Please add new entries at the top.*
 
+1. `Signal` now offers a non-serializing variant and a reentrant variant for advanced users. (#797)
+
+   You can create these variants through four `Signal` static methods: `nonSerializing(_:)`, `nonSerializingPipe(_:)`, `reentrant(_:)` and `reentrantPipe(_:)`. These would be adopted by ReactiveCocoa UIKit bindings to improve interoperability with Loop.
+
+   Note that the default behavior of `Signal` has not been changed — event serialization remains the default behavior.
+
+1. `Signal` now has reduced fine-grained locking by adopting `nonSerializing(_:)` internally. (#797)
+
 1. Fix a debug assertion in `Lock.try()` that could be raised in earlier OS versions (< iOS 10.0, < macOS 10.12). (#747, #788)
 
    Specifically, ReactiveSwift now recognizes `EDEADLK` as expected error code from `pthread_mutex_trylock` alongside `0`, `EBUSY` and `EAGAIN`.
