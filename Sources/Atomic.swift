@@ -213,19 +213,19 @@ internal class Lock: LockProtocol {
 }
 
 internal protocol LockProtocol {
-    static func make() -> Self
-
-    func lock()
-    func unlock()
-    func `try`() -> Bool
+	static func make() -> Self
+	
+	func lock()
+	func unlock()
+	func `try`() -> Bool
 }
 
 internal struct NoLock: LockProtocol {
-    static func make() -> NoLock { NoLock() }
+	static func make() -> NoLock { NoLock() }
 
-    func lock() {}
-    func unlock() {}
-    func `try`() -> Bool { true }
+	func lock() {}
+	func unlock() {}
+	func `try`() -> Bool { true }
 }
 
 /// An atomic variable.

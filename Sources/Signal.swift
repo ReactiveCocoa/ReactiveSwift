@@ -45,12 +45,12 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// ```
 	private let core: CoreBase
 
-    private class CoreBase {
-        func observe(_ observer: Observer) -> Disposable? { fatalError() }
-        func signalDidDeinitialize() { fatalError() }
-    }
+	private class CoreBase {
+		func observe(_ observer: Observer) -> Disposable? { fatalError() }
+		func signalDidDeinitialize() { fatalError() }
+	}
 
-    private final class Core<SendLock: LockProtocol>: CoreBase {
+	private final class Core<SendLock: LockProtocol>: CoreBase {
 		/// The disposable associated with the signal.
 		///
 		/// Disposing of `disposable` is assumed to remove the generator
@@ -67,22 +67,22 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// Used to ensure that events are serialized during delivery to observers.
 		private let sendLock: SendLock
 
-        fileprivate init(_ generator: (Observer, Lifetime) -> Void) {
+		fileprivate init(_ generator: (Observer, Lifetime) -> Void) {
 			state = .alive(Bag(), hasDeinitialized: false)
 
 			stateLock = Lock.make()
 			sendLock = SendLock.make()
 			disposable = CompositeDisposable()
 
-            super.init()
+			super.init()
 
 			// The generator observer retains the `Signal` core.
 			generator(Observer(action: self.send, interruptsOnDeinit: true), Lifetime(disposable))
 		}
 
 
-        @_specialize(exported: true, kind: partial, where SendLock == Lock)
-        @_specialize(exported: true, kind: partial, where SendLock == NoLock)
+		@_specialize(exported: true, kind: partial, where SendLock == Lock)
+		@_specialize(exported: true, kind: partial, where SendLock == NoLock)
 		private func send(_ event: Event) {
 			if event.isTerminating {
 				// Recursive events are disallowed for `value` events, but are permitted
@@ -295,15 +295,15 @@ public final class Signal<Value, Error: Swift.Error> {
 		}
 	}
 
-    private init(_ core: CoreBase) {
-        self.core = core
-    }
+	private init(_ core: CoreBase) {
+		self.core = core
+	}
 
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given input observer.
-    ///
-    /// The input observer serializes events it received. In other words, it is thread safe, and
-    /// can be called on multiple threads concurrently.
+	///
+	/// The input observer serializes events it received. In other words, it is thread safe, and
+	/// can be called on multiple threads concurrently.
 	///
 	/// - note: The disposable returned from the closure will be automatically
 	///         disposed if a terminating event is sent to the observer. The
@@ -312,75 +312,75 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-    public convenience init(_ generator: (Observer, Lifetime) -> Void) {
-        self.init(Core<Lock>(generator))
+	public convenience init(_ generator: (Observer, Lifetime) -> Void) {
+		self.init(Core<Lock>(generator))
 	}
 
-    /// Initialize a Signal that will immediately invoke the given generator,
-    /// then forward events sent to the given non-serializing input observer.
-    ///
-    /// Unlike `init(_:)`, the provided input observer does not serialize the events it received, with the assumption
-    /// that it can inherit mutual exclusion from its callers.
-    ///
-    /// Note that the created `Signal` still guarantees thread safe observer manipulation.
-    ///
-    /// - warning: The input observer **is not thread safe**.
-    ///
-    /// - note: The disposable returned from the closure will be automatically
-    ///         disposed if a terminating event is sent to the observer. The
-    ///         Signal itself will remain alive until the observer is released.
-    ///
-    /// - parameters:
-    ///   - generator: A closure that accepts an implicitly created observer
-    ///                that will act as an event emitter for the signal.
-    public static func nonSerializing(_ generator: (Observer, Lifetime) -> Void) -> Signal {
-        self.init(Core<NoLock>(generator))
-    }
+	/// Initialize a Signal that will immediately invoke the given generator,
+	/// then forward events sent to the given non-serializing input observer.
+	///
+	/// Unlike `init(_:)`, the provided input observer does not serialize the events it received, with the assumption
+	/// that it can inherit mutual exclusion from its callers.
+	///
+	/// Note that the created `Signal` still guarantees thread safe observer manipulation.
+	///
+	/// - warning: The input observer **is not thread safe**.
+	///
+	/// - note: The disposable returned from the closure will be automatically
+	///         disposed if a terminating event is sent to the observer. The
+	///         Signal itself will remain alive until the observer is released.
+	///
+	/// - parameters:
+	///   - generator: A closure that accepts an implicitly created observer
+	///                that will act as an event emitter for the signal.
+	public static func nonSerializing(_ generator: (Observer, Lifetime) -> Void) -> Signal {
+		self.init(Core<NoLock>(generator))
+	}
 
-    /// Initialize a Signal that will immediately invoke the given generator,
-    /// then forward events sent to the given non-serializing, reentrant input observer.
-    ///
-    /// The provided input observer does not serialize the events it received — akin to `nonSerializing(_:)`. Meanwhile,
-    /// it supports **reentrancy** via a queue drain strategy, which is otherwise unsupported in the default `Signal`
-    /// variant.
-    ///
-    /// Recursively sent events are enqueued, and are drained first-in-first-out after the current event has completed
-    /// calling out to all observers.
-    ///
-    /// Note that the created `Signal` still guarantees thread safe observer manipulation.
-    ///
-    /// - warning: The input observer **is not thread safe**.
-    ///
-    /// - note: The disposable returned from the closure will be automatically
-    ///         disposed if a terminating event is sent to the observer. The
-    ///         Signal itself will remain alive until the observer is released.
-    ///
-    /// - parameters:
-    ///   - generator: A closure that accepts an implicitly created observer
-    ///                that will act as an event emitter for the signal.
-    public static func reentrant(_ generator: (Observer, Lifetime) -> Void) -> Signal {
-        self.init(Core<NoLock> { innerObserver, lifetime in
-            var eventQueue: [Event] = []
-            var isInLoop = false
+	/// Initialize a Signal that will immediately invoke the given generator,
+	/// then forward events sent to the given non-serializing, reentrant input observer.
+	///
+	/// The provided input observer does not serialize the events it received — akin to `nonSerializing(_:)`. Meanwhile,
+	/// it supports **reentrancy** via a queue drain strategy, which is otherwise unsupported in the default `Signal`
+	/// variant.
+	///
+	/// Recursively sent events are enqueued, and are drained first-in-first-out after the current event has completed
+	/// calling out to all observers.
+	///
+	/// Note that the created `Signal` still guarantees thread safe observer manipulation.
+	///
+	/// - warning: The input observer **is not thread safe**.
+	///
+	/// - note: The disposable returned from the closure will be automatically
+	///         disposed if a terminating event is sent to the observer. The
+	///         Signal itself will remain alive until the observer is released.
+	///
+	/// - parameters:
+	///   - generator: A closure that accepts an implicitly created observer
+	///                that will act as an event emitter for the signal.
+	public static func reentrant(_ generator: (Observer, Lifetime) -> Void) -> Signal {
+		self.init(Core<NoLock> { innerObserver, lifetime in
+			var eventQueue: [Event] = []
+			var isInLoop = false
 
-            let wrappedObserver = Observer { outerEvent in
-                if !isInLoop {
-                    isInLoop = true
-                    innerObserver.send(outerEvent)
+			let wrappedObserver = Observer { outerEvent in
+				if !isInLoop {
+					isInLoop = true
+					innerObserver.send(outerEvent)
 
-                    while !eventQueue.isEmpty {
-                        innerObserver.send(eventQueue.removeLast())
-                    }
+					while !eventQueue.isEmpty {
+						innerObserver.send(eventQueue.removeLast())
+					}
 
-                    isInLoop = false
-                } else {
-                    eventQueue.insert(outerEvent, at: 0)
-                }
-            }
+					isInLoop = false
+				} else {
+					eventQueue.insert(outerEvent, at: 0)
+				}
+			}
 
-            generator(wrappedObserver, lifetime)
-        })
-    }
+			generator(wrappedObserver, lifetime)
+		})
+	}
 
 	/// Observe the Signal by sending any future events to the given observer.
 	///
@@ -475,9 +475,9 @@ extension Signal {
 
 	/// Create a `Signal` that will be controlled by sending events to an
 	/// input observer.
-    ///
-    /// The input observer serializes events it received. In other words, it is thread safe, and
-    /// can be called on multiple threads concurrently.
+	///
+	/// The input observer serializes events it received. In other words, it is thread safe, and
+	/// can be called on multiple threads concurrently.
 	///
 	/// - note: The `Signal` will remain alive until a terminating event is sent
 	///         to the input observer, or until it has no observers and there
@@ -500,71 +500,71 @@ extension Signal {
 		return (signal, observer)
 	}
 
-    /// Create a `Signal` that will be controlled by sending events to an
-    /// non-serializing input observer.
-    ///
-    /// Unlike `init(_:)`, the provided input observer does not serialize the events it received, with the assumption
-    /// that it can inherit mutual exclusion from its callers.
-    ///
-    /// Note that the created `Signal` still guarantees thread safe observer manipulation.
-    ///
-    /// - warning: The input observer **is not thread safe**.
-    ///
-    /// - note: The `Signal` will remain alive until a terminating event is sent
-    ///         to the input observer, or until it has no observers and there
-    ///         are no strong references to it.
-    ///
-    /// - parameters:
-    ///   - disposable: An optional disposable to associate with the signal, and
-    ///                 to be disposed of when the signal terminates.
-    ///
-    /// - returns: A 2-tuple of the output end of the pipe as `Signal`, and the input end
-    ///            of the pipe as `Signal.Observer`.
-    public static func nonSerializingPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
-        var observer: Observer!
+	/// Create a `Signal` that will be controlled by sending events to an
+	/// non-serializing input observer.
+	///
+	/// Unlike `init(_:)`, the provided input observer does not serialize the events it received, with the assumption
+	/// that it can inherit mutual exclusion from its callers.
+	///
+	/// Note that the created `Signal` still guarantees thread safe observer manipulation.
+	///
+	/// - warning: The input observer **is not thread safe**.
+	///
+	/// - note: The `Signal` will remain alive until a terminating event is sent
+	///         to the input observer, or until it has no observers and there
+	///         are no strong references to it.
+	///
+	/// - parameters:
+	///   - disposable: An optional disposable to associate with the signal, and
+	///                 to be disposed of when the signal terminates.
+	///
+	/// - returns: A 2-tuple of the output end of the pipe as `Signal`, and the input end
+	///            of the pipe as `Signal.Observer`.
+	public static func nonSerializingPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
+		var observer: Observer!
 
-        let signal = nonSerializing { innerObserver, lifetime in
-            observer = innerObserver
-            lifetime += disposable
-        }
+		let signal = nonSerializing { innerObserver, lifetime in
+			observer = innerObserver
+			lifetime += disposable
+		}
 
-        return (signal, observer)
-    }
+		return (signal, observer)
+	}
 
-    /// Create a `Signal` that will be controlled by sending events to an
-    /// non-serializing, reentrant input observer.
-    ///
-    /// The provided input observer does not serialize the events it received — akin to `nonSerializing(_:)`. Meanwhile,
-    /// it supports **reentrancy** via a queue drain strategy, which is otherwise unsupported in the default `Signal`
-    /// variant.
-    ///
-    /// Recursively sent events are enqueued, and are drained first-in-first-out after the current event has completed
-    /// calling out to all observers.
-    ///
-    /// Note that the created `Signal` still guarantees thread safe observer manipulation.
-    ///
-    /// - warning: The input observer **is not thread safe**.
-    ///
-    /// - note: The `Signal` will remain alive until a terminating event is sent
-    ///         to the input observer, or until it has no observers and there
-    ///         are no strong references to it.
-    ///
-    /// - parameters:
-    ///   - disposable: An optional disposable to associate with the signal, and
-    ///                 to be disposed of when the signal terminates.
-    ///
-    /// - returns: A 2-tuple of the output end of the pipe as `Signal`, and the input end
-    ///            of the pipe as `Signal.Observer`.
-    public static func reentrantPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
-        var observer: Observer!
+	/// Create a `Signal` that will be controlled by sending events to an
+	/// non-serializing, reentrant input observer.
+	///
+	/// The provided input observer does not serialize the events it received — akin to `nonSerializing(_:)`. Meanwhile,
+	/// it supports **reentrancy** via a queue drain strategy, which is otherwise unsupported in the default `Signal`
+	/// variant.
+	///
+	/// Recursively sent events are enqueued, and are drained first-in-first-out after the current event has completed
+	/// calling out to all observers.
+	///
+	/// Note that the created `Signal` still guarantees thread safe observer manipulation.
+	///
+	/// - warning: The input observer **is not thread safe**.
+	///
+	/// - note: The `Signal` will remain alive until a terminating event is sent
+	///         to the input observer, or until it has no observers and there
+	///         are no strong references to it.
+	///
+	/// - parameters:
+	///   - disposable: An optional disposable to associate with the signal, and
+	///                 to be disposed of when the signal terminates.
+	///
+	/// - returns: A 2-tuple of the output end of the pipe as `Signal`, and the input end
+	///            of the pipe as `Signal.Observer`.
+	public static func reentrantPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
+		var observer: Observer!
 
-        let signal = reentrant { innerObserver, lifetime in
-            observer = innerObserver
-            lifetime += disposable
-        }
+		let signal = reentrant { innerObserver, lifetime in
+			observer = innerObserver
+			lifetime += disposable
+		}
 
-        return (signal, observer)
-    }
+		return (signal, observer)
+	}
 }
 
 public protocol SignalProtocol: class {
@@ -690,7 +690,7 @@ extension Signal {
 	///
 	/// - returns: A signal that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
-        return Signal<U, E>.nonSerializing { output, lifetime in
+		return Signal<U, E>.nonSerializing { output, lifetime in
 			// Create an input sink whose events would go through the given
 			// event transformation, and have the resulting events propagated
 			// to the resulting `Signal`.

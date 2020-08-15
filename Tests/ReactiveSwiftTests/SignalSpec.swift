@@ -200,50 +200,50 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-        describe("reentrant") {
-            #if arch(x86_64) && canImport(Darwin)
-            it("should not crash") {
-                let (signal, observer) = Signal<Int, Never>.reentrantPipe()
-                var values: [Int] = []
+		describe("reentrant") {
+			#if arch(x86_64) && canImport(Darwin)
+			it("should not crash") {
+				let (signal, observer) = Signal<Int, Never>.reentrantPipe()
+				var values: [Int] = []
 
-                signal
-                    .take(first: 5)
-                    .map { $0 + 1 }
-                    .on { values.append($0) }
-                    .observeValues(observer.send(value:))
+				signal
+					.take(first: 5)
+					.map { $0 + 1 }
+					.on { values.append($0) }
+					.observeValues(observer.send(value:))
 
-                expect {
-                    observer.send(value: 1)
-                }.toNot(throwAssertion())
+				expect {
+					observer.send(value: 1)
+				}.toNot(throwAssertion())
 
-                expect(values) == [2, 3, 4, 5, 6]
-            }
-            #endif
+				expect(values) == [2, 3, 4, 5, 6]
+			}
+			#endif
 
-            it("should drain enqueued values in submission order after the observer callout has completed") {
-                let (signal, observer) = Signal<Int, Never>.reentrantPipe()
-                var values: [Int] = []
+			it("should drain enqueued values in submission order after the observer callout has completed") {
+				let (signal, observer) = Signal<Int, Never>.reentrantPipe()
+				var values: [Int] = []
 
-                signal
-                    .take(first: 1)
-                    .observeValues { _ in
-                        observer.send(value: 10)
-                        observer.send(value: 100)
-                    }
+				signal
+					.take(first: 1)
+					.observeValues { _ in
+						observer.send(value: 10)
+						observer.send(value: 100)
+				}
 
-                signal
-                    .take(first: 1)
-                    .observeValues { _ in
-                        observer.send(value: 20)
-                        observer.send(value: 200)
-                    }
+				signal
+					.take(first: 1)
+					.observeValues { _ in
+						observer.send(value: 20)
+						observer.send(value: 200)
+				}
 
-                signal.observeValues { values.append($0) }
+				signal.observeValues { values.append($0) }
 
-                observer.send(value: 0)
-                expect(values) == [0, 10, 100, 20, 200]
-            }
-        }
+				observer.send(value: 0)
+				expect(values) == [0, 10, 100, 20, 200]
+			}
+		}
 
 		describe("Signal.pipe") {
 			it("should forward events to observers") {
