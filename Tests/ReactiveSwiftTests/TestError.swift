@@ -17,12 +17,12 @@ internal enum TestError: Int {
 extension TestError: Error {
 }
 
-internal extension SignalProducer {
+internal extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Halts if an error is emitted in the receiver signal.
 	/// This is useful in tests to be able to just use `startWithNext`
 	/// in cases where we know that an error won't be emitted.
 	func assumeNoErrors() -> SignalProducer<Value, Never> {
-		return self.lift { $0.assumeNoErrors() }
+		return lift { $0.assumeNoErrors() }
 	}
 }
 

@@ -13,7 +13,7 @@ infix operator <~ : BindingPrecedence
 /// Describes a source which can be bound.
 public protocol BindingSource: SignalProducerConvertible where Error == Never {}
 extension Signal: BindingSource where Error == Never {}
-extension SignalProducer: BindingSource where Error == Never {}
+extension Producer: BindingSource where Constraint: ProducerOfManyConstraint, Error == Never {}
 
 /// Describes an entity which be bond towards.
 public protocol BindingTargetProvider {

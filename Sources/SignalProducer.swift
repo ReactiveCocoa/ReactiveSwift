@@ -1,6 +1,19 @@
 import Dispatch
 import Foundation
 
+public protocol ProducerConstraint {
+	associatedtype Value
+}
+
+public protocol ProducerOfManyConstraint: ProducerConstraint {}
+
+public struct Multiple<U>: ProducerOfManyConstraint {
+	public typealias Value = U
+}
+
+public typealias SignalProducer<Value, Error: Swift.Error> = Producer<Multiple<Value>, Error>
+public typealias ProducerOfMany<Value, Error: Swift.Error> = Producer<Multiple<Value>, Error>
+
 /// A SignalProducer creates Signals that can produce values of type `Value`
 /// and/or fail with errors of type `Error`. If no failure should be possible,
 /// `Never` can be specified for `Error`.
@@ -15,7 +28,9 @@ import Foundation
 /// producer may see a different version of Events. The Events may arrive in a
 /// different order between Signals, or the stream might be completely
 /// different!
-public struct SignalProducer<Value, Error: Swift.Error> {
+public struct Producer<Constraint: ProducerConstraint, Error: Swift.Error> {
+	public typealias Value = Constraint.Value
+
 	public typealias ProducedSignal = Signal<Value, Error>
 
 	/// `core` is the actual implementation for this `SignalProducer`. It is responsible
@@ -25,14 +40,6 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// 2. building `Signal`s on demand via its `makeInstance()` method, which produces a
 	///    `Signal` with the associated side effect and interrupt handle.
 	fileprivate let core: SignalProducerCore<Value, Error>
-
-	/// Convert an entity into its equivalent representation as `SignalProducer`.
-	///
-	/// - parameters:
-	///   - base: The entity to convert from.
-	public init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
-		self = base.producer
-	}
 
 	/// Initializes a `SignalProducer` that will emit the same events as the
 	/// given signal.
@@ -193,20 +200,26 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		self.init([ first, second ] + tail)
 	}
 
+	internal func unsafeCoerced<New: ProducerConstraint>(
+		to constraint: New.Type
+	) -> Producer<New, Error> where New.Value == Constraint.Value {
+		return Producer<New, Error>(core)
+	}
+
 	/// A producer for a Signal that immediately completes without sending any values.
-	public static var empty: SignalProducer {
-		return SignalProducer(GeneratorCore { observer, _ in observer.sendCompleted() })
+	public static var empty: Producer {
+		return Producer(GeneratorCore { observer, _ in observer.sendCompleted() })
 	}
 
 	/// A producer for a Signal that immediately interrupts when started, without
 	/// sending any values.
-	internal static var interrupted: SignalProducer {
-		return SignalProducer(GeneratorCore { observer, _ in observer.sendInterrupted() })
+	internal static var interrupted: Producer {
+		return Producer(GeneratorCore { observer, _ in observer.sendInterrupted() })
 	}
 
 	/// A producer for a Signal that never sends any events to its observers.
-	public static var never: SignalProducer {
-		return self.init { observer, lifetime in
+	public static var never: Producer {
+		return Producer { observer, lifetime in
 			lifetime.observeEnded { _ = observer }
 		}
 	}
@@ -227,6 +240,16 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 			instance.observerDidSetup()
 		}
 		return result
+	}
+}
+
+extension SignalProducer {
+	/// Convert an entity into its equivalent representation as `SignalProducer`.
+	///
+	/// - parameters:
+	///   - base: The entity to convert from.
+	public init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
+		self.init(base.producer.core)
 	}
 }
 
@@ -524,13 +547,17 @@ public protocol SignalProducerProtocol {
 	var producer: SignalProducer<Value, Error> { get }
 }
 
-extension SignalProducer: SignalProducerConvertible, SignalProducerProtocol {
-	public var producer: SignalProducer {
-		return self
+extension Producer: SignalProducerConvertible, SignalProducerProtocol where Constraint: ProducerOfManyConstraint {
+	public var producer: SignalProducer<Constraint.Value, Error> {
+		return unsafeCoerced(to: Multiple<Value>.self)
+	}
+
+	internal var _self: SignalProducer<Constraint.Value, Error> {
+		return unsafeCoerced(to: Multiple<Value>.self)
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Create a `Signal` from `self`, and observe it with the given observer.
 	///
 	/// - parameters:
@@ -636,7 +663,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint: ProducerOfManyConstraint, Error == Never {
 	/// Create a `Signal` from `self`, and observe the `Signal` for all values being
 	/// emitted.
 	///
@@ -650,7 +677,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Lift an unary Signal operator to operate upon SignalProducers instead.
 	///
 	/// In other words, this will create a new `SignalProducer` which will apply
@@ -844,7 +871,7 @@ private func flattenStart<A, B, C, D, E, F, G, H, I, J, Error>(_ lifetime: Lifet
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Map each value in the producer to a new value.
 	///
 	/// - parameters:
@@ -1187,7 +1214,7 @@ extension SignalProducer {
 	/// - returns:  A producer that, when started, will skip the first `count`
 	///             values, then forward everything afterward.
 	public func skip(first count: Int) -> SignalProducer<Value, Error> {
-		guard count != 0 else { return self }
+		guard count != 0 else { return _self }
 		return core.flatMapEvent(Signal.Event.skip(first: count))
 	}
 
@@ -1767,7 +1794,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Value: OptionalProtocol {
+extension Producer where Constraint: ProducerOfManyConstraint, Value: OptionalProtocol {
 	/// Unwraps non-`nil` values and forwards them on the returned signal, `nil`
 	/// values are dropped.
 	///
@@ -1777,7 +1804,7 @@ extension SignalProducer where Value: OptionalProtocol {
 	}
 }
 
-extension SignalProducer where Value: EventProtocol, Error == Never {
+extension Producer where Constraint: ProducerOfManyConstraint, Value: EventProtocol, Error == Never {
 	/// The inverse of materialize(), this will translate a producer of `Event`
 	/// _values_ into a producer of those events themselves.
 	///
@@ -1787,7 +1814,7 @@ extension SignalProducer where Value: EventProtocol, Error == Never {
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint: ProducerOfManyConstraint, Error == Never {
 	/// The inverse of materializeResults(), this will translate a producer of `Result`
 	/// _values_ into a producer of those events themselves.
 	///
@@ -1797,7 +1824,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint: ProducerOfManyConstraint, Error == Never {
 	/// Promote a producer that does not generate failures into one that can.
 	///
 	/// - note: This does not actually cause failers to be generated for the
@@ -1825,7 +1852,7 @@ extension SignalProducer where Error == Never {
 	///
 	/// - returns: A producer that has an instantiatable `ErrorType`.
 	public func promoteError(_: Error.Type = Error.self) -> SignalProducer<Value, Error> {
-		return self
+		return _self
 	}
 
 	/// Forward events from `self` until `interval`. Then if producer isn't
@@ -1882,7 +1909,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer where Error == Swift.Error {
+extension Producer where Constraint: ProducerOfManyConstraint, Error == Swift.Error {
 	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the produced `Signal`
 	/// would propagate the failure and terminate.
@@ -1908,7 +1935,7 @@ extension SignalProducer where Error == Swift.Error {
 	}
 }
 
-extension SignalProducer where Value == Never {
+extension Producer where Constraint: ProducerOfManyConstraint, Value == Never {
 	/// Promote a producer that does not generate values, as indicated by `Never`,
 	/// to be a producer of the given type of value.
 	///
@@ -1932,11 +1959,11 @@ extension SignalProducer where Value == Never {
 	///
 	/// - returns: A producer that forwards all terminal events from `self`.
 	public func promoteValue(_: Value.Type = Value.self) -> SignalProducer<Value, Error> {
-		return self
+		return _self
 	}
 }
 
-extension SignalProducer where Value: Equatable {
+extension Producer where Constraint: ProducerOfManyConstraint, Value: Equatable {
 	/// Forward only values from `self` that are not equal to its immediately preceding
 	/// value.
 	///
@@ -1948,7 +1975,7 @@ extension SignalProducer where Value: Equatable {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Forward only those values from `self` that have unique identities across
 	/// the set of all values that have been seen.
 	///
@@ -1965,7 +1992,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Value: Hashable {
+extension Producer where Constraint: ProducerOfManyConstraint, Value: Hashable {
 	/// Forward only those values from `self` that are unique across the set of
 	/// all values that have been seen.
 	///
@@ -1979,7 +2006,7 @@ extension SignalProducer where Value: Hashable {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Injects side effects to be performed upon the specified producer events.
 	///
 	/// - note: In a composed producer, `starting` is invoked in the reverse
@@ -2051,7 +2078,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible>(_ a: A, _ b: B) -> SignalProducer<(Value, B.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error {
@@ -2250,7 +2277,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Repeat `self` a total of `count` times. In other words, start producer
 	/// `count` number of times, each one after previously started producer
 	/// completes.
@@ -2482,7 +2509,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint: ProducerOfManyConstraint, Error == Never {
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`.
 	///
@@ -2571,7 +2598,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint: ProducerOfManyConstraint {
 	/// Start the producer, then block, waiting for the first value.
 	///
 	/// When a single value or error is sent, the returned `Result` will
@@ -2729,7 +2756,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Value == Bool {
+extension Producer where Constraint: ProducerOfManyConstraint, Value == Bool {
 	/// Create a producer that computes a logical NOT in the latest values of `self`.
 	///
 	/// - returns: A producer that emits the logical NOT results.
@@ -2745,7 +2772,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical AND results.
 	public func and(_ booleans: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return type(of: self).all([self, booleans])
+		return type(of: self).all([_self, booleans])
 	}
 
 	/// Create a producer that computes a logical AND between the latest values of `self`
@@ -2791,7 +2818,7 @@ extension SignalProducer where Value == Bool {
 	///
 	/// - returns: A producer that emits the logical OR results.
 	public func or(_ booleans: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
-		return type(of: self).any([self, booleans])
+		return type(of: self).any([_self, booleans])
 	}
 
 	/// Create a producer that computes a logical OR between the latest values of `self`
@@ -2959,7 +2986,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	}
 }
 
-extension SignalProducer where Value == Date, Error == Never {
+extension Producer where Constraint: ProducerOfManyConstraint, Value == Date, Error == Never {
 	/// Create a repeating timer of the given interval, with a reasonable default
 	/// leeway, sending updates on the given scheduler.
 	///
