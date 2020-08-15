@@ -419,7 +419,10 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 	internal override func makeInstance() -> Instance {
 		let disposable = SerialDisposable()
-		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+
+		// The Event contract requires that event is serial, which `SignalProducer` adheres to. So it is unnecessary for
+		// us to add another level of serialization, since we would have "inherited" serialization as an observer.
+		let (signal, observer) = Signal<Value, Error>.nonSerializingPipe(disposable: disposable)
 
 		func observerDidSetup() {
 			start { interrupter in
@@ -698,8 +701,8 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		// The `Signal` contract already guarantees event serialization, so it is unnecessary for us to add another
-		// level of serialization when we can simply "inherit" it from the transformed `Signal`.
+		// The Event contract requires that event is serial, which `Signal` adheres to. So it is unnecessary for us to
+		// add another level of serialization, since we would have "inherited" serialization as an observer.
 		return SignalProducer<U, F>.nonSerializing { observer, lifetime in
 			self.startWithSignal { signal, interrupter in
 				lifetime += interrupter
