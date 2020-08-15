@@ -1234,7 +1234,7 @@ extension Signal {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Catches any failure that may occur on the input producer, mapping to a
 	/// new producer that starts in its place.
 	///

@@ -309,7 +309,7 @@ private final class GeneratorCore<Value, Error: Swift.Error>: SignalProducerCore
 	}
 }
 
-extension SignalProducer where  Constraint: DeliversValue, Error == Never {
+extension Producer where Constraint: DeliversValue, Error == Never {
 	/// Creates a producer for a `Signal` that will immediately send one value
 	/// then complete.
 	///
