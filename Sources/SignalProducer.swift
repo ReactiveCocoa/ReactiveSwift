@@ -46,57 +46,6 @@ public struct Producer<Constraint: ProducerConstraint, Value, Error: Swift.Error
 		self.core = core
 	}
 
-	/// Creates a producer for a `Signal` that will immediately send one value
-	/// then complete.
-	///
-	/// - parameters:
-	///   - value: A value that should be sent by the `Signal` in a `value`
-	///            event.
-	public init(value: Value) {
-		self.init(GeneratorCore { observer, _ in
-			observer.send(value: value)
-			observer.sendCompleted()
-		})
-	}
-
-	/// Creates a producer for a `Signal` that immediately sends one value, then
-	/// completes.
-	///
-	/// This initializer differs from `init(value:)` in that its sole `value`
-	/// event is constructed lazily by invoking the supplied `action` when
-	/// the `SignalProducer` is started.
-	///
-	/// - parameters:
-	///   - action: A action that yields a value to be sent by the `Signal` as
-	///             a `value` event.
-	public init(_ action: @escaping () -> Value) {
-		self.init(GeneratorCore { observer, _ in
-			observer.send(value: action())
-			observer.sendCompleted()
-		})
-	}
-
-	/// Create a `SignalProducer` that will attempt the given operation once for
-	/// each invocation of `start()`.
-	///
-	/// Upon success, the started signal will send the resulting value then
-	/// complete. Upon failure, the started signal will fail with the error that
-	/// occurred.
-	///
-	/// - parameters:
-	///   - action: A closure that returns instance of `Result`.
-	public init(_ action: @escaping () -> Result<Value, Error>) {
-		self.init(GeneratorCore { observer, _ in
-			switch action() {
-			case let .success(value):
-				observer.send(value: value)
-				observer.sendCompleted()
-			case let .failure(error):
-				observer.send(error: error)
-			}
-		})
-	}
-
 	/// Creates a producer for a `Signal` that will immediately fail with the
 	/// given error.
 	///
@@ -105,23 +54,6 @@ public struct Producer<Constraint: ProducerConstraint, Value, Error: Swift.Error
 	///            event.
 	public init(error: Error) {
 		self.init(GeneratorCore { observer, _ in observer.send(error: error) })
-	}
-
-	/// Creates a producer for a Signal that will immediately send one value
-	/// then complete, or immediately fail, depending on the given Result.
-	///
-	/// - parameters:
-	///   - result: A `Result` instance that will send either `value` event if
-	///             `result` is `success`ful or `failed` event if `result` is a
-	///             `failure`.
-	public init(result: Result<Value, Error>) {
-		switch result {
-		case let .success(value):
-			self.init(value: value)
-
-		case let .failure(error):
-			self.init(error: error)
-		}
 	}
 
 	/// A producer for a Signal that immediately completes without sending any values.
@@ -169,16 +101,6 @@ public struct Producer<Constraint: ProducerConstraint, Value, Error: Swift.Error
 			instance.observerDidSetup()
 		}
 		return result
-	}
-}
-
-extension SignalProducer {
-	/// Convert an entity into its equivalent representation as `SignalProducer`.
-	///
-	/// - parameters:
-	///   - base: The entity to convert from.
-	public init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
-		self.init(base.producer.core)
 	}
 }
 
@@ -387,7 +309,7 @@ private final class GeneratorCore<Value, Error: Swift.Error>: SignalProducerCore
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension SignalProducer where  Constraint: DeliversValue, Error == Never {
 	/// Creates a producer for a `Signal` that will immediately send one value
 	/// then complete.
 	///
@@ -399,6 +321,76 @@ extension SignalProducer where Error == Never {
 			observer.send(value: value)
 			observer.sendCompleted()
 		})
+	}
+}
+
+extension Producer where Constraint: DeliversValue {
+	/// Creates a producer for a `Signal` that will immediately send one value
+	/// then complete.
+	///
+	/// - parameters:
+	///   - value: A value that should be sent by the `Signal` in a `value`
+	///            event.
+	public init(value: Value) {
+		self.init(GeneratorCore { observer, _ in
+			observer.send(value: value)
+			observer.sendCompleted()
+		})
+	}
+
+	/// Creates a producer for a `Signal` that immediately sends one value, then
+	/// completes.
+	///
+	/// This initializer differs from `init(value:)` in that its sole `value`
+	/// event is constructed lazily by invoking the supplied `action` when
+	/// the `SignalProducer` is started.
+	///
+	/// - parameters:
+	///   - action: A action that yields a value to be sent by the `Signal` as
+	///             a `value` event.
+	public init(_ action: @escaping () -> Value) {
+		self.init(GeneratorCore { observer, _ in
+			observer.send(value: action())
+			observer.sendCompleted()
+		})
+	}
+
+	/// Create a `SignalProducer` that will attempt the given operation once for
+	/// each invocation of `start()`.
+	///
+	/// Upon success, the started signal will send the resulting value then
+	/// complete. Upon failure, the started signal will fail with the error that
+	/// occurred.
+	///
+	/// - parameters:
+	///   - action: A closure that returns instance of `Result`.
+	public init(_ action: @escaping () -> Result<Value, Error>) {
+		self.init(GeneratorCore { observer, _ in
+			switch action() {
+			case let .success(value):
+				observer.send(value: value)
+				observer.sendCompleted()
+			case let .failure(error):
+				observer.send(error: error)
+			}
+		})
+	}
+
+	/// Creates a producer for a Signal that will immediately send one value
+	/// then complete, or immediately fail, depending on the given Result.
+	///
+	/// - parameters:
+	///   - result: A `Result` instance that will send either `value` event if
+	///             `result` is `success`ful or `failed` event if `result` is a
+	///             `failure`.
+	public init(result: Result<Value, Error>) {
+		switch result {
+		case let .success(value):
+			self.init(value: value)
+
+		case let .failure(error):
+			self.init(error: error)
+		}
 	}
 }
 
@@ -436,6 +428,14 @@ extension Producer where Constraint == OfMany, Error == Never {
 }
 
 extension Producer where Constraint == OfMany {
+	/// Convert an entity into its equivalent representation as `SignalProducer`.
+	///
+	/// - parameters:
+	///   - base: The entity to convert from.
+	public init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
+		self.init(base.producer.core)
+	}
+
 	/// Initialize a `SignalProducer` which invokes the supplied starting side
 	/// effect once upon the creation of every produced `Signal`, or in other
 	/// words, for every invocation of `startWithSignal(_:)`, `start(_:)` and
@@ -510,7 +510,7 @@ extension Producer where Constraint == OfMany {
 	}
 }
 
-extension SignalProducer where Error == Swift.Error {
+extension Producer where Constraint: DeliversValue, Error == Swift.Error {
 	/// Create a `SignalProducer` that will attempt the given failable operation once for
 	/// each invocation of `start()`.
 	///
