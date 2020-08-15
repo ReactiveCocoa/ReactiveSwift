@@ -200,6 +200,27 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+        describe("reentrant") {
+            #if arch(x86_64) && canImport(Darwin)
+            it("should not crash") {
+                let (signal, observer) = Signal<Int, Never>.reentrantPipe()
+                var values: [Int] = []
+
+                signal
+                    .take(first: 5)
+                    .map { $0 + 1 }
+                    .on { values.append($0) }
+                    .observeValues(observer.send(value:))
+
+                expect {
+                    observer.send(value: 1)
+                }.toNot(throwAssertion())
+
+                expect(values) == [2, 3, 4, 5, 6]
+            }
+            #endif
+        }
+
 		describe("Signal.pipe") {
 			it("should forward events to observers") {
 				let (signal, observer) = Signal<Int, Never>.pipe()
