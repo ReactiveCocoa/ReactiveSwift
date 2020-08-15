@@ -12,10 +12,16 @@ import Foundation
 public enum LoggingEvent {
 	public enum Signal: String, CaseIterable {
 		case value, completed, failed, terminated, disposed, interrupted
+
+		@available(*, deprecated, message:"Use `allCases` instead.")
+		public static var allEvents: Set<Signal> { Set(allCases) }
 	}
 
 	public enum SignalProducer: String, CaseIterable {
 		case starting, started, value, completed, failed, terminated, disposed, interrupted
+
+		@available(*, deprecated, renamed:"Use `allCases` instead.")
+		public static var allEvents: Set<SignalProducer> { Set(allCases) }
 	}
 }
 
