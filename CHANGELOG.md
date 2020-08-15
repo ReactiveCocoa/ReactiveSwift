@@ -3,7 +3,7 @@
 
 1. `Signal` now offers a non-serializing variant and a reentrant variant for advanced users. (#797)
 
-   You can create these variants through four `Signal` static methods: `nonSerializing(_:)`, `nonSerializingPipe(_:)`, `reentrant(_:)` and `reentrantPipe(_:)`. These would be adopted by ReactiveCocoa UIKit bindings to improve interoperability with Loop.
+   You can create these variants through four `Signal` static methods: `nonSerializing(_:)`, `nonSerializingPipe(_:)`, `reentrant(_:)` and `reentrantPipe(_:)`. These would be adopted by ReactiveCocoa UIKit bindings to improve interoperability with Loop, to tackle some legitimate recursive delivery scenarios (e.g. around first responder management), and also to reduce fine-grained locking in ReactiveCocoa.
 
    Note that the default behavior of `Signal` has not been changed — event serialization remains the default behavior.
 
