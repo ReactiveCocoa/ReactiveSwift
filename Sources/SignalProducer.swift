@@ -61,12 +61,47 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// sent to the input `Observer`; or (2) when the produced `Signal` is
 	/// interrupted via the disposable yielded at the starting call.
 	///
+	/// - note: The provided input observer is thread safe.
+	///
 	/// - parameters:
 	///   - startHandler: The starting side effect.
 	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
 		self.init(SignalCore {
 			let disposable = CompositeDisposable()
 			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
+			let interruptHandle = AnyDisposable(observer.sendInterrupted)
+
+			return SignalProducerCore.Instance(signal: signal,
+			                                   observerDidSetup: observerDidSetup,
+			                                   interruptHandle: interruptHandle)
+		})
+	}
+
+	/// Initialize a `SignalProducer` which invokes the supplied starting side
+	/// effect once upon the creation of every produced `Signal`, or in other
+	/// words, for every invocation of `startWithSignal(_:)`, `start(_:)` and
+	/// their convenience shorthands.
+	///
+	/// The supplied starting side effect would be given (1) an input `Observer`
+	/// to emit events to the produced `Signal`; and (2) a `Lifetime` to bind
+	/// resources to the lifetime of the produced `Signal`.
+	///
+	/// The `Lifetime` of a produced `Signal` ends when: (1) a terminal event is
+	/// sent to the input `Observer`; or (2) when the produced `Signal` is
+	/// interrupted via the disposable yielded at the starting call.
+	///
+	/// - warning: Like `Signal.nonSerializing(_:)`, the provided input observer **is not thread safe**.
+	///            Mutual exclusion is assumed to be enforced among the callers.
+	///
+	/// - parameters:
+	///   - startHandler: The starting side effect.
+	public static func nonSerializing(
+		_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void
+	) -> SignalProducer<Value, Error> {
+		return self.init(SignalCore {
+			let disposable = CompositeDisposable()
+			let (signal, observer) = Signal<Value, Error>.nonSerializingPipe(disposable: disposable)
 			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
 			let interruptHandle = AnyDisposable(observer.sendInterrupted)
 
@@ -663,7 +698,9 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer<U, F> { observer, lifetime in
+		// The `Signal` contract already guarantees event serialization, so it is unnecessary for us to add another
+		// level of serialization when we can simply "inherit" it from the transformed `Signal`.
+		return SignalProducer<U, F>.nonSerializing { observer, lifetime in
 			self.startWithSignal { signal, interrupter in
 				lifetime += interrupter
 				transform(signal).observe(observer)
