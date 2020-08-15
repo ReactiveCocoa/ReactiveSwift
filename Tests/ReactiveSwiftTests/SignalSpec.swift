@@ -219,6 +219,30 @@ class SignalSpec: QuickSpec {
                 expect(values) == [2, 3, 4, 5, 6]
             }
             #endif
+
+            it("should drain enqueued values in submission order after the observer callout has completed") {
+                let (signal, observer) = Signal<Int, Never>.reentrantPipe()
+                var values: [Int] = []
+
+                signal
+                    .take(first: 1)
+                    .observeValues { _ in
+                        observer.send(value: 10)
+                        observer.send(value: 100)
+                    }
+
+                signal
+                    .take(first: 1)
+                    .observeValues { _ in
+                        observer.send(value: 20)
+                        observer.send(value: 200)
+                    }
+
+                signal.observeValues { values.append($0) }
+
+                observer.send(value: 0)
+                expect(values) == [0, 10, 100, 20, 200]
+            }
         }
 
 		describe("Signal.pipe") {
