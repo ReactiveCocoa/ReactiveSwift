@@ -205,23 +205,23 @@ extension Signal.Event: EventProtocol {
 //    This operator performs side effect upon interruption.
 
 extension Signal.Event {
-	internal typealias Transformation<U, E: Swift.Error> = (Subscriber<U, E>, Lifetime) -> Subscriber<Value, Error>
+	internal typealias Transformation<U, E: Swift.Error> = (ReactiveSwift.Observer<U, E>, Lifetime) -> ReactiveSwift.Observer<Value, Error>
 
 	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
 		return { downstream, _ in
-			FilterSubscriber(downstream: downstream, predicate: isIncluded)
+			Operators.Filter(downstream: downstream, predicate: isIncluded)
 		}
 	}
 
 	internal static func compactMap<U>(_ transform: @escaping (Value) -> U?) -> Transformation<U, Error> {
 		return { downstream, _ in
-			CompactMapSubscriber(downstream: downstream, transform: transform)
+			Operators.CompactMap(downstream: downstream, transform: transform)
 		}
 	}
 
 	internal static func map<U>(_ transform: @escaping (Value) -> U) -> Transformation<U, Error> {
 		return { action, _ in
-			MapSubscriber(downstream: action, transform: transform)
+			Operators.Map(downstream: action, transform: transform)
 		}
 	}
 

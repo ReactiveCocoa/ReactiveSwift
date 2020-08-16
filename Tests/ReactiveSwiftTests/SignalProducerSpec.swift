@@ -3671,22 +3671,6 @@ class SignalProducerSpec: QuickSpec {
 				expect(combined is SignalProducer<(Int, Double, Float, UInt), TestError>) == true
 			}
 		}
-
-		it("test") {
-			let source1: SignalProducer<Int, Never> = SignalProducer(value: 1 as Int)
-				.map { $0 + 1 }
-				.map { $0 + 1 }
-				.map { $0 + 1 }
-				.map { $0 + 1 }
-
-			let source2: SignalProducer<Int, Never> = source1
-				.map { $0 + 1 }
-				.map { $0 + 1 }
-				.map { $0 + 1 }
-				.map { $0 + 1 }
-
-			source2.start()
-		}
 	}
 }
 

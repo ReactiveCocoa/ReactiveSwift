@@ -9,7 +9,7 @@
 extension Signal {
 	/// An Observer is a simple wrapper around a function which can receive Events
 	/// (typically from a Signal).
-	public final class Observer: Subscriber<Value, Error> {
+	public final class Observer: ReactiveSwift.Observer<Value, Error> {
 		public typealias Action = (Event) -> Void
 		private let _send: Action
 
