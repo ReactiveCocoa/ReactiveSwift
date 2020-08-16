@@ -1,6 +1,256 @@
 import Dispatch
 import Foundation
 
+public typealias Demand = Int
+
+public protocol ProducerProtocol {
+	associatedtype Value
+	associatedtype Error: Swift.Error
+
+	func observe<O: Subscriber>(_ observer: O) where O.Value == Value, O.Error == Error
+}
+
+open class Producer<Value, Error: Swift.Error>: ProducerProtocol {
+	open func observe<O: Subscriber>(_ observer: O) where O.Value == Value, O.Error == Error {
+		fatalError()
+	}
+}
+
+extension ProducerProtocol {
+	public func map<U>(_ transform: @escaping (Value) -> U) -> MapProducer<Self, U> {
+		MapProducer(upstream: self, transform: transform)
+	}
+
+	public func filter(_ predicate: @escaping (Value) -> Bool) -> FilterProducer<Self> {
+		FilterProducer(upstream: self, predicate: predicate)
+	}
+
+	public func take(first demand: Demand) -> TakeProducer<Self> {
+		TakeProducer(upstream: self, count: demand)
+	}
+}
+
+//extension SignalProducer: Producer {
+//	final class Subscription: ReactiveSwift.Subscription {
+//		func request(_ demand: Demand) {
+//
+//		}
+//
+//		init() {}
+//	}
+//
+//	public func observe<O>(_ observer: O) where O : Subscriber, Error == O.Error, Value == O.Value {
+//		startWithSignal { signal, disposable in
+//			let observer = AnySubscriberBox(observer)
+//			let subscription = Subscription()
+//
+//			observer.sendSubscribed(subscription)
+//
+//			signal.observe { event in
+//				switch event {
+//				case let .value(value):
+//					observer.send(value: value)
+//				case .completed, .failed, .interrupted:
+//					return
+//				}
+//			}
+//		}
+//	}
+//}
+
+public protocol Subscriber {
+	associatedtype Value
+	associatedtype Error: Swift.Error
+
+	mutating func sendSubscribed(_ subscription: Subscription)
+	mutating func send(value: Value)
+}
+
+public protocol Subscription {
+	func request(_ demand: Demand)
+}
+
+public struct EmptySubscriber<Value, Error: Swift.Error>: Subscriber {
+	public func sendSubscribed(_ subscription: Subscription) {}
+
+	public func send(value: Value) {
+	}
+}
+
+let x = MapSubscriber<Int32, Int64, MapSubscriber<Int64, Void, EmptySubscriber<Void, Never>>>.self
+
+public final class MapProducer<Upstream: ProducerProtocol, NewValue>: Producer<NewValue, Upstream.Error> {
+	public typealias Value = NewValue
+	public typealias Error = Upstream.Error
+
+	public let upstream: Upstream
+	let transform: (Upstream.Value) -> NewValue
+
+	public init(upstream: Upstream, transform: @escaping (Upstream.Value) -> NewValue) {
+		self.upstream = upstream
+		self.transform = transform
+	}
+
+	public override func observe<O: Subscriber>(_ observer: O) where O.Value == Value, O.Error == Error {
+		upstream.observe(MapSubscriber(transform: transform, downstream: observer))
+	}
+}
+
+public struct MapSubscriber<OldValue, NewValue, Downstream: Subscriber>: Subscriber where Downstream.Value == NewValue {
+	public typealias Value = OldValue
+	public typealias Error = Downstream.Error
+
+	let transform: (OldValue) -> NewValue
+	var downstream: Downstream
+	var subscription: PassthroughSubscription!
+
+	public init(transform: @escaping (OldValue) -> NewValue, downstream: Downstream) {
+		self.transform = transform
+		self.downstream = downstream
+	}
+
+	public mutating func sendSubscribed(_ subscription: Subscription) {
+		self.subscription = PassthroughSubscription(upstream: subscription)
+		downstream.sendSubscribed(self.subscription)
+	}
+
+	public mutating func send(value: OldValue) {
+		downstream.send(value: transform(value))
+	}
+}
+
+public final class TakeProducer<Upstream: ProducerProtocol>: Producer<Upstream.Value, Upstream.Error> {
+	public typealias Value = Upstream.Value
+	public typealias Error = Upstream.Error
+
+	public let upstream: Upstream
+	let count: Demand
+
+	public init(upstream: Upstream, count: Demand) {
+		self.upstream = upstream
+		self.count = count
+	}
+
+	public override func observe<O: Subscriber>(_ observer: O) where O.Value == Value, O.Error == Error {
+		upstream.observe(TakeSubscriber(count: count, downstream: observer))
+	}
+}
+
+public struct TakeSubscriber<Value, Downstream: Subscriber>: Subscriber where Downstream.Value == Value {
+	public typealias Error = Downstream.Error
+	final class TakeSubscription: Subscription {
+		let upstream: Subscription
+		let max: Demand
+		var requested: Demand = 0
+
+		init(upstream: Subscription, max: Demand) {
+			self.upstream = upstream
+			self.max = max
+		}
+
+		func request(_ demand: Demand) {
+			let requesting = demand - (max - min(requested + demand, max))
+			requested += requesting
+			upstream.request(requesting)
+		}
+	}
+
+	let count: Demand
+	var downstream: Downstream
+	var subscription: TakeSubscription!
+
+	public init(count: Demand, downstream: Downstream) {
+		self.count = count
+		self.downstream = downstream
+	}
+
+	public mutating func sendSubscribed(_ subscription: Subscription) {
+		self.subscription = TakeSubscription(upstream: subscription, max: count)
+		downstream.sendSubscribed(self.subscription)
+	}
+
+	public mutating func send(value: Value) {
+
+			downstream.send(value: value)
+	}
+}
+
+public final class FilterProducer<Upstream: ProducerProtocol>: Producer<Upstream.Value, Upstream.Error> {
+	public typealias Value = Upstream.Value
+	public typealias Error = Upstream.Error
+
+	public let upstream: Upstream
+	public let predicate: (Value) -> Bool
+
+	public init(upstream: Upstream, predicate: @escaping (Value) -> Bool) {
+		self.upstream = upstream
+		self.predicate = predicate
+	}
+
+	public override func observe<O: Subscriber>(_ observer: O) where O.Value == Value, O.Error == Error {
+		upstream.observe(FilterSubscriber(predicate: predicate, downstream: observer))
+	}
+}
+
+public struct FilterSubscriber<Value, Downstream: Subscriber>: Subscriber where Downstream.Value == Value {
+	public typealias Error = Downstream.Error
+
+	let predicate: (Value) -> Bool
+	var downstream: Downstream
+	var subscription: PassthroughSubscription!
+
+	public init(predicate: @escaping (Value) -> Bool, downstream: Downstream) {
+		self.predicate = predicate
+		self.downstream = downstream
+	}
+
+	public mutating func sendSubscribed(_ subscription: Subscription) {
+		self.subscription = PassthroughSubscription(upstream: subscription)
+		downstream.sendSubscribed(self.subscription)
+	}
+
+	public mutating func send(value: Value) {
+		if predicate(value) {
+			downstream.send(value: value)
+		} else {
+			subscription.upstream.request(1)
+		}
+	}
+}
+
+final class PassthroughSubscription: Subscription {
+	let upstream: Subscription
+
+	init(upstream: Subscription) {
+		self.upstream = upstream
+	}
+
+	func request(_ demand: Demand) {
+		upstream.request(demand)
+	}
+}
+
+private class AnySubscriberBox<Base: Subscriber>: AnySubscriber<Base.Value, Base.Error> {
+	var base: Base
+
+	init(_ base: Base) { self.base = base }
+
+	override func sendSubscribed(_ subscription: Subscription) {
+		base.sendSubscribed(subscription)
+	}
+
+	override func send(value: Value) {
+		base.send(value: value)
+	}
+}
+
+public class AnySubscriber<Value, E: Swift.Error>: Subscriber {
+	public typealias Error = E
+
+	public func sendSubscribed(_ subscription: Subscription) { fatalError() }
+	public func send(value: Value) { fatalError() }
+}
+
 /// A SignalProducer creates Signals that can produce values of type `Value`
 /// and/or fail with errors of type `Error`. If no failure should be possible,
 /// `Never` can be specified for `Error`.
@@ -15,7 +265,7 @@ import Foundation
 /// producer may see a different version of Events. The Events may arrive in a
 /// different order between Signals, or the stream might be completely
 /// different!
-public struct SignalProducer<Value, Error: Swift.Error> {
+public class SignalProducer<Value, Error: Swift.Error> {
 	public typealias ProducedSignal = Signal<Value, Error>
 
 	/// `core` is the actual implementation for this `SignalProducer`. It is responsible
@@ -30,8 +280,8 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - base: The entity to convert from.
-	public init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
-		self = base.producer
+	public convenience init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
+		self.init(base.producer.core)
 	}
 
 	/// Initializes a `SignalProducer` that will emit the same events as the
@@ -42,7 +292,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - signal: A signal to observe after starting the producer.
-	public init(_ signal: Signal<Value, Error>) {
+	public convenience init(_ signal: Signal<Value, Error>) {
 		self.init { observer, lifetime in
 			lifetime += signal.observe(observer)
 		}
@@ -63,7 +313,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - startHandler: The starting side effect.
-	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
+	public convenience init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
 		self.init(SignalCore {
 			let disposable = CompositeDisposable()
 			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
@@ -90,7 +340,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - value: A value that should be sent by the `Signal` in a `value`
 	///            event.
-	public init(value: Value) {
+	public convenience init(value: Value) {
 		self.init(GeneratorCore { observer, _ in
 			observer.send(value: value)
 			observer.sendCompleted()
@@ -107,7 +357,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - action: A action that yields a value to be sent by the `Signal` as
 	///             a `value` event.
-	public init(_ action: @escaping () -> Value) {
+	public convenience init(_ action: @escaping () -> Value) {
 		self.init(GeneratorCore { observer, _ in
 			observer.send(value: action())
 			observer.sendCompleted()
@@ -123,7 +373,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///
 	/// - parameters:
 	///   - action: A closure that returns instance of `Result`.
-	public init(_ action: @escaping () -> Result<Value, Error>) {
+	public convenience init(_ action: @escaping () -> Result<Value, Error>) {
 		self.init(GeneratorCore { observer, _ in
 			switch action() {
 			case let .success(value):
@@ -141,7 +391,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - error: An error that should be sent by the `Signal` in a `failed`
 	///            event.
-	public init(error: Error) {
+	public convenience init(error: Error) {
 		self.init(GeneratorCore { observer, _ in observer.send(error: error) })
 	}
 
@@ -152,7 +402,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - result: A `Result` instance that will send either `value` event if
 	///             `result` is `success`ful or `failed` event if `result` is a
 	///             `failure`.
-	public init(result: Result<Value, Error>) {
+	public convenience init(result: Result<Value, Error>) {
 		switch result {
 		case let .success(value):
 			self.init(value: value)
@@ -168,7 +418,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
-	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
+	public convenience init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
 		self.init(GeneratorCore(isDisposable: true) { observer, disposable in
 			for value in values {
 				observer.send(value: value)
@@ -189,7 +439,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///   - first: First value for the `Signal` to send.
 	///   - second: Second value for the `Signal` to send.
 	///   - tail: Rest of the values to be sent by the `Signal`.
-	public init(values first: Value, _ second: Value, _ tail: Value...) {
+	public convenience init(values first: Value, _ second: Value, _ tail: Value...) {
 		self.init([ first, second ] + tail)
 	}
 
@@ -206,7 +456,7 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 
 	/// A producer for a Signal that never sends any events to its observers.
 	public static var never: SignalProducer {
-		return self.init { observer, lifetime in
+		return SignalProducer { observer, lifetime in
 			lifetime.observeEnded { _ = observer }
 		}
 	}
@@ -442,7 +692,7 @@ extension SignalProducer where Error == Never {
 	/// - parameters:
 	///   - value: A value that should be sent by the `Signal` in a `value`
 	///            event.
-	public init(value: Value) {
+	public convenience init(value: Value) {
 		self.init(GeneratorCore { observer, _ in
 			observer.send(value: value)
 			observer.sendCompleted()
@@ -455,7 +705,7 @@ extension SignalProducer where Error == Never {
 	/// - parameters:
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `value` events and then complete.
-	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
+	public convenience init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
 		self.init(GeneratorCore(isDisposable: true) { observer, disposable in
 			for value in values {
 				observer.send(value: value)
@@ -476,7 +726,7 @@ extension SignalProducer where Error == Never {
 	///   - first: First value for the `Signal` to send.
 	///   - second: Second value for the `Signal` to send.
 	///   - tail: Rest of the values to be sent by the `Signal`.
-	public init(values first: Value, _ second: Value, _ tail: Value...) {
+	public convenience init(values first: Value, _ second: Value, _ tail: Value...) {
 		self.init([ first, second ] + tail)
 	}
 }
@@ -491,7 +741,7 @@ extension SignalProducer where Error == Swift.Error {
 	///
 	/// - parameters:
 	///   - operation: A failable closure.
-	public init(_ action: @escaping () throws -> Value) {
+	public convenience init(_ action: @escaping () throws -> Value) {
 		self.init {
 			return Result {
 				return try action()
