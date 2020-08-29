@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. Add variadic sugar for boolean static methods such as `Property.any(boolProperty1, boolProperty2, boolProperty3)` (#801, kudos to @fortmarek)
 1. Fix a debug assertion in `Lock.try()` that could be raised in earlier OS versions (< iOS 10.0, < macOS 10.12). (#747, #788)
 
    Specifically, ReactiveSwift now recognizes `EDEADLK` as expected error code from `pthread_mutex_trylock` alongside `0`, `EBUSY` and `EAGAIN`.
