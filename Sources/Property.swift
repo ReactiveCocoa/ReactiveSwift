@@ -482,7 +482,7 @@ extension PropertyProtocol where Value == Bool {
     ///
     /// - returns: A property that contains the logical OR results.
     public static func any<P: PropertyProtocol>(_ properties: P...) -> Property<Value> where P.Value == Value {
-        return Property.any(properties)
+        return .any(properties)
     }
 }
 

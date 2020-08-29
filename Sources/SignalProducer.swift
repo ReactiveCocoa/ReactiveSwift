@@ -2849,7 +2849,7 @@ extension SignalProducer where Value == Bool {
 	///   - booleans: A collection of boolean producers to be combined.
 	///
 	/// - returns: A producer that emits the logical OR results.
-	public static func  sBooleans: SignalProducerConvertible, BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error, BooleansCollection.Element == Booleans {
+	public static func any<Booleans: SignalProducerConvertible, BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where Booleans.Value == Value, Booleans.Error == Error, BooleansCollection.Element == Booleans {
 		return any(booleans.map { $0.producer })
 	}
 }
