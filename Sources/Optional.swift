@@ -8,7 +8,7 @@
 
 /// An optional protocol for use in type constraints.
 public protocol OptionalProtocol: ExpressibleByNilLiteral {
-	/// The type contained in the otpional.
+	/// The type contained in the optional.
 	associatedtype Wrapped
 
 	init(reconstructing value: Wrapped?)
