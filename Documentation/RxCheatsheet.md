@@ -45,7 +45,7 @@ Inspired by the [RxSwift to Combine cheatsheet](https://github.com/CombineCommun
 
 ## Operators
 
-| RxSwift               | Combine                                  | Notes                                                                                                    |
+| RxSwift               | ReactiveSwift                                  | Notes                                                                                                    |
 |-----------------------|------------------------------------------|----------------------------------------------------------------------------------------------------------|
 | amb()                 | flatten(.race)                           |
 | asObservable()        | ❌                                       | Not required in ReactiveSwift, although `Property.producer` and `Property.signal` are similar
