@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 1. Add `ExpressibleByNilLiteral` constraint to `OptionalProtocol` (#805, kudos to @nkristek)
+2. Fixed a `SignalProducer.lift` issue which may leak intermediate signals. (#808) 
 
 # 6.4.0
 1. Bump min. deployment target to iOS 9 when using swift packages to silence Xcode 12 warnings. Update Quick & Nibmle to the latest version when using swift packages.
