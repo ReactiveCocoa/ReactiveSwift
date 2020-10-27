@@ -849,6 +849,27 @@ class SignalProducerSpec: QuickSpec {
 
 					expect(result?.value) == [1, 4, 9, 16]
 				}
+
+				it("should interrupt all intermediate signals when the upstream is terminated") {
+					let baseProducer = SignalProducer<Int, Never>.empty
+
+					var lastEvent: Signal<Int, Never>.Event?
+
+					var isNeverEndingSignalDisposed = false
+
+					let disposable = baseProducer
+						.lift { _ in Signal.never.on(disposed: { isNeverEndingSignalDisposed = true }) }
+						.start { event in
+							lastEvent = event
+						}
+
+					expect(lastEvent).to(beNil())
+					expect(isNeverEndingSignalDisposed) == false
+
+					disposable.dispose()
+					expect(lastEvent) == .interrupted
+					expect(isNeverEndingSignalDisposed) == true
+				}
 			}
 
 			describe("over binary operators") {
