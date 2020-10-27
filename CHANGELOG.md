@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
-1. Add `ExpressibleByNilLiteral` constraint to `OptionalProtocol` (#805, kudos to @nkristek)
+
+# 6.5.01. Add `ExpressibleByNilLiteral` constraint to `OptionalProtocol` (#805, kudos to @nkristek)
 2. Fixed a `SignalProducer.lift` issue which may leak intermediate signals. (#808) 
 
 # 6.4.0
