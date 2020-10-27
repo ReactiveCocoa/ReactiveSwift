@@ -666,7 +666,7 @@ extension SignalProducer {
 		return SignalProducer<U, F> { observer, lifetime in
 			self.startWithSignal { signal, interrupter in
 				lifetime += interrupter
-				transform(signal).observe(observer)
+				lifetime += transform(signal).observe(observer)
 			}
 		}
 	}
