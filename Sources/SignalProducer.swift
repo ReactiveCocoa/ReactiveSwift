@@ -679,7 +679,7 @@ extension SignalProducer {
 	/// - returns: A factory that creates a SignalProducer with the given operator
 	///            applied. `self` would be the LHS, and the factory input would
 	///            be the RHS.
-	fileprivate func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	internal func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { right in
 			return SignalProducer<V, G> { observer, lifetime in
 				right.startWithSignal { rightSignal, rightInterrupter in
@@ -687,7 +687,7 @@ extension SignalProducer {
 
 					self.startWithSignal { leftSignal, leftInterrupter in
 						lifetime += leftInterrupter
-						transform(leftSignal)(rightSignal).observe(observer)
+						lifetime += transform(leftSignal)(rightSignal).observe(observer)
 					}
 				}
 			}
@@ -702,7 +702,7 @@ extension SignalProducer {
 	/// - returns: A factory that creates a SignalProducer with the given operator
 	///            applied. `self` would be the LHS, and the factory input would
 	///            be the RHS.
-	fileprivate func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	internal func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { right in
 			return SignalProducer<V, G> { observer, lifetime in
 				self.startWithSignal { leftSignal, leftInterrupter in
@@ -710,7 +710,7 @@ extension SignalProducer {
 
 					right.startWithSignal { rightSignal, rightInterrupter in
 						lifetime += rightInterrupter
-						transform(leftSignal)(rightSignal).observe(observer)
+						lifetime += transform(leftSignal)(rightSignal).observe(observer)
 					}
 				}
 			}
