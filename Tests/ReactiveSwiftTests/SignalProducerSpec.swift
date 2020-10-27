@@ -3692,7 +3692,7 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 			
-			it("should emit false when all producers in array emit false") {
+			it("should emit false when all producers emit false") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
 					observer.send(value: false)
 					observer.sendCompleted()
@@ -3706,7 +3706,7 @@ class SignalProducerSpec: QuickSpec {
 					observer.sendCompleted()
 				}
 
-				SignalProducer.any([producer1, producer2, producer3]).startWithValues { value in
+				SignalProducer.any(producer1, producer2, producer3).startWithValues { value in
 					expect(value).to(beFalse())
 				}
 			}

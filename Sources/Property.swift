@@ -443,6 +443,16 @@ extension PropertyProtocol where Value == Bool {
 	public static func all<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
 		return Property(initial: properties.map { $0.value }.reduce(true) { $0 && $1 }, then: SignalProducer.all(properties))
 	}
+    
+    /// Create a property that computes a logical AND between the latest values of `properties`.
+    ///
+    /// - parameters:
+    ///   - property: Properties to be combined.
+    ///
+    /// - returns: A property that contains the logical AND results.
+    public static func all<P: PropertyProtocol>(_ properties: P...) -> Property<Value> where P.Value == Value {
+        return .all(properties)
+    }
 
 	/// Create a property that computes a logical OR between the latest values of `self`
 	/// and `property`.
@@ -464,6 +474,16 @@ extension PropertyProtocol where Value == Bool {
 	public static func any<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
 		return Property(initial: properties.map { $0.value }.reduce(false) { $0 || $1 }, then: SignalProducer.any(properties))
 	}
+    
+    /// Create a property that computes a logical OR between the latest values of `properties`.
+    ///
+    /// - parameters:
+    ///   - properties: Properties to be combined.
+    ///
+    /// - returns: A property that contains the logical OR results.
+    public static func any<P: PropertyProtocol>(_ properties: P...) -> Property<Value> where P.Value == Value {
+        return .any(properties)
+    }
 }
 
 /// A read-only property that can be observed for its changes over time. There
