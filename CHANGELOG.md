@@ -1,7 +1,7 @@
 # master
 *Please add new entries at the top.*
 
-1. Added the `interval` operator (kudos to @mluisbrown)
+1. Added the `interval` operator (#810, kudos to @mluisbrown)
 # 6.5.0
 
 1. Add `ExpressibleByNilLiteral` constraint to `OptionalProtocol` (#805, kudos to @nkristek)
