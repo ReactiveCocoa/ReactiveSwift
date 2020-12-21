@@ -1257,6 +1257,70 @@ class SignalProducerSpec: QuickSpec {
 			}
 		}
 
+		describe("interval") {
+			it("should send the next sequence value at the given interval") {
+				let scheduler = TestScheduler()
+				let producer = SignalProducer.interval("abc", interval: .seconds(1), on: scheduler)
+
+				var isDisposed = false
+				var values: [Character] = []
+				producer
+					.on(disposed: { isDisposed = true })
+					.startWithValues { values.append($0) }
+
+				scheduler.advance(by: .milliseconds(900))
+				expect(values) == []
+
+				scheduler.advance(by: .seconds(1))
+				expect(values) == ["a"]
+
+				scheduler.advance()
+				expect(values) == ["a"]
+
+				scheduler.advance(by: .milliseconds(200))
+				expect(values) == ["a", "b"]
+
+				scheduler.advance(by: .seconds(1))
+				expect(values) == ["a", "b", "c"]
+
+				scheduler.advance(by: .seconds(1))
+				expect(isDisposed) == true
+			}
+
+			it("shouldn't overflow on a real scheduler") {
+				let scheduler = QueueScheduler.makeForTesting()
+				let producer = SignalProducer.interval("abc", interval: .seconds(3), on: scheduler)
+				producer
+					.start()
+					.dispose()
+			}
+
+			it("should dispose of the signal when disposed") {
+				let scheduler = TestScheduler()
+				let producer = SignalProducer.interval("abc", interval: .seconds(1), on: scheduler)
+				var interrupted = false
+
+				var isDisposed = false
+				weak var weakSignal: Signal<Character, Never>?
+				producer.startWithSignal { signal, disposable in
+					weakSignal = signal
+					scheduler.schedule {
+						disposable.dispose()
+					}
+					signal.on(disposed: { isDisposed = true }).observeInterrupted { interrupted = true }
+				}
+
+				expect(weakSignal).to(beNil())
+				expect(isDisposed) == false
+				expect(interrupted) == false
+
+				scheduler.run()
+				expect(weakSignal).to(beNil())
+				expect(isDisposed) == true
+				expect(interrupted) == true
+			}
+		}
+
 		describe("throttle while") {
 			var scheduler: ImmediateScheduler!
 			var shouldThrottle: MutableProperty<Bool>!
