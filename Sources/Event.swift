@@ -331,101 +331,32 @@ extension Signal.Event where Error == Swift.Error {
 
 extension Signal.Event {
 	internal static func take(first count: Int) -> Transformation<Value, Error> {
-		assert(count >= 1)
-
-		return { action, _ in
-			var taken = 0
-
-			return Signal.Observer { event in
-				guard let value = event.value else {
-					action(event)
-					return
-				}
-
-				if taken < count {
-					taken += 1
-					action(.value(value))
-				}
-
-				if taken == count {
-					action(.completed)
-				}
-			}
+		return { downstream, _ in
+			Operators.TakeFirst(downstream: downstream, count: count)
 		}
 	}
 
 	internal static func take(last count: Int) -> Transformation<Value, Error> {
-		return { action, _ in
-			var buffer: [Value] = []
-			buffer.reserveCapacity(count)
-
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					// To avoid exceeding the reserved capacity of the buffer,
-					// we remove then add. Remove elements until we have room to
-					// add one more.
-					while (buffer.count + 1) > count {
-						buffer.remove(at: 0)
-					}
-
-					buffer.append(value)
-				case let .failed(error):
-					action(.failed(error))
-				case .completed:
-					buffer.forEach { action(.value($0)) }
-					action(.completed)
-				case .interrupted:
-					action(.interrupted)
-				}
-			}
+		return { downstream, _ in
+			Operators.TakeLast(downstream: downstream, count: count)
 		}
 	}
 
 	internal static func take(while shouldContinue: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
-		return { action, _ in
-			return Signal.Observer { event in
-				if let value = event.value, !shouldContinue(value) {
-					action(.completed)
-				} else {
-					action(event)
-				}
-			}
+		return { downstream, _ in
+			Operators.TakeWhile(downstream: downstream, shouldContinue: shouldContinue)
 		}
 	}
 
 	internal static func skip(first count: Int) -> Transformation<Value, Error> {
-		precondition(count > 0)
-
-		return { action, _ in
-			var skipped = 0
-
-			return Signal.Observer { event in
-				if case .value = event, skipped < count {
-					skipped += 1
-				} else {
-					action(event)
-				}
-			}
+		return { downstream, _ in
+			Operators.SkipFirst(downstream: downstream, count: count)
 		}
 	}
 
 	internal static func skip(while shouldContinue: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
-		return { action, _ in
-			var isSkipping = true
-
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					isSkipping = isSkipping && shouldContinue(value)
-					if !isSkipping {
-						fallthrough
-					}
-
-				case .failed, .completed, .interrupted:
-					action(event)
-				}
-			}
+		return { downstream, _ in
+			Operators.SkipWhile(downstream: downstream, shouldContinueToSkip: shouldContinue)
 		}
 	}
 }
