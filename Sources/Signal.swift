@@ -333,14 +333,14 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-	public static func nonSerializing(_ generator: (Observer, Lifetime) -> Void) -> Signal {
+	public static func unserialized(_ generator: (Observer, Lifetime) -> Void) -> Signal {
 		self.init(Core<NoLock>(generator))
 	}
 
 	/// Initialize a Signal that will immediately invoke the given generator,
 	/// then forward events sent to the given non-serializing, reentrant input observer.
 	///
-	/// The provided input observer does not serialize the events it received — akin to `nonSerializing(_:)`. Meanwhile,
+	/// The provided input observer does not serialize the events it received — akin to `unserialized(_:)`. Meanwhile,
 	/// it supports **reentrancy** via a queue drain strategy, which is otherwise unsupported in the default `Signal`
 	/// variant.
 	///
@@ -520,10 +520,10 @@ extension Signal {
 	///
 	/// - returns: A 2-tuple of the output end of the pipe as `Signal`, and the input end
 	///            of the pipe as `Signal.Observer`.
-	public static func nonSerializingPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
+	public static func unserializedPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
 		var observer: Observer!
 
-		let signal = nonSerializing { innerObserver, lifetime in
+		let signal = unserialized { innerObserver, lifetime in
 			observer = innerObserver
 			lifetime += disposable
 		}
@@ -534,7 +534,7 @@ extension Signal {
 	/// Create a `Signal` that will be controlled by sending events to an
 	/// non-serializing, reentrant input observer.
 	///
-	/// The provided input observer does not serialize the events it received — akin to `nonSerializing(_:)`. Meanwhile,
+	/// The provided input observer does not serialize the events it received — akin to `unserialized(_:)`. Meanwhile,
 	/// it supports **reentrancy** via a queue drain strategy, which is otherwise unsupported in the default `Signal`
 	/// variant.
 	///
@@ -690,7 +690,7 @@ extension Signal {
 	///
 	/// - returns: A signal that forwards events yielded by the action.
 	internal func flatMapEvent<U, E>(_ transform: @escaping Event.Transformation<U, E>) -> Signal<U, E> {
-		return Signal<U, E>.nonSerializing { output, lifetime in
+		return Signal<U, E>.unserialized { output, lifetime in
 			// Create an input sink whose events would go through the given
 			// event transformation, and have the resulting events propagated
 			// to the resulting `Signal`.
@@ -1100,7 +1100,7 @@ extension Signal {
 		disposed: (() -> Void)? = nil,
 		value: ((Value) -> Void)? = nil
 	) -> Signal<Value, Error> {
-		return Signal.nonSerializing { observer, lifetime in
+		return Signal.unserialized { observer, lifetime in
 			if let action = disposed {
 				lifetime.observeEnded(action)
 			}
@@ -1244,7 +1244,7 @@ extension Signal {
 	///            once `self` has terminated. **`samplee`'s terminated events
 	///            are ignored**.
 	public func withLatest<U>(from samplee: Signal<U, Never>) -> Signal<(Value, U), Error> {
-		return Signal<(Value, U), Error>.nonSerializing { observer, lifetime in
+		return Signal<(Value, U), Error>.unserialized { observer, lifetime in
 			let state = Atomic<U?>(nil)
 
 			lifetime += samplee.observeValues { value in

@@ -91,17 +91,17 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// sent to the input `Observer`; or (2) when the produced `Signal` is
 	/// interrupted via the disposable yielded at the starting call.
 	///
-	/// - warning: Like `Signal.nonSerializing(_:)`, the provided input observer **is not thread safe**.
+	/// - warning: Like `Signal.unserialized(_:)`, the provided input observer **is not thread safe**.
 	///            Mutual exclusion is assumed to be enforced among the callers.
 	///
 	/// - parameters:
 	///   - startHandler: The starting side effect.
-	public static func nonSerializing(
+	public static func unserialized(
 		_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void
 	) -> SignalProducer<Value, Error> {
 		return self.init(SignalCore {
 			let disposable = CompositeDisposable()
-			let (signal, observer) = Signal<Value, Error>.nonSerializingPipe(disposable: disposable)
+			let (signal, observer) = Signal<Value, Error>.unserializedPipe(disposable: disposable)
 			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
 			let interruptHandle = AnyDisposable(observer.sendInterrupted)
 
@@ -422,7 +422,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 		// The Event contract requires that event is serial, which `SignalProducer` adheres to. So it is unnecessary for
 		// us to add another level of serialization, since we would have "inherited" serialization as an observer.
-		let (signal, observer) = Signal<Value, Error>.nonSerializingPipe(disposable: disposable)
+		let (signal, observer) = Signal<Value, Error>.unserializedPipe(disposable: disposable)
 
 		func observerDidSetup() {
 			start { interrupter in
@@ -703,7 +703,7 @@ extension SignalProducer {
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
 		// The Event contract requires that event is serial, which `Signal` adheres to. So it is unnecessary for us to
 		// add another level of serialization, since we would have "inherited" serialization as an observer.
-		return SignalProducer<U, F>.nonSerializing { observer, lifetime in
+		return SignalProducer<U, F>.unserialized { observer, lifetime in
 			self.startWithSignal { signal, interrupter in
 				lifetime += interrupter
 				lifetime += transform(signal).observe(observer)
