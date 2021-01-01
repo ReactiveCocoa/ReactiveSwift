@@ -80,6 +80,8 @@ public final class Signal<Value, Error: Swift.Error> {
 			generator(Observer(action: self.send, interruptsOnDeinit: true), Lifetime(disposable))
 		}
 
+		@_specialize(kind: partial, where SendLock == Lock)
+		@_specialize(kind: partial, where SendLock == NoLock)
 		private func send(_ event: Event) {
 			if event.isTerminating {
 				// Recursive events are disallowed for `value` events, but are permitted
