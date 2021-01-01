@@ -1789,11 +1789,11 @@ class PropertySpec: QuickSpec {
 					expect(Property.any([property1, property2, property3]).value).to(beTrue())
 				}
 
-				it("should emit false when all properties in array contain false") {
+				it("should emit false when all properties contain false") {
 					let property1 = MutableProperty(false)
 					let property2 = MutableProperty(false)
 					let property3 = MutableProperty(false)
-					expect(Property.any([property1, property2, property3]).value).to(beFalse())
+					expect(Property.any(property1, property2, property3).value).to(beFalse())
 				}
 
 				it("should emit false when array of properties is empty") {

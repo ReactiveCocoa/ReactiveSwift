@@ -706,7 +706,7 @@ extension SignalProducer {
 		return SignalProducer<U, F>.nonSerializing { observer, lifetime in
 			self.startWithSignal { signal, interrupter in
 				lifetime += interrupter
-				transform(signal).observe(observer)
+				lifetime += transform(signal).observe(observer)
 			}
 		}
 	}
@@ -719,7 +719,7 @@ extension SignalProducer {
 	/// - returns: A factory that creates a SignalProducer with the given operator
 	///            applied. `self` would be the LHS, and the factory input would
 	///            be the RHS.
-	fileprivate func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	internal func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { right in
 			return SignalProducer<V, G> { observer, lifetime in
 				right.startWithSignal { rightSignal, rightInterrupter in
@@ -727,7 +727,7 @@ extension SignalProducer {
 
 					self.startWithSignal { leftSignal, leftInterrupter in
 						lifetime += leftInterrupter
-						transform(leftSignal)(rightSignal).observe(observer)
+						lifetime += transform(leftSignal)(rightSignal).observe(observer)
 					}
 				}
 			}
@@ -742,7 +742,7 @@ extension SignalProducer {
 	/// - returns: A factory that creates a SignalProducer with the given operator
 	///            applied. `self` would be the LHS, and the factory input would
 	///            be the RHS.
-	fileprivate func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	internal func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { right in
 			return SignalProducer<V, G> { observer, lifetime in
 				self.startWithSignal { leftSignal, leftInterrupter in
@@ -750,7 +750,7 @@ extension SignalProducer {
 
 					right.startWithSignal { rightSignal, rightInterrupter in
 						lifetime += rightInterrupter
-						transform(leftSignal)(rightSignal).observe(observer)
+						lifetime += transform(leftSignal)(rightSignal).observe(observer)
 					}
 				}
 			}
@@ -2810,6 +2810,18 @@ extension SignalProducer where Value == Bool {
 	public static func all<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
 		return combineLatest(booleans, emptySentinel: []).map { $0.reduce(true) { $0 && $1 } }
 	}
+    
+    /// Create a producer that computes a logical AND between the latest values of `booleans`.
+    ///
+    /// If no producer is given in `booleans`, the resulting producer constantly emits `true`.
+    ///
+    /// - parameters:
+    ///   - booleans: Boolean producers to be combined.
+    ///
+    /// - returns: A producer that emits the logical AND results.
+    public static func all(_ booleans: SignalProducer<Value, Error>...) -> SignalProducer<Value, Error> {
+        return .all(booleans)
+    }
 	
 	/// Create a producer that computes a logical AND between the latest values of `booleans`.
     ///
@@ -2856,6 +2868,18 @@ extension SignalProducer where Value == Bool {
 	public static func any<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
 		return combineLatest(booleans, emptySentinel: []).map { $0.reduce(false) { $0 || $1 } }
 	}
+    
+    /// Create a producer that computes a logical OR between the latest values of `booleans`.
+    ///
+    /// If no producer is given in `booleans`, the resulting producer constantly emits `false`.
+    ///
+    /// - parameters:
+    ///   - booleans: Boolean producers to be combined.
+    ///
+    /// - returns: A producer that emits the logical OR results.
+    public static func any(_ booleans: SignalProducer<Value, Error>...) -> SignalProducer<Value, Error> {
+        return .any(booleans)
+    }
 	
 	/// Create a producer that computes a logical OR between the latest values of `booleans`.
 	///

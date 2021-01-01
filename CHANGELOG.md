@@ -5,13 +5,26 @@
 
    The input observer of these variants assume that mutual exclusion has already been enforced among its callers.
 
-   You can create these variants through four `Signal` static methods: `nonSerializing(_:)`, `nonSerializingPipe(_:)`, `reentrant(_:)` and `reentrantPipe(_:)`. These would be adopted by ReactiveCocoa UIKit bindings to improve interoperability with Loop, to tackle some legitimate recursive delivery scenarios (e.g. around first responder management), and also to reduce fine-grained locking in ReactiveCocoa.
+   You can create these variants through four `Signal` static methods: `unserialized(_:)`, `unserializedPipe(_:)`, `reentrant(_:)` and `reentrantPipe(_:)`. These would be adopted by ReactiveCocoa UIKit bindings to improve interoperability with Loop, to tackle some legitimate recursive delivery scenarios (e.g. around first responder management), and also to reduce fine-grained locking in ReactiveCocoa.
 
    Note that the default behavior of `Signal` has not been changed — event serialization remains the default behavior.
 
-1. `SignalProducer` now similarly offers `nonSerializing(_:)`. (#797)
+1. `SignalProducer` now similarly offers `unserialized(_:)`. (#797)
 
 1. `Signal` and Properties now use fewer locks, which should translate into minor performance improvements. (#797)
+
+# 6.5.0
+
+1. Add `ExpressibleByNilLiteral` constraint to `OptionalProtocol` (#805, kudos to @nkristek)
+
+1. Fixed a `SignalProducer.lift` issue which may leak intermediate signals. (#808) 
+
+1. Add variadic sugar for boolean static methods such as `Property.any(boolProperty1, boolProperty2, boolProperty3)` (#801, kudos to @fortmarek)
+
+
+# 6.4.0
+1. Bump min. deployment target to iOS 9 when using swift packages to silence Xcode 12 warnings. Update Quick & Nibmle to the latest version when using swift packages.
+>>>>>>> origin/master
 
 1. Fix a debug assertion in `Lock.try()` that could be raised in earlier OS versions (< iOS 10.0, < macOS 10.12). (#747, #788)
 

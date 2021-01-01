@@ -849,9 +849,40 @@ class SignalProducerSpec: QuickSpec {
 
 					expect(result?.value) == [1, 4, 9, 16]
 				}
+
+				it("should interrupt all intermediate signals when the upstream is terminated") {
+					let baseProducer = SignalProducer<Int, Never>.empty
+
+					var lastEvent: Signal<Int, Never>.Event?
+
+					var isNeverEndingSignalDisposed = false
+
+					let disposable = baseProducer
+						.lift { _ in Signal.never.on(disposed: { isNeverEndingSignalDisposed = true }) }
+						.start { event in
+							lastEvent = event
+						}
+
+					expect(lastEvent).to(beNil())
+					expect(isNeverEndingSignalDisposed) == false
+
+					disposable.dispose()
+					expect(lastEvent) == .interrupted
+					expect(isNeverEndingSignalDisposed) == true
+				}
 			}
 
 			describe("over binary operators") {
+				var isNeverEndingSignalDisposed = false
+
+				let binaryLiftTransform = { (_: Signal<Int, Never>) -> (Signal<Int, Never>) -> Signal<Int, Never> in
+					{ (_: Signal<Int, Never>) in
+						Signal<Int, Never>.never.on(disposed: { isNeverEndingSignalDisposed = true })
+					}
+				}
+
+				beforeEach { isNeverEndingSignalDisposed = false }
+
 				it("should invoke transformation once per started signal") {
 					let baseProducer = SignalProducer<Int, Never>([1, 2])
 					let otherProducer = SignalProducer<Int, Never>([3, 4])
@@ -888,6 +919,44 @@ class SignalProducerSpec: QuickSpec {
 					let result = producer.collect().single()
 
 					expect(result?.value) == [5, 7, 9]
+				}
+
+				it("[left associative] should interrupt all intermediate signals when the upstream is terminated") {
+					let baseProducer = SignalProducer<Int, Never>.empty
+
+					var lastEvent: Signal<Int, Never>.Event?
+
+					let disposable = baseProducer
+						.liftLeft(binaryLiftTransform)(.empty)
+						.start { event in
+							lastEvent = event
+						}
+
+					expect(lastEvent).to(beNil())
+					expect(isNeverEndingSignalDisposed) == false
+
+					disposable.dispose()
+					expect(lastEvent) == .interrupted
+					expect(isNeverEndingSignalDisposed) == true
+				}
+
+				it("[right associative] should interrupt all intermediate signals when the upstream is terminated") {
+					let baseProducer = SignalProducer<Int, Never>.empty
+
+					var lastEvent: Signal<Int, Never>.Event?
+
+					let disposable = baseProducer
+						.liftRight(binaryLiftTransform)(.empty)
+						.start { event in
+							lastEvent = event
+						}
+
+					expect(lastEvent).to(beNil())
+					expect(isNeverEndingSignalDisposed) == false
+
+					disposable.dispose()
+					expect(lastEvent) == .interrupted
+					expect(isNeverEndingSignalDisposed) == true
 				}
 			}
 
@@ -3623,7 +3692,7 @@ class SignalProducerSpec: QuickSpec {
 				}
 			}
 			
-			it("should emit false when all producers in array emit false") {
+			it("should emit false when all producers emit false") {
 				let producer1 = SignalProducer<Bool, Never> { observer, _ in
 					observer.send(value: false)
 					observer.sendCompleted()
@@ -3637,7 +3706,7 @@ class SignalProducerSpec: QuickSpec {
 					observer.sendCompleted()
 				}
 
-				SignalProducer.any([producer1, producer2, producer3]).startWithValues { value in
+				SignalProducer.any(producer1, producer2, producer3).startWithValues { value in
 					expect(value).to(beFalse())
 				}
 			}
