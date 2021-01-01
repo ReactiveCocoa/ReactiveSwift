@@ -355,7 +355,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-	public static func reentrant(_ generator: (Observer, Lifetime) -> Void) -> Signal {
+	public static func reentrantUnserialized(_ generator: (Observer, Lifetime) -> Void) -> Signal {
 		self.init(Core<NoLock> { innerObserver, lifetime in
 			var eventQueue: [Event] = []
 			var isInLoop = false
@@ -552,10 +552,10 @@ extension Signal {
 	///
 	/// - returns: A 2-tuple of the output end of the pipe as `Signal`, and the input end
 	///            of the pipe as `Signal.Observer`.
-	public static func reentrantPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
+	public static func reentrantUnserializedPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
 		var observer: Observer!
 
-		let signal = reentrant { innerObserver, lifetime in
+		let signal = reentrantUnserialized { innerObserver, lifetime in
 			observer = innerObserver
 			lifetime += disposable
 		}

@@ -200,10 +200,10 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
-		describe("reentrant") {
+		describe("reentrantUnserialized") {
 			#if arch(x86_64) && canImport(Darwin)
 			it("should not crash") {
-				let (signal, observer) = Signal<Int, Never>.reentrantPipe()
+				let (signal, observer) = Signal<Int, Never>.reentrantUnserializedPipe()
 				var values: [Int] = []
 
 				signal
@@ -221,7 +221,7 @@ class SignalSpec: QuickSpec {
 			#endif
 
 			it("should drain enqueued values in submission order after the observer callout has completed") {
-				let (signal, observer) = Signal<Int, Never>.reentrantPipe()
+				let (signal, observer) = Signal<Int, Never>.reentrantUnserializedPipe()
 				var values: [Int] = []
 
 				signal
