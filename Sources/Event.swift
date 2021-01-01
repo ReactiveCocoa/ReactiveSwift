@@ -708,96 +708,20 @@ extension Signal.Event {
 	}
 
 	internal static func observe(on scheduler: Scheduler) -> Transformation<Value, Error> {
-		return { action, lifetime in
-			lifetime.observeEnded {
-				scheduler.schedule {
-					action(.interrupted)
-				}
-			}
-
-			return Signal.Observer { event in
-				scheduler.schedule {
-					if !lifetime.hasEnded {
-						action(event)
-					}
-				}
-			}
+		return { downstream, lifetime in
+			Operators.ObserveOn(downstream: downstream, downstreamLifetime: lifetime, target: scheduler)
 		}
 	}
 
 	internal static func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> Transformation<U, Error> {
-		return { action, lifetime in
-			let box = Atomic<Value?>(nil)
-			let completionDisposable = SerialDisposable()
-			let valueDisposable = SerialDisposable()
-
-			lifetime += valueDisposable
-			lifetime += completionDisposable
-
-			lifetime.observeEnded {
-				scheduler.schedule {
-					action(.interrupted)
-				}
-			}
-
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					// Schedule only when there is no prior outstanding value.
-					if box.swap(value) == nil {
-						valueDisposable.inner = scheduler.schedule {
-							if let value = box.swap(nil) {
-								action(.value(transform(value)))
-							}
-						}
-					}
-
-				case .completed, .failed:
-					// Completion and failure should not discard the outstanding
-					// value.
-					completionDisposable.inner = scheduler.schedule {
-						action(event.map(transform))
-					}
-
-				case .interrupted:
-					// `interrupted` overrides any outstanding value and any
-					// scheduled completion/failure.
-					valueDisposable.dispose()
-					completionDisposable.dispose()
-					scheduler.schedule {
-						action(.interrupted)
-					}
-				}
-			}
+		return { downstream, lifetime in
+			Operators.LazyMap(downstream: downstream, downstreamLifetime: lifetime, target: scheduler, transform: transform)
 		}
 	}
 
 	internal static func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
-		precondition(interval >= 0)
-
-		return { action, lifetime in
-			lifetime.observeEnded {
-				scheduler.schedule {
-					action(.interrupted)
-				}
-			}
-
-			return Signal.Observer { event in
-				switch event {
-				case .failed, .interrupted:
-					scheduler.schedule {
-						action(event)
-					}
-
-				case .value, .completed:
-					let date = scheduler.currentDate.addingTimeInterval(interval)
-					scheduler.schedule(after: date) {
-						if !lifetime.hasEnded {
-							action(event)
-						}
-					}
-				}
-			}
+		return { downstream, lifetime in
+			Operators.Delay(downstream: downstream, downstreamLifetime: lifetime, target: scheduler, interval: interval)
 		}
 	}
 
