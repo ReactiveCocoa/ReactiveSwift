@@ -85,6 +85,14 @@
 		9A2D5CFA259F8634005682ED /* UniqueValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CF8259F8634005682ED /* UniqueValues.swift */; };
 		9A2D5CFB259F8634005682ED /* UniqueValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CF8259F8634005682ED /* UniqueValues.swift */; };
 		9A2D5CFC259F8634005682ED /* UniqueValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CF8259F8634005682ED /* UniqueValues.swift */; };
+		9A2D5D03259F8C39005682ED /* Reduce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D02259F8C39005682ED /* Reduce.swift */; };
+		9A2D5D04259F8C39005682ED /* Reduce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D02259F8C39005682ED /* Reduce.swift */; };
+		9A2D5D05259F8C39005682ED /* Reduce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D02259F8C39005682ED /* Reduce.swift */; };
+		9A2D5D06259F8C39005682ED /* Reduce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D02259F8C39005682ED /* Reduce.swift */; };
+		9A2D5D0D259F8D1F005682ED /* ScanMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D0C259F8D1F005682ED /* ScanMap.swift */; };
+		9A2D5D0E259F8D1F005682ED /* ScanMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D0C259F8D1F005682ED /* ScanMap.swift */; };
+		9A2D5D0F259F8D1F005682ED /* ScanMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D0C259F8D1F005682ED /* ScanMap.swift */; };
+		9A2D5D10259F8D1F005682ED /* ScanMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D0C259F8D1F005682ED /* ScanMap.swift */; };
 		9A67963B1F6056B90058C5B4 /* UninhabitedTypeGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */; };
 		9A67963C1F6059420058C5B4 /* UninhabitedTypeGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */; };
 		9A67963D1F6059430058C5B4 /* UninhabitedTypeGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */; };
@@ -284,6 +292,8 @@
 		9A2D5CE4259F852B005682ED /* CombinePrevious.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinePrevious.swift; sourceTree = "<group>"; };
 		9A2D5CEE259F85AE005682ED /* SkipRepeats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkipRepeats.swift; sourceTree = "<group>"; };
 		9A2D5CF8259F8634005682ED /* UniqueValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniqueValues.swift; sourceTree = "<group>"; };
+		9A2D5D02259F8C39005682ED /* Reduce.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reduce.swift; sourceTree = "<group>"; };
+		9A2D5D0C259F8D1F005682ED /* ScanMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMap.swift; sourceTree = "<group>"; };
 		9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UninhabitedTypeGuards.swift; sourceTree = "<group>"; };
 		9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeprecationSpec.swift; sourceTree = "<group>"; };
 		9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingProperty.swift; sourceTree = "<group>"; };
@@ -441,6 +451,8 @@
 				9A2D5CE4259F852B005682ED /* CombinePrevious.swift */,
 				9A2D5CEE259F85AE005682ED /* SkipRepeats.swift */,
 				9A2D5CF8259F8634005682ED /* UniqueValues.swift */,
+				9A2D5D02259F8C39005682ED /* Reduce.swift */,
+				9A2D5D0C259F8D1F005682ED /* ScanMap.swift */,
 			);
 			path = Observers;
 			sourceTree = "<group>";
@@ -942,8 +954,10 @@
 				9A090C171DA0309E00EE97CA /* Reactive.swift in Sources */,
 				57A4D1BB1BA13D7A00F7D4B1 /* Signal.swift in Sources */,
 				9AFA492824E9B15C003D263C /* Operators.swift in Sources */,
+				9A2D5D10259F8D1F005682ED /* ScanMap.swift in Sources */,
 				9A2D5CE8259F852B005682ED /* CombinePrevious.swift in Sources */,
 				9A67963E1F6059440058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
+				9A2D5D06259F8C39005682ED /* Reduce.swift in Sources */,
 				9AFA491424E9A196003D263C /* Map.swift in Sources */,
 				9A2D5CFC259F8634005682ED /* UniqueValues.swift in Sources */,
 				9AFA491E24E9A925003D263C /* Filter.swift in Sources */,
@@ -1007,8 +1021,10 @@
 				9A090C161DA0309E00EE97CA /* Reactive.swift in Sources */,
 				A9B315C31B3940810001CB9C /* Signal.swift in Sources */,
 				9AFA492724E9B15C003D263C /* Operators.swift in Sources */,
+				9A2D5D0F259F8D1F005682ED /* ScanMap.swift in Sources */,
 				9A2D5CE7259F852B005682ED /* CombinePrevious.swift in Sources */,
 				9A67963D1F6059430058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
+				9A2D5D05259F8C39005682ED /* Reduce.swift in Sources */,
 				9AFA491324E9A196003D263C /* Map.swift in Sources */,
 				9A2D5CFB259F8634005682ED /* UniqueValues.swift in Sources */,
 				9AFA491D24E9A925003D263C /* Filter.swift in Sources */,
@@ -1044,8 +1060,10 @@
 				D08C54B31A69A2AE00AD8286 /* Signal.swift in Sources */,
 				D85C652A1C0D84C7005A77AD /* Flatten.swift in Sources */,
 				9AFA492524E9B15C003D263C /* Operators.swift in Sources */,
+				9A2D5D0D259F8D1F005682ED /* ScanMap.swift in Sources */,
 				9A2D5CE5259F852B005682ED /* CombinePrevious.swift in Sources */,
 				9A67963B1F6056B90058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
+				9A2D5D03259F8C39005682ED /* Reduce.swift in Sources */,
 				9AFA491124E9A196003D263C /* Map.swift in Sources */,
 				9A2D5CF9259F8634005682ED /* UniqueValues.swift in Sources */,
 				9AFA491B24E9A925003D263C /* Filter.swift in Sources */,
@@ -1109,8 +1127,10 @@
 				9A090C151DA0309E00EE97CA /* Reactive.swift in Sources */,
 				D85C652B1C0E70E3005A77AD /* Flatten.swift in Sources */,
 				9AFA492624E9B15C003D263C /* Operators.swift in Sources */,
+				9A2D5D0E259F8D1F005682ED /* ScanMap.swift in Sources */,
 				9A2D5CE6259F852B005682ED /* CombinePrevious.swift in Sources */,
 				9A67963C1F6059420058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
+				9A2D5D04259F8C39005682ED /* Reduce.swift in Sources */,
 				9AFA491224E9A196003D263C /* Map.swift in Sources */,
 				9A2D5CFA259F8634005682ED /* UniqueValues.swift in Sources */,
 				9AFA491C24E9A925003D263C /* Filter.swift in Sources */,

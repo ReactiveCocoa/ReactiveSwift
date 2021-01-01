@@ -530,22 +530,8 @@ extension Signal.Event {
 	}
 
 	internal static func reduce<U>(into initialResult: U, _ nextPartialResult: @escaping (inout U, Value) -> Void) -> Transformation<U, Error> {
-		return { action, _ in
-			var accumulator = initialResult
-
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					nextPartialResult(&accumulator, value)
-				case .completed:
-					action(.value(accumulator))
-					action(.completed)
-				case .interrupted:
-					action(.interrupted)
-				case let .failed(error):
-					action(.failed(error))
-				}
-			}
+		return { downstream, _ in
+			Operators.Reduce(downstream: downstream, initial: initialResult, nextPartialResult: nextPartialResult)
 		}
 	}
 
@@ -565,22 +551,8 @@ extension Signal.Event {
 	}
 
 	internal static func scanMap<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Transformation<U, Error> {
-		return { action, _ in
-			var accumulator = initialState
-
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					let output = next(&accumulator, value)
-					action(.value(output))
-				case .completed:
-					action(.completed)
-				case .interrupted:
-					action(.interrupted)
-				case let .failed(error):
-					action(.failed(error))
-				}
-			}
+		return { downstream, _ in
+			Operators.ScanMap(downstream: downstream, initial: initialState, next: next)
 		}
 	}
 
