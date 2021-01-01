@@ -220,90 +220,32 @@ extension Signal.Event {
 	}
 
 	internal static func map<U>(_ transform: @escaping (Value) -> U) -> Transformation<U, Error> {
-		return { action, _ in
-			Operators.Map(downstream: action, transform: transform)
+		return { downstream, _ in
+			Operators.Map(downstream: downstream, transform: transform)
 		}
 	}
 
 	internal static func mapError<E>(_ transform: @escaping (Error) -> E) -> Transformation<Value, E> {
-		return { action, _ in
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					action(.value(value))
-
-				case .completed:
-					action(.completed)
-
-				case let .failed(error):
-					action(.failed(transform(error)))
-
-				case .interrupted:
-					action(.interrupted)
-				}
-			}
+		return { downstream, _ in
+			Operators.MapError(downstream: downstream, transform: transform)
 		}
 	}
 
 	internal static var materialize: Transformation<Signal<Value, Error>.Event, Never> {
-		return { action, _ in
-			return Signal.Observer { event in
-				action(.value(event))
-
-				switch event {
-				case .interrupted:
-					action(.interrupted)
-
-				case .completed, .failed:
-					action(.completed)
-
-				case .value:
-					break
-				}
-			}
+		return { downstream, _ in
+			Operators.Materialize(downstream: downstream)
 		}
 	}
 
 	internal static var materializeResults: Transformation<Result<Value, Error>, Never> {
-		return { action, _ in
-			return Signal.Observer { event in
-				switch event {
-				case .value(let value):
-					action(.value(Result(success: value)))
-
-				case .failed(let error):
-					action(.value(Result(failure: error)))
-					action(.completed)
-
-				case .completed:
-					action(.completed)
-
-				case .interrupted:
-					action(.interrupted)
-				}
-			}
+		return { downstream, _ in
+			Operators.MaterializeAsResult(downstream: downstream)
 		}
 	}
 
 	internal static func attemptMap<U>(_ transform: @escaping (Value) -> Result<U, Error>) -> Transformation<U, Error> {
-		return { action, _ in
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					switch transform(value) {
-					case let .success(value):
-						action(.value(value))
-					case let .failure(error):
-						action(.failed(error))
-					}
-				case let .failed(error):
-					action(.failed(error))
-				case .completed:
-					action(.completed)
-				case .interrupted:
-					action(.interrupted)
-				}
-			}
+		return { downstream, _ in
+			Operators.AttemptMap(downstream: downstream, transform: transform)
 		}
 	}
 
