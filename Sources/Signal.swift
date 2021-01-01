@@ -691,8 +691,8 @@ extension Signal {
 			// Create an input sink whose events would go through the given
 			// event transformation, and have the resulting events propagated
 			// to the resulting `Signal`.
-			let input = transform(output.send, lifetime)
-			lifetime += self.observe(input)
+			let input = transform(output, lifetime)
+			lifetime += self.observe(input.assumeUnboundDemand())
 		}
 	}
 

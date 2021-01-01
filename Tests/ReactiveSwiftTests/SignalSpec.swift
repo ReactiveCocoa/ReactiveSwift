@@ -402,7 +402,7 @@ class SignalSpec: QuickSpec {
 				group.wait()
 
 				expect(executionCounter.value) == iterations * 2
-				expect(counter.value).toEventually(equal(iterations), timeout: 5)
+				expect(counter.value).toEventually(equal(iterations), timeout: .seconds(5))
 			}
 		}
 
