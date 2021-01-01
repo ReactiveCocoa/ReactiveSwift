@@ -1,6 +1,18 @@
 # master
 *Please add new entries at the top.*
 
+# 6.5.0
+
+1. Add `ExpressibleByNilLiteral` constraint to `OptionalProtocol` (#805, kudos to @nkristek)
+
+1. Fixed a `SignalProducer.lift` issue which may leak intermediate signals. (#808) 
+
+1. Add variadic sugar for boolean static methods such as `Property.any(boolProperty1, boolProperty2, boolProperty3)` (#801, kudos to @fortmarek)
+
+
+# 6.4.0
+1. Bump min. deployment target to iOS 9 when using swift packages to silence Xcode 12 warnings. Update Quick & Nibmle to the latest version when using swift packages.
+
 1. Fix a debug assertion in `Lock.try()` that could be raised in earlier OS versions (< iOS 10.0, < macOS 10.12). (#747, #788)
 
    Specifically, ReactiveSwift now recognizes `EDEADLK` as expected error code from `pthread_mutex_trylock` alongside `0`, `EBUSY` and `EAGAIN`.

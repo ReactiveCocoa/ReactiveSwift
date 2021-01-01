@@ -2210,6 +2210,16 @@ extension Signal where Value == Bool {
 	public static func all<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> Signal<Value, Error> where BooleansCollection.Element == Signal<Value, Error> {
 		return combineLatest(booleans).map { $0.reduce(true) { $0 && $1 } }
 	}
+    
+    /// Create a signal that computes a logical AND between the latest values of `booleans`.
+    ///
+    /// - parameters:
+    ///   - booleans: Boolean signals to be combined.
+    ///
+    /// - returns: A signal that emits the logical AND results.
+    public static func all(_ booleans: Signal<Value, Error>...) -> Signal<Value, Error> {
+        return .all(booleans)
+    }
 
 	/// Create a signal that computes a logical OR between the latest values of `self`
 	/// and `signal`.
@@ -2230,7 +2240,17 @@ extension Signal where Value == Bool {
 	/// - returns: A signal that emits the logical OR results.
 	public static func any<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> Signal<Value, Error> where BooleansCollection.Element == Signal<Value, Error> {
 		return combineLatest(booleans).map { $0.reduce(false) { $0 || $1 } }
-	}
+    }
+    
+    /// Create a signal that computes a logical OR between the latest values of `booleans`.
+    ///
+    /// - parameters:
+    ///   - booleans: Boolean signals to be combined.
+    ///
+    /// - returns: A signal that emits the logical OR results.
+    public static func any(_ booleans: Signal<Value, Error>...) -> Signal<Value, Error> {
+        return .any(booleans)
+    }
 }
 
 extension Signal {

@@ -24,6 +24,7 @@ class SignalLifetimeSpec: QuickSpec {
 			it("should automatically interrupt if the input observer is not retained") {
 				let disposable = AnyDisposable()
 				var outerSignal: Signal<Never, Never>!
+				_ = outerSignal
 
 				func scope() {
 					let (signal, observer) = Signal<Never, Never>.pipe(disposable: disposable)
@@ -42,6 +43,7 @@ class SignalLifetimeSpec: QuickSpec {
 				let disposable = AnyDisposable()
 				var isInterrupted = false
 				var outerSignal: Signal<Never, Never>!
+				_ = outerSignal
 
 				func scope() {
 					let (signal, observer) = Signal<Never, Never>.pipe(disposable: disposable)
