@@ -374,49 +374,16 @@ extension Signal.Event {
 
 extension Signal.Event where Value: EventProtocol, Error == Never {
 	internal static var dematerialize: Transformation<Value.Value, Value.Error> {
-		return { action, _ in
-			return Signal.Observer { event in
-				switch event {
-				case let .value(innerEvent):
-					action(innerEvent.event)
-
-				case .failed:
-					fatalError("Never is impossible to construct")
-
-				case .completed:
-					action(.completed)
-
-				case .interrupted:
-					action(.interrupted)
-				}
-			}
+		return { downstream, _ in
+			Operators.Dematerialize(downstream: downstream)
 		}
 	}
 }
 
 extension Signal.Event where Value: ResultProtocol, Error == Never {
 	internal static var dematerializeResults: Transformation<Value.Success, Value.Failure> {
-		return { action, _ in
-			return Signal.Observer { event in
-				let event = event.map { $0.result }
-
-				switch event {
-				case .value(.success(let value)):
-					action(.value(value))
-
-				case .value(.failure(let error)):
-					action(.failed(error))
-
-				case .failed:
-					fatalError("Never is impossible to construct")
-
-				case .completed:
-					action(.completed)
-
-				case .interrupted:
-					action(.interrupted)
-				}
-			}
+		return { downstream, _ in
+			Operators.DematerializeResults(downstream: downstream)
 		}
 	}
 }
