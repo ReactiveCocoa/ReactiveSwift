@@ -2918,7 +2918,7 @@ class SignalProducerSpec: QuickSpec {
 				expect(result).to(beNil())
 
 				observer.send(value: 1)
-				expect(result).toEventually(equal(1), timeout: 5.0)
+				expect(result).toEventually(equal(1), timeout: .seconds(5))
 			}
 
 			it("should return a nil result if no values are sent before completion") {
@@ -3746,8 +3746,11 @@ class SignalProducerSpec: QuickSpec {
 // MARK: - Helpers
 
 private func == <T>(left: Expectation<T.Type>, right: Any.Type) {
-	left.to(Predicate.fromDeprecatedClosure { expression, _ in
-		return try expression.evaluate()! == right
+	left.to(Predicate { expression in
+		PredicateResult(
+			bool: try expression.evaluate()! == right,
+			message: ExpectationMessage.expectedActualValueTo("equal to")
+		)
 	}.requireNonNil)
 }
 
