@@ -346,7 +346,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 			// Wrap the output sink to enforce the "no event beyond the terminal
 			// event" contract, and the disposal upon termination.
-			let wrappedOutput: Signal<Value, Error>.Observer.Action = { event in
+			let wrappedOutput = Signal<Value, Error>.Observer { event in
 				if !hasDeliveredTerminalEvent {
 					output.send(event)
 
@@ -368,7 +368,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 			let input = transform(wrappedOutput, Lifetime(disposables))
 
 			// Return the input sink to the source producer core.
-			return Signal<SourceValue, SourceError>.Observer(input)
+			return input.assumeUnboundDemand()
 		}
 
 		// Manual interruption disposes of `disposables`, which in turn notifies
