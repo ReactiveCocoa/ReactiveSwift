@@ -1289,7 +1289,8 @@ class SignalProducerSpec: QuickSpec {
 
 			it("shouldn't overflow on a real scheduler") {
 				let scheduler = QueueScheduler.makeForTesting()
-				let producer = SignalProducer.interval("abc", interval: .seconds(3), on: scheduler)
+				let testSequence = repeatElement(Character("a"), count: 1_000_000)
+				let producer = SignalProducer.interval(testSequence, interval: .seconds(3), on: scheduler)
 				producer
 					.start()
 					.dispose()
