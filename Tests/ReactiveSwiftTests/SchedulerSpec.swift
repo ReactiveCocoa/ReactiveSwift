@@ -229,7 +229,7 @@ class SchedulerSpec: QuickSpec {
 					expect(count) == 0
 					
 					scheduler.queue.resume()
-					expect(count).toEventually(equal(timesToIncrement), pollInterval: 0.1)
+					expect(count).toEventually(equal(timesToIncrement), pollInterval: .milliseconds(100))
 				}
 				
 				it("should cancel repeatedly run actions on disposal") {
