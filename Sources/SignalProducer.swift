@@ -3038,3 +3038,67 @@ extension SignalProducer where Value == Date, Error == Never {
 		}
 	}
 }
+
+extension SignalProducer where Error == Never {
+	/// Creates a producer that will send the values from the given sequence
+	/// separated by the given time interval.
+	///
+	/// - note: If `values` is an infinite sequeence this `SignalProducer` will never complete naturally,
+	///         so all invocations of `start()` must be disposed to avoid leaks.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	/// - parameters:
+	///   - values: A sequence of values that will be sent as separate
+	///             `value` events and then complete.
+	///   - interval: An interval between value events.
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A producer that sends the next value from the sequence every `interval` seconds.
+	public static func interval<S: Sequence>(
+		_ values: S,
+		interval: DispatchTimeInterval,
+		on scheduler: DateScheduler
+	) -> SignalProducer<S.Element, Error> where S.Iterator.Element == Value {
+
+		return SignalProducer { observer, lifetime in
+			var iterator = values.makeIterator()
+
+			lifetime += scheduler.schedule(
+				after: scheduler.currentDate.addingTimeInterval(interval),
+				interval: interval,
+				// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
+				// at least 10% of the timer interval.
+				leeway: interval * 0.1,
+				action: {
+					switch iterator.next() {
+					case let .some(value):
+						observer.send(value: value)
+					case .none:
+						observer.sendCompleted()
+					}
+				}
+			)
+		}
+	}
+
+	/// Creates a producer that will send the sequence of all integers
+	/// from 0 to infinity, or until disposed.
+	///
+	/// - note: This timer will never complete naturally, so all invocations of
+	///         `start()` must be disposed to avoid leaks.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	/// - parameters:
+	///   - interval: An interval between value events.
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A producer that sends a sequential `Int` value every `interval` seconds.
+	public static func interval(
+		_ interval: DispatchTimeInterval,
+		on scheduler: DateScheduler
+	) -> SignalProducer where Value == Int {
+		.interval(0..., interval: interval, on: scheduler)
+	}
+}
