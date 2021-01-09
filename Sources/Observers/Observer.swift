@@ -33,3 +33,16 @@ public enum Termination<Error: Swift.Error> {
 	case completed
 	case interrupted
 }
+
+extension Signal.Event {
+	init(_ termination: Termination<Error>) {
+		switch termination {
+		case .completed:
+			self = .completed
+		case .interrupted:
+			self = .interrupted
+		case let .failed(error):
+			self = .failed(error)
+		}
+	}
+}
