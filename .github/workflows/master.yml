@@ -22,8 +22,8 @@ jobs:
           key: 4-carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
       - name: Carthage verification
         run: |
-          carthage checkout
-          carthage build --cache-builds --no-skip-current
+          ./script/carthage checkout
+          ./script/carthage build --cache-builds --no-skip-current
 
   swiftpm-macos:
     if: ${{ github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.label.name == 'ci:verify' ) }}
