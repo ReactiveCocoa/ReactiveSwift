@@ -104,7 +104,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 
 /// `Lock` exposes `os_unfair_lock` on supported platforms, with pthread mutex as the
 /// fallback.
-internal class Lock {
+internal class Lock: LockProtocol {
 	#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 	@available(iOS 10.0, *)
 	@available(macOS 10.12, *)
@@ -195,14 +195,14 @@ internal class Lock {
 		}
 	}
 
-	static func make() -> Lock {
+	static func make() -> Self {
 		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 		if #available(*, iOS 10.0, macOS 10.12, tvOS 10.0, watchOS 3.0) {
-			return UnfairLock()
+			return UnfairLock() as! Self
 		}
 		#endif
 
-		return PthreadLock()
+		return PthreadLock() as! Self
 	}
 
 	private init() {}
@@ -210,6 +210,22 @@ internal class Lock {
 	func lock() { fatalError() }
 	func unlock() { fatalError() }
 	func `try`() -> Bool { fatalError() }
+}
+
+internal protocol LockProtocol {
+	static func make() -> Self
+	
+	func lock()
+	func unlock()
+	func `try`() -> Bool
+}
+
+internal struct NoLock: LockProtocol {
+	static func make() -> NoLock { NoLock() }
+
+	func lock() {}
+	func unlock() {}
+	func `try`() -> Bool { true }
 }
 
 /// An atomic variable.
