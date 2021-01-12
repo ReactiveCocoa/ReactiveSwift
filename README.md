@@ -73,7 +73,7 @@ code and state to bridge the gap.
 
 ## Installation
 
-ReactiveSwift supports macOS 10.9+, iOS 8.0+, watchOS 2.0+, tvOS 9.0+ and Linux.
+ReactiveSwift supports macOS 10.9+, iOS 9.0+, watchOS 2.0+, tvOS 9.0+ and Linux.
 
 #### Carthage
 
