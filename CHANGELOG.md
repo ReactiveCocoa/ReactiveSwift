@@ -2,9 +2,14 @@
 *Please add new entries at the top.*
 
 # 6.6.0
-# 6.5.1
-1. Added the `interval` operator (#810, kudos to @mluisbrown)
-1. Bumped deployment target to iOS 9.0, per Xcode 12 warnings 
+
+1. Added the `SignalProducer.Type.interval()` operator for emitting values on a regular schedule. (#810, kudos to @mluisbrown)
+
+1. When debugging your application, the call stacks involving ReactiveSwift may start to look cleaner and less cryptic. This is an on-going refactoring effort to improve the developer experience. See #799 for an example.
+
+1. Bumped deployment target to iOS 9.0, per Xcode 12 warnings. (#818, kudos to @harleyjcooper)
+
+1. Fixed a few deprecation warning when the project is being built. (#819, kudos to @apps4everyone)
 
 # 6.5.0
 
