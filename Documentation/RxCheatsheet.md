@@ -7,7 +7,7 @@ Inspired by the [RxSwift to Combine cheatsheet](https://github.com/CombineCommun
 
 |                       | RxSwift                          | ReactiveSwift                              |
 |-----------------------|----------------------------------|--------------------------------------------|
-| Deployment Target     | iOS 8.0+                         | iOS 8.0+
+| Deployment Target     | iOS 8.0+                         | iOS 9.0+
 | Platforms supported   | iOS, macOS, tvOS, watchOS, Linux | iOS, macOS, tvOS, watchOS, Linux
 | Spec                  | Reactive Extensions (ReactiveX)  | Originally ReactiveX, with significant divergence
 | Framework Consumption | Third-party                      | Third-party
