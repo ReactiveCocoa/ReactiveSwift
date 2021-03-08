@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+# 6.6.0
 # 6.5.1
 1. Added the `interval` operator (#810, kudos to @mluisbrown)
 1. Bumped deployment target to iOS 9.0, per Xcode 12 warnings 
