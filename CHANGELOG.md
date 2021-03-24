@@ -1,5 +1,6 @@
 # master
-*Please add new entries at the top.*
+
+1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants
 
 # 6.6.0
 
