@@ -4,6 +4,10 @@
 
 *Please add new entries at the top.*
 
+# 6.7.0
+
+1. Added actions to `SignalProducerConvertible` protocol to enable framework users use their custom types as `SignalProducer`
+
 # 6.6.0
 
 1. Added the `SignalProducer.Type.interval()` operator for emitting values on a regular schedule. (#810, kudos to @mluisbrown)

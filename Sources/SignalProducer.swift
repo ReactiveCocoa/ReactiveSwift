@@ -500,18 +500,6 @@ extension SignalProducer where Error == Swift.Error {
 	}
 }
 
-/// Represents reactive primitives that can be represented by `SignalProducer`.
-public protocol SignalProducerConvertible {
-	/// The type of values being sent by `self`.
-	associatedtype Value
-
-	/// The type of error that can occur on `self`.
-	associatedtype Error: Swift.Error
-
-	/// The `SignalProducer` representation of `self`.
-	var producer: SignalProducer<Value, Error> { get }
-}
-
 /// A protocol for constraining associated types to `SignalProducer`.
 public protocol SignalProducerProtocol {
 	/// The type of values being sent by `self`.
@@ -2012,17 +2000,21 @@ extension SignalProducer {
 	) -> SignalProducer<Value, Error> {
 		return SignalProducer(SignalCore {
 			let instance = self.core.makeInstance()
-			let signal = instance.signal.on(event: event,
-			                                failed: failed,
-			                                completed: completed,
-			                                interrupted: interrupted,
-			                                terminated: terminated,
-			                                disposed: disposed,
-			                                value: value)
+			let signal = instance.signal.on(
+				event: event,
+				failed: failed,
+				completed: completed,
+				interrupted: interrupted,
+				terminated: terminated,
+				disposed: disposed,
+				value: value
+			)
 
-			return .init(signal: signal,
-			             observerDidSetup: { starting?(); instance.observerDidSetup(); started?() },
-			             interruptHandle: instance.interruptHandle)
+			return .init(
+				signal: signal,
+				observerDidSetup: { starting?(); instance.observerDidSetup(); started?() },
+				interruptHandle: instance.interruptHandle
+			)
 		})
 	}
 
