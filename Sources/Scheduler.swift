@@ -563,6 +563,17 @@ public final class TestScheduler: DateScheduler {
 		lock.unlock()
 	}
 
+	/// Advances the virtualized clock by the given interval, dequeuing and
+	/// executing any actions along the way.
+	///
+	/// - parameters:
+	///   - interval: Interval by which the current date will be advanced.
+	public func advance(by interval: TimeInterval) {
+		lock.lock()
+		advance(to: currentDate.addingTimeInterval(interval))
+		lock.unlock()
+	}
+
 	/// Advances the virtualized clock to the given future date, dequeuing and
 	/// executing any actions up until that point.
 	///

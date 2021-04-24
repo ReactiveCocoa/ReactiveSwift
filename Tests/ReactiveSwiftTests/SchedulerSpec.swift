@@ -355,6 +355,15 @@ class SchedulerSpec: QuickSpec {
 				expect(scheduler.currentDate) == Date.distantFuture
 				expect(string) == "fuzzbuzzfoobar"
 			}
+
+			it("should advance by DispatchTimeInterval same as by TimeInterval") {
+				let schedulerB = TestScheduler(startDate: startDate)
+
+				scheduler.advance(by: .milliseconds(300))
+				schedulerB.advance(by: 0.3)
+
+				expect(scheduler.currentDate).to(equal(schedulerB.currentDate))
+			}
 		}
 	}
 }
