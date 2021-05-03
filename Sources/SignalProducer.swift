@@ -2340,9 +2340,10 @@ extension SignalProducer {
 			return producer
 		}
 
-		var retries = count
+		return SignalProducer { observer, lifetime in
+			var retries = count
 
-		return flatMapError { error -> SignalProducer<Value, Error> in
+			lifetime += flatMapError { error -> SignalProducer<Value, Error> in
 				// The final attempt shouldn't defer the error if it fails
 				var producer = SignalProducer<Value, Error>(error: error)
 				if retries > 0 {
@@ -2355,6 +2356,8 @@ extension SignalProducer {
 				return producer
 			}
 			.retry(upTo: count)
+			.start(observer)
+		}
 	}
 
 	/// Wait for completion of `self`, *then* forward all events from
