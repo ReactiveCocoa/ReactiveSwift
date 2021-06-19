@@ -418,6 +418,7 @@
 		D8170FC01B100EBC004192AD /* FoundationExtensionsSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FoundationExtensionsSpec.swift; sourceTree = "<group>"; };
 		D85C65291C0D84C7005A77AD /* Flatten.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Flatten.swift; sourceTree = "<group>"; };
 		D871D69E1B3B29A40070F16C /* Optional.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Optional.swift; sourceTree = "<group>"; };
+		E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "macOS-XCTest.xcconfig"; sourceTree = "<group>"; };
 		EBCC7DBB1BBF010C00A2AE92 /* Signal.Observer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = Signal.Observer.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 /* End PBXFileReference section */
 
@@ -719,6 +720,7 @@
 				D047263919E49FE8006002AA /* macOS-DynamicLibrary.xcconfig */,
 				D047263A19E49FE8006002AA /* macOS-Framework.xcconfig */,
 				D047263B19E49FE8006002AA /* macOS-StaticLibrary.xcconfig */,
+				E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */,
 			);
 			path = macOS;
 			sourceTree = "<group>";
@@ -1561,7 +1563,7 @@
 		};
 		D047260419E49ED7006002AA /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D047263719E49FE8006002AA /* macOS-Application.xcconfig */;
+			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
@@ -1572,7 +1574,7 @@
 		};
 		D047260519E49ED7006002AA /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D047263719E49FE8006002AA /* macOS-Application.xcconfig */;
+			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
@@ -1661,7 +1663,7 @@
 		};
 		D047263F19E4A008006002AA /* Profile */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D047263719E49FE8006002AA /* macOS-Application.xcconfig */;
+			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
@@ -1727,7 +1729,7 @@
 		};
 		D047264419E4A00B006002AA /* Test */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D047263719E49FE8006002AA /* macOS-Application.xcconfig */;
+			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
