@@ -7,8 +7,6 @@
 
 1. Fixed issue with `SignalProducer.Type.interval()` making Swift 5.3 a requirement. (#823 kudos to @mluisbrown) 
 
-*Please add new entries at the top.*
-
 # 6.6.0
 
 1. Added the `SignalProducer.Type.interval()` operator for emitting values on a regular schedule. (#810, kudos to @mluisbrown)
