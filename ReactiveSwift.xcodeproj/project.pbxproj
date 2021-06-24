@@ -560,21 +560,21 @@
 		D04725EC19E49ED7006002AA /* ReactiveSwift */ = {
 			isa = PBXGroup;
 			children = (
+				D03B4A3B19F4C281009E02AC /* Extensions */,
 				9AFA490A24E9A062003D263C /* Observers */,
+				D03B4A3919F4C25F009E02AC /* Signals */,
+				D04725ED19E49ED7006002AA /* Supporting Files */,
 				D04725EF19E49ED7006002AA /* ReactiveSwift.h */,
 				D0C312BB19EF2A5800984962 /* Atomic.swift */,
 				D0C312BC19EF2A5800984962 /* Bag.swift */,
+				9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */,
 				D0C312BE19EF2A5800984962 /* Disposable.swift */,
 				D08C54B51A69A3DB00AD8286 /* Event.swift */,
-				EBCC7DBB1BBF010C00A2AE92 /* Signal.Observer.swift */,
+				C79B647B1CD52E23003F2376 /* EventLogger.swift */,
 				D871D69E1B3B29A40070F16C /* Optional.swift */,
 				9A090C131DA0309E00EE97CA /* Reactive.swift */,
 				D0C312C819EF2A5800984962 /* Scheduler.swift */,
-				C79B647B1CD52E23003F2376 /* EventLogger.swift */,
-				D03B4A3919F4C25F009E02AC /* Signals */,
-				D03B4A3B19F4C281009E02AC /* Extensions */,
-				9ABCB1841D2A5B5A00BCA243 /* Deprecations+Removals.swift */,
-				D04725ED19E49ED7006002AA /* Supporting Files */,
+				EBCC7DBB1BBF010C00A2AE92 /* Signal.Observer.swift */,
 			);
 			name = ReactiveSwift;
 			path = Sources;
@@ -591,9 +591,11 @@
 		D04725F919E49ED7006002AA /* ReactiveSwiftTests */ = {
 			isa = PBXGroup;
 			children = (
+				D04725FA19E49ED7006002AA /* Supporting Files */,
 				D021671C1A6CD50500987861 /* ActionSpec.swift */,
 				D0C312EE19EF2A7700984962 /* AtomicSpec.swift */,
 				D0C312EF19EF2A7700984962 /* BagSpec.swift */,
+				9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */,
 				D0C312F019EF2A7700984962 /* DisposableSpec.swift */,
 				CA6F284F1C52626B001879D2 /* FlattenSpec.swift */,
 				D8170FC01B100EBC004192AD /* FoundationExtensionsSpec.swift */,
@@ -609,8 +611,6 @@
 				C79B64731CD38B2B003F2376 /* TestLogger.swift */,
 				9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */,
 				9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */,
-				9A681A9D1E5A241B00B097CF /* DeprecationSpec.swift */,
-				D04725FA19E49ED7006002AA /* Supporting Files */,
 			);
 			name = ReactiveSwiftTests;
 			path = Tests/ReactiveSwiftTests;
