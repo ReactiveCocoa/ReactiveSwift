@@ -1254,7 +1254,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -1269,7 +1268,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -1284,7 +1282,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -1299,7 +1296,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -1366,7 +1362,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -1381,7 +1376,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -1396,7 +1390,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -1411,7 +1404,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -1509,7 +1501,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Debug;
@@ -1520,7 +1511,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Release;
@@ -1590,7 +1580,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Profile;
@@ -1651,7 +1640,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = Sources/Info.plist;
 			};
 			name = Test;
