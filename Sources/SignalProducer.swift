@@ -1,6 +1,18 @@
 import Dispatch
 import Foundation
 
+public protocol ProducerConstraint {}
+
+public struct NoValue: ProducerConstraint {}
+public protocol DeliversValue: ProducerConstraint {}
+public struct OfOne: DeliversValue {}
+public struct OfMany: DeliversValue {}
+
+public typealias SignalProducer<Value, Error: Swift.Error> = Producer<OfMany, Value, Error>
+public typealias ProducerOfMany<Value, Error: Swift.Error> = Producer<OfMany, Value, Error>
+public typealias ProducerOfOne<Value, Error: Swift.Error> = Producer<OfOne, Value, Error>
+public typealias Completable<Value, Error: Swift.Error> = Producer<NoValue, Never, Error>
+
 /// A SignalProducer creates Signals that can produce values of type `Value`
 /// and/or fail with errors of type `Error`. If no failure should be possible,
 /// `Never` can be specified for `Error`.
@@ -15,7 +27,7 @@ import Foundation
 /// producer may see a different version of Events. The Events may arrive in a
 /// different order between Signals, or the stream might be completely
 /// different!
-public struct SignalProducer<Value, Error: Swift.Error> {
+public struct Producer<Constraint: ProducerConstraint, Value, Error: Swift.Error> {
 	public typealias ProducedSignal = Signal<Value, Error>
 
 	/// `core` is the actual implementation for this `SignalProducer`. It is responsible
@@ -26,113 +38,17 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	///    `Signal` with the associated side effect and interrupt handle.
 	fileprivate let core: SignalProducerCore<Value, Error>
 
-	/// Convert an entity into its equivalent representation as `SignalProducer`.
-	///
-	/// - parameters:
-	///   - base: The entity to convert from.
-	public init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
-		self = base.producer
-	}
-
-	/// Initializes a `SignalProducer` that will emit the same events as the
-	/// given signal.
-	///
-	/// If the Disposable returned from `start()` is disposed or a terminating
-	/// event is sent to the observer, the given signal will be disposed.
-	///
-	/// - parameters:
-	///   - signal: A signal to observe after starting the producer.
-	public init(_ signal: Signal<Value, Error>) {
-		self.init { observer, lifetime in
-			lifetime += signal.observe(observer)
-		}
-	}
-
-	/// Initialize a `SignalProducer` which invokes the supplied starting side
-	/// effect once upon the creation of every produced `Signal`, or in other
-	/// words, for every invocation of `startWithSignal(_:)`, `start(_:)` and
-	/// their convenience shorthands.
-	///
-	/// The supplied starting side effect would be given (1) an input `Observer`
-	/// to emit events to the produced `Signal`; and (2) a `Lifetime` to bind
-	/// resources to the lifetime of the produced `Signal`.
-	///
-	/// The `Lifetime` of a produced `Signal` ends when: (1) a terminal event is
-	/// sent to the input `Observer`; or (2) when the produced `Signal` is
-	/// interrupted via the disposable yielded at the starting call.
-	///
-	/// - parameters:
-	///   - startHandler: The starting side effect.
-	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
-		self.init(SignalCore {
-			let disposable = CompositeDisposable()
-			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
-			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
-			let interruptHandle = AnyDisposable(observer.sendInterrupted)
-
-			return SignalProducerCore.Instance(signal: signal,
-			                                   observerDidSetup: observerDidSetup,
-			                                   interruptHandle: interruptHandle)
-		})
-	}
-
 	/// Create a SignalProducer.
 	///
 	/// - parameters:
 	///   - core: The `SignalProducer` core.
 	internal init(_ core: SignalProducerCore<Value, Error>) {
+		precondition(
+			Constraint.self != NoValue.self || Value.self == Never.self,
+			"A Producer with NoValue constraint should not be instantiable with Value != Never."
+		)
+
 		self.core = core
-	}
-
-	/// Creates a producer for a `Signal` that will immediately send one value
-	/// then complete.
-	///
-	/// - parameters:
-	///   - value: A value that should be sent by the `Signal` in a `value`
-	///            event.
-	public init(value: Value) {
-		self.init(GeneratorCore { observer, _ in
-			observer.send(value: value)
-			observer.sendCompleted()
-		})
-	}
-
-	/// Creates a producer for a `Signal` that immediately sends one value, then
-	/// completes.
-	///
-	/// This initializer differs from `init(value:)` in that its sole `value`
-	/// event is constructed lazily by invoking the supplied `action` when
-	/// the `SignalProducer` is started.
-	///
-	/// - parameters:
-	///   - action: A action that yields a value to be sent by the `Signal` as
-	///             a `value` event.
-	public init(_ action: @escaping () -> Value) {
-		self.init(GeneratorCore { observer, _ in
-			observer.send(value: action())
-			observer.sendCompleted()
-		})
-	}
-
-	/// Create a `SignalProducer` that will attempt the given operation once for
-	/// each invocation of `start()`.
-	///
-	/// Upon success, the started signal will send the resulting value then
-	/// complete. Upon failure, the started signal will fail with the error that
-	/// occurred.
-	///
-	/// - parameters:
-	///   - action: A closure that returns instance of `Result`.
-	public init(_ action: @escaping () -> Result<Value, Error>) {
-		self.init(GeneratorCore { observer, _ in
-			switch action() {
-			case let .success(value):
-				observer.send(value: value)
-				observer.sendCompleted()
-			case let .failure(error):
-				observer.send(error: error)
-			}
-		})
 	}
 
 	/// Creates a producer for a `Signal` that will immediately fail with the
@@ -145,70 +61,33 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 		self.init(GeneratorCore { observer, _ in observer.send(error: error) })
 	}
 
-	/// Creates a producer for a Signal that will immediately send one value
-	/// then complete, or immediately fail, depending on the given Result.
-	///
-	/// - parameters:
-	///   - result: A `Result` instance that will send either `value` event if
-	///             `result` is `success`ful or `failed` event if `result` is a
-	///             `failure`.
-	public init(result: Result<Value, Error>) {
-		switch result {
-		case let .success(value):
-			self.init(value: value)
-
-		case let .failure(error):
-			self.init(error: error)
-		}
-	}
-
-	/// Creates a producer for a Signal that will immediately send the values
-	/// from the given sequence, then complete.
-	///
-	/// - parameters:
-	///   - values: A sequence of values that a `Signal` will send as separate
-	///             `value` events and then complete.
-	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
-		self.init(GeneratorCore(isDisposable: true) { observer, disposable in
-			for value in values {
-				observer.send(value: value)
-
-				if disposable.isDisposed {
-					break
-				}
-			}
-
-			observer.sendCompleted()
-		})
-	}
-
-	/// Creates a producer for a Signal that will immediately send the values
-	/// from the given sequence, then complete.
-	///
-	/// - parameters:
-	///   - first: First value for the `Signal` to send.
-	///   - second: Second value for the `Signal` to send.
-	///   - tail: Rest of the values to be sent by the `Signal`.
-	public init(values first: Value, _ second: Value, _ tail: Value...) {
-		self.init([ first, second ] + tail)
-	}
-
 	/// A producer for a Signal that immediately completes without sending any values.
-	public static var empty: SignalProducer {
-		return SignalProducer(GeneratorCore { observer, _ in observer.sendCompleted() })
+	public static var empty: Producer {
+		return Producer(GeneratorCore { observer, _ in observer.sendCompleted() })
 	}
 
 	/// A producer for a Signal that immediately interrupts when started, without
 	/// sending any values.
-	internal static var interrupted: SignalProducer {
-		return SignalProducer(GeneratorCore { observer, _ in observer.sendInterrupted() })
+	internal static var interrupted: Producer {
+		return Producer(GeneratorCore { observer, _ in observer.sendInterrupted() })
 	}
 
-	/// A producer for a Signal that never sends any events to its observers.
-	public static var never: SignalProducer {
-		return self.init { observer, lifetime in
-			lifetime.observeEnded { _ = observer }
-		}
+	/// A producer for a Signal that never sends any events to its observers, except for `interrupted` when it is
+	/// disposed of.
+	public static var never: Producer {
+		return Producer(SignalCore {
+			var disposable: Disposable!
+			let signal = Signal<Value, Error> { observer, lifetime in
+				lifetime.observeEnded(observer.sendInterrupted)
+				disposable = AnyDisposable(observer.sendInterrupted)
+			}
+
+			return SignalProducerCore.Instance(
+				signal: signal,
+				observerDidSetup: {},
+				interruptHandle: disposable
+			)
+		})
 	}
 
 	/// Create a `Signal` from `self`, pass it into the given closure, and start the
@@ -435,7 +314,7 @@ private final class GeneratorCore<Value, Error: Swift.Error>: SignalProducerCore
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint: DeliversValue, Error == Never {
 	/// Creates a producer for a `Signal` that will immediately send one value
 	/// then complete.
 	///
@@ -447,6 +326,161 @@ extension SignalProducer where Error == Never {
 			observer.send(value: value)
 			observer.sendCompleted()
 		})
+	}
+}
+
+extension Producer where Constraint: DeliversValue {
+	/// Creates a producer for a `Signal` that will immediately send one value
+	/// then complete.
+	///
+	/// - parameters:
+	///   - value: A value that should be sent by the `Signal` in a `value`
+	///            event.
+	public init(value: Value) {
+		self.init(GeneratorCore { observer, _ in
+			observer.send(value: value)
+			observer.sendCompleted()
+		})
+	}
+
+	/// Creates a producer for a `Signal` that immediately sends one value, then
+	/// completes.
+	///
+	/// This initializer differs from `init(value:)` in that its sole `value`
+	/// event is constructed lazily by invoking the supplied `action` when
+	/// the `SignalProducer` is started.
+	///
+	/// - parameters:
+	///   - action: A action that yields a value to be sent by the `Signal` as
+	///             a `value` event.
+	public init(_ action: @escaping () -> Value) {
+		self.init(GeneratorCore { observer, _ in
+			observer.send(value: action())
+			observer.sendCompleted()
+		})
+	}
+
+	/// Create a `SignalProducer` that will attempt the given operation once for
+	/// each invocation of `start()`.
+	///
+	/// Upon success, the started signal will send the resulting value then
+	/// complete. Upon failure, the started signal will fail with the error that
+	/// occurred.
+	///
+	/// - parameters:
+	///   - action: A closure that returns instance of `Result`.
+	public init(_ action: @escaping () -> Result<Value, Error>) {
+		self.init(GeneratorCore { observer, _ in
+			switch action() {
+			case let .success(value):
+				observer.send(value: value)
+				observer.sendCompleted()
+			case let .failure(error):
+				observer.send(error: error)
+			}
+		})
+	}
+
+	/// Creates a producer for a Signal that will immediately send one value
+	/// then complete, or immediately fail, depending on the given Result.
+	///
+	/// - parameters:
+	///   - result: A `Result` instance that will send either `value` event if
+	///             `result` is `success`ful or `failed` event if `result` is a
+	///             `failure`.
+	public init(result: Result<Value, Error>) {
+		switch result {
+		case let .success(value):
+			self.init(value: value)
+
+		case let .failure(error):
+			self.init(error: error)
+		}
+	}
+}
+
+extension Producer where Constraint == OfMany, Error == Never {
+	/// Creates a producer for a Signal that will immediately send the values
+	/// from the given sequence, then complete.
+	///
+	/// - parameters:
+	///   - values: A sequence of values that a `Signal` will send as separate
+	///             `value` events and then complete.
+	public init<S: Sequence>(_ values: S) where S.Iterator.Element == Value {
+		self.init(GeneratorCore(isDisposable: true) { observer, disposable in
+			for value in values {
+				observer.send(value: value)
+
+				if disposable.isDisposed {
+					break
+				}
+			}
+
+			observer.sendCompleted()
+		})
+	}
+
+	/// Creates a producer for a Signal that will immediately send the values
+	/// from the given sequence, then complete.
+	///
+	/// - parameters:
+	///   - first: First value for the `Signal` to send.
+	///   - second: Second value for the `Signal` to send.
+	///   - tail: Rest of the values to be sent by the `Signal`.
+	public init(values first: Value, _ second: Value, _ tail: Value...) {
+		self.init([ first, second ] + tail)
+	}
+}
+
+extension Producer where Constraint == OfMany {
+	/// Convert an entity into its equivalent representation as `SignalProducer`.
+	///
+	/// - parameters:
+	///   - base: The entity to convert from.
+	public init<T: SignalProducerConvertible>(_ base: T) where T.Value == Value, T.Error == Error {
+		self.init(base.producer.core)
+	}
+
+	/// Initialize a `SignalProducer` which invokes the supplied starting side
+	/// effect once upon the creation of every produced `Signal`, or in other
+	/// words, for every invocation of `startWithSignal(_:)`, `start(_:)` and
+	/// their convenience shorthands.
+	///
+	/// The supplied starting side effect would be given (1) an input `Observer`
+	/// to emit events to the produced `Signal`; and (2) a `Lifetime` to bind
+	/// resources to the lifetime of the produced `Signal`.
+	///
+	/// The `Lifetime` of a produced `Signal` ends when: (1) a terminal event is
+	/// sent to the input `Observer`; or (2) when the produced `Signal` is
+	/// interrupted via the disposable yielded at the starting call.
+	///
+	/// - parameters:
+	///   - startHandler: The starting side effect.
+	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
+		self.init(SignalCore {
+			let disposable = CompositeDisposable()
+			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
+			let interruptHandle = AnyDisposable(observer.sendInterrupted)
+
+			return SignalProducerCore.Instance(signal: signal,
+			                                   observerDidSetup: observerDidSetup,
+			                                   interruptHandle: interruptHandle)
+		})
+	}
+
+	/// Initializes a `SignalProducer` that will emit the same events as the
+	/// given signal.
+	///
+	/// If the Disposable returned from `start()` is disposed or a terminating
+	/// event is sent to the observer, the given signal will be disposed.
+	///
+	/// - parameters:
+	///   - signal: A signal to observe after starting the producer.
+	public init(_ signal: Signal<Value, Error>) {
+		self.init { observer, lifetime in
+			lifetime += signal.observe(observer)
+		}
 	}
 
 	/// Creates a producer for a Signal that will immediately send the values
@@ -481,7 +515,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer where Error == Swift.Error {
+extension Producer where Constraint: DeliversValue, Error == Swift.Error {
 	/// Create a `SignalProducer` that will attempt the given failable operation once for
 	/// each invocation of `start()`.
 	///
@@ -524,13 +558,13 @@ public protocol SignalProducerProtocol {
 	var producer: SignalProducer<Value, Error> { get }
 }
 
-extension SignalProducer: SignalProducerConvertible, SignalProducerProtocol {
-	public var producer: SignalProducer {
+extension Producer: SignalProducerConvertible, SignalProducerProtocol where Constraint == OfMany {
+	public var producer: SignalProducer<Value, Error> {
 		return self
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Create a `Signal` from `self`, and observe it with the given observer.
 	///
 	/// - parameters:
@@ -636,7 +670,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint == OfMany, Error == Never {
 	/// Create a `Signal` from `self`, and observe the `Signal` for all values being
 	/// emitted.
 	///
@@ -650,7 +684,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Lift an unary Signal operator to operate upon SignalProducers instead.
 	///
 	/// In other words, this will create a new `SignalProducer` which will apply
@@ -844,7 +878,7 @@ private func flattenStart<A, B, C, D, E, F, G, H, I, J, Error>(_ lifetime: Lifet
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Map each value in the producer to a new value.
 	///
 	/// - parameters:
@@ -1767,7 +1801,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Value: OptionalProtocol {
+extension Producer where Constraint == OfMany, Value: OptionalProtocol {
 	/// Unwraps non-`nil` values and forwards them on the returned signal, `nil`
 	/// values are dropped.
 	///
@@ -1777,7 +1811,7 @@ extension SignalProducer where Value: OptionalProtocol {
 	}
 }
 
-extension SignalProducer where Value: EventProtocol, Error == Never {
+extension Producer where Constraint == OfMany, Value: EventProtocol, Error == Never {
 	/// The inverse of materialize(), this will translate a producer of `Event`
 	/// _values_ into a producer of those events themselves.
 	///
@@ -1787,7 +1821,7 @@ extension SignalProducer where Value: EventProtocol, Error == Never {
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint == OfMany, Error == Never {
 	/// The inverse of materializeResults(), this will translate a producer of `Result`
 	/// _values_ into a producer of those events themselves.
 	///
@@ -1797,7 +1831,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint == OfMany, Error == Never {
 	/// Promote a producer that does not generate failures into one that can.
 	///
 	/// - note: This does not actually cause failers to be generated for the
@@ -1882,7 +1916,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer where Error == Swift.Error {
+extension Producer where Constraint == OfMany, Error == Swift.Error {
 	/// Apply a throwable action to every value from `self`, and forward the values
 	/// if the action succeeds. If the action throws an error, the produced `Signal`
 	/// would propagate the failure and terminate.
@@ -1908,7 +1942,7 @@ extension SignalProducer where Error == Swift.Error {
 	}
 }
 
-extension SignalProducer where Value == Never {
+extension Producer where Constraint == OfMany, Value == Never {
 	/// Promote a producer that does not generate values, as indicated by `Never`,
 	/// to be a producer of the given type of value.
 	///
@@ -1936,7 +1970,7 @@ extension SignalProducer where Value == Never {
 	}
 }
 
-extension SignalProducer where Value: Equatable {
+extension Producer where Constraint == OfMany, Value: Equatable {
 	/// Forward only values from `self` that are not equal to its immediately preceding
 	/// value.
 	///
@@ -1948,7 +1982,7 @@ extension SignalProducer where Value: Equatable {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Forward only those values from `self` that have unique identities across
 	/// the set of all values that have been seen.
 	///
@@ -1965,7 +1999,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Value: Hashable {
+extension Producer where Constraint == OfMany, Value: Hashable {
 	/// Forward only those values from `self` that are unique across the set of
 	/// all values that have been seen.
 	///
@@ -1979,7 +2013,7 @@ extension SignalProducer where Value: Hashable {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Injects side effects to be performed upon the specified producer events.
 	///
 	/// - note: In a composed producer, `starting` is invoked in the reverse
@@ -2051,7 +2085,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Combines the values of all the given producers, in the manner described by
 	/// `combineLatest(with:)`.
 	public static func combineLatest<A: SignalProducerConvertible, B: SignalProducerConvertible>(_ a: A, _ b: B) -> SignalProducer<(Value, B.Value), Error> where A.Value == Value, A.Error == Error, B.Error == Error {
@@ -2250,7 +2284,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Repeat `self` a total of `count` times. In other words, start producer
 	/// `count` number of times, each one after previously started producer
 	/// completes.
@@ -2482,7 +2516,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Error == Never {
+extension Producer where Constraint == OfMany, Error == Never {
 	/// Wait for completion of `self`, *then* forward all events from
 	/// `replacement`.
 	///
@@ -2571,7 +2605,7 @@ extension SignalProducer where Error == Never {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Start the producer, then block, waiting for the first value.
 	///
 	/// When a single value or error is sent, the returned `Result` will
@@ -2729,7 +2763,7 @@ extension SignalProducer {
 	}
 }
 
-extension SignalProducer where Value == Bool {
+extension Producer where Constraint == OfMany, Value == Bool {
 	/// Create a producer that computes a logical NOT in the latest values of `self`.
 	///
 	/// - returns: A producer that emits the logical NOT results.
@@ -2983,7 +3017,7 @@ private struct ReplayState<Value, Error: Swift.Error> {
 	}
 }
 
-extension SignalProducer where Value == Date, Error == Never {
+extension Producer where Constraint == OfMany, Value == Date, Error == Never {
 	/// Create a repeating timer of the given interval, with a reasonable default
 	/// leeway, sending updates on the given scheduler.
 	///

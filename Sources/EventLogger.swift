@@ -99,7 +99,7 @@ extension Signal {
 	}
 }
 
-extension SignalProducer {
+extension Producer where Constraint == OfMany {
 	/// Logs all events that the receiver sends. By default, it will print to 
 	/// the standard output.
 	///
