@@ -27,9 +27,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		var value: Value
 	}
 
-	private let execute: (Action<Input, Output, Error>, Input) -> SignalProducer<Output, ActionError<Error>>
-	private let eventsObserver: Signal<Signal<Output, Error>.Event, Never>.Observer
-	private let disabledErrorsObserver: Signal<(), Never>.Observer
+	private let execute: (Input) -> SignalProducer<Output, ActionError<Error>>
 
 	private let deinitToken: Lifetime.Token
 
@@ -69,6 +67,29 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// Whether the action is currently enabled.
 	public let isEnabled: Property<Bool>
 
+	private init(
+		execute: @escaping (Input) -> SignalProducer<Output, ActionError<Error>>,
+		deinitToken: Lifetime.Token,
+		lifetime: Lifetime,
+		events: Signal<Signal<Output, Error>.Event, NoError>,
+		disabledErrors: Signal<(), NoError>,
+		isExecuting: Property<Bool>,
+		isEnabled: Property<Bool>
+	) {
+		self.execute = execute
+		self.deinitToken = deinitToken
+		self.lifetime = lifetime
+		self.events = events
+		self.disabledErrors = disabledErrors
+		self.values = events.filterMap { $0.value }
+		self.errors = events.filterMap { $0.error }
+		self.completed = events.filterMap { $0.isCompleted ? () : nil }
+		self.isExecuting = isExecuting
+		self.isEnabled = isEnabled
+	}
+}
+
+extension Action {
 	/// Initializes an `Action` that would be conditionally enabled depending on its
 	/// state.
 	///
@@ -91,20 +112,24 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	///                given the latest `Action` state.
 	///   - execute: A closure that produces a unit of work, as `SignalProducer`, to be
 	///              executed by the `Action`.
-	public init<State: PropertyProtocol>(state: State, enabledIf isEnabled: @escaping (State.Value) -> Bool, execute: @escaping (State.Value, Input) -> SignalProducer<Output, Error>) {
+	public convenience init<State: PropertyProtocol>(
+		state: State,
+		enabledIf isEnabled: @escaping (State.Value) -> Bool,
+		execute: @escaping (State.Value, Input
+	) -> SignalProducer<Output, Error>) {
 		let isUserEnabled = isEnabled
 
-		(lifetime, deinitToken) = Lifetime.make()
+		let (lifetime, deinitToken) = Lifetime.make()
+
+		let (events, eventsObserver) = Signal<Signal<Output, Error>.Event, Never>.pipe()
+		let (disabledErrors, disabledErrorsObserver) = Signal<(), Never>.pipe()
 
 		// `Action` retains its state property.
-		lifetime.observeEnded { _ = state }
-
-		(events, eventsObserver) = Signal<Signal<Output, Error>.Event, Never>.pipe()
-		(disabledErrors, disabledErrorsObserver) = Signal<(), Never>.pipe()
-
-		values = events.compactMap { $0.value }
-		errors = events.compactMap { $0.error }
-		completed = events.compactMap { $0.isCompleted ? () : nil }
+		lifetime.observeEnded {
+			eventsObserver.sendCompleted()
+			disabledErrorsObserver.sendCompleted()
+			_ = state
+		}
 
 		let actionState = MutableProperty(ActionState<State.Value>(isUserEnabled: true, isExecuting: false, value: state.value))
 
@@ -112,9 +137,9 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		// of these synchronously affects the action state, the signal of the action state
 		// does not deadlock due to the recursion.
 		let isExecuting = MutableProperty(false)
-		self.isExecuting = Property(capturing: isExecuting)
+		let isExecuting_ = Property(capturing: isExecuting)
 		let isEnabled = MutableProperty(actionState.value.isEnabled)
-		self.isEnabled = Property(capturing: isEnabled)
+		let isEnabled_ = Property(capturing: isEnabled)
 
 		func modifyActionState<Result>(_ action: (inout ActionState<State.Value>) throws -> Result) rethrows -> Result {
 			return try actionState.begin { storage in
@@ -139,7 +164,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 			}
 		}
 
-		self.execute = { action, input in
+		let execute_: (Input) -> SignalProducer<Output, ActionError<Error>> = { input in
 			return SignalProducer { observer, lifetime in
 				let latestState: State.Value? = modifyActionState { state in
 					guard state.isEnabled else {
@@ -152,13 +177,13 @@ public final class Action<Input, Output, Error: Swift.Error> {
 
 				guard let state = latestState else {
 					observer.send(error: .disabled)
-					action.disabledErrorsObserver.send(value: ())
+					disabledErrorsObserver.send(value: ())
 					return
 				}
 
 				let interruptHandle = execute(state, input).start { event in
 					observer.send(event.mapError(ActionError.producerFailed))
-					action.eventsObserver.send(value: event)
+					eventsObserver.send(value: event)
 				}
 
 				lifetime.observeEnded {
@@ -167,6 +192,16 @@ public final class Action<Input, Output, Error: Swift.Error> {
 				}
 			}
 		}
+
+		self.init(
+			execute: execute_,
+			deinitToken: deinitToken,
+			lifetime: lifetime,
+			events: events,
+			disabledErrors: disabledErrors,
+			isExecuting: isExecuting_,
+			isEnabled: isEnabled_
+		)
 	}
 
 	/// Initializes an `Action` that uses a property as its state.
@@ -249,11 +284,6 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		self.init(enabledIf: Property(value: true), execute: execute)
 	}
 
-	deinit {
-		eventsObserver.sendCompleted()
-		disabledErrorsObserver.sendCompleted()
-	}
-
 	/// Create a `SignalProducer` that would attempt to create and start a unit of work of
 	/// the `Action`. The `SignalProducer` would forward only events generated by the unit
 	/// of work it created.
@@ -267,7 +297,7 @@ public final class Action<Input, Output, Error: Swift.Error> {
 	/// - returns: A producer that forwards events generated by its started unit of work,
 	///            or emits `ActionError.disabled` if the execution attempt is failed.
 	public func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>> {
-		return execute(self, input)
+		return execute(input)
 	}
 }
 
@@ -346,6 +376,53 @@ extension Action where Input == Void {
 	}
 }
 
+extension Action {
+
+	public func mapOutput<Output2>(_ transform: @escaping (Output) -> Output2) -> Action<Input, Output2, Error> {
+		return mapAll({ $0 }, transform, { $0 })
+	}
+
+	public func mapError<Error2>(_ transform: @escaping (Error) -> Error2) -> Action<Input, Output, Error2> {
+		return mapAll({ $0 }, { $0 }, transform)
+	}
+
+	public func contramapInput<Input2>(_ transform: @escaping (Input2) -> Input) -> Action<Input2, Output, Error> {
+		return mapAll(transform, { $0 }, { $0 })
+	}
+
+	/// Maps `Output` and `Error`. Contramaps on `Input`.
+	public func mapAll<Input2, Output2, Error2>(
+		_ transformInput: @escaping (Input2) -> Input,
+		_ transformOutput: @escaping (Output) -> Output2,
+		_ transformError: @escaping (Error) -> Error2
+	) -> Action<Input2, Output2, Error2> {
+		return Action<Input2, Output2, Error2>(
+			execute: { input in
+				self.execute(transformInput(input))
+					.map(transformOutput)
+					.mapError { $0.map(transformError) }
+			},
+			deinitToken: deinitToken,
+			lifetime: lifetime,
+			events: events.map { event in
+				switch event {
+				case let .value(value):
+					return .value(transformOutput(value))
+				case let .failed(error):
+					return .failed(transformError(error))
+				case .completed:
+					return .completed
+				case .interrupted:
+					return .interrupted
+				}
+			},
+			disabledErrors: disabledErrors,
+			isExecuting: isExecuting,
+			isEnabled: isEnabled
+		)
+	}
+}
+
 /// `ActionError` represents the error that could be emitted by a unit of work of a
 /// certain `Action`.
 public enum ActionError<Error: Swift.Error>: Swift.Error {
@@ -354,6 +431,15 @@ public enum ActionError<Error: Swift.Error>: Swift.Error {
 
 	/// The unit of work emitted an error.
 	case producerFailed(Error)
+
+	func map<Error2>(_ transform: (Error) -> Error2) -> ActionError<Error2> {
+		switch self {
+		case let .producerFailed(error):
+			return .producerFailed(transform(error))
+		case .disabled:
+			return .disabled
+		}
+	}
 }
 
 extension ActionError where Error: Equatable {
