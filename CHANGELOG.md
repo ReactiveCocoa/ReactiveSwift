@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. The UnidirectionalBinding operator `<~` returns non optional values.
+
 # 6.6.1
 1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants. (#826, kudos to @MikeChugunov)
 
