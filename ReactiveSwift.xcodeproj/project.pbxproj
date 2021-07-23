@@ -69,6 +69,66 @@
 		9A1D067D1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
 		9A1D067E1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
 		9A1D067F1D948A2300ACF44C /* UnidirectionalBindingSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */; };
+		9A2D5D1C259F9228005682ED /* UnaryAsyncOperator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D1B259F9228005682ED /* UnaryAsyncOperator.swift */; };
+		9A2D5D1D259F9228005682ED /* UnaryAsyncOperator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D1B259F9228005682ED /* UnaryAsyncOperator.swift */; };
+		9A2D5D1E259F9228005682ED /* UnaryAsyncOperator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D1B259F9228005682ED /* UnaryAsyncOperator.swift */; };
+		9A2D5D1F259F9228005682ED /* UnaryAsyncOperator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D1B259F9228005682ED /* UnaryAsyncOperator.swift */; };
+		9A2D5D26259F9373005682ED /* ObserveOn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D25259F9373005682ED /* ObserveOn.swift */; };
+		9A2D5D27259F9373005682ED /* ObserveOn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D25259F9373005682ED /* ObserveOn.swift */; };
+		9A2D5D28259F9373005682ED /* ObserveOn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D25259F9373005682ED /* ObserveOn.swift */; };
+		9A2D5D29259F9373005682ED /* ObserveOn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D25259F9373005682ED /* ObserveOn.swift */; };
+		9A2D5D30259F942B005682ED /* LazyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D2F259F942B005682ED /* LazyMap.swift */; };
+		9A2D5D31259F942B005682ED /* LazyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D2F259F942B005682ED /* LazyMap.swift */; };
+		9A2D5D32259F942B005682ED /* LazyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D2F259F942B005682ED /* LazyMap.swift */; };
+		9A2D5D33259F942B005682ED /* LazyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D2F259F942B005682ED /* LazyMap.swift */; };
+		9A2D5D3A259F985B005682ED /* Delay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D39259F985B005682ED /* Delay.swift */; };
+		9A2D5D3B259F985B005682ED /* Delay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D39259F985B005682ED /* Delay.swift */; };
+		9A2D5D3C259F985B005682ED /* Delay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D39259F985B005682ED /* Delay.swift */; };
+		9A2D5D3D259F985B005682ED /* Delay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D39259F985B005682ED /* Delay.swift */; };
+		9A2D5CDB259F8398005682ED /* Collect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CDA259F8398005682ED /* Collect.swift */; };
+		9A2D5CDC259F8398005682ED /* Collect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CDA259F8398005682ED /* Collect.swift */; };
+		9A2D5CDD259F8398005682ED /* Collect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CDA259F8398005682ED /* Collect.swift */; };
+		9A2D5CDE259F8398005682ED /* Collect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CDA259F8398005682ED /* Collect.swift */; };
+		9A2D5CE5259F852B005682ED /* CombinePrevious.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CE4259F852B005682ED /* CombinePrevious.swift */; };
+		9A2D5CE6259F852B005682ED /* CombinePrevious.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CE4259F852B005682ED /* CombinePrevious.swift */; };
+		9A2D5CE7259F852B005682ED /* CombinePrevious.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CE4259F852B005682ED /* CombinePrevious.swift */; };
+		9A2D5CE8259F852B005682ED /* CombinePrevious.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CE4259F852B005682ED /* CombinePrevious.swift */; };
+		9A2D5CEF259F85AE005682ED /* SkipRepeats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CEE259F85AE005682ED /* SkipRepeats.swift */; };
+		9A2D5CF0259F85AE005682ED /* SkipRepeats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CEE259F85AE005682ED /* SkipRepeats.swift */; };
+		9A2D5CF1259F85AE005682ED /* SkipRepeats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CEE259F85AE005682ED /* SkipRepeats.swift */; };
+		9A2D5CF2259F85AE005682ED /* SkipRepeats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CEE259F85AE005682ED /* SkipRepeats.swift */; };
+		9A2D5CF9259F8634005682ED /* UniqueValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CF8259F8634005682ED /* UniqueValues.swift */; };
+		9A2D5CFA259F8634005682ED /* UniqueValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CF8259F8634005682ED /* UniqueValues.swift */; };
+		9A2D5CFB259F8634005682ED /* UniqueValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CF8259F8634005682ED /* UniqueValues.swift */; };
+		9A2D5CFC259F8634005682ED /* UniqueValues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CF8259F8634005682ED /* UniqueValues.swift */; };
+		9A2D5D03259F8C39005682ED /* Reduce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D02259F8C39005682ED /* Reduce.swift */; };
+		9A2D5D04259F8C39005682ED /* Reduce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D02259F8C39005682ED /* Reduce.swift */; };
+		9A2D5D05259F8C39005682ED /* Reduce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D02259F8C39005682ED /* Reduce.swift */; };
+		9A2D5D06259F8C39005682ED /* Reduce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D02259F8C39005682ED /* Reduce.swift */; };
+		9A2D5D0D259F8D1F005682ED /* ScanMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D0C259F8D1F005682ED /* ScanMap.swift */; };
+		9A2D5D0E259F8D1F005682ED /* ScanMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D0C259F8D1F005682ED /* ScanMap.swift */; };
+		9A2D5D0F259F8D1F005682ED /* ScanMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D0C259F8D1F005682ED /* ScanMap.swift */; };
+		9A2D5D10259F8D1F005682ED /* ScanMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5D0C259F8D1F005682ED /* ScanMap.swift */; };
+		9A2D5C9F259F8059005682ED /* TakeFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5C9E259F8059005682ED /* TakeFirst.swift */; };
+		9A2D5CA0259F8059005682ED /* TakeFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5C9E259F8059005682ED /* TakeFirst.swift */; };
+		9A2D5CA1259F8059005682ED /* TakeFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5C9E259F8059005682ED /* TakeFirst.swift */; };
+		9A2D5CA2259F8059005682ED /* TakeFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5C9E259F8059005682ED /* TakeFirst.swift */; };
+		9A2D5CAE259F8112005682ED /* TakeLast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CAD259F8112005682ED /* TakeLast.swift */; };
+		9A2D5CAF259F8112005682ED /* TakeLast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CAD259F8112005682ED /* TakeLast.swift */; };
+		9A2D5CB0259F8112005682ED /* TakeLast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CAD259F8112005682ED /* TakeLast.swift */; };
+		9A2D5CB1259F8112005682ED /* TakeLast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CAD259F8112005682ED /* TakeLast.swift */; };
+		9A2D5CB8259F8199005682ED /* TakeWhile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CB7259F8199005682ED /* TakeWhile.swift */; };
+		9A2D5CB9259F8199005682ED /* TakeWhile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CB7259F8199005682ED /* TakeWhile.swift */; };
+		9A2D5CBA259F8199005682ED /* TakeWhile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CB7259F8199005682ED /* TakeWhile.swift */; };
+		9A2D5CBB259F8199005682ED /* TakeWhile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CB7259F8199005682ED /* TakeWhile.swift */; };
+		9A2D5CC2259F81FC005682ED /* SkipFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CC1259F81FC005682ED /* SkipFirst.swift */; };
+		9A2D5CC3259F81FC005682ED /* SkipFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CC1259F81FC005682ED /* SkipFirst.swift */; };
+		9A2D5CC4259F81FC005682ED /* SkipFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CC1259F81FC005682ED /* SkipFirst.swift */; };
+		9A2D5CC5259F81FC005682ED /* SkipFirst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CC1259F81FC005682ED /* SkipFirst.swift */; };
+		9A2D5CCC259F8263005682ED /* SkipWhile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CCB259F8263005682ED /* SkipWhile.swift */; };
+		9A2D5CCD259F8263005682ED /* SkipWhile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CCB259F8263005682ED /* SkipWhile.swift */; };
+		9A2D5CCE259F8263005682ED /* SkipWhile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CCB259F8263005682ED /* SkipWhile.swift */; };
+		9A2D5CCF259F8263005682ED /* SkipWhile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5CCB259F8263005682ED /* SkipWhile.swift */; };
 		9A2D5C4F259F7B21005682ED /* MapError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5C4E259F7B21005682ED /* MapError.swift */; };
 		9A2D5C50259F7B21005682ED /* MapError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5C4E259F7B21005682ED /* MapError.swift */; };
 		9A2D5C51259F7B21005682ED /* MapError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5C4E259F7B21005682ED /* MapError.swift */; };
@@ -332,6 +392,21 @@
 		9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatingPropertySpec.swift; sourceTree = "<group>"; };
 		9A1B824020835EEC00EB7C09 /* ResultExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ResultExtensions.swift; sourceTree = "<group>"; };
 		9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnidirectionalBindingSpec.swift; sourceTree = "<group>"; };
+		9A2D5D1B259F9228005682ED /* UnaryAsyncOperator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnaryAsyncOperator.swift; sourceTree = "<group>"; };
+		9A2D5D25259F9373005682ED /* ObserveOn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObserveOn.swift; sourceTree = "<group>"; };
+		9A2D5D2F259F942B005682ED /* LazyMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyMap.swift; sourceTree = "<group>"; };
+		9A2D5D39259F985B005682ED /* Delay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Delay.swift; sourceTree = "<group>"; };
+		9A2D5CDA259F8398005682ED /* Collect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Collect.swift; sourceTree = "<group>"; };
+		9A2D5CE4259F852B005682ED /* CombinePrevious.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinePrevious.swift; sourceTree = "<group>"; };
+		9A2D5CEE259F85AE005682ED /* SkipRepeats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkipRepeats.swift; sourceTree = "<group>"; };
+		9A2D5CF8259F8634005682ED /* UniqueValues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniqueValues.swift; sourceTree = "<group>"; };
+		9A2D5D02259F8C39005682ED /* Reduce.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reduce.swift; sourceTree = "<group>"; };
+		9A2D5D0C259F8D1F005682ED /* ScanMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMap.swift; sourceTree = "<group>"; };
+		9A2D5C9E259F8059005682ED /* TakeFirst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TakeFirst.swift; sourceTree = "<group>"; };
+		9A2D5CAD259F8112005682ED /* TakeLast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TakeLast.swift; sourceTree = "<group>"; };
+		9A2D5CB7259F8199005682ED /* TakeWhile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TakeWhile.swift; sourceTree = "<group>"; };
+		9A2D5CC1259F81FC005682ED /* SkipFirst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkipFirst.swift; sourceTree = "<group>"; };
+		9A2D5CCB259F8263005682ED /* SkipWhile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkipWhile.swift; sourceTree = "<group>"; };
 		9A2D5C4E259F7B21005682ED /* MapError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapError.swift; sourceTree = "<group>"; };
 		9A2D5C58259F7B31005682ED /* Materialize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Materialize.swift; sourceTree = "<group>"; };
 		9A2D5C62259F7B47005682ED /* MaterializeAsResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaterializeAsResult.swift; sourceTree = "<group>"; };
@@ -471,10 +546,14 @@
 			isa = PBXGroup;
 			children = (
 				9AFA490B24E9A0C4003D263C /* Observer.swift */,
+				9A2D5D1B259F9228005682ED /* UnaryAsyncOperator.swift */,
 				9AFA491024E9A196003D263C /* Map.swift */,
 				9AFA491A24E9A925003D263C /* Filter.swift */,
 				9AFA491F24E9A988003D263C /* CompactMap.swift */,
 				9AFA492424E9B15C003D263C /* Operators.swift */,
+				9A2D5D25259F9373005682ED /* ObserveOn.swift */,
+				9A2D5D2F259F942B005682ED /* LazyMap.swift */,
+				9A2D5D39259F985B005682ED /* Delay.swift */,
 				9A2D5CDA259F8398005682ED /* Collect.swift */,
 				9A2D5CE4259F852B005682ED /* CombinePrevious.swift */,
 				9A2D5CEE259F85AE005682ED /* SkipRepeats.swift */,
@@ -958,6 +1037,8 @@
 				57A4D1BA1BA13D7A00F7D4B1 /* Property.swift in Sources */,
 				9A2D5C5C259F7B31005682ED /* Materialize.swift in Sources */,
 				9A090C171DA0309E00EE97CA /* Reactive.swift in Sources */,
+				9A2D5D1F259F9228005682ED /* UnaryAsyncOperator.swift in Sources */,
+				9A2D5D3D259F985B005682ED /* Delay.swift in Sources */,
 				57A4D1BB1BA13D7A00F7D4B1 /* Signal.swift in Sources */,
 				9AFA492824E9B15C003D263C /* Operators.swift in Sources */,
 				9A2D5D10259F8D1F005682ED /* ScanMap.swift in Sources */,
@@ -965,6 +1046,7 @@
 				9A67963E1F6059440058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
 				9A2D5D06259F8C39005682ED /* Reduce.swift in Sources */,
 				9AFA491424E9A196003D263C /* Map.swift in Sources */,
+				9A2D5D33259F942B005682ED /* LazyMap.swift in Sources */,
 				9A2D5CFC259F8634005682ED /* UniqueValues.swift in Sources */,
 				9A2D5C66259F7B47005682ED /* MaterializeAsResult.swift in Sources */,
 				9A2D5C8E259F7ED5005682ED /* Dematerialize.swift in Sources */,
@@ -984,6 +1066,7 @@
 				C79B64801CD52E4E003F2376 /* EventLogger.swift in Sources */,
 				9A2D5CA2259F8059005682ED /* TakeFirst.swift in Sources */,
 				9AFA492324E9A988003D263C /* CompactMap.swift in Sources */,
+				9A2D5D29259F9373005682ED /* ObserveOn.swift in Sources */,
 				4A0E11021D2A92720065D310 /* Lifetime.swift in Sources */,
 				9A2D5CB1259F8112005682ED /* TakeLast.swift in Sources */,
 				BE9CF3981D751B71003AE479 /* UnidirectionalBinding.swift in Sources */,
@@ -1036,6 +1119,8 @@
 				A9B315C21B3940810001CB9C /* Property.swift in Sources */,
 				9A2D5C5B259F7B31005682ED /* Materialize.swift in Sources */,
 				9A090C161DA0309E00EE97CA /* Reactive.swift in Sources */,
+				9A2D5D1E259F9228005682ED /* UnaryAsyncOperator.swift in Sources */,
+				9A2D5D3C259F985B005682ED /* Delay.swift in Sources */,
 				A9B315C31B3940810001CB9C /* Signal.swift in Sources */,
 				9AFA492724E9B15C003D263C /* Operators.swift in Sources */,
 				9A2D5D0F259F8D1F005682ED /* ScanMap.swift in Sources */,
@@ -1045,6 +1130,8 @@
 				9AFA491324E9A196003D263C /* Map.swift in Sources */,
 				9A2D5CFB259F8634005682ED /* UniqueValues.swift in Sources */,
 				9A2D5C65259F7B47005682ED /* MaterializeAsResult.swift in Sources */,
+				9AFA491324E9A196003D263C /* Map.swift in Sources */,
+				9A2D5D32259F942B005682ED /* LazyMap.swift in Sources */,
 				9A2D5C8D259F7ED5005682ED /* Dematerialize.swift in Sources */,
 				9AFA491D24E9A925003D263C /* Filter.swift in Sources */,
 				9A2D5CDD259F8398005682ED /* Collect.swift in Sources */,
@@ -1062,6 +1149,7 @@
 				C79B647F1CD52E4D003F2376 /* EventLogger.swift in Sources */,
 				9A2D5CA1259F8059005682ED /* TakeFirst.swift in Sources */,
 				9AFA492224E9A988003D263C /* CompactMap.swift in Sources */,
+				9A2D5D28259F9373005682ED /* ObserveOn.swift in Sources */,
 				4A0E11011D2A92720065D310 /* Lifetime.swift in Sources */,
 				9A2D5CB0259F8112005682ED /* TakeLast.swift in Sources */,
 				BE9CF3971D751B71003AE479 /* UnidirectionalBinding.swift in Sources */,
@@ -1086,6 +1174,8 @@
 				9A090C141DA0309E00EE97CA /* Reactive.swift in Sources */,
 				9A2D5C59259F7B31005682ED /* Materialize.swift in Sources */,
 				D08C54B31A69A2AE00AD8286 /* Signal.swift in Sources */,
+				9A2D5D1C259F9228005682ED /* UnaryAsyncOperator.swift in Sources */,
+				9A2D5D3A259F985B005682ED /* Delay.swift in Sources */,
 				D85C652A1C0D84C7005A77AD /* Flatten.swift in Sources */,
 				9AFA492524E9B15C003D263C /* Operators.swift in Sources */,
 				9A2D5D0D259F8D1F005682ED /* ScanMap.swift in Sources */,
@@ -1093,6 +1183,7 @@
 				9A67963B1F6056B90058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
 				9A2D5D03259F8C39005682ED /* Reduce.swift in Sources */,
 				9AFA491124E9A196003D263C /* Map.swift in Sources */,
+				9A2D5D30259F942B005682ED /* LazyMap.swift in Sources */,
 				9A2D5CF9259F8634005682ED /* UniqueValues.swift in Sources */,
 				9A2D5C63259F7B47005682ED /* MaterializeAsResult.swift in Sources */,
 				9A2D5C8B259F7ED5005682ED /* Dematerialize.swift in Sources */,
@@ -1112,6 +1203,7 @@
 				9ABCB1851D2A5B5A00BCA243 /* Deprecations+Removals.swift in Sources */,
 				9A2D5C9F259F8059005682ED /* TakeFirst.swift in Sources */,
 				9AFA492024E9A988003D263C /* CompactMap.swift in Sources */,
+				9A2D5D26259F9373005682ED /* ObserveOn.swift in Sources */,
 				D08C54B81A69A9D000AD8286 /* SignalProducer.swift in Sources */,
 				9A2D5CAE259F8112005682ED /* TakeLast.swift in Sources */,
 				BE9CF3951D751B6B003AE479 /* UnidirectionalBinding.swift in Sources */,
@@ -1164,6 +1256,8 @@
 				EBCC7DBD1BBF01E100A2AE92 /* Signal.Observer.swift in Sources */,
 				9A2D5C5A259F7B31005682ED /* Materialize.swift in Sources */,
 				9A090C151DA0309E00EE97CA /* Reactive.swift in Sources */,
+				9A2D5D1D259F9228005682ED /* UnaryAsyncOperator.swift in Sources */,
+				9A2D5D3B259F985B005682ED /* Delay.swift in Sources */,
 				D85C652B1C0E70E3005A77AD /* Flatten.swift in Sources */,
 				9AFA492624E9B15C003D263C /* Operators.swift in Sources */,
 				9A2D5D0E259F8D1F005682ED /* ScanMap.swift in Sources */,
@@ -1173,6 +1267,8 @@
 				9AFA491224E9A196003D263C /* Map.swift in Sources */,
 				9A2D5CFA259F8634005682ED /* UniqueValues.swift in Sources */,
 				9A2D5C64259F7B47005682ED /* MaterializeAsResult.swift in Sources */,
+				9AFA491224E9A196003D263C /* Map.swift in Sources */,
+				9A2D5D31259F942B005682ED /* LazyMap.swift in Sources */,
 				9A2D5C8C259F7ED5005682ED /* Dematerialize.swift in Sources */,
 				9AFA491C24E9A925003D263C /* Filter.swift in Sources */,
 				9A2D5CDC259F8398005682ED /* Collect.swift in Sources */,
@@ -1190,6 +1286,7 @@
 				D0C312D019EF2A5800984962 /* Bag.swift in Sources */,
 				9A2D5CA0259F8059005682ED /* TakeFirst.swift in Sources */,
 				9AFA492124E9A988003D263C /* CompactMap.swift in Sources */,
+				9A2D5D27259F9373005682ED /* ObserveOn.swift in Sources */,
 				D0D11ABA1A6AE87700C1F8B1 /* Action.swift in Sources */,
 				9A2D5CAF259F8112005682ED /* TakeLast.swift in Sources */,
 				BE9CF3961D751B70003AE479 /* UnidirectionalBinding.swift in Sources */,
