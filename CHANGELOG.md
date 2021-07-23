@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+# 6.7.0-rc1
 1. `Signal` offers two special variants for advanced users: unserialized and reentrant-unserialized. (#797)
 
    The input observer of these variants assume that mutual exclusion has been enforced by its callers.
