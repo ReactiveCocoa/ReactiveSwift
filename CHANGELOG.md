@@ -2,6 +2,9 @@
 *Please add new entries at the top.*
 
 # 6.7.0-rc1
+
+1. New operator `SignalProducer.Type.interval(_:interval:on:)` for emitting elements from a given sequence regularly. (#810, kudos to @mluisbrown)
+
 1. `Signal` offers two special variants for advanced users: unserialized and reentrant-unserialized. (#797)
 
    The input observer of these variants assume that mutual exclusion has been enforced by its callers.
@@ -12,13 +15,15 @@
 
 1. `SignalProducer` offers an unserialized variant via `SignalProducer.unserialized(_:)`. (#797)
 
+1. `TestScheduler` can now advanced its clock by `TimeInterval`. (#828, kudos to @carsten-wenderdel)
+
 1. `Signal` and Properties now use fewer locks, which should translate into minor performance improvements. (#797)
 
-1. Added the `interval` operator (#810, kudos to @mluisbrown)
+1. Fixed spelling error in `Lifetime.Token` class documentation. (#835, kudos to @ansonj)
 
-1. `TestScheduler` can `advance` by `TimeInterval`. (#828)
+1. As a continued refactoring effort since ReactiveSwift 6.6.0, all unary `Signal` and `SignalProducer` operators have been migrated to a new internal representation.
 
-1. Fixed spelling error in `Token` class documentation.
+    When debugging your application, the call stacks involving ReactiveSwift may now look cleaner, without the clutter of compiler-generated reabstraction thunks. See #799 for an example.
 
 # 6.6.1
 1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants. (#826, kudos to @MikeChugunov)
