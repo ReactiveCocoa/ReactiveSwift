@@ -46,16 +46,29 @@ internal class UnaryAsyncOperator<InputValue, OutputValue, Error: Swift.Error>: 
 		downstream.receive(value)
 	}
 
+	/// Signal termination to the downstream without any implicit scheduling on `target`.
+	///
+	/// - important: Subclasses must invoke this only after having hopped onto the target scheduler.
+	final func unscheduledTerminate(_ termination: Termination<Error>) {
+		if self.state.tryTransition(from: .active, to: .terminated) {
+			if case .completed = termination {
+				self.onCompleted()
+			}
+
+			self.downstream.terminate(termination)
+		}
+	}
+
 	open override func terminate(_ termination: Termination<Error>) {
 		// The atomic transition here must happen **after** we hop onto the target scheduler. This is to preserve the timing
 		// behaviour observed in previous versions of ReactiveSwift.
 
 		target.schedule {
-			if self.state.tryTransition(from: .active, to: .terminated) {
-				self.downstream.terminate(termination)
-			}
+			self.unscheduledTerminate(termination)
 		}
 	}
+
+	open func onCompleted() {}
 }
 
 private enum AsyncOperatorState: Int32 {
