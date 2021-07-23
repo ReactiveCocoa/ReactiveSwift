@@ -1,6 +1,20 @@
 # master
 *Please add new entries at the top.*
 
+1. `Signal` offers two special variants for advanced users: unserialized and reentrant-unserialized. (#797)
+
+   The input observer of these variants assume that mutual exclusion has been enforced by its callers.
+
+   You can create these variants through four `Signal` static methods: `unserialized(_:)`, `unserializedPipe(_:)`, `reentrantUnserialized(_:)` and `reentrantUnserializedPipe(_:)`. These would be adopted by ReactiveCocoa UIKit bindings to improve interoperability with Loop, to tackle some legitimate recursive delivery scenarios (e.g. around first responder management), and also to reduce fine-grained locking in ReactiveCocoa.
+
+   Note that the default behavior of `Signal` has not been changed — event serialization remains the default behavior.
+
+1. `SignalProducer` offers an unserialized variant via `SignalProducer.unserialized(_:)`. (#797)
+
+1. `Signal` and Properties now use fewer locks, which should translate into minor performance improvements. (#797)
+
+1. Added the `interval` operator (#810, kudos to @mluisbrown)
+
 1. `TestScheduler` can `advance` by `TimeInterval`. (#828)
 
 1. Fixed spelling error in `Token` class documentation.
@@ -19,6 +33,7 @@
 1. Bumped deployment target to iOS 9.0, per Xcode 12 warnings. (#818, kudos to @harleyjcooper)
 
 1. Fixed a few deprecation warning when the project is being built. (#819, kudos to @apps4everyone)
+>>>>>>> origin/master
 
 # 6.5.0
 
