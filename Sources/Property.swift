@@ -12,7 +12,7 @@ import Glibc
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: class, BindingSource {
+public protocol PropertyProtocol: AnyObject, BindingSource {
 	/// The current value of the property.
 	var value: Value { get }
 

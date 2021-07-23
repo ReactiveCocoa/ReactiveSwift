@@ -15,6 +15,26 @@
 
 1. Added the `interval` operator (#810, kudos to @mluisbrown)
 
+1. `TestScheduler` can `advance` by `TimeInterval`. (#828)
+
+1. Fixed spelling error in `Token` class documentation.
+
+# 6.6.1
+1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants. (#826, kudos to @MikeChugunov)
+
+1. Fixed issue with `SignalProducer.Type.interval()` making Swift 5.3 a requirement. (#823 kudos to @mluisbrown) 
+
+# 6.6.0
+
+1. Added the `SignalProducer.Type.interval()` operator for emitting values on a regular schedule. (#810, kudos to @mluisbrown)
+
+1. When debugging your application, the call stacks involving ReactiveSwift may start to look cleaner and less cryptic. This is an on-going refactoring effort to improve the developer experience. See #799 for an example.
+
+1. Bumped deployment target to iOS 9.0, per Xcode 12 warnings. (#818, kudos to @harleyjcooper)
+
+1. Fixed a few deprecation warning when the project is being built. (#819, kudos to @apps4everyone)
+>>>>>>> origin/master
+
 # 6.5.0
 
 1. Add `ExpressibleByNilLiteral` constraint to `OptionalProtocol` (#805, kudos to @nkristek)

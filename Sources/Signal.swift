@@ -566,7 +566,7 @@ extension Signal {
 	}
 }
 
-public protocol SignalProtocol: class {
+public protocol SignalProtocol: AnyObject {
 	/// The type of values being sent by `self`.
 	associatedtype Value
 
@@ -1813,7 +1813,7 @@ private enum ThrottleWhileState<Value> {
 	}
 }
 
-private protocol SignalAggregateStrategy: class {
+private protocol SignalAggregateStrategy: AnyObject {
 	/// Update the latest value of the signal at `position` to be `value`.
 	///
 	/// - parameters:

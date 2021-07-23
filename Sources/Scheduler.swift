@@ -14,7 +14,7 @@ import Foundation
 #endif
 
 /// Represents a serial queue of work items.
-public protocol Scheduler: class {
+public protocol Scheduler: AnyObject {
 	/// Enqueues an action on the scheduler.
 	///
 	/// When the work is executed depends on the scheduler in use.
@@ -558,6 +558,17 @@ public final class TestScheduler: DateScheduler {
 	/// - parameters:
 	///   - interval: Interval by which the current date will be advanced.
 	public func advance(by interval: DispatchTimeInterval) {
+		lock.lock()
+		advance(to: currentDate.addingTimeInterval(interval))
+		lock.unlock()
+	}
+
+	/// Advances the virtualized clock by the given interval, dequeuing and
+	/// executing any actions along the way.
+	///
+	/// - parameters:
+	///   - interval: Interval by which the current date will be advanced.
+	public func advance(by interval: TimeInterval) {
 		lock.lock()
 		advance(to: currentDate.addingTimeInterval(interval))
 		lock.unlock()
