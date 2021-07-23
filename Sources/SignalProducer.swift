@@ -3081,7 +3081,9 @@ extension SignalProducer where Error == Never {
 			)
 		}
 	}
+}
 
+extension SignalProducer where Error == Never, Value == Int {
 	/// Creates a producer that will send the sequence of all integers
 	/// from 0 to infinity, or until disposed.
 	///
@@ -3098,7 +3100,7 @@ extension SignalProducer where Error == Never {
 	public static func interval(
 		_ interval: DispatchTimeInterval,
 		on scheduler: DateScheduler
-	) -> SignalProducer where Value == Int {
+	) -> SignalProducer {
 		.interval(0..., interval: interval, on: scheduler)
 	}
 }
