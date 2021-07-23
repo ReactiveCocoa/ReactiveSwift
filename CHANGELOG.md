@@ -1,10 +1,14 @@
 # master
+*Please add new entries at the top.*
 
 1. `TestScheduler` can `advance` by `TimeInterval`. (#828)
 
-1. Fixed issue with `SignalProducer.Type.interval()` making Swift 5.3 a requirement. (#823 kudos to @mluisbrown) 
+1. Fixed spelling error in `Token` class documentation.
 
-*Please add new entries at the top.*
+# 6.6.1
+1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants. (#826, kudos to @MikeChugunov)
+
+1. Fixed issue with `SignalProducer.Type.interval()` making Swift 5.3 a requirement. (#823 kudos to @mluisbrown) 
 
 # 6.6.0
 
