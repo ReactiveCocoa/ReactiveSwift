@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. `TestScheduler` can `advance` by `TimeInterval`. (#828)
+
 1. Fixed spelling error in `Token` class documentation.
 
 # 6.6.1
