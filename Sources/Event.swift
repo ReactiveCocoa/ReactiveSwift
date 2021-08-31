@@ -289,6 +289,12 @@ extension Signal.Event {
 			Operators.TakeWhile(downstream: downstream, shouldContinue: shouldContinue)
 		}
 	}
+	
+	internal static func take(until shouldContinue: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
+		return { downstream, _ in
+			Operators.TakeUntil(downstream: downstream, shouldContinue: shouldContinue)
+		}
+	}
 
 	internal static func skip(first count: Int) -> Transformation<Value, Error> {
 		return { downstream, _ in

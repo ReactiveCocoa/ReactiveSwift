@@ -19,6 +19,10 @@
 		4A0E11041D2A95200065D310 /* LifetimeSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E11031D2A95200065D310 /* LifetimeSpec.swift */; };
 		4A0E11051D2A95200065D310 /* LifetimeSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E11031D2A95200065D310 /* LifetimeSpec.swift */; };
 		4A0E11061D2A95200065D310 /* LifetimeSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E11031D2A95200065D310 /* LifetimeSpec.swift */; };
+		5792972826DE7623007A9F64 /* TakeUntil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5792972726DE7623007A9F64 /* TakeUntil.swift */; };
+		5792972926DE7623007A9F64 /* TakeUntil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5792972726DE7623007A9F64 /* TakeUntil.swift */; };
+		5792972A26DE7623007A9F64 /* TakeUntil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5792972726DE7623007A9F64 /* TakeUntil.swift */; };
+		5792972B26DE7623007A9F64 /* TakeUntil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5792972726DE7623007A9F64 /* TakeUntil.swift */; };
 		579504331BB8A34200A5E482 /* BagSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C312EF19EF2A7700984962 /* BagSpec.swift */; };
 		579504341BB8A34300A5E482 /* BagSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C312EF19EF2A7700984962 /* BagSpec.swift */; };
 		57A4D1B11BA13D7A00F7D4B1 /* Optional.swift in Sources */ = {isa = PBXBuildFile; fileRef = D871D69E1B3B29A40070F16C /* Optional.swift */; };
@@ -393,6 +397,7 @@
 		4A0AB6711DC28EFF00AA1E81 /* ReactiveExtensionsSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReactiveExtensionsSpec.swift; sourceTree = "<group>"; };
 		4A0E10FE1D2A92720065D310 /* Lifetime.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Lifetime.swift; sourceTree = "<group>"; };
 		4A0E11031D2A95200065D310 /* LifetimeSpec.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifetimeSpec.swift; sourceTree = "<group>"; };
+		5792972726DE7623007A9F64 /* TakeUntil.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TakeUntil.swift; sourceTree = "<group>"; };
 		57A4D2411BA13D7A00F7D4B1 /* ReactiveSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ReactiveSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		57A4D2441BA13F9700F7D4B1 /* tvOS-Application.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Application.xcconfig"; sourceTree = "<group>"; };
 		57A4D2451BA13F9700F7D4B1 /* tvOS-Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "tvOS-Base.xcconfig"; sourceTree = "<group>"; };
@@ -578,6 +583,7 @@
 				9A2D5C9E259F8059005682ED /* TakeFirst.swift */,
 				9A2D5CAD259F8112005682ED /* TakeLast.swift */,
 				9A2D5CB7259F8199005682ED /* TakeWhile.swift */,
+				5792972726DE7623007A9F64 /* TakeUntil.swift */,
 				9A2D5CC1259F81FC005682ED /* SkipFirst.swift */,
 				9A2D5CCB259F8263005682ED /* SkipWhile.swift */,
 				9A2D5C4E259F7B21005682ED /* MapError.swift */,
@@ -1051,6 +1057,7 @@
 				57A4D1B81BA13D7A00F7D4B1 /* Scheduler.swift in Sources */,
 				9A9100E21E0E6E680093E346 /* ValidatingProperty.swift in Sources */,
 				9A2D5CF2259F85AE005682ED /* SkipRepeats.swift in Sources */,
+				5792972B26DE7623007A9F64 /* TakeUntil.swift in Sources */,
 				9A2D5CBB259F8199005682ED /* TakeWhile.swift in Sources */,
 				57A4D1B91BA13D7A00F7D4B1 /* Action.swift in Sources */,
 				57A4D1BA1BA13D7A00F7D4B1 /* Property.swift in Sources */,
@@ -1153,6 +1160,7 @@
 				9AFA491324E9A196003D263C /* Map.swift in Sources */,
 				9A2D5CFB259F8634005682ED /* UniqueValues.swift in Sources */,
 				9A2D5C65259F7B47005682ED /* MaterializeAsResult.swift in Sources */,
+				5792972A26DE7623007A9F64 /* TakeUntil.swift in Sources */,
 				9A2D5D55259FA000005682ED /* Throttle.swift in Sources */,
 				9A67963D1F6059430058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
 				9A2D5D5F259FA0DD005682ED /* Debounce.swift in Sources */,
@@ -1196,6 +1204,7 @@
 				9A9100DF1E0E6E620093E346 /* ValidatingProperty.swift in Sources */,
 				EBCC7DBC1BBF010C00A2AE92 /* Signal.Observer.swift in Sources */,
 				9A2D5CEF259F85AE005682ED /* SkipRepeats.swift in Sources */,
+				5792972826DE7623007A9F64 /* TakeUntil.swift in Sources */,
 				9A2D5CB8259F8199005682ED /* TakeWhile.swift in Sources */,
 				D03B4A3D19F4C39A009E02AC /* FoundationExtensions.swift in Sources */,
 				9A090C141DA0309E00EE97CA /* Reactive.swift in Sources */,
@@ -1298,6 +1307,7 @@
 				9AFA491224E9A196003D263C /* Map.swift in Sources */,
 				9A2D5CFA259F8634005682ED /* UniqueValues.swift in Sources */,
 				9A2D5C64259F7B47005682ED /* MaterializeAsResult.swift in Sources */,
+				5792972926DE7623007A9F64 /* TakeUntil.swift in Sources */,
 				9A2D5D54259FA000005682ED /* Throttle.swift in Sources */,
 				9A67963C1F6059420058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
 				9A2D5D5E259FA0DD005682ED /* Debounce.swift in Sources */,

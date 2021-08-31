@@ -1148,7 +1148,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 			beforeEach {
 				let (baseProducer, incomingObserver) = SignalProducer<Int, Never>.pipe()
-				producer = baseProducer.take { $0 <= 4 }
+				producer = baseProducer.take(while: { $0 <= 4 })
 				observer = incomingObserver
 			}
 
@@ -1195,6 +1195,66 @@ class SignalProducerLiftingSpec: QuickSpec {
 
 				observer.send(value: 5)
 				expect(latestValue).to(beNil())
+				expect(completed) == true
+			}
+		}
+		
+		describe("takeUntil") {
+			var producer: SignalProducer<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
+			
+			beforeEach {
+				let (baseProducer, incomingObserver) = SignalProducer<Int, Never>.pipe()
+				producer = baseProducer.take(until: { $0 <= 4 })
+				observer = incomingObserver
+			}
+			
+			it("should take until the predicate is true") {
+				var latestValue: Int!
+				var completed = false
+				
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						latestValue = value
+					case .completed:
+						completed = true
+					case .failed, .interrupted:
+						break
+					}
+				}
+				
+				for value in -1...4 {
+					observer.send(value: value)
+					expect(latestValue) == value
+					expect(completed) == false
+				}
+				
+				observer.send(value: 5)
+				expect(latestValue) == 5
+				expect(completed) == true
+				
+				observer.send(value: 6)
+				expect(latestValue) == 5
+			}
+			
+			it("should take and then complete if the predicate starts false") {
+				var latestValue: Int?
+				var completed = false
+				
+				producer.start { event in
+					switch event {
+					case let .value(value):
+						latestValue = value
+					case .completed:
+						completed = true
+					case .failed, .interrupted:
+						break
+					}
+				}
+				
+				observer.send(value: 5)
+				expect(latestValue) == 5
 				expect(completed) == true
 			}
 		}

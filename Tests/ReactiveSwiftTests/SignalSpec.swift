@@ -1644,7 +1644,7 @@ class SignalSpec: QuickSpec {
 
 			beforeEach {
 				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
-				signal = baseSignal.take { $0 <= 4 }
+				signal = baseSignal.take(while: { $0 <= 4 })
 				observer = incomingObserver
 			}
 
@@ -1691,6 +1691,66 @@ class SignalSpec: QuickSpec {
 
 				observer.send(value: 5)
 				expect(latestValue).to(beNil())
+				expect(completed) == true
+			}
+		}
+		
+		describe("takeUntil") {
+			var signal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
+			
+			beforeEach {
+				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
+				signal = baseSignal.take(until: { $0 <= 4 })
+				observer = incomingObserver
+			}
+			
+			it("should take until the predicate is true") {
+				var latestValue: Int!
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						latestValue = value
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				for value in -1...4 {
+					observer.send(value: value)
+					expect(latestValue) == value
+					expect(completed) == false
+				}
+				
+				observer.send(value: 5)
+				expect(latestValue) == 5
+				expect(completed) == true
+				
+				observer.send(value: 6)
+				expect(latestValue) == 5
+			}
+			
+			it("should take and then complete if the predicate starts false") {
+				var latestValue: Int?
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						latestValue = value
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.send(value: 5)
+				expect(latestValue) == 5
 				expect(completed) == true
 			}
 		}

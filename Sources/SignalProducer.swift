@@ -1631,6 +1631,19 @@ extension SignalProducer {
 	}
 
 	/// Forward any values from `self` until `shouldContinue` returns `false`, at which
+	/// point the returned signal forwards the last value and then it completes.
+	/// This is equivalent to `take(while:)`, except it also forwards the last value that failed the check.
+	///
+	/// - parameters:
+	///   - shouldContinue: A closure to determine whether the forwarding of values should
+	///                     continue.
+	///
+	/// - returns: A signal which conditionally forwards values from `self`.
+	public func take(until shouldContinue: @escaping (Value) -> Bool) -> SignalProducer<Value, Error> {
+		return core.flatMapEvent(Signal.Event.take(until: shouldContinue))
+	}
+	
+	/// Forward any values from `self` until `shouldContinue` returns `false`, at which
 	/// point the produced `Signal` would complete.
 	///
 	/// - parameters:
