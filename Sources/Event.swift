@@ -6,6 +6,7 @@ extension Signal {
 	///
 	/// Signals must conform to the grammar:
 	/// `value* (failed | completed | interrupted)?`
+	@frozen
 	public enum Event {
 		/// A value provided by the signal.
 		case value(Value)
