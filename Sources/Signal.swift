@@ -1595,8 +1595,22 @@ extension Signal {
 	///                     continue.
 	///
 	/// - returns: A signal which conditionally forwards values from `self`.
+	/// - seealso: `take(until:)`
 	public func take(while shouldContinue: @escaping (Value) -> Bool) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.take(while: shouldContinue))
+	}
+	
+	/// Forward any values from `self` until `shouldContinue` returns `false`, at which
+	/// point the returned signal forwards the last value and then it completes.
+	/// This is equivalent to `take(while:)`, except it also forwards the last value that failed the check.
+	///
+	/// - parameters:
+	///   - shouldContinue: A closure to determine whether the forwarding of values should
+	///                     continue.
+	///
+	/// - returns: A signal which conditionally forwards values from `self`.
+	public func take(until shouldContinue: @escaping (Value) -> Bool) -> Signal<Value, Error> {
+		return flatMapEvent(Signal.Event.take(until: shouldContinue))
 	}
 }
 

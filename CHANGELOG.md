@@ -26,6 +26,8 @@
 
     When debugging your application, the call stacks involving ReactiveSwift may now look cleaner, without the clutter of compiler-generated reabstraction thunks. See #799 for an example.
 
+1. New operator `SignalProducer.take(until:)` that forwards any values until `shouldContinue` returns `false`. Equivalent to `take(while:)`, except it also forwards the last value that failed the check. (#839, kudos to @nachosoto)
+
 # 6.6.1
 1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants. (#826, kudos to @MikeChugunov)
 
