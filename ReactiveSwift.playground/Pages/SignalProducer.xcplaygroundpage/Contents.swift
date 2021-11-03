@@ -135,7 +135,7 @@ with the Signal, and prevent any future callbacks from being invoked.
 scopedExample("`startWithResult`") {
 	SignalProducer<Int, Never>(value: 42)
 		.startWithResult { result in
-			print(result.value)
+			print(result)
 		}
 }
 

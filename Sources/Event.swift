@@ -6,6 +6,7 @@ extension Signal {
 	///
 	/// Signals must conform to the grammar:
 	/// `value* (failed | completed | interrupted)?`
+	@frozen
 	public enum Event {
 		/// A value provided by the signal.
 		case value(Value)
@@ -289,6 +290,12 @@ extension Signal.Event {
 			Operators.TakeWhile(downstream: downstream, shouldContinue: shouldContinue)
 		}
 	}
+	
+	internal static func take(until shouldContinue: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
+		return { downstream, _ in
+			Operators.TakeUntil(downstream: downstream, shouldContinue: shouldContinue)
+		}
+	}
 
 	internal static func skip(first count: Int) -> Transformation<Value, Error> {
 		return { downstream, _ in
@@ -405,264 +412,55 @@ extension Signal.Event {
 	}
 
 	internal static func observe(on scheduler: Scheduler) -> Transformation<Value, Error> {
-		return { action, lifetime in
-			lifetime.observeEnded {
-				scheduler.schedule {
-					action(.interrupted)
-				}
-			}
-
-			return Signal.Observer { event in
-				scheduler.schedule {
-					if !lifetime.hasEnded {
-						action(event)
-					}
-				}
-			}
+		return { downstream, lifetime in
+			Operators.ObserveOn(downstream: downstream, downstreamLifetime: lifetime, target: scheduler)
 		}
 	}
 
 	internal static func lazyMap<U>(on scheduler: Scheduler, transform: @escaping (Value) -> U) -> Transformation<U, Error> {
-		return { action, lifetime in
-			let box = Atomic<Value?>(nil)
-			let completionDisposable = SerialDisposable()
-			let valueDisposable = SerialDisposable()
-
-			lifetime += valueDisposable
-			lifetime += completionDisposable
-
-			lifetime.observeEnded {
-				scheduler.schedule {
-					action(.interrupted)
-				}
-			}
-
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					// Schedule only when there is no prior outstanding value.
-					if box.swap(value) == nil {
-						valueDisposable.inner = scheduler.schedule {
-							if let value = box.swap(nil) {
-								action(.value(transform(value)))
-							}
-						}
-					}
-
-				case .completed, .failed:
-					// Completion and failure should not discard the outstanding
-					// value.
-					completionDisposable.inner = scheduler.schedule {
-						action(event.map(transform))
-					}
-
-				case .interrupted:
-					// `interrupted` overrides any outstanding value and any
-					// scheduled completion/failure.
-					valueDisposable.dispose()
-					completionDisposable.dispose()
-					scheduler.schedule {
-						action(.interrupted)
-					}
-				}
-			}
+		return { downstream, lifetime in
+			Operators.LazyMap(downstream: downstream, downstreamLifetime: lifetime, target: scheduler, transform: transform)
 		}
 	}
 
 	internal static func delay(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
-		precondition(interval >= 0)
-
-		return { action, lifetime in
-			lifetime.observeEnded {
-				scheduler.schedule {
-					action(.interrupted)
-				}
-			}
-
-			return Signal.Observer { event in
-				switch event {
-				case .failed, .interrupted:
-					scheduler.schedule {
-						action(event)
-					}
-
-				case .value, .completed:
-					let date = scheduler.currentDate.addingTimeInterval(interval)
-					scheduler.schedule(after: date) {
-						if !lifetime.hasEnded {
-							action(event)
-						}
-					}
-				}
-			}
+		return { downstream, lifetime in
+			Operators.Delay(downstream: downstream, downstreamLifetime: lifetime, target: scheduler, interval: interval)
 		}
 	}
 
 	internal static func throttle(_ interval: TimeInterval, on scheduler: DateScheduler) -> Transformation<Value, Error> {
-		precondition(interval >= 0)
-
-		return { action, lifetime in
-			let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState())
-			let schedulerDisposable = SerialDisposable()
-
-			lifetime.observeEnded {
-				schedulerDisposable.dispose()
-				scheduler.schedule { action(.interrupted) }
-			}
-
-			return Signal.Observer { event in
-				guard let value = event.value else {
-					schedulerDisposable.inner = scheduler.schedule {
-						action(event)
-					}
-					return
-				}
-
-				let scheduleDate: Date = state.modify { state in
-					state.pendingValue = value
-
-					let proposedScheduleDate: Date
-					if let previousDate = state.previousDate, previousDate <= scheduler.currentDate {
-						proposedScheduleDate = previousDate.addingTimeInterval(interval)
-					} else {
-						proposedScheduleDate = scheduler.currentDate
-					}
-
-					return proposedScheduleDate < scheduler.currentDate ? scheduler.currentDate : proposedScheduleDate
-				}
-
-				schedulerDisposable.inner = scheduler.schedule(after: scheduleDate) {
-					if let pendingValue = state.modify({ $0.retrieveValue(date: scheduleDate) }) {
-						action(.value(pendingValue))
-					}
-				}
-			}
+		return { downstream, lifetime in
+			Operators.Throttle(downstream: downstream, downstreamLifetime: lifetime, target: scheduler, interval: interval)
 		}
 	}
 
 	internal static func debounce(_ interval: TimeInterval, on scheduler: DateScheduler, discardWhenCompleted: Bool) -> Transformation<Value, Error> {
-		precondition(interval >= 0)
-		
-		return { action, lifetime in
-			let state: Atomic<ThrottleState<Value>> = Atomic(ThrottleState(previousDate: scheduler.currentDate, pendingValue: nil))
-			let d = SerialDisposable()
-
-			lifetime.observeEnded {
-				d.dispose()
-				scheduler.schedule { action(.interrupted) }
-			}
-
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					state.modify { state in
-						state.pendingValue = value
-					}
-					let date = scheduler.currentDate.addingTimeInterval(interval)
-					d.inner = scheduler.schedule(after: date) {
-						if let pendingValue = state.modify({ $0.retrieveValue(date: date) }) {
-							action(.value(pendingValue))
-						}
-					}
-					
-				case .completed:
-					d.inner = scheduler.schedule {
-						let pending: (value: Value, previousDate: Date)? = state.modify { state in
-							defer { state.pendingValue = nil }
-							guard let pendingValue = state.pendingValue, let previousDate = state.previousDate else { return nil }
-							return (pendingValue, previousDate)
-						}
-						if !discardWhenCompleted, let (pendingValue, previousDate) = pending {
-							scheduler.schedule(after: previousDate.addingTimeInterval(interval)) {
-								action(.value(pendingValue))
-								action(.completed)
-							}
-						} else {
-							action(.completed)
-						}
-					}
-
-				case .failed, .interrupted:
-					d.inner = scheduler.schedule {
-						action(event)
-					}
-				}
-			}
+		return { downstream, lifetime in
+			Operators.Debounce(
+				downstream: downstream,
+				downstreamLifetime: lifetime,
+				target: scheduler,
+				interval: interval,
+				discardWhenCompleted: discardWhenCompleted
+			)
 		}
 	}
 	
 	internal static func collect(every interval: DispatchTimeInterval, on scheduler: DateScheduler, skipEmpty: Bool, discardWhenCompleted: Bool) -> Transformation<[Value], Error> {
-		return { action, lifetime in
-			let state = Atomic<CollectEveryState<Value>>(.init(skipEmpty: skipEmpty))
-			let d = SerialDisposable()
-			
-			d.inner = scheduler.schedule(after: scheduler.currentDate.addingTimeInterval(interval), interval: interval, leeway: interval * 0.1) {
-				let (currentValues, isCompleted) = state.modify { ($0.collect(), $0.isCompleted) }
-				if let currentValues = currentValues {
-					action(.value(currentValues))
-				}
-				if isCompleted {
-					action(.completed)
-				}
-			}
-			
-			lifetime.observeEnded {
-				d.dispose()
-				scheduler.schedule { action(.interrupted) }
-			}
-
-			return Signal.Observer { event in
-				switch event {
-				case let .value(value):
-					state.modify { $0.values.append(value) }
-				case let .failed(error):
-					d.inner = scheduler.schedule { action(.failed(error)) }
-				case .completed where !discardWhenCompleted:
-					state.modify { $0.isCompleted = true }
-				case .completed:
-					d.inner = scheduler.schedule { action(.completed) }
-				case .interrupted:
-					d.inner = scheduler.schedule { action(.interrupted) }
-				}
-			}
+		return { downstream, lifetime in
+			Operators.CollectEvery(
+				downstream: downstream,
+				downstreamLifetime: lifetime,
+				target: scheduler,
+				interval: interval,
+				skipEmpty: skipEmpty,
+				discardWhenCompleted: discardWhenCompleted
+			)
 		}
 	}
 }
 
-private struct CollectEveryState<Value> {
-	let skipEmpty: Bool
-	var values: [Value] = []
-	var isCompleted: Bool = false
-	
-	init(skipEmpty: Bool) {
-		self.skipEmpty = skipEmpty
-	}
-	
-	var hasValues: Bool {
-		return !values.isEmpty || !skipEmpty
-	}
-	
-	mutating func collect() -> [Value]? {
-		guard hasValues else { return nil }
-		defer { values.removeAll() }
-		return values
-	}
-}
-
-private struct ThrottleState<Value> {
-	var previousDate: Date?
-	var pendingValue: Value?
-	
-	mutating func retrieveValue(date: Date) -> Value? {
-		defer {
-			if pendingValue != nil {
-				pendingValue = nil
-				previousDate = date
-			}
-		}
-		return pendingValue
-	}
-}
 
 extension Signal.Event where Error == Never {
 	internal static func promoteError<F>(_: F.Type) -> Transformation<Value, F> {

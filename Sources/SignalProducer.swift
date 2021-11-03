@@ -61,12 +61,47 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// sent to the input `Observer`; or (2) when the produced `Signal` is
 	/// interrupted via the disposable yielded at the starting call.
 	///
+	/// - note: The provided input observer is thread safe.
+	///
 	/// - parameters:
 	///   - startHandler: The starting side effect.
 	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
 		self.init(SignalCore {
 			let disposable = CompositeDisposable()
 			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
+			let interruptHandle = AnyDisposable(observer.sendInterrupted)
+
+			return SignalProducerCore.Instance(signal: signal,
+			                                   observerDidSetup: observerDidSetup,
+			                                   interruptHandle: interruptHandle)
+		})
+	}
+
+	/// Initialize a `SignalProducer` which invokes the supplied starting side
+	/// effect once upon the creation of every produced `Signal`, or in other
+	/// words, for every invocation of `startWithSignal(_:)`, `start(_:)` and
+	/// their convenience shorthands.
+	///
+	/// The supplied starting side effect would be given (1) an input `Observer`
+	/// to emit events to the produced `Signal`; and (2) a `Lifetime` to bind
+	/// resources to the lifetime of the produced `Signal`.
+	///
+	/// The `Lifetime` of a produced `Signal` ends when: (1) a terminal event is
+	/// sent to the input `Observer`; or (2) when the produced `Signal` is
+	/// interrupted via the disposable yielded at the starting call.
+	///
+	/// - warning: Like `Signal.unserialized(_:)`, the provided input observer **is not thread safe**.
+	///            Mutual exclusion is assumed to be enforced among the callers.
+	///
+	/// - parameters:
+	///   - startHandler: The starting side effect.
+	public static func unserialized(
+		_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void
+	) -> SignalProducer<Value, Error> {
+		return self.init(SignalCore {
+			let disposable = CompositeDisposable()
+			let (signal, observer) = Signal<Value, Error>.unserializedPipe(disposable: disposable)
 			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
 			let interruptHandle = AnyDisposable(observer.sendInterrupted)
 
@@ -384,7 +419,10 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 	internal override func makeInstance() -> Instance {
 		let disposable = SerialDisposable()
-		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+
+		// The Event contract requires that event is serial, which `SignalProducer` adheres to. So it is unnecessary for
+		// us to add another level of serialization, since we would have "inherited" serialization as an observer.
+		let (signal, observer) = Signal<Value, Error>.unserializedPipe(disposable: disposable)
 
 		func observerDidSetup() {
 			start { interrupter in
@@ -663,7 +701,9 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer<U, F> { observer, lifetime in
+		// The Event contract requires that event is serial, which `Signal` adheres to. So it is unnecessary for us to
+		// add another level of serialization, since we would have "inherited" serialization as an observer.
+		return SignalProducer<U, F>.unserialized { observer, lifetime in
 			self.startWithSignal { signal, interrupter in
 				lifetime += interrupter
 				lifetime += transform(signal).observe(observer)
@@ -1590,6 +1630,19 @@ extension SignalProducer {
 		return core.flatMapEvent(Signal.Event.take(last: count))
 	}
 
+	/// Forward any values from `self` until `shouldContinue` returns `false`, at which
+	/// point the returned signal forwards the last value and then it completes.
+	/// This is equivalent to `take(while:)`, except it also forwards the last value that failed the check.
+	///
+	/// - parameters:
+	///   - shouldContinue: A closure to determine whether the forwarding of values should
+	///                     continue.
+	///
+	/// - returns: A signal which conditionally forwards values from `self`.
+	public func take(until shouldContinue: @escaping (Value) -> Bool) -> SignalProducer<Value, Error> {
+		return core.flatMapEvent(Signal.Event.take(until: shouldContinue))
+	}
+	
 	/// Forward any values from `self` until `shouldContinue` returns `false`, at which
 	/// point the produced `Signal` would complete.
 	///
