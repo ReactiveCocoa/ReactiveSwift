@@ -11,7 +11,7 @@ import Foundation
 import ReactiveSwift
 import XCTest
 
-@available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
+@available(macOS 12, iOS 15, watchOS 8, tvOS 15, macCatalyst 15, *)
 class SwiftConcurrencyTests: XCTestCase {
 	func testValuesAsyncSignalProducer() async {
 		let values = [1,2,3]
