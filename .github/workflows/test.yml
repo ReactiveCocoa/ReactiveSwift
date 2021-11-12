@@ -3,7 +3,7 @@ name: Test
 jobs:
   test:
     name: Test
-    runs-on: macos-latest
+    runs-on: macos-11
     strategy:
         fail-fast: false
         matrix:
