@@ -15,22 +15,22 @@ import XCTest
 class SwiftConcurrencyTests: XCTestCase {
     func testValuesAsyncSignalProducer() async {
         let values = [1,2,3]
-        var counter = 0
+        var sum = 0
         let asyncStream = SignalProducer(values).asyncStream
-        for await _ in asyncStream {
-            counter += 1
+        for await number in asyncStream {
+			sum += number
         }
-        XCTAssertEqual(counter, 3)
+        XCTAssertEqual(sum, 6)
     }
 
     func testValuesAsyncThrowingSignalProducer() async throws {
         let values = [1,2,3]
-        var counter = 0
+        var sum = 0
         let asyncStream = SignalProducer(values).asyncThrowingStream
-        for try await _ in asyncStream {
-            counter += 1
+        for try await number in asyncStream {
+			sum += number
         }
-        XCTAssertEqual(counter, 3)
+        XCTAssertEqual(sum, 6)
     }
 
     func testCompleteAsyncSignalProducer() async {
@@ -60,12 +60,12 @@ class SwiftConcurrencyTests: XCTestCase {
                 observer.sendCompleted()
             }
         }
-        var counter = 0
+        var sum = 0
         let asyncStream = signal.asyncStream
-        for await _ in asyncStream {
-            counter += 1
+        for await number in asyncStream {
+			sum += number
         }
-        XCTAssertEqual(counter, 3)
+        XCTAssertEqual(sum, 6)
     }
 
     func testValuesAsyncThrowingSignal() async throws {
@@ -77,12 +77,12 @@ class SwiftConcurrencyTests: XCTestCase {
                 observer.sendCompleted()
             }
         }
-        var counter = 0
+        var sum = 0
         let asyncStream = signal.asyncThrowingStream
-        for try await _ in asyncStream {
-            counter += 1
+        for try await number in asyncStream {
+            sum += number
         }
-        XCTAssertEqual(counter, 3)
+        XCTAssertEqual(sum, 6)
     }
 
     func testCompleteAsyncSignal() async {
@@ -126,5 +126,4 @@ fileprivate extension XCTest {
         }
     }
 }
-
 #endif
