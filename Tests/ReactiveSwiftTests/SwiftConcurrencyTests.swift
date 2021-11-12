@@ -109,7 +109,7 @@ class SwiftConcurrencyTests: XCTestCase {
 	}
 }
 // Extension to allow Throw assertion for async expressions
-@available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
+@available(macOS 12, iOS 15, watchOS 8, tvOS 15, macCatalyst 15, *)
 fileprivate extension XCTest {
 	func XCTAssertThrowsError<T: Sendable>(
 		_ expression: @autoclosure () async throws -> T,
