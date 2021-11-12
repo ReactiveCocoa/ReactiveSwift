@@ -3,6 +3,7 @@
 
 # 6.7.0
 # 6.7.0-rc1
+1. Add Swift Concurrency extensions `asyncStream` and `asyncThrowingStream` to `Signal` and `SignalProducer` (#847)
 
 1. New operator `SignalProducer.Type.interval(_:interval:on:)` for emitting elements from a given sequence regularly. (#810, kudos to @mluisbrown)
 
