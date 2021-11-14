@@ -53,7 +53,7 @@ class SwiftConcurrencyTests: XCTestCase {
 	
 	func testValuesAsyncSignal() async {
 		let signal = Signal<Int, Never> { observer, _ in
-			Task {
+			DispatchQueue.main.async {
 				for number in [1, 2, 3] {
 					observer.send(value: number)
 				}
@@ -70,7 +70,7 @@ class SwiftConcurrencyTests: XCTestCase {
 	
 	func testValuesAsyncThrowingSignal() async throws {
 		let signal = Signal<Int, Never> { observer, _ in
-			Task {
+			DispatchQueue.main.async {
 				for number in [1, 2, 3] {
 					observer.send(value: number)
 				}
@@ -100,7 +100,7 @@ class SwiftConcurrencyTests: XCTestCase {
 	func testErrorSignal() async {
 		let error = NSError(domain: "domain", code: 0, userInfo: nil)
 		let signal = Signal<String, Error> { observer, _ in
-			Task {
+			DispatchQueue.main.async {
 				observer.send(error: error)
 			}
 		}
