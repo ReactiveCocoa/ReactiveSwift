@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Fixed issue where `SingalProducer.try(upTo:interval:count:)` shares state between invocation of `start` on the same producer.
+
 # 6.7.0
 # 6.7.0-rc1
 
@@ -42,7 +44,6 @@
 1. Bumped deployment target to iOS 9.0, per Xcode 12 warnings. (#818, kudos to @harleyjcooper)
 
 1. Fixed a few deprecation warning when the project is being built. (#819, kudos to @apps4everyone)
->>>>>>> origin/master
 
 # 6.5.0
 
