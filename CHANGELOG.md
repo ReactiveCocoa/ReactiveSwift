@@ -1,7 +1,36 @@
 # master
 *Please add new entries at the top.*
 
-1. The UnidirectionalBinding operator `<~` returns non optional values.
+1. The UnidirectionalBinding operator `<~` returns non optional values. (#834, kudos to @NicholasTD07)
+
+1. Fixed issue where `SingalProducer.try(upTo:interval:count:)` shares state between invocation of `start` on the same producer. (#829, kudos to @sebastiangrail)
+
+# 6.7.0
+# 6.7.0-rc1
+
+1. New operator `SignalProducer.Type.interval(_:interval:on:)` for emitting elements from a given sequence regularly. (#810, kudos to @mluisbrown)
+
+1. `Signal` offers two special variants for advanced users: unserialized and reentrant-unserialized. (#797)
+
+   The input observer of these variants assume that mutual exclusion has been enforced by its callers.
+
+   You can create these variants through four `Signal` static methods: `unserialized(_:)`, `unserializedPipe(_:)`, `reentrantUnserialized(_:)` and `reentrantUnserializedPipe(_:)`. These would be adopted by ReactiveCocoa UIKit bindings to improve interoperability with Loop, to tackle some legitimate recursive delivery scenarios (e.g. around first responder management), and also to reduce fine-grained locking in ReactiveCocoa.
+
+   Note that the default behavior of `Signal` has not been changed — event serialization remains the default behavior.
+
+1. `SignalProducer` offers an unserialized variant via `SignalProducer.unserialized(_:)`. (#797)
+
+1. `TestScheduler` can now advanced its clock by `TimeInterval`. (#828, kudos to @carsten-wenderdel)
+
+1. `Signal` and Properties now use fewer locks, which should translate into minor performance improvements. (#797)
+
+1. Fixed spelling error in `Lifetime.Token` class documentation. (#835, kudos to @ansonj)
+
+1. As a continued refactoring effort since ReactiveSwift 6.6.0, all unary `Signal` and `SignalProducer` operators have been migrated to a new internal representation.
+
+    When debugging your application, the call stacks involving ReactiveSwift may now look cleaner, without the clutter of compiler-generated reabstraction thunks. See #799 for an example.
+
+1. New operator `SignalProducer.take(until:)` that forwards any values until `shouldContinue` returns `false`. Equivalent to `take(while:)`, except it also forwards the last value that failed the check. (#839, kudos to @nachosoto)
 
 # 6.6.1
 1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants. (#826, kudos to @MikeChugunov)

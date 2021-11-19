@@ -200,6 +200,51 @@ class SignalSpec: QuickSpec {
 			}
 		}
 
+		describe("reentrantUnserialized") {
+			#if arch(x86_64) && canImport(Darwin)
+			it("should not crash") {
+				let (signal, observer) = Signal<Int, Never>.reentrantUnserializedPipe()
+				var values: [Int] = []
+
+				signal
+					.take(first: 5)
+					.map { $0 + 1 }
+					.on { values.append($0) }
+					.observeValues(observer.send(value:))
+
+				expect {
+					observer.send(value: 1)
+				}.toNot(throwAssertion())
+
+				expect(values) == [2, 3, 4, 5, 6]
+			}
+			#endif
+
+			it("should drain enqueued values in submission order after the observer callout has completed") {
+				let (signal, observer) = Signal<Int, Never>.reentrantUnserializedPipe()
+				var values: [Int] = []
+
+				signal
+					.take(first: 1)
+					.observeValues { _ in
+						observer.send(value: 10)
+						observer.send(value: 100)
+				}
+
+				signal
+					.take(first: 1)
+					.observeValues { _ in
+						observer.send(value: 20)
+						observer.send(value: 200)
+				}
+
+				signal.observeValues { values.append($0) }
+
+				observer.send(value: 0)
+				expect(values) == [0, 10, 100, 20, 200]
+			}
+		}
+
 		describe("Signal.pipe") {
 			it("should forward events to observers") {
 				let (signal, observer) = Signal<Int, Never>.pipe()
@@ -1599,7 +1644,7 @@ class SignalSpec: QuickSpec {
 
 			beforeEach {
 				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
-				signal = baseSignal.take { $0 <= 4 }
+				signal = baseSignal.take(while: { $0 <= 4 })
 				observer = incomingObserver
 			}
 
@@ -1646,6 +1691,66 @@ class SignalSpec: QuickSpec {
 
 				observer.send(value: 5)
 				expect(latestValue).to(beNil())
+				expect(completed) == true
+			}
+		}
+		
+		describe("takeUntil") {
+			var signal: Signal<Int, Never>!
+			var observer: Signal<Int, Never>.Observer!
+			
+			beforeEach {
+				let (baseSignal, incomingObserver) = Signal<Int, Never>.pipe()
+				signal = baseSignal.take(until: { $0 <= 4 })
+				observer = incomingObserver
+			}
+			
+			it("should take until the predicate is true") {
+				var latestValue: Int!
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						latestValue = value
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				for value in -1...4 {
+					observer.send(value: value)
+					expect(latestValue) == value
+					expect(completed) == false
+				}
+				
+				observer.send(value: 5)
+				expect(latestValue) == 5
+				expect(completed) == true
+				
+				observer.send(value: 6)
+				expect(latestValue) == 5
+			}
+			
+			it("should take and then complete if the predicate starts false") {
+				var latestValue: Int?
+				var completed = false
+				
+				signal.observe { event in
+					switch event {
+					case let .value(value):
+						latestValue = value
+					case .completed:
+						completed = true
+					default:
+						break
+					}
+				}
+				
+				observer.send(value: 5)
+				expect(latestValue) == 5
 				expect(completed) == true
 			}
 		}
