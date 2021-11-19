@@ -1,9 +1,12 @@
 # master
 *Please add new entries at the top.*
 
+# 7.0.0
 1. The UnidirectionalBinding operator `<~` returns non optional values. (#834, kudos to @NicholasTD07)
 
 1. Fixed issue where `SingalProducer.try(upTo:interval:count:)` shares state between invocation of `start` on the same producer. (#829, kudos to @sebastiangrail)
+
+1. `Signal.Event` is now marked as frozen enum. (#841, kudos to @NachoSoto)
 
 # 6.7.0
 # 6.7.0-rc1
