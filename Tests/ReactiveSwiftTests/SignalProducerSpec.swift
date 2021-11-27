@@ -2812,6 +2812,40 @@ class SignalProducerSpec: QuickSpec {
 					expect(errors) == [.default]
 				}
 
+				it("should not share retry counter across produced signals") {
+					let scheduler = TestScheduler()
+					var failuresReceived = 0
+					
+					let original = SignalProducer<Int, TestError> { observer, _ in
+						scheduler.schedule { observer.send(error: .default) }
+					}
+					let retryDelay: DispatchTimeInterval = .seconds(1)
+					let retriable = original
+						.retry(upTo: 1, interval: retryDelay.timeInterval, on: scheduler)
+						.on(failed: { _ in failuresReceived += 1 })
+					
+					// 1st produced signal
+					retriable.start()
+					
+					scheduler.advance()
+					expect(failuresReceived) == 0
+
+					scheduler.advance(by: retryDelay)
+					expect(failuresReceived) == 1
+
+					// 2nd produced signal
+					retriable.start()
+					
+					scheduler.advance()
+					// Shared retry counter had caused the second produced signal not to defer the failed event as expected.
+					// (https://github.com/ReactiveCocoa/ReactiveSwift/pull/829)
+					// Assert that we did not receive the 2th final failure at this point, which should always be delayed until
+					// at least `retryDelay` has elapsed.
+					expect(failuresReceived) == 1
+
+					scheduler.advance(by: retryDelay)
+					expect(failuresReceived) == 2
+				}
 			}
 			
 		}

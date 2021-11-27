@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name         = "ReactiveSwift"
   # Version goes here and will be used to access the git tag later on, once we have a first release.
-  s.version      = "6.7.0"
+  s.version      = "7.0.0"
   s.summary      = "Streams of values over time"
   s.description  = <<-DESC
                    ReactiveSwift is a Swift framework inspired by Functional Reactive Programming. It provides APIs for composing and transforming streams of values over time.

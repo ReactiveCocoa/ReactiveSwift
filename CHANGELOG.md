@@ -1,6 +1,13 @@
 # master
 *Please add new entries at the top.*
 
+# 7.0.0
+1. The UnidirectionalBinding operator `<~` returns non optional values. (#834, kudos to @NicholasTD07)
+
+1. Fixed issue where `SingalProducer.try(upTo:interval:count:)` shares state between invocation of `start` on the same producer. (#829, kudos to @sebastiangrail)
+
+1. `Signal.Event` is now marked as frozen enum. (#841, kudos to @NachoSoto)
+
 # 6.7.0
 # 6.7.0-rc1
 1. Add Swift Concurrency extensions `asyncStream` and `asyncThrowingStream` to `Signal` and `SignalProducer` (#847)
@@ -43,7 +50,6 @@
 1. Bumped deployment target to iOS 9.0, per Xcode 12 warnings. (#818, kudos to @harleyjcooper)
 
 1. Fixed a few deprecation warning when the project is being built. (#819, kudos to @apps4everyone)
->>>>>>> origin/master
 
 # 6.5.0
 
