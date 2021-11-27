@@ -5,7 +5,7 @@
 //  Created by Marco Cancellieri on 2021-11-11.
 //  Copyright (c) 2021 GitHub. All rights reserved.
 //
-#if compiler(>=5.5) && canImport(_Concurrency)
+#if compiler(>=5.5.2) && canImport(_Concurrency)
 import Foundation
 
 @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, *)

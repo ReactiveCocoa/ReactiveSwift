@@ -6,7 +6,7 @@
 //  Copyright (c) 2021 GitHub. All rights reserved.
 //
 
-#if compiler(>=5.5) && canImport(_Concurrency)
+#if compiler(>=5.5.2) && canImport(_Concurrency)
 import Foundation
 import ReactiveSwift
 import XCTest
@@ -109,7 +109,7 @@ class SwiftConcurrencyTests: XCTestCase {
 	}
 }
 // Extension to allow Throw assertion for async expressions
-@available(macOS 12, iOS 15, watchOS 8, tvOS 15, macCatalyst 15, *)
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, *)
 fileprivate extension XCTest {
 	func XCTAssertThrowsError<T: Sendable>(
 		_ expression: @autoclosure () async throws -> T,

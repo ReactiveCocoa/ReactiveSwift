@@ -1,5 +1,6 @@
 # master
 *Please add new entries at the top.*
+1. Add Swift Concurrency extensions `asyncStream` and `asyncThrowingStream` to `Signal` and `SignalProducer` (#847)
 
 # 7.0.0
 1. The UnidirectionalBinding operator `<~` returns non optional values. (#834, kudos to @NicholasTD07)
@@ -10,8 +11,6 @@
 
 # 6.7.0
 # 6.7.0-rc1
-1. Add Swift Concurrency extensions `asyncStream` and `asyncThrowingStream` to `Signal` and `SignalProducer` (#847)
-
 1. New operator `SignalProducer.Type.interval(_:interval:on:)` for emitting elements from a given sequence regularly. (#810, kudos to @mluisbrown)
 
 1. `Signal` offers two special variants for advanced users: unserialized and reentrant-unserialized. (#797)
