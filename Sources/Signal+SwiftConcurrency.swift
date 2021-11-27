@@ -8,7 +8,7 @@
 #if compiler(>=5.5) && canImport(_Concurrency)
 import Foundation
 
-@available(macOS 12, iOS 15, watchOS 8, tvOS 15, macCatalyst 15, *)
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, *)
 extension Signal {
 	public var asyncThrowingStream: AsyncThrowingStream<Value, Swift.Error> {
 		AsyncThrowingStream<Value, Swift.Error> { continuation in
@@ -29,8 +29,8 @@ extension Signal {
 	}
 }
 
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, *)
 extension Signal where Error == Never {
-	@available(macOS 12, iOS 15, watchOS 8, tvOS 15, macCatalyst 15, *)
 	public var asyncStream: AsyncStream<Value> {
 		AsyncStream<Value> { continuation in
 			let disposable = observe { event in
