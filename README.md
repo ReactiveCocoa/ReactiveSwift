@@ -101,7 +101,7 @@ If you use Swift Package Manager, simply add ReactiveSwift as a dependency
 of your package in `Package.swift`:
 
 ```
-.package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "6.1.0")
+.package(url: "https://github.com/ReactiveCocoa/ReactiveSwift.git", from: "7.0.0")
 ```
 
 #### Git submodule
