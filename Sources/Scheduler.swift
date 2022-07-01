@@ -14,7 +14,7 @@ import Foundation
 #endif
 
 /// Represents a serial queue of work items.
-public protocol Scheduler: AnyObject {
+public protocol Scheduler: AnyObject, Sendable {
 	/// Enqueues an action on the scheduler.
 	///
 	/// When the work is executed depends on the scheduler in use.
@@ -205,7 +205,7 @@ private final class DispatchSourceTimerWrapper: Hashable {
 }
 
 /// A scheduler backed by a serial GCD queue.
-public final class QueueScheduler: DateScheduler {
+public final class QueueScheduler: DateScheduler, @unchecked Sendable {
 	/// A singleton `QueueScheduler` that always targets the main thread's GCD
 	/// queue.
 	///
@@ -389,7 +389,7 @@ public final class QueueScheduler: DateScheduler {
 }
 
 /// A scheduler that implements virtualized time, for use in testing.
-public final class TestScheduler: DateScheduler {
+public final class TestScheduler: DateScheduler, @unchecked Sendable {
 	private final class ScheduledAction {
 		let date: Date
 		let action: () -> Void

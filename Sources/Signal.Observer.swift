@@ -9,8 +9,8 @@
 extension Signal {
 	/// An Observer is a simple wrapper around a function which can receive Events
 	/// (typically from a Signal).
-	public final class Observer: ReactiveSwift.Observer<Value, Error> {
-		public typealias Action = (Event) -> Void
+	public final class Observer: ReactiveSwift.Observer, Sendable {
+		public typealias Action = @Sendable (Event) -> Void
 		private let _send: Action
 
 		/// Whether the observer should send an `interrupted` event as it deinitializes.
@@ -91,11 +91,11 @@ extension Signal {
 			}
 		}
 
-		public override func receive(_ value: Value) {
+		public func receive(_ value: Value) {
 			send(value: value)
 		}
 
-		public override func terminate(_ termination: Termination<Error>) {
+		public func terminate(_ termination: Termination<Error>) {
 			switch termination {
 			case let .failed(error):
 				send(error: error)
@@ -128,11 +128,13 @@ extension Signal {
 		}
 
 		/// Puts a `completed` event into `self`.
+		@Sendable
 		public func sendCompleted() {
 			_send(.completed)
 		}
 
 		/// Puts an `interrupted` event into `self`.
+		@Sendable
 		public func sendInterrupted() {
 			_send(.interrupted)
 		}

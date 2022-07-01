@@ -9,7 +9,7 @@ extension Operators {
 		private let schedulerDisposable = SerialDisposable()
 
 		init(
-			downstream: Observer<Value, Error>,
+			downstream: some Observer<Value, Error>,
 			downstreamLifetime: Lifetime,
 			target: DateScheduler,
 			interval: TimeInterval

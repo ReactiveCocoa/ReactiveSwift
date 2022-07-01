@@ -8,7 +8,7 @@
 
 /// Represents something that can be “disposed”, usually associated with freeing
 /// resources or canceling work.
-public protocol Disposable: AnyObject {
+public protocol Disposable: AnyObject, Sendable {
 	/// Whether this disposable has been disposed already.
 	var isDisposed: Bool { get }
 
@@ -16,6 +16,7 @@ public protocol Disposable: AnyObject {
 	/// been disposed of, it does nothing.
 	///
 	/// - note: Implementations must issue a memory barrier.
+	@Sendable
 	func dispose()
 }
 
@@ -58,22 +59,22 @@ internal final class _SimpleDisposable: Disposable {
 /// A disposable that has already been disposed.
 internal final class NopDisposable: Disposable {
 	static let shared = NopDisposable()
-	var isDisposed = true
+	let isDisposed = true
 	func dispose() {}
 	private init() {}
 }
 
 /// A type-erased disposable that forwards operations to an underlying disposable.
 public final class AnyDisposable: Disposable {
-	private final class ActionDisposable: Disposable {
+	private final class ActionDisposable: Disposable, @unchecked Sendable {
 		let state: UnsafeAtomicState<DisposableState>
-		var action: (() -> Void)?
+		var action: (@Sendable () -> Void)?
 
 		var isDisposed: Bool {
 			return state.is(.disposed)
 		}
 
-		init(_ action: (() -> Void)?) {
+		init(_ action: (@Sendable () -> Void)?) {
 			self.state = UnsafeAtomicState(.active)
 			self.action = action
 		}
@@ -100,7 +101,7 @@ public final class AnyDisposable: Disposable {
 	///
 	/// - parameters:
 	///   - action: A closure to run when calling `dispose()`.
-	public init(_ action: @escaping () -> Void) {
+	public init(_ action: @escaping @Sendable () -> Void) {
 		base = ActionDisposable(action)
 	}
 
@@ -123,7 +124,7 @@ public final class AnyDisposable: Disposable {
 }
 
 /// A disposable that will dispose of any number of other disposables.
-public final class CompositeDisposable: Disposable {
+public final class CompositeDisposable: Disposable, @unchecked Sendable {
 	private let disposables: Atomic<Bag<Disposable>?>
 	private var state: UnsafeAtomicState<DisposableState>
 
@@ -203,7 +204,7 @@ public final class CompositeDisposable: Disposable {
 	///            composite has been disposed of, `disposable` has been disposed of, or
 	///            `disposable` is `nil`.
 	@discardableResult
-	public func add(_ action: @escaping () -> Void) -> Disposable? {
+	public func add(_ action: @escaping @Sendable () -> Void) -> Disposable? {
 		return add(AnyDisposable(action))
 	}
 
@@ -246,7 +247,7 @@ public final class CompositeDisposable: Disposable {
 	/// - returns: An instance of `DisposableHandle` that can be used to opaquely
 	///            remove the disposable later (if desired).
 	@discardableResult
-	public static func += (lhs: CompositeDisposable, rhs: @escaping () -> Void) -> Disposable? {
+	public static func += (lhs: CompositeDisposable, rhs: @escaping @Sendable () -> Void) -> Disposable? {
 		return lhs.add(rhs)
 	}
 }
@@ -325,7 +326,7 @@ extension ScopedDisposable where Inner == CompositeDisposable {
 	/// - returns: An instance of `DisposableHandle` that can be used to opaquely
 	///            remove the disposable later (if desired).
 	@discardableResult
-	public static func += (lhs: ScopedDisposable<CompositeDisposable>, rhs: @escaping () -> Void) -> Disposable? {
+	public static func += (lhs: ScopedDisposable<CompositeDisposable>, rhs: @escaping @Sendable () -> Void) -> Disposable? {
 		return lhs.inner.add(rhs)
 	}
 }
@@ -334,7 +335,7 @@ extension ScopedDisposable where Inner == CompositeDisposable {
 /// wrapped disposable to be replaced.
 public final class SerialDisposable: Disposable {
 	private let _inner: Atomic<Disposable?>
-	private var state: UnsafeAtomicState<DisposableState>
+	private let state: UnsafeAtomicState<DisposableState>
 
 	public var isDisposed: Bool {
 		return state.is(.disposed)

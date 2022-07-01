@@ -2,7 +2,7 @@ import Foundation
 
 /// Represents the lifetime of an object, and provides a hook to observe when
 /// the object deinitializes.
-public final class Lifetime {
+public final class Lifetime: Sendable {
 	private let disposables: CompositeDisposable
 
 	/// A signal that sends a `completed` event when the lifetime ends.
@@ -49,7 +49,7 @@ public final class Lifetime {
 	/// - returns: A disposable that detaches `action` from the lifetime, or `nil`
 	///            if `lifetime` has already ended.
 	@discardableResult
-	public func observeEnded(_ action: @escaping () -> Void) -> Disposable? {
+	public func observeEnded(_ action: @escaping @Sendable () -> Void) -> Disposable? {
 		return disposables += action
 	}
 

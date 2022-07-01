@@ -12,7 +12,7 @@ import Glibc
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: AnyObject, BindingSource {
+public protocol PropertyProtocol<Value>: AnyObject, BindingSource {
 	/// The current value of the property.
 	var value: Value { get }
 
@@ -36,7 +36,7 @@ public protocol PropertyProtocol: AnyObject, BindingSource {
 }
 
 /// Represents an observable property that can be mutated directly.
-public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProvider {
+public protocol MutablePropertyProtocol<Value>: PropertyProtocol, BindingTargetProvider {
 	/// The current value of the property.
 	var value: Value { get set }
 

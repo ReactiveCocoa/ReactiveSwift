@@ -14,7 +14,7 @@ import MachO
 /// A simple, generic lock-free finite state machine.
 ///
 /// - warning: `deinitialize` must be called to dispose of the consumed memory.
-internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue == Int32 {
+internal struct UnsafeAtomicState<State: RawRepresentable>: Sendable where State.RawValue == Int32 {
 	internal typealias Transition = (expected: State, next: State)
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 	private let value: UnsafeMutablePointer<Int32>
@@ -29,6 +29,7 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 	}
 
 	/// Deinitialize the finite state machine.
+	@Sendable
 	internal func deinitialize() {
 		value.deinitialize(count: 1)
 		value.deallocate()
@@ -104,7 +105,8 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 
 /// `Lock` exposes `os_unfair_lock` on supported platforms, with pthread mutex as the
 /// fallback.
-internal class Lock: LockProtocol {
+// TODO: unckecked? subclass?
+internal class Lock: LockProtocol, @unchecked Sendable {
 	#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 	@available(iOS 10.0, *)
 	@available(macOS 10.12, *)
@@ -212,7 +214,7 @@ internal class Lock: LockProtocol {
 	func `try`() -> Bool { fatalError() }
 }
 
-internal protocol LockProtocol {
+internal protocol LockProtocol: Sendable {
 	static func make() -> Self
 	
 	func lock()
@@ -229,7 +231,7 @@ internal struct NoLock: LockProtocol {
 }
 
 /// An atomic variable.
-public final class Atomic<Value> {
+public final class Atomic<Value>: @unchecked Sendable {
 	private let lock: Lock
 	private var _value: Value
 

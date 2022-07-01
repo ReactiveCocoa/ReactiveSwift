@@ -1,15 +1,15 @@
 extension Operators {
-	internal final class SkipWhile<Value, Error: Swift.Error>: Observer<Value, Error> {
-		let downstream: Observer<Value, Error>
+	internal final class SkipWhile<Value, Error: Swift.Error>: Observer, @unchecked Sendable {
+		let downstream: any Observer<Value, Error>
 		let shouldContinueToSkip: (Value) -> Bool
 		var isSkipping = true
 
-		init(downstream: Observer<Value, Error>, shouldContinueToSkip: @escaping (Value) -> Bool) {
+		init(downstream: some Observer<Value, Error>, shouldContinueToSkip: @escaping (Value) -> Bool) {
 			self.downstream = downstream
 			self.shouldContinueToSkip = shouldContinueToSkip
 		}
 
-		override func receive(_ value: Value) {
+		func receive(_ value: Value) {
 			isSkipping = isSkipping && shouldContinueToSkip(value)
 
 			if !isSkipping {
@@ -17,7 +17,7 @@ extension Operators {
 			}
 		}
 
-		override func terminate(_ termination: Termination<Error>) {
+		func terminate(_ termination: Termination<Error>) {
 			downstream.terminate(termination)
 		}
 	}

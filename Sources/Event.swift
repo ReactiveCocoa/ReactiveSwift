@@ -206,27 +206,27 @@ extension Signal.Event: EventProtocol {
 //    This operator performs side effect upon interruption.
 
 extension Signal.Event {
-	internal typealias Transformation<U, E: Swift.Error> = (ReactiveSwift.Observer<U, E>, Lifetime) -> ReactiveSwift.Observer<Value, Error>
+	internal typealias Transformation<U, E: Swift.Error> = (any ReactiveSwift.Observer<U, E>, Lifetime) -> (any ReactiveSwift.Observer<Value, Error>)
 
-	internal static func filter(_ isIncluded: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
+	internal static func filter(_ isIncluded: @escaping @Sendable (Value) -> Bool) -> Transformation<Value, Error> {
 		return { downstream, _ in
 			Operators.Filter(downstream: downstream, predicate: isIncluded)
 		}
 	}
 
-	internal static func compactMap<U>(_ transform: @escaping (Value) -> U?) -> Transformation<U, Error> {
+	internal static func compactMap<U>(_ transform: @escaping @Sendable (Value) -> U?) -> Transformation<U, Error> {
 		return { downstream, _ in
 			Operators.CompactMap(downstream: downstream, transform: transform)
 		}
 	}
 
-	internal static func map<U>(_ transform: @escaping (Value) -> U) -> Transformation<U, Error> {
+	internal static func map<U>(_ transform: @escaping @Sendable (Value) -> U) -> Transformation<U, Error> {
 		return { downstream, _ in
 			Operators.Map(downstream: downstream, transform: transform)
 		}
 	}
 
-	internal static func mapError<E>(_ transform: @escaping (Error) -> E) -> Transformation<Value, E> {
+	internal static func mapError<E>(_ transform: @escaping @Sendable (Error) -> E) -> Transformation<Value, E> {
 		return { downstream, _ in
 			Operators.MapError(downstream: downstream, transform: transform)
 		}
@@ -244,13 +244,13 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func attemptMap<U>(_ transform: @escaping (Value) -> Result<U, Error>) -> Transformation<U, Error> {
+	internal static func attemptMap<U>(_ transform: @escaping @Sendable (Value) -> Result<U, Error>) -> Transformation<U, Error> {
 		return { downstream, _ in
 			Operators.AttemptMap(downstream: downstream, transform: transform)
 		}
 	}
 
-	internal static func attempt(_ action: @escaping (Value) -> Result<(), Error>) -> Transformation<Value, Error> {
+	internal static func attempt(_ action: @escaping @Sendable (Value) -> Result<(), Error>) -> Transformation<Value, Error> {
 		return attemptMap { value -> Result<Value, Error> in
 			return action(value).map { _ in value }
 		}
@@ -285,13 +285,13 @@ extension Signal.Event {
 		}
 	}
 
-	internal static func take(while shouldContinue: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
+	internal static func take(while shouldContinue: @escaping @Sendable (Value) -> Bool) -> Transformation<Value, Error> {
 		return { downstream, _ in
 			Operators.TakeWhile(downstream: downstream, shouldContinue: shouldContinue)
 		}
 	}
 	
-	internal static func take(until shouldContinue: @escaping (Value) -> Bool) -> Transformation<Value, Error> {
+	internal static func take(until shouldContinue: @escaping @Sendable (Value) -> Bool) -> Transformation<Value, Error> {
 		return { downstream, _ in
 			Operators.TakeUntil(downstream: downstream, shouldContinue: shouldContinue)
 		}
@@ -397,7 +397,7 @@ extension Signal.Event {
 		return scan(into: initialResult) { $0 = nextPartialResult($0, $1) }
 	}
 
-	internal static func scanMap<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Transformation<U, Error> {
+	internal static func scanMap<State, U>(into initialState: State, _ next: @escaping @Sendable (inout State, Value) -> U) -> Transformation<U, Error> {
 		return { downstream, _ in
 			Operators.ScanMap(downstream: downstream, initial: initialState, next: next)
 		}
