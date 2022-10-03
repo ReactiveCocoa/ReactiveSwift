@@ -539,7 +539,7 @@ extension SignalProducer where Error == Swift.Error {
 }
 
 /// Represents reactive primitives that can be represented by `SignalProducer`.
-public protocol SignalProducerConvertible {
+public protocol SignalProducerConvertible<Value, Error> {
 	/// The type of values being sent by `self`.
 	associatedtype Value
 
@@ -551,7 +551,7 @@ public protocol SignalProducerConvertible {
 }
 
 /// A protocol for constraining associated types to `SignalProducer`.
-public protocol SignalProducerProtocol {
+public protocol SignalProducerProtocol<Value, Error> {
 	/// The type of values being sent by `self`.
 	associatedtype Value
 
