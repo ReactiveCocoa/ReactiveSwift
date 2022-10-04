@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1.Use `OSAllocatedUnfairLock` instead of `os_unfair_lock` on supported Apple platforms (#856, kudos to @mluisbrown)
+
 # 7.0.0
 1. The UnidirectionalBinding operator `<~` returns non optional values. (#834, kudos to @NicholasTD07)
 
@@ -38,7 +40,7 @@
 # 6.6.1
 1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants. (#826, kudos to @MikeChugunov)
 
-1. Fixed issue with `SignalProducer.Type.interval()` making Swift 5.3 a requirement. (#823 kudos to @mluisbrown) 
+1. Fixed issue with `SignalProducer.Type.interval()` making Swift 5.3 a requirement. (#823 kudos to @mluisbrown)
 
 # 6.6.0
 
