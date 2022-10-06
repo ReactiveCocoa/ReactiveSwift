@@ -141,29 +141,31 @@ internal class Lock: LockProtocol {
 	#endif
 
 	#if compiler(>=5.7)
-		#if os(iOS) || os(tvOS) || os(watchOS)
-		@available(iOS 16.0, *)
-		@available(tvOS 16.0, *)
-		@available(watchOS 9.0, *)
-		internal final class AllocatedUnfairLock: Lock {
-			private let _lock = OSAllocatedUnfairLock()
+		#if !targetEnvironment(macCatalyst)
+			#if os(iOS) || os(tvOS) || os(watchOS)
+			@available(iOS 16.0, *)
+			@available(tvOS 16.0, *)
+			@available(watchOS 9.0, *)
+			internal final class AllocatedUnfairLock: Lock {
+				private let _lock = OSAllocatedUnfairLock()
 
-			override init() {
-				super.init()
-			}
+				override init() {
+					super.init()
+				}
 
-			override func lock() {
-				_lock.lock()
-			}
+				override func lock() {
+					_lock.lock()
+				}
 
-			override func unlock() {
-				_lock.unlock()
-			}
+				override func unlock() {
+					_lock.unlock()
+				}
 
-			override func `try`() -> Bool {
-				_lock.lockIfAvailable()
+				override func `try`() -> Bool {
+					_lock.lockIfAvailable()
+				}
 			}
-		}
+			#endif
 		#endif
 	#endif
 
@@ -226,10 +228,12 @@ internal class Lock: LockProtocol {
 
 	static func make() -> Self {
 		#if compiler(>=5.7)
-			#if os(iOS) || os(tvOS) || os(watchOS)
-			if #available(*, iOS 16.0, tvOS 16.0, watchOS 9.0) {
-				return AllocatedUnfairLock() as! Self
-			}
+			#if !targetEnvironment(macCatalyst)
+				#if os(iOS) || os(tvOS) || os(watchOS)
+				if #available(*, iOS 16.0, tvOS 16.0, watchOS 9.0) {
+					return AllocatedUnfairLock() as! Self
+				}
+				#endif
 			#endif
 		#endif
 
@@ -251,7 +255,7 @@ internal class Lock: LockProtocol {
 
 internal protocol LockProtocol {
 	static func make() -> Self
-	
+
 	func lock()
 	func unlock()
 	func `try`() -> Bool
