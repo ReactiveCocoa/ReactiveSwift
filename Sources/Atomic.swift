@@ -8,6 +8,7 @@
 
 import Foundation
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+import os
 import MachO
 #endif
 
@@ -102,7 +103,8 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 #endif
 }
 
-/// `Lock` exposes `os_unfair_lock` on supported platforms, with pthread mutex as the
+/// `Lock` exposes `os_unfair_lock` or `OSAllocatedUnfairLock`
+/// on supported platforms, with pthread mutex as the
 /// fallback.
 internal class Lock: LockProtocol {
 	#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
@@ -136,6 +138,35 @@ internal class Lock: LockProtocol {
 			_lock.deallocate()
 		}
 	}
+	#endif
+
+	#if compiler(>=5.7)
+		#if !targetEnvironment(macCatalyst)
+			#if os(iOS) || os(tvOS) || os(watchOS)
+			@available(iOS 16.0, *)
+			@available(tvOS 16.0, *)
+			@available(watchOS 9.0, *)
+			internal final class AllocatedUnfairLock: Lock {
+				private let _lock = OSAllocatedUnfairLock()
+
+				override init() {
+					super.init()
+				}
+
+				override func lock() {
+					_lock.lock()
+				}
+
+				override func unlock() {
+					_lock.unlock()
+				}
+
+				override func `try`() -> Bool {
+					_lock.lockIfAvailable()
+				}
+			}
+			#endif
+		#endif
 	#endif
 
 	internal final class PthreadLock: Lock {
@@ -196,8 +227,18 @@ internal class Lock: LockProtocol {
 	}
 
 	static func make() -> Self {
+		#if compiler(>=5.7)
+			#if !targetEnvironment(macCatalyst)
+				#if os(iOS) || os(tvOS) || os(watchOS)
+				if #available(*, iOS 16.0, tvOS 16.0, watchOS 9.0) {
+					return AllocatedUnfairLock() as! Self
+				}
+				#endif
+			#endif
+		#endif
+
 		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-		if #available(*, iOS 10.0, macOS 10.12, tvOS 10.0, watchOS 3.0) {
+		if #available(*, macOS 11.12, iOS 10.0, tvOS 10.0, watchOS 3.0) {
 			return UnfairLock() as! Self
 		}
 		#endif
@@ -214,7 +255,7 @@ internal class Lock: LockProtocol {
 
 internal protocol LockProtocol {
 	static func make() -> Self
-	
+
 	func lock()
 	func unlock()
 	func `try`() -> Bool
