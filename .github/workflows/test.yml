@@ -38,7 +38,7 @@ jobs:
             ;;
           "watchOS")
             ACTION=build
-            DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 5 - 44mm"
+            DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 5 (44mm)"
             SCHEME=ReactiveSwift-watchOS
             ;;
           "macCatalyst")
