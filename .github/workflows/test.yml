@@ -3,7 +3,7 @@ name: Test
 jobs:
   test:
     name: Test
-    runs-on: macos-latest
+    runs-on: macos-12
     strategy:
         fail-fast: false
         matrix:
@@ -33,7 +33,7 @@ jobs:
             SCHEME=ReactiveSwift-iOS
             ;;
           "tvOS")
-            DESTINATION="platform=tvOS Simulator,name=Apple TV 4K"
+            DESTINATION="platform=tvOS Simulator,name=Apple TV"
             SCHEME=ReactiveSwift-tvOS
             ;;
           "watchOS")
@@ -87,4 +87,3 @@ jobs:
           swift --version
           swift build
           swift test
-
