@@ -1,8 +1,9 @@
 # master
 *Please add new entries at the top.*
 
+1. Add `async` helpers to Schedulers (#857, kudos to @p4checo)
 1. Add primary associated types to SignalProducerConvertible & SignalProducerProtocol (#855, kudos to @braker1nine)
-1. Refactor Github Actions to cover more swift versions (#858, kudos to @braker1nine)
+2. Refactor Github Actions to cover more swift versions (#858, kudos to @braker1nine)
 1.Use `OSAllocatedUnfairLock` instead of `os_unfair_lock` on supported Apple platforms (#856, kudos to @mluisbrown)
 
 # 7.0.0
