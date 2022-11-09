@@ -2396,7 +2396,7 @@ extension SignalProducer {
 		return SignalProducer { observer, lifetime in
 			var retries = count
 
-			lifetime += flatMapError { error -> SignalProducer<Value, Error> in
+			lifetime += self.flatMapError { error -> SignalProducer<Value, Error> in
 				// The final attempt shouldn't defer the error if it fails
 				var producer = SignalProducer<Value, Error>(error: error)
 				if retries > 0 {
