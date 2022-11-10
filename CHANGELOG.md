@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. Refactor Github Actions to cover more swift versions (#858, kudos to @braker1nine)
 1.Use `OSAllocatedUnfairLock` instead of `os_unfair_lock` on supported Apple platforms (#856, kudos to @mluisbrown)
 
 # 7.0.0

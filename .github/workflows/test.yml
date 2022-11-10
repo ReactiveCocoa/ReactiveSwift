@@ -73,8 +73,6 @@ jobs:
 
     name: SwiftPM Linux
     runs-on: ubuntu-18.04
-    env:
-      SWIFT_VERSION: ${{ matrix.swift }}
     steps:
       - name: Setup Swift version
         uses: swift-actions/setup-swift@v1
