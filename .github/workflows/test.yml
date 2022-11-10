@@ -79,6 +79,7 @@ jobs:
       - name: Install Swift
         run: |
           eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
+          swiftenv global ${{ matrix.swift }}
       - name: Checkout
         uses: actions/checkout@v2
       - name: Recover cached dependencies
