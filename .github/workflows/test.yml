@@ -7,7 +7,9 @@ jobs:
     strategy:
         fail-fast: false
         matrix:
-          destination: [macOS, macCatalyst, iOS, tvOS, watchOS]
+          destination: [macOS, iOS, tvOS, watchOS]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -64,22 +66,20 @@ jobs:
             ONLY_ACTIVE_ARCH=YES
 
   swiftpm-linux:
+    strategy:
+      matrix:
+        swift: ["5.2", "5.7"]
+
     name: SwiftPM Linux
     runs-on: ubuntu-18.04
     steps:
-      - name: Install Swift
-        run: |
-          eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
+      - name: Setup Swift version
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: ${{ matrix.swift }}
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Recover cached dependencies
-        uses: actions/cache@v1
-        id: dependency-cache
-        with:
-          path: .build
-          key: swiftpm-linux-${{ hashFiles('Package.resolved') }}
       - name: Pull dependencies
-        if: steps.dependency-cache.outputs.cache-hit != 'true'
         run: |
           swift package resolve
       - name: Test via SwiftPM
