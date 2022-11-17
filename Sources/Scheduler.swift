@@ -801,9 +801,9 @@ public final class TestScheduler: DateScheduler {
 
 extension NSRecursiveLock {
 	fileprivate func sync<T>(_ operation: () -> T) -> T {
-        self.lock()
-        defer { self.unlock() }
-        return operation()
+		self.lock()
+		defer { self.unlock() }
+		return operation()
 	}
 }
 
