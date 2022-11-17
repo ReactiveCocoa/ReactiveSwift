@@ -1,10 +1,11 @@
 # master
 *Please add new entries at the top.*
 
+1. Fix some issues related to locking, bumped min OS versions to iOS 10, macOS 10.12, tvOS 10, watchOS 3 (#858, kudos to @mluisbrown)
 1. Add `async` helpers to Schedulers (#857, kudos to @p4checo)
 1. Add primary associated types to SignalProducerConvertible & SignalProducerProtocol (#855, kudos to @braker1nine)
 2. Refactor Github Actions to cover more swift versions (#858, kudos to @braker1nine)
-1.Use `OSAllocatedUnfairLock` instead of `os_unfair_lock` on supported Apple platforms (#856, kudos to @mluisbrown)
+1. Use `OSAllocatedUnfairLock` instead of `os_unfair_lock` on supported Apple platforms (#856, kudos to @mluisbrown)
 
 # 7.0.0
 1. The UnidirectionalBinding operator `<~` returns non optional values. (#834, kudos to @NicholasTD07)
