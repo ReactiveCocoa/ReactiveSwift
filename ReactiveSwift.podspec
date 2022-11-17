@@ -10,10 +10,10 @@ Pod::Spec.new do |s|
   s.license      = { :type => "MIT", :file => "LICENSE.md" }
   s.author       = "ReactiveCocoa"
 
-  s.ios.deployment_target = "9.0"
-  s.osx.deployment_target = "10.9"
-  s.watchos.deployment_target = "2.0"
-  s.tvos.deployment_target = "9.0"
+  s.ios.deployment_target = "10.0"
+  s.osx.deployment_target = "10.12"
+  s.watchos.deployment_target = "3.0"
+  s.tvos.deployment_target = "10.0"
   s.source       = { :git => "https://github.com/ReactiveCocoa/ReactiveSwift.git", :tag => "#{s.version}" }
   # Directory glob for all Swift files
   s.source_files  = ["Sources/*.{swift}", "Sources/**/*.{swift}"]
@@ -21,5 +21,5 @@ Pod::Spec.new do |s|
   s.pod_target_xcconfig = {"OTHER_SWIFT_FLAGS[config=Release]" => "$(inherited) -suppress-warnings" }
 
   s.cocoapods_version = ">= 1.7.0"
-  s.swift_versions = ["5.1", "5.2"]
+  s.swift_versions = ["5.2", "5.3" "5.4", "5.5", "5.6", "5.7"]
 end

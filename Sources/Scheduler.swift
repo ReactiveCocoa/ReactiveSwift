@@ -742,7 +742,7 @@ public final class TestScheduler: DateScheduler {
 	@MainActor
 	@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, *)
 	public func advance(by interval: DispatchTimeInterval) async {
-		await advance(to: lock.withLock({ currentDate.addingTimeInterval(interval) }))
+		await advance(to: lock.sync({ currentDate.addingTimeInterval(interval) }))
 	}
 
 	/// Advances the virtualized clock by the given interval, dequeuing and
@@ -753,7 +753,7 @@ public final class TestScheduler: DateScheduler {
 	@MainActor
 	@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, *)
 	public func advance(by interval: TimeInterval) async {
-		await advance(to: lock.withLock({ currentDate.addingTimeInterval(interval) }))
+		await advance(to: lock.sync({ currentDate.addingTimeInterval(interval) }))
 	}
 
 	/// Advances the virtualized clock to the given future date, dequeuing and
@@ -764,12 +764,12 @@ public final class TestScheduler: DateScheduler {
 	@MainActor
 	@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, *)
 	public func advance(to newDate: Date) async {
-		assert(lock.withLock { _currentDate <= newDate })
+		assert(lock.sync { _currentDate <= newDate })
 
-		while lock.withLock({ _currentDate }) <= newDate {
+		while lock.sync({ _currentDate }) <= newDate {
 			await Task.megaYield()
 
-			let `return` = lock.withLock {
+			let `return` = lock.sync {
 				guard
 					let next = scheduledActions.first,
 					newDate >= next.date
@@ -799,15 +799,11 @@ public final class TestScheduler: DateScheduler {
 	#endif
 }
 
-@available(macOS, obsoleted: 13, message: "`NSLocking` now provides `withLocking`, so this is no longer needed")
-@available(iOS, obsoleted: 13, message: "`NSLocking` now provides `withLocking`, so this is no longer needed")
-@available(watchOS, obsoleted: 9, message: "`NSLocking` now provides `withLocking`, so this is no longer needed")
-@available(macCatalyst, obsoleted: 16, message: "`NSLocking` now provides `withLocking`, so this is no longer needed")
 extension NSRecursiveLock {
-	fileprivate func withLock<T>(_ body: () throws -> T) rethrows -> T {
+	fileprivate func sync<T>(_ operation: () -> T) -> T {
 		self.lock()
 		defer { self.unlock() }
-		return try body()
+		return operation()
 	}
 }
 
