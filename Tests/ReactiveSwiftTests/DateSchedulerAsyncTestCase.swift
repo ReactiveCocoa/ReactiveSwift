@@ -25,35 +25,29 @@ final class DateSchedulerAsyncTestCase: XCTestCase {
 	}
 
 	func test_sleepFor_shouldSleepForTheDefinedIntervalBeforeReturning() async throws {
-		let expectation = self.expectation(description: "sleep")
-
-		Task {
+		let task = Task {
 			try await scheduler.sleep(for: .seconds(5))
 			XCTAssertEqual(scheduler.currentDate, startDate.addingTimeInterval(5))
-			expectation.fulfill()
 		}
 
 		XCTAssertEqual(scheduler.currentDate, startDate)
 		await scheduler.advance(by: .seconds(5))
 
-		await waitForExpectations(timeout: 0.1)
+        let _ = await task.result
 	}
 
 	func test_sleepUntil_shouldSleepForTheDefinedIntervalBeforeReturning() async throws {
-		let expectation = self.expectation(description: "sleep")
-
 		let sleepDate = startDate.addingTimeInterval(5)
 
-		Task {
+		let task = Task {
 			try await scheduler.sleep(until: sleepDate)
 			XCTAssertEqual(scheduler.currentDate, sleepDate)
-			expectation.fulfill()
 		}
 
 		XCTAssertEqual(scheduler.currentDate, startDate)
 		await scheduler.advance(by: .seconds(5))
 
-		await waitForExpectations(timeout: 0.1)
+        let _ = await task.result
 	}
 
 	func test_timer_shouldSendTheCurrentDateAtTheGivenInterval() async throws {

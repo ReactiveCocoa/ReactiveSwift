@@ -108,10 +108,6 @@ internal struct UnsafeAtomicState<State: RawRepresentable> where State.RawValue 
 /// fallback.
 internal class Lock: LockProtocol {
 	#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-	@available(iOS 10.0, *)
-	@available(macOS 10.12, *)
-	@available(tvOS 10.0, *)
-	@available(watchOS 3.0, *)
 	internal final class UnfairLock: Lock {
 		private let _lock: os_unfair_lock_t
 
@@ -140,34 +136,31 @@ internal class Lock: LockProtocol {
 	}
 	#endif
 
-	#if compiler(>=5.7)
-		#if !targetEnvironment(macCatalyst)
-			#if os(iOS) || os(tvOS) || os(watchOS)
-			@available(iOS 16.0, *)
-			@available(tvOS 16.0, *)
-			@available(watchOS 9.0, *)
-			internal final class AllocatedUnfairLock: Lock {
-				private let _lock = OSAllocatedUnfairLock()
+    #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
+    @available(iOS 16.0, *)
+    @available(macOS 13.0, *)
+    @available(tvOS 16.0, *)
+    @available(watchOS 9.0, *)
+    internal final class AllocatedUnfairLock: Lock {
+        private let _lock = OSAllocatedUnfairLock()
 
-				override init() {
-					super.init()
-				}
+        override init() {
+            super.init()
+        }
 
-				override func lock() {
-					_lock.lock()
-				}
+        override func lock() {
+            _lock.lock()
+        }
 
-				override func unlock() {
-					_lock.unlock()
-				}
+        override func unlock() {
+            _lock.unlock()
+        }
 
-				override func `try`() -> Bool {
-					_lock.lockIfAvailable()
-				}
-			}
-			#endif
-		#endif
-	#endif
+        override func `try`() -> Bool {
+            _lock.lockIfAvailable()
+        }
+    }
+    #endif
 
 	internal final class PthreadLock: Lock {
 		private let _lock: UnsafeMutablePointer<pthread_mutex_t>
@@ -227,23 +220,15 @@ internal class Lock: LockProtocol {
 	}
 
 	static func make() -> Self {
-		#if compiler(>=5.7)
-			#if !targetEnvironment(macCatalyst)
-				#if os(iOS) || os(tvOS) || os(watchOS)
-				if #available(*, iOS 16.0, tvOS 16.0, watchOS 9.0) {
-					return AllocatedUnfairLock() as! Self
-				}
-				#endif
-			#endif
-		#endif
+        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+            guard #available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *) else {
+                return UnfairLock() as! Self
+            }
 
-		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-		if #available(*, macOS 11.12, iOS 10.0, tvOS 10.0, watchOS 3.0) {
-			return UnfairLock() as! Self
-		}
-		#endif
-
-		return PthreadLock() as! Self
+            return AllocatedUnfairLock() as! Self
+        #else
+            return PthreadLock() as! Self
+        #endif
 	}
 
 	private init() {}
