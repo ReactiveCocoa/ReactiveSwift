@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Recover cached dependencies
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         id: dependency-cache
         with:
           path: ~/Library/Caches/org.carthage.CarthageKit
@@ -53,4 +53,3 @@ jobs:
           rm .swift-version
           pod repo update
           pod lib lint --use-libraries
-
