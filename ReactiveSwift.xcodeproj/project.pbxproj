@@ -1578,7 +1578,7 @@
 			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Debug;
@@ -1588,7 +1588,7 @@
 			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Release;
@@ -1668,7 +1668,7 @@
 			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Profile;
@@ -1729,7 +1729,7 @@
 			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Test;
