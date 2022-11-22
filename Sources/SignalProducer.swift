@@ -538,6 +538,19 @@ extension SignalProducer where Error == Swift.Error {
 	}
 }
 
+#if swift(>=5.7)
+/// Represents reactive primitives that can be represented by `SignalProducer`.
+public protocol SignalProducerConvertible<Value, Error> {
+	/// The type of values being sent by `self`.
+	associatedtype Value
+
+	/// The type of error that can occur on `self`.
+	associatedtype Error: Swift.Error
+
+	/// The `SignalProducer` representation of `self`.
+	var producer: SignalProducer<Value, Error> { get }
+}
+#else
 /// Represents reactive primitives that can be represented by `SignalProducer`.
 public protocol SignalProducerConvertible {
 	/// The type of values being sent by `self`.
@@ -549,7 +562,21 @@ public protocol SignalProducerConvertible {
 	/// The `SignalProducer` representation of `self`.
 	var producer: SignalProducer<Value, Error> { get }
 }
+#endif
 
+#if swift(>=5.7)
+/// A protocol for constraining associated types to `SignalProducer`.
+public protocol SignalProducerProtocol<Value, Error> {
+	/// The type of values being sent by `self`.
+	associatedtype Value
+
+	/// The type of error that can occur on `self`.
+	associatedtype Error: Swift.Error
+
+	/// The materialized `self`.
+	var producer: SignalProducer<Value, Error> { get }
+}
+#else
 /// A protocol for constraining associated types to `SignalProducer`.
 public protocol SignalProducerProtocol {
 	/// The type of values being sent by `self`.
@@ -561,6 +588,7 @@ public protocol SignalProducerProtocol {
 	/// The materialized `self`.
 	var producer: SignalProducer<Value, Error> { get }
 }
+#endif
 
 extension SignalProducer: SignalProducerConvertible, SignalProducerProtocol {
 	public var producer: SignalProducer {
@@ -2396,7 +2424,7 @@ extension SignalProducer {
 		return SignalProducer { observer, lifetime in
 			var retries = count
 
-			lifetime += flatMapError { error -> SignalProducer<Value, Error> in
+			lifetime += self.flatMapError { error -> SignalProducer<Value, Error> in
 				// The final attempt shouldn't defer the error if it fails
 				var producer = SignalProducer<Value, Error>(error: error)
 				if retries > 0 {

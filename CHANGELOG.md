@@ -2,6 +2,12 @@
 *Please add new entries at the top.*
 1. Add Swift Concurrency extensions `asyncStream` and `asyncThrowingStream` to `Signal` and `SignalProducer` (#847)
 
+1. Fix some issues related to locking, bumped min OS versions to iOS 10, macOS 10.12, tvOS 10, watchOS 3 (#859, kudos to @mluisbrown)
+1. Add `async` helpers to Schedulers (#857, kudos to @p4checo)
+1. Add primary associated types to SignalProducerConvertible & SignalProducerProtocol (#855, kudos to @braker1nine)
+2. Refactor Github Actions to cover more swift versions (#858, kudos to @braker1nine)
+1. Use `OSAllocatedUnfairLock` instead of `os_unfair_lock` on supported Apple platforms (#856, kudos to @mluisbrown)
+
 # 7.0.0
 1. The UnidirectionalBinding operator `<~` returns non optional values. (#834, kudos to @NicholasTD07)
 
@@ -38,7 +44,7 @@
 # 6.6.1
 1. Updated Carthage xcconfig dependency to 1.1 for proper building arm64 macOS variants. (#826, kudos to @MikeChugunov)
 
-1. Fixed issue with `SignalProducer.Type.interval()` making Swift 5.3 a requirement. (#823 kudos to @mluisbrown) 
+1. Fixed issue with `SignalProducer.Type.interval()` making Swift 5.3 a requirement. (#823 kudos to @mluisbrown)
 
 # 6.6.0
 
