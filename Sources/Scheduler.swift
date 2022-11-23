@@ -769,7 +769,7 @@ public final class TestScheduler: DateScheduler {
 		while lock.sync({ _currentDate }) <= newDate {
 			await Task.megaYield()
 
-			let `return` = lock.sync {
+			let `return`: Bool = lock.sync { () -> Bool in
 				guard
 					let next = scheduledActions.first,
 					newDate >= next.date
