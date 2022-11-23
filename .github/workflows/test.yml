@@ -48,7 +48,7 @@ jobs:
             SCHEME=ReactiveSwift-iOS
             ;;
           "macOS")
-            DESTINATION="platform=macOS,arch=x86_64"
+            DESTINATION="platform=macOS"
             SCHEME=ReactiveSwift-macOS
             ;;
           *)
