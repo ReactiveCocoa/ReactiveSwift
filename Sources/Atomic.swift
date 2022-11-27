@@ -137,29 +137,31 @@ internal class Lock: LockProtocol {
 	#endif
 
 	#if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
-	@available(iOS 16.0, *)
-	@available(macOS 13.0, *)
-	@available(tvOS 16.0, *)
-	@available(watchOS 9.0, *)
-	internal final class AllocatedUnfairLock: Lock {
-		private let _lock = OSAllocatedUnfairLock()
+		#if swift(>=5.7)
+		@available(iOS 16.0, *)
+		@available(macOS 13.0, *)
+		@available(tvOS 16.0, *)
+		@available(watchOS 9.0, *)
+		internal final class AllocatedUnfairLock: Lock {
+			private let _lock = OSAllocatedUnfairLock()
 
-		override init() {
-			super.init()
-		}
+			override init() {
+				super.init()
+			}
 
-		override func lock() {
-			_lock.lock()
-		}
+			override func lock() {
+				_lock.lock()
+			}
 
-		override func unlock() {
-			_lock.unlock()
-		}
+			override func unlock() {
+				_lock.unlock()
+			}
 
-		override func `try`() -> Bool {
-			_lock.lockIfAvailable()
+			override func `try`() -> Bool {
+				_lock.lockIfAvailable()
+			}
 		}
-	}
+		#endif
 	#endif
 
 	internal final class PthreadLock: Lock {
@@ -221,11 +223,15 @@ internal class Lock: LockProtocol {
 
 	static func make() -> Self {
 		#if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+			#if swift(>=5.7)
 			guard #available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *) else {
 				return UnfairLock() as! Self
 			}
 
 			return AllocatedUnfairLock() as! Self
+			#else
+				return UnfairLock() as! Self
+			#endif
 		#else
 			return PthreadLock() as! Self
 		#endif
