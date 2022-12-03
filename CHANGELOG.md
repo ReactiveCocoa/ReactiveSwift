@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. Remove .swift-version file (#863, kudos to @mluisbrown)
 1. Fix some issues related to locking, bumped min OS versions to iOS 10, macOS 10.12, tvOS 10, watchOS 3 (#859, kudos to @mluisbrown)
 1. Add `async` helpers to Schedulers (#857, kudos to @p4checo)
 1. Add primary associated types to SignalProducerConvertible & SignalProducerProtocol (#855, kudos to @braker1nine)
