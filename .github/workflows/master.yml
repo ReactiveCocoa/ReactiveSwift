@@ -2,15 +2,25 @@ on:
   push:
     branches:
       - master
+    tags:
+      - '[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)*'
   pull_request:
     types: [labeled]
     branches:
       - master
-name: Verification
+
+env:
+  # Keep using Xcode 13 until CP releases the fix for watchOS verification on Xcode 14
+  # https://github.com/CocoaPods/CocoaPods/issues/11558
+  # https://github.com/CocoaPods/CocoaPods/pull/11660
+  DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+
+name: Verification | Release
 jobs:
   carthage:
     if: ${{ github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.label.name == 'ci:verify' ) }}
-    runs-on: macos-latest
+    name: Carthage Verification
+    runs-on: macos-12
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -27,8 +37,8 @@ jobs:
 
   swiftpm-macos:
     if: ${{ github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.label.name == 'ci:verify' ) }}
-    name: SwiftPM macOS
-    runs-on: macos-latest
+    name: SwiftPM macOS Verification
+    runs-on: macos-12
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -42,15 +52,36 @@ jobs:
 
   cocoapods:
     if: ${{ github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.label.name == 'ci:verify' ) }}
-    runs-on: macos-latest
+    name: CocoaPods Verification
+    runs-on: macos-12
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: CocoaPods verification
         run: |
-          # To work around the lint error: "ERROR | swift: Specification `ReactiveSwift` specifies an inconsistent `swift_version` (`4.1`) compared to the one present in your `.swift-version` file (`4.1.2`). Please remove the `.swift-version` file which is now deprecated and only use the `swift_version` attribute within your podspec."
-          # `.swift-version` is for swiftenv, not for CocoaPods, so we can't remove the file as suggested.
-          rm .swift-version
           pod repo update
           pod lib lint --use-libraries
 
+  release-github:
+    if: startsWith(github.ref, 'refs/tags/')
+    name: GitHub Release
+    runs-on: macos-12
+    needs: [swiftpm-macos, cocoapods, carthage]
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v2
+      - name: create release
+        uses: softprops/action-gh-release@v1
+
+  release-cocoapods:
+    if: startsWith(github.ref, 'refs/tags/')
+    name: CocoaPods Release
+    runs-on: macos-12
+    needs: [swiftpm-macos, cocoapods, carthage]
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v2
+      - name: pod trunk push
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: pod trunk push
