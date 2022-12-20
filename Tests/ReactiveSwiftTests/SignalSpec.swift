@@ -314,13 +314,7 @@ class SignalSpec: QuickSpec {
 
 		describe("interruption") {
 			it("should not send events after sending an interrupted event") {
-				let queue: DispatchQueue
-
-				if #available(macOS 10.10, *) {
-					queue = DispatchQueue.global(qos: .userInitiated)
-				} else {
-					queue = DispatchQueue.global(priority: .high)
-				}
+				let queue = DispatchQueue.global(qos: .userInitiated)
 
 				let (signal, observer) = Signal<Int, Never>.pipe()
 
@@ -362,15 +356,9 @@ class SignalSpec: QuickSpec {
 			}
 
 			it("should interrupt concurrently") {
-				let queue: DispatchQueue
+				let queue = DispatchQueue.global(qos: .userInitiated)
 				let counter = Atomic<Int>(0)
 				let executionCounter = Atomic<Int>(0)
-
-				if #available(macOS 10.10, *) {
-					queue = DispatchQueue.global(qos: .userInitiated)
-				} else {
-					queue = DispatchQueue.global(priority: .high)
-				}
 
 				let iterations = 1000
 				let group = DispatchGroup()

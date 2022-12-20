@@ -41,13 +41,7 @@ class SchedulerSpec: QuickSpec {
 		describe("UIScheduler") {
 			func dispatchSyncInBackground(_ action: @escaping () -> Void) {
 				let group = DispatchGroup()
-
-				let globalQueue: DispatchQueue
-				if #available(*, OSX 10.10) {
-					globalQueue = DispatchQueue.global()
-				} else {
-					globalQueue = DispatchQueue.global(priority: .default)
-				}
+				let globalQueue = DispatchQueue.global()
 
 				globalQueue.async(group: group, execute: action)
 				group.wait()

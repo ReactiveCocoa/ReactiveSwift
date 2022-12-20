@@ -186,25 +186,23 @@ class ActionSpec: QuickSpec {
 				action1.apply().start()
 			}
 
-			if #available(macOS 10.10, *) {
-				it("should not loop indefinitely") {
-					let condition = MutableProperty(1)
+            it("should not loop indefinitely") {
+                let condition = MutableProperty(1)
 
-					let action = Action<Void, Void, Never>(state: condition, enabledIf: { $0 == 0 }) { _, _ in
-						return .empty
-					}
+                let action = Action<Void, Void, Never>(state: condition, enabledIf: { $0 == 0 }) { _, _ in
+                    return .empty
+                }
 
-					var count = 0
+                var count = 0
 
-					action.isExecuting.producer
-						.startWithValues { _ in
-							condition.value = 10
+                action.isExecuting.producer
+                    .startWithValues { _ in
+                        condition.value = 10
 
-							count += 1
-							expect(count) == 1
-						}
-				}
-			}
+                        count += 1
+                        expect(count) == 1
+                    }
+            }
 
 			describe("completed") {
 				beforeEach {

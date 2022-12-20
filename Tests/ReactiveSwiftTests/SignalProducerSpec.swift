@@ -3087,13 +3087,7 @@ class SignalProducerSpec: QuickSpec {
 				var result: Result<Int, Never>?
 
 				let group = DispatchGroup()
-
-				let globalQueue: DispatchQueue
-				if #available(*, OSX 10.10) {
-					globalQueue = DispatchQueue.global()
-				} else {
-					globalQueue = DispatchQueue.global(priority: .default)
-				}
+				let globalQueue = DispatchQueue.global()
 
 				globalQueue.async(group: group, flags: []) {
 					result = producer.last()
@@ -3135,13 +3129,7 @@ class SignalProducerSpec: QuickSpec {
 				var result: Result<(), Never>?
 
 				let group = DispatchGroup()
-
-				let globalQueue: DispatchQueue
-				if #available(*, OSX 10.10) {
-					globalQueue = DispatchQueue.global()
-				} else {
-					globalQueue = DispatchQueue.global(priority: .default)
-				}
+				let globalQueue = DispatchQueue.global()
 
 				globalQueue.async(group: group, flags: []) {
 					result = producer.wait()
