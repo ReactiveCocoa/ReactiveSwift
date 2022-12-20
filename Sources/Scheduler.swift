@@ -362,7 +362,6 @@ public final class QueueScheduler: DateScheduler {
 	///   - name: A name for the queue in the form of reverse domain.
 	///   - targeting: (Optional) The queue on which this scheduler's work is
 	///     targeted
-	@available(OSX 10.10, *)
 	public convenience init(
 		qos: DispatchQoS = .default,
 		name: String = "org.reactivecocoa.ReactiveSwift.QueueScheduler",

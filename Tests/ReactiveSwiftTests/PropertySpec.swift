@@ -272,14 +272,7 @@ class PropertySpec: QuickSpec {
 			}
 
 			it("should not deadlock") {
-				let queue: DispatchQueue
-
-				if #available(macOS 10.10, *) {
-					queue = DispatchQueue.global(qos: .userInteractive)
-				} else {
-					queue = DispatchQueue.global(priority: .high)
-				}
-
+				let queue = DispatchQueue.global(qos: .userInteractive)
 				let setup = DispatchGroup()
 				let workers = DispatchGroup()
 
