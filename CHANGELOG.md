@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Bumped deployment target to iOS 11, tvOS 11, watchOS 4, macOS 10.13, per Xcode 14 warnings
+
 # 7.1.0
 1. Add CI Release jobs on tag push (#862, kudos to @p4checo)
 1. Fix some issues related to locking, bumped min OS versions to iOS 10, macOS 10.12, tvOS 10, watchOS 3 (#859, kudos to @mluisbrown)
