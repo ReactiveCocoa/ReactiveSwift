@@ -19,7 +19,10 @@ Pod::Spec.new do |s|
   # Directory glob for all Swift files
   s.source_files  = ["Sources/*.{swift}", "Sources/**/*.{swift}"]
 
-  s.pod_target_xcconfig = {"OTHER_SWIFT_FLAGS[config=Release]" => "$(inherited) -suppress-warnings" }
+  s.pod_target_xcconfig = {
+    'APPLICATION_EXTENSION_API_ONLY' => 'YES',
+    "OTHER_SWIFT_FLAGS[config=Release]" => "$(inherited) -suppress-warnings"
+  }
 
   s.cocoapods_version = ">= 1.7.0"
   s.swift_versions = ["5.2", "5.3" "5.4", "5.5", "5.6", "5.7"]
