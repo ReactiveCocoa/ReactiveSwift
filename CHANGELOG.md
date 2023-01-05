@@ -2,7 +2,7 @@
 *Please add new entries at the top.*
 
 1. Bumped deployment target to iOS 11, tvOS 11, watchOS 4, macOS 10.13, per Xcode 14 warnings
-1. Explicitly declare `APPLICATION_EXTENSION_API_ONLY`
+1. Explicitly declare `APPLICATION_EXTENSION_API_ONLY` for CocoaPods
 
 # 7.1.0
 1. Add CI Release jobs on tag push (#862, kudos to @p4checo)
