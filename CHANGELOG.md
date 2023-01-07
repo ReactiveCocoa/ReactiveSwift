@@ -1,6 +1,8 @@
 # master
 *Please add new entries at the top.*
 
+1. Fix minimum deployment target of iOS 11 in CocoaPods
+
 # 7.1.1
 1. Bumped deployment target to iOS 11, tvOS 11, watchOS 4, macOS 10.13, per Xcode 14 warnings (#865, kudos to @lickel)
 1. Explicitly declare `APPLICATION_EXTENSION_API_ONLY` for CocoaPods (#866, kudos to @lickel)
