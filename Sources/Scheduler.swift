@@ -699,7 +699,7 @@ public final class TestScheduler: DateScheduler {
 	}
 
 	/// Dequeues and executes all scheduled actions, leaving the scheduler's
-	/// date at `Date.distantFuture()`.
+	/// date at `Date.distantFuture`.
 	public func run() {
 		advance(to: Date.distantFuture)
 	}
