@@ -3,7 +3,7 @@
 
 1. Fix minimum deployment target of iOS 11 in CocoaPods
 1. Fix CI release git tag push trigger (#869, kudos to @p4checo)
-2. Add extension to `ScopedDisposable` for inner `SerialDisposable` (#873, kudos to @sirnacud)
+2. Add extension to `ScopedDisposable` for inner `SerialDisposable` (#873, kudos to @sirnacnud)
 
 # 7.1.1
 1. Bumped deployment target to iOS 11, tvOS 11, watchOS 4, macOS 10.13, per Xcode 14 warnings (#865, kudos to @lickel)
