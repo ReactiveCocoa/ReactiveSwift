@@ -1,4 +1,4 @@
-#if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(macOS) || os(tvOS) || os(watchOS) || os(visionOS)
 import Darwin.POSIX.pthread
 #else
 import Glibc
