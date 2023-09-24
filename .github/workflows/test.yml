@@ -71,7 +71,7 @@ jobs:
         swift: ["5.2", "5.7"]
 
     name: SwiftPM Linux
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Setup Swift version
         uses: swift-actions/setup-swift@v1
