@@ -68,7 +68,7 @@ jobs:
   swiftpm-linux:
     strategy:
       matrix:
-        swift: ["5.2", "5.7"]
+        swift: ["5.7"]
 
     name: SwiftPM Linux
     runs-on: ubuntu-22.04
