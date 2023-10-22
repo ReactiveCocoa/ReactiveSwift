@@ -363,7 +363,7 @@ public final class QueueScheduler: DateScheduler {
 	///   - targeting: (Optional) The queue on which this scheduler's work is
 	///     targeted
 	public convenience init(
-		qos: DispatchQoS = .default,
+		qos: DispatchQoS = .unspecified,
 		name: String = "org.reactivecocoa.ReactiveSwift.QueueScheduler",
 		targeting targetQueue: DispatchQueue? = nil
 	) {

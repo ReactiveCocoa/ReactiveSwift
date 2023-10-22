@@ -1,6 +1,7 @@
 # master
 *Please add new entries at the top.*
 
+1. Change `QueueScheduler` to use unspecified QoS when QoS parameter is defaulted
 1. Add support for VisionOS (#875, kudos to @NachoSoto)
 1. Fix minimum deployment target of iOS 11 in CocoaPods
 1. Fix CI release git tag push trigger (#869, kudos to @p4checo)
