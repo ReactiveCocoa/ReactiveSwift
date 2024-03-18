@@ -58,12 +58,44 @@ public struct Bag<Element> {
 	///   - token: A token returned from a call to `insert()`.
 	@discardableResult
 	public mutating func remove(using token: Token) -> Element? {
-		guard let index = indices.first(where: { tokens[$0] == token.value }) else {
+		// Given that tokens are always added to the end of the array and have a monotonically
+		// increasing value, this list is always sorted, so we can use a binary search to improve
+		// performance if this list gets large.
+		guard let index = binarySearch(tokens, value: token.value) else {
 			return nil
 		}
 
 		tokens.remove(at: index)
 		return elements.remove(at: index)
+	}
+
+	/// Perform a binary search on a sorted array returning the index of a value.
+	///
+	/// - parameters:
+	///   - input: The sorted array to search for `value`
+	///   - value: The value to find in the sorted `input` array
+	///
+	/// - returns: The index of the `value` or `nil`
+	private func binarySearch(_ input:ContiguousArray<UInt64>, value: UInt64) -> Int? {
+		var lower = 0
+		var upper = input.count - 1
+
+		while (true) {
+			let current = (lower + upper)/2
+			if(input[current] == value) {
+				return current
+			}
+			
+			if (lower > upper) {
+				return nil
+			}
+			
+			if (input[current] > value) {
+				upper = current - 1
+			} else {
+				lower = current + 1
+			}
+		}
 	}
 }
 
