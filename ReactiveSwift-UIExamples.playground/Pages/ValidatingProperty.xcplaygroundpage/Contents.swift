@@ -6,7 +6,6 @@
  **OR**, if you have [Carthage](https://github.com/Carthage/Carthage) installed
  - `carthage checkout`
  1. Open `ReactiveSwift.xcworkspace`
- 1. Build `Result-iOS` scheme
  1. Build `ReactiveSwift-iOS` scheme
  1. Finally open the `ReactiveSwift-UIExamples.playground` through the workspace.
  1. Choose `View > Assistant Editor > Show Assistant Editor`
