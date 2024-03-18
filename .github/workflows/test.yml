@@ -3,18 +3,18 @@ name: Test
 jobs:
   test:
     name: Test
-    runs-on: macos-12
+    runs-on: macos-14
     strategy:
         fail-fast: false
         matrix:
           destination: [macOS, iOS, tvOS, watchOS]
     env:
-      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Recover cached dependencies
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         id: dependency-cache
         with:
           path: Carthage/Checkouts
@@ -74,11 +74,11 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Setup Swift version
-        uses: swift-actions/setup-swift@v1
+        uses: swift-actions/setup-swift@v2
         with:
           swift-version: ${{ matrix.swift }}
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Pull dependencies
         run: |
           swift package resolve
