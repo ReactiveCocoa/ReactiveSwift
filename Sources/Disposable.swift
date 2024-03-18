@@ -378,3 +378,19 @@ public final class SerialDisposable: Disposable {
 		state.deinitialize()
 	}
 }
+
+extension ScopedDisposable where Inner == SerialDisposable {
+	/// The current inner disposable of the `SerialDisposable` wrapped
+	/// in the `ScopedDisposable` to dispose of.
+	///
+	/// Whenever this property is set (even to the same value!), the previous
+	/// disposable is automatically disposed.
+	public var inner: Disposable? {
+		get {
+			return inner.inner
+		}
+		set {
+			inner.inner = newValue
+		}
+	}
+}
