@@ -350,10 +350,10 @@ public final class SerialDisposable: Disposable {
 		}
 
 		set(disposable) {
-			_inner.swap(disposable)?.dispose()
-
-			if let disposable = disposable, isDisposed {
-				disposable.dispose()
+			if isDisposed {
+				disposable?.dispose()
+			} else {
+				_inner.swap(disposable)?.dispose()
 			}
 		}
 	}
