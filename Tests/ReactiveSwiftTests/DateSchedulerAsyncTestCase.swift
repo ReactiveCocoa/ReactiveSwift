@@ -86,7 +86,7 @@ final class DateSchedulerAsyncTestCase: XCTestCase {
 
 		task.cancel() // cancel the timer
 
-		await waitForExpectations(timeout: 0.1)
+        await fulfillment(of: [expectation], timeout: 0.1)
 	}
 }
 #endif
