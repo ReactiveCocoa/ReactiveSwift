@@ -13,7 +13,7 @@ import Quick
 import ReactiveSwift
 
 class SignalLifetimeSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("init") {
 			var testScheduler: TestScheduler!
 

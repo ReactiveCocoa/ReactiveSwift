@@ -18,7 +18,7 @@ extension Notification.Name {
 }
 
 class FoundationExtensionsSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("NotificationCenter.reactive.notifications") {
 			let center = NotificationCenter.default
 

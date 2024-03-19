@@ -3,7 +3,7 @@ import Nimble
 import ReactiveSwift
 
 class ValidatingPropertySpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("ValidatingProperty") {
 			describe("no dependency") {
 				var root: MutableProperty<Int>!

@@ -14,7 +14,7 @@ import Quick
 @testable import ReactiveSwift
 
 class SignalSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("init") {
 			var testScheduler: TestScheduler!
 

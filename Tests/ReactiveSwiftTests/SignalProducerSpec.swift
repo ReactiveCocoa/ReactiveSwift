@@ -14,7 +14,7 @@ import Quick
 @testable import ReactiveSwift
 
 class SignalProducerSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("init") {
 			it("should run the handler once per start()") {
 				var handlerCalledTimes = 0
@@ -3832,9 +3832,9 @@ class SignalProducerSpec: QuickSpec {
 
 // MARK: - Helpers
 
-private func == <T>(left: Expectation<T.Type>, right: Any.Type) {
-	left.to(Predicate { expression in
-		PredicateResult(
+private func == <T>(left: SyncExpectation<T.Type>, right: Any.Type) {
+    left.to(Matcher { expression in
+        MatcherResult(
 			bool: try expression.evaluate()! == right,
 			message: ExpectationMessage.expectedActualValueTo("equal to")
 		)

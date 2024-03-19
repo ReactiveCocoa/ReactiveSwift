@@ -18,7 +18,7 @@ extension Reactive where Base: TestExtensionProvider {
 }
 
 final class ReactiveExtensionsSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("ReactiveExtensions") {
 			it("allows reactive extensions of instances") {
 				expect(TestExtensionProvider().reactive.instanceProperty.first()?.value) == "instance"
