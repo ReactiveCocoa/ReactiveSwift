@@ -31,7 +31,7 @@ jobs:
 
           case "${{ matrix.destination }}" in
           "iOS")
-            DESTINATION="platform=iOS Simulator,name=iPhone 11 Pro"
+            DESTINATION="platform=iOS Simulator,name=iPhone 14 Pro"
             SCHEME=ReactiveSwift-iOS
             ;;
           "tvOS")
@@ -39,6 +39,7 @@ jobs:
             SCHEME=ReactiveSwift-tvOS
             ;;
           "watchOS")
+            ACTION=build
             DESTINATION="platform=watchOS Simulator,name=Apple Watch Series 5 (44mm)"
             SCHEME=ReactiveSwift-watchOS
             ;;
