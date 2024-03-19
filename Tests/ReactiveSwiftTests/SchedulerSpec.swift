@@ -6,6 +6,9 @@
 //  Copyright (c) 2014 GitHub. All rights reserved.
 //
 
+#if canImport(Darwin)
+import Darwin.sys.qos
+#endif
 import Dispatch
 import Foundation
 
@@ -261,6 +264,45 @@ class SchedulerSpec: QuickSpec {
 					// enough time to ensure that the first timer was actually cancelled.
 					expect(count).toEventually(equal(timesToRun))
 				}
+
+                it("should propagate QoS values by default") {
+                    expect(scheduler.queue.qos).to(equal(.unspecified))
+
+                    // qos_class_self() may not be available on non-Darwin
+                    // platforms, and it's unclear if QoS propagation is
+                    // implemented in an equivalent manner in such contexts,
+                    // so we restrict runtime validation tests to Darwin.
+                    #if canImport(Darwin)
+                    let userInitiatedQueue = DispatchQueue(
+                        label: "reactiveswift.tests.user-initiated",
+                        qos: .userInitiated
+                    )
+                    userInitiatedQueue.suspend()
+
+                    var initialQoS: qos_class_t?
+                    var endQoS: qos_class_t?
+
+                    userInitiatedQueue.async {
+                        initialQoS = qos_class_self()
+
+                        // scheduling should propagate QoS values by default
+                        scheduler.schedule {
+                            endQoS = qos_class_self()
+                        }
+                    }
+
+                    scheduler.queue.resume()
+                    userInitiatedQueue.resume()
+
+                    expect(initialQoS).toEventuallyNot(beNil())
+                    expect(endQoS).toEventuallyNot(beNil())
+
+                    expect(initialQoS).to(equal(QOS_CLASS_USER_INITIATED))
+                    expect(endQoS?.rawValue).to(beGreaterThanOrEqualTo(
+                        initialQoS?.rawValue
+                    ))
+                    #endif  // canImport(Darwin)
+                }
 			}
 		}
 
