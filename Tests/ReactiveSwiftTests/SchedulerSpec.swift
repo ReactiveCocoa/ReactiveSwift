@@ -29,7 +29,7 @@ import ReactiveSwift
 #endif
 
 class SchedulerSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("ImmediateScheduler") {
 			it("should run enqueued actions immediately") {
 				var didRun = false

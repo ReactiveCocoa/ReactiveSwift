@@ -86,7 +86,11 @@ final class DateSchedulerAsyncTestCase: XCTestCase {
 
 		task.cancel() // cancel the timer
 
-		await waitForExpectations(timeout: 0.1)
+        #if swift(>=5.8)
+            await fulfillment(of: [expectation], timeout: 0.1)
+        #else
+            await waitForExpectations(timeout: 0.1)
+        #endif
 	}
 }
 #endif

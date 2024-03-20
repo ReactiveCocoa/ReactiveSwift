@@ -1492,6 +1492,7 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/Info.plist;
+				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Debug;
 		};
@@ -1506,6 +1507,7 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/Info.plist;
+				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Test;
 		};
@@ -1520,6 +1522,7 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/Info.plist;
+				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Release;
 		};
@@ -1534,6 +1537,7 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/Info.plist;
+				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Profile;
 		};
@@ -1599,6 +1603,7 @@
 				);
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
+				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Debug;
 		};
@@ -1612,6 +1617,7 @@
 				);
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
+				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Test;
 		};
@@ -1625,6 +1631,7 @@
 				);
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
+				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Release;
 		};
@@ -1638,6 +1645,7 @@
 				);
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
+				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Profile;
 		};
@@ -1652,6 +1660,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				WATCHOS_DEPLOYMENT_TARGET = 4.0;
 			};
 			name = Debug;
 		};
@@ -1666,6 +1676,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				WATCHOS_DEPLOYMENT_TARGET = 4.0;
 			};
 			name = Test;
 		};
@@ -1680,6 +1692,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				WATCHOS_DEPLOYMENT_TARGET = 4.0;
 			};
 			name = Release;
 		};
@@ -1694,6 +1708,8 @@
 					"DTRACE_PROBES_DISABLED=1",
 				);
 				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				WATCHOS_DEPLOYMENT_TARGET = 4.0;
 			};
 			name = Profile;
 		};
@@ -1748,6 +1764,7 @@
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Sources/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				SUPPORTS_MACCATALYST = YES;
 			};
 			name = Debug;
@@ -1760,6 +1777,7 @@
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Sources/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				SUPPORTS_MACCATALYST = YES;
 			};
 			name = Release;
@@ -1769,7 +1787,7 @@
 			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Debug;
@@ -1779,7 +1797,7 @@
 			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Release;
@@ -1791,6 +1809,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Debug;
 		};
@@ -1801,6 +1820,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Release;
 		};
@@ -1809,6 +1829,7 @@
 			baseConfigurationReference = D047263219E49FE8006002AA /* iOS-Application.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Debug;
@@ -1818,6 +1839,7 @@
 			baseConfigurationReference = D047263219E49FE8006002AA /* iOS-Application.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Release;
@@ -1851,6 +1873,7 @@
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Sources/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				SUPPORTS_MACCATALYST = YES;
 			};
 			name = Profile;
@@ -1860,7 +1883,7 @@
 			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Profile;
@@ -1872,6 +1895,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Profile;
 		};
@@ -1880,6 +1904,7 @@
 			baseConfigurationReference = D047263219E49FE8006002AA /* iOS-Application.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Profile;
@@ -1913,6 +1938,7 @@
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = Sources/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				SUPPORTS_MACCATALYST = YES;
 			};
 			name = Test;
@@ -1922,7 +1948,7 @@
 			baseConfigurationReference = E6124BA9267DF505005A3490 /* macOS-XCTest.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Test;
@@ -1934,6 +1960,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Test;
 		};
@@ -1942,6 +1969,7 @@
 			baseConfigurationReference = D047263219E49FE8006002AA /* iOS-Application.xcconfig */;
 			buildSettings = {
 				INFOPLIST_FILE = Tests/ReactiveSwiftTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				PRODUCT_NAME = "$(PROJECT_NAME)Tests";
 			};
 			name = Test;

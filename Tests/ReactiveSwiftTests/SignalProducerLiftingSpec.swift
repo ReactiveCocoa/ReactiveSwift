@@ -14,7 +14,7 @@ import Quick
 @testable import ReactiveSwift
 
 class SignalProducerLiftingSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("map") {
 			it("should transform the values of the signal") {
 				let (producer, observer) = SignalProducer<Int, Never>.pipe()

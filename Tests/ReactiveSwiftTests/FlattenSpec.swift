@@ -18,7 +18,7 @@ private extension Signal {
 private typealias Pipe = Signal<SignalProducer<Int, TestError>, TestError>.Pipe
 
 class FlattenSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		func describeSignalFlattenDisposal(_ flattenStrategy: FlattenStrategy, name: String) {
 			describe(name) {
 				var pipe: Pipe!

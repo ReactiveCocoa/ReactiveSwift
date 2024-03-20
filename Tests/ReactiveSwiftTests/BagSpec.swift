@@ -11,7 +11,7 @@ import Quick
 import ReactiveSwift
 
 class BagSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		var bag = Bag<String>()
 
 		beforeEach {

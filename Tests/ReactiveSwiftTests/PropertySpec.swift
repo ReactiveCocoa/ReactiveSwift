@@ -21,7 +21,7 @@ private let subsequentOtherPropertyValue = "SubsequentOtherValue"
 private let finalOtherPropertyValue = "FinalOtherValue"
 
 class PropertySpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("MutableProperty") {
 			it("should have the value given at initialization") {
 				let mutableProperty = MutableProperty(initialPropertyValue)
