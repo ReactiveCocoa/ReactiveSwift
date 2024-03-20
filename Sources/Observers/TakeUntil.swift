@@ -1,14 +1,14 @@
 extension Operators {
-	internal final class TakeUntil<Value, Error: Swift.Error>: Observer<Value, Error> {
-		let downstream: Observer<Value, Error>
-		let shouldContinue: (Value) -> Bool
+	internal final class TakeUntil<Value, Error: Swift.Error>: Observer {
+		let downstream: any Observer<Value, Error>
+		let shouldContinue: @Sendable (Value) -> Bool
 
-		init(downstream: Observer<Value, Error>, shouldContinue: @escaping (Value) -> Bool) {
+		init(downstream: some Observer<Value, Error>, shouldContinue: @escaping @Sendable (Value) -> Bool) {
 			self.downstream = downstream
 			self.shouldContinue = shouldContinue
 		}
 
-		override func receive(_ value: Value) {
+		func receive(_ value: Value) {
 			downstream.receive(value)
 			
 			if !shouldContinue(value) {
@@ -16,7 +16,7 @@ extension Operators {
 			}
 		}
 
-		override func terminate(_ termination: Termination<Error>) {
+		func terminate(_ termination: Termination<Error>) {
 			downstream.terminate(termination)
 		}
 	}

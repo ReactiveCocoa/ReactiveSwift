@@ -1,16 +1,16 @@
 extension Operators {
-	internal final class Materialize<Value, Error: Swift.Error>: Observer<Value, Error> {
-		let downstream: Observer<Signal<Value, Error>.Event, Never>
+	internal final class Materialize<Value, Error: Swift.Error>: Observer {
+		let downstream: any Observer<Signal<Value, Error>.Event, Never>
 
-		init(downstream: Observer<Signal<Value, Error>.Event, Never>) {
+		init(downstream: some Observer<Signal<Value, Error>.Event, Never>) {
 			self.downstream = downstream
 		}
 
-		override func receive(_ value: Value) {
+		func receive(_ value: Value) {
 			downstream.receive(.value(value))
 		}
 
-		override func terminate(_ termination: Termination<Error>) {
+		func terminate(_ termination: Termination<Error>) {
 			downstream.receive(Signal<Value, Error>.Event(termination))
 
 			switch termination {

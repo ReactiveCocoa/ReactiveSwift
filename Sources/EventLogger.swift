@@ -31,7 +31,7 @@ public func defaultEventLog(identifier: String, event: String, fileName: String,
 
 /// A type that represents an event logging function.
 /// Signature is:
-///		- identifier 
+///		- identifier
 ///		- event
 ///		- fileName
 ///		- functionName
@@ -52,14 +52,14 @@ fileprivate struct LogContext<Event: LoggingEventProtocol> {
 	let functionName: String
 	let lineNumber: Int
 	let logger: EventLogger
-	
-	func log<T>(_ event: Event) -> ((T) -> Void)? {
+
+	func log<T>(_ event: Event) -> (@Sendable (T) -> Void)? {
 		return event.logIfNeeded(events: self.events) { event in
 			self.logger(self.identifier, event, self.fileName, self.functionName, self.lineNumber)
 		}
 	}
-	
-	func log(_ event: Event) -> (() -> Void)? {
+
+	func log(_ event: Event) -> (@Sendable () -> Void)? {
 		return event.logIfNeededNoArg(events: self.events) { event in
 			self.logger(self.identifier, event, self.fileName, self.functionName, self.lineNumber)
 		}
@@ -67,7 +67,7 @@ fileprivate struct LogContext<Event: LoggingEventProtocol> {
 }
 
 extension Signal {
-	/// Logs all events that the receiver sends. By default, it will print to 
+	/// Logs all events that the receiver sends. By default, it will print to
 	/// the standard output.
 	///
 	/// - parameters:
@@ -80,14 +80,21 @@ extension Signal {
 	///   - logger: Logger that logs the events.
 	///
 	/// - returns: Signal that, when observed, logs the fired events.
-	public func logEvents(identifier: String = "", events: Set<LoggingEvent.Signal> = Set(LoggingEvent.Signal.allCases), fileName: String = #file, functionName: String = #function, lineNumber: Int = #line, logger: @escaping EventLogger = defaultEventLog) -> Signal<Value, Error> {
+	public func logEvents(
+		identifier: String = "",
+		events: Set<LoggingEvent.Signal> = Set(LoggingEvent.Signal.allCases),
+		fileName: String = #file,
+		functionName: String = #function,
+		lineNumber: Int = #line,
+		logger: @escaping EventLogger = defaultEventLog
+	) -> Signal<Value, Error> {
 		let logContext = LogContext(events: events,
 		                            identifier: identifier,
 		                            fileName: fileName,
 		                            functionName: functionName,
 		                            lineNumber: lineNumber,
 		                            logger: logger)
-		
+
 		return self.on(
 			failed: logContext.log(.failed),
 			completed: logContext.log(.completed),
@@ -100,7 +107,7 @@ extension Signal {
 }
 
 extension SignalProducer {
-	/// Logs all events that the receiver sends. By default, it will print to 
+	/// Logs all events that the receiver sends. By default, it will print to
 	/// the standard output.
 	///
 	/// - parameters:
@@ -149,14 +156,14 @@ private extension LoggingEventProtocol {
 	//        Due to differences in the type checker, this method cannot
 	//        overload the generic `logIfNeeded`, or otherwise it would lead to
 	//        infinite recursion with Swift 4.0.x.
-	func logIfNeededNoArg(events: Set<Self>, logger: @escaping (String) -> Void) -> (() -> Void)? {
+	func logIfNeededNoArg(events: Set<Self>, logger: @escaping (String) -> Void) -> (@Sendable () -> Void)? {
 		return (self.logIfNeeded(events: events, logger: logger) as ((()) -> Void)?)
 			.map { closure in
-				{ closure(()) }
+				{ @Sendable in closure(()) }
 			}
 	}
-	
-	func logIfNeeded<T>(events: Set<Self>, logger: @escaping (String) -> Void) -> ((T) -> Void)? {
+
+	func logIfNeeded<T>(events: Set<Self>, logger: @escaping (String) -> Void) -> (@Sendable (T) -> Void)? {
 		guard events.contains(self) else {
 			return nil
 		}
