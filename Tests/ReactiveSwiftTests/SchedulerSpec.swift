@@ -6,9 +6,6 @@
 //  Copyright (c) 2014 GitHub. All rights reserved.
 //
 
-#if canImport(Darwin)
-import Darwin.sys.qos
-#endif
 import Dispatch
 import Foundation
 

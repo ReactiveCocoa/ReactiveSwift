@@ -6,7 +6,7 @@
 1. Fix CI release git tag push trigger (#869, kudos to @p4checo)
 1. Find and remove items from Bag using a binary search to improve performance when the collection gets large (#878, kudos to @nickoto)
 1. Add extension to `ScopedDisposable` for inner `SerialDisposable` (#873, kudos to @sirnacnud)
-1. Updated project settings for Xcode 15.2, bumped min deployment targets to iOS 12, macOS 10.13, tvOS 12, watchOS 4, visionOS 1.0 (#883, kudos to @mluisbrown)
+1. Updated project settings for Xcode 16, bumped min deployment targets to iOS 12, macOS 10.13, tvOS 12, watchOS 4, visionOS 1.0 (#883, kudos to @mluisbrown)
 
 # 7.1.1
 1. Bumped deployment target to iOS 11, tvOS 11, watchOS 4, macOS 10.13, per Xcode 14 warnings (#865, kudos to @lickel)

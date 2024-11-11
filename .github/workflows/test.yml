@@ -3,13 +3,13 @@ name: Test
 jobs:
   test:
     name: Test
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
         fail-fast: false
         matrix:
           destination: [macOS, iOS, tvOS, watchOS]
     env:
-      DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,7 +68,7 @@ jobs:
   swiftpm-linux:
     strategy:
       matrix:
-        swift: ["5.7"]
+        swift: ["5.9"]
 
     name: SwiftPM Linux
     runs-on: ubuntu-22.04
