@@ -64,7 +64,7 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     name: GitHub Release
     runs-on: macos-15
-    needs: [swiftpm-macos, cocoapods, carthage]
+    needs: [swiftpm-macos, cocoapods]
     steps:
       - name: git checkout
         uses: actions/checkout@v4
@@ -75,7 +75,7 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     name: CocoaPods Release
     runs-on: macos-15
-    needs: [swiftpm-macos, cocoapods, carthage]
+    needs: [swiftpm-macos, cocoapods]
     steps:
       - name: git checkout
         uses: actions/checkout@v4
