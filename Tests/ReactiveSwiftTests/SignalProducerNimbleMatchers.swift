@@ -11,17 +11,17 @@ import Foundation
 import ReactiveSwift
 import Nimble
 
-public func sendValue<T: Equatable, E: Equatable>(_ value: T?, sendError: E?, complete: Bool) -> Predicate<SignalProducer<T, E>> {
+public func sendValue<T: Equatable, E: Equatable>(_ value: T?, sendError: E?, complete: Bool) -> Matcher<SignalProducer<T, E>> {
 	return sendValues(value.map { [$0] } ?? [], sendError: sendError, complete: complete)
 }
 
-public func sendValues<T: Equatable, E: Equatable>(_ values: [T], sendError maybeSendError: E?, complete: Bool) -> Predicate<SignalProducer<T, E>> {
-	return Predicate<SignalProducer<T, E>> { actualExpression in
+public func sendValues<T: Equatable, E: Equatable>(_ values: [T], sendError maybeSendError: E?, complete: Bool) -> Matcher<SignalProducer<T, E>> {
+    return Matcher<SignalProducer<T, E>> { actualExpression in
 		precondition(maybeSendError == nil || !complete, "Signals can't both send an error and complete")
 		guard let signalProducer = try actualExpression.evaluate() else {
 			let message = ExpectationMessage.fail("The SignalProducer was not created.")
 				.appendedBeNilHint()
-			return PredicateResult(status: .fail, message: message)
+            return MatcherResult(status: .fail, message: message)
 		}
 
 		var sentValues: [T] = []
@@ -46,7 +46,7 @@ public func sendValues<T: Equatable, E: Equatable>(_ values: [T], sendError mayb
 				"send values <\(values)>",
 				actual: "<\(sentValues)>"
 			)
-			return PredicateResult(status: .doesNotMatch, message: message)
+            return MatcherResult(status: .doesNotMatch, message: message)
 		}
 
 		if sentError != maybeSendError {
@@ -54,13 +54,13 @@ public func sendValues<T: Equatable, E: Equatable>(_ values: [T], sendError mayb
 				"send error <\(String(describing: maybeSendError))>",
 				actual: "<\(String(describing: sentError))>"
 			)
-			return PredicateResult(status: .doesNotMatch, message: message)
+            return MatcherResult(status: .doesNotMatch, message: message)
 		}
 
 		let completeMessage = complete ?
 			"complete, but the producer did not complete" :
 			"not to complete, but the producer completed"
 		let message = ExpectationMessage.expectedTo(completeMessage)
-		return PredicateResult(bool: signalCompleted == complete, message: message)
+        return MatcherResult(bool: signalCompleted == complete, message: message)
 	}
 }

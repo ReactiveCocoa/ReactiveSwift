@@ -3,7 +3,7 @@ import Nimble
 import ReactiveSwift
 
 final class LifetimeSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("Lifetime") {
 			it("should complete its lifetime ended signal when the token deinitializes") {
 				let object = MutableReference(TestObject())

@@ -28,9 +28,9 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1F5DF1541BDCA0CE00C3A531"
+               BlueprintIdentifier = "1F925EAC195C0D6300ED456B"
                BuildableName = "Nimble.framework"
-               BlueprintName = "Nimble-tvOS"
+               BlueprintName = "Nimble"
                ReferencedContainer = "container:Carthage/Checkouts/Nimble/Nimble.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -42,9 +42,9 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1F118CD41BDCA4AB005013A2"
+               BlueprintIdentifier = "DAEB6B8D1943873100289F44"
                BuildableName = "Quick.framework"
-               BlueprintName = "Quick-tvOS"
+               BlueprintName = "Quick"
                ReferencedContainer = "container:Carthage/Checkouts/Quick/Quick.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -68,8 +68,8 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      codeCoverageEnabled = "YES"
-      shouldUseLaunchSchemeArgsEnv = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      codeCoverageEnabled = "YES">
       <Testables>
          <TestableReference
             skipped = "NO"
@@ -83,8 +83,6 @@
             </BuildableReference>
          </TestableReference>
       </Testables>
-      <AdditionalOptions>
-      </AdditionalOptions>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -105,8 +103,6 @@
             ReferencedContainer = "container:ReactiveSwift.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
-      <AdditionalOptions>
-      </AdditionalOptions>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -114,6 +110,15 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "57A4D1AF1BA13D7A00F7D4B1"
+            BuildableName = "ReactiveSwift.framework"
+            BlueprintName = "ReactiveSwift-tvOS"
+            ReferencedContainer = "container:ReactiveSwift.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

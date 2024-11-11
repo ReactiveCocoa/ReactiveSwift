@@ -6,9 +6,6 @@
 //  Copyright (c) 2014 GitHub. All rights reserved.
 //
 
-#if canImport(Darwin)
-import Darwin.sys.qos
-#endif
 import Dispatch
 import Foundation
 
@@ -29,7 +26,7 @@ import ReactiveSwift
 #endif
 
 class SchedulerSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("ImmediateScheduler") {
 			it("should run enqueued actions immediately") {
 				var didRun = false

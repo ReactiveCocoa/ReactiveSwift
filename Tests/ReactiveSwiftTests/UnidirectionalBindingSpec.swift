@@ -9,7 +9,7 @@ private class Object {
 }
 
 class UnidirectionalBindingSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("BindingTarget") {
 			var token: Lifetime.Token!
 			var lifetime: Lifetime!

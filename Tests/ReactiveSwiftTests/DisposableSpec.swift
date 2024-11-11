@@ -11,7 +11,7 @@ import Quick
 import ReactiveSwift
 
 class DisposableSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("SimpleDisposable") {
 			it("should set disposed to true") {
 				let disposable = AnyDisposable()

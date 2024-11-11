@@ -13,7 +13,7 @@ import Quick
 @testable import ReactiveSwift
 
 class ActionSpec: QuickSpec {
-	override func spec() {
+	override class func spec() {
 		describe("Action") {
 			var action: Action<Int, String, NSError>!
 			var enabled: MutableProperty<Bool>!
