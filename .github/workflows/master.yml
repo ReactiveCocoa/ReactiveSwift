@@ -30,8 +30,8 @@ jobs:
           key: 4-carthage-verification-${{ runner.os }}-${{ hashFiles('Cartfile.resolved') }}
       - name: Carthage verification
         run: |
-          ./script/carthage checkout
-          ./script/carthage build --cache-builds --no-skip-current
+          carthage checkout
+          carthage build --cache-builds --no-skip-current --use-xcframeworks
 
   swiftpm-macos:
     if: ${{ github.event_name == 'push' || ( github.event_name == 'pull_request' && github.event.label.name == 'ci:verify' ) }}
@@ -64,7 +64,7 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     name: GitHub Release
     runs-on: macos-15
-    needs: [swiftpm-macos, cocoapods]
+    needs: [swiftpm-macos, cocoapods, carthage]
     steps:
       - name: git checkout
         uses: actions/checkout@v4
@@ -75,7 +75,7 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
     name: CocoaPods Release
     runs-on: macos-15
-    needs: [swiftpm-macos, cocoapods]
+    needs: [swiftpm-macos, cocoapods, carthage]
     steps:
       - name: git checkout
         uses: actions/checkout@v4
