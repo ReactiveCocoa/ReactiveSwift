@@ -6,7 +6,7 @@ extension Operators {
 		let targetWithClock: DateScheduler
 
 		init(
-			downstream: Observer<Value, Error>,
+			downstream: some Observer<Value, Error>,
 			downstreamLifetime: Lifetime,
 			target: DateScheduler,
 			interval: TimeInterval

@@ -1,8 +1,9 @@
-open class Observer<Value, Error: Swift.Error> {
-	public init() {}
+public protocol Observer<Value, Error>: Sendable {
+	associatedtype Value
+	associatedtype Error: Swift.Error
 
-	open func receive(_ value: Value) { fatalError() }
-	open func terminate(_ termination: Termination<Error>) { fatalError() }
+	func receive(_ value: Value)
+	func terminate(_ termination: Termination<Error>)
 }
 
 extension Observer {
@@ -14,6 +15,7 @@ extension Observer {
 		process(event)
 	}
 
+	@Sendable
 	fileprivate func process(_ event: Signal<Value, Error>.Event) {
 		switch event {
 		case let .value(value):

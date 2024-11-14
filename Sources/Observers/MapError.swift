@@ -1,18 +1,18 @@
 extension Operators {
-	internal final class MapError<Value, InputError: Swift.Error, OutputError: Swift.Error>: Observer<Value, InputError> {
-		let downstream: Observer<Value, OutputError>
-		let transform: (InputError) -> OutputError
+	internal final class MapError<Value, InputError: Swift.Error, OutputError: Swift.Error>: Observer {
+		let downstream: any Observer<Value, OutputError>
+		let transform: @Sendable (InputError) -> OutputError
 
-		init(downstream: Observer<Value, OutputError>, transform: @escaping (InputError) -> OutputError) {
+		init(downstream: some Observer<Value, OutputError>, transform: @escaping @Sendable (InputError) -> OutputError) {
 			self.downstream = downstream
 			self.transform = transform
 		}
 
-		override func receive(_ value: Value) {
+		func receive(_ value: Value) {
 			downstream.receive(value)
 		}
 
-		override func terminate(_ termination: Termination<InputError>) {
+		func terminate(_ termination: Termination<InputError>) {
 			switch termination {
 			case .completed:
 				downstream.terminate(.completed)

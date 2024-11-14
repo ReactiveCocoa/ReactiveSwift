@@ -1,20 +1,20 @@
 extension Operators {
-	internal final class Filter<Value, Error: Swift.Error>: Observer<Value, Error> {
-		let downstream: Observer<Value, Error>
-		let predicate: (Value) -> Bool
+	internal final class Filter<Value, Error: Swift.Error>: Observer {
+		let downstream: any Observer<Value, Error>
+		let predicate: @Sendable (Value) -> Bool
 		
-		init(downstream: Observer<Value, Error>, predicate: @escaping (Value) -> Bool) {
+		init(downstream: some Observer<Value, Error>, predicate: @escaping @Sendable (Value) -> Bool) {
 			self.downstream = downstream
 			self.predicate = predicate
 		}
 		
-		override func receive(_ value: Value) {
+		func receive(_ value: Value) {
 			if predicate(value) {
 				downstream.receive(value)
 			}
 		}
 		
-		override func terminate(_ termination: Termination<Error>) {
+		func terminate(_ termination: Termination<Error>) {
 			downstream.terminate(termination)
 		}
 	}

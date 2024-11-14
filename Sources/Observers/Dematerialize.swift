@@ -1,12 +1,12 @@
 extension Operators {
-	internal final class Dematerialize<Event>: Observer<Event, Never> where Event: EventProtocol {
-		let downstream: Observer<Event.Value, Event.Error>
+	internal final class Dematerialize<Event>: Observer where Event: EventProtocol {
+		let downstream: any Observer<Event.Value, Event.Error>
 
-		init(downstream: Observer<Event.Value, Event.Error>) {
+		init(downstream: some Observer<Event.Value, Event.Error>) {
 			self.downstream = downstream
 		}
 
-		override func receive(_ event: Event) {
+		func receive(_ event: Event) {
 			switch event.event {
 			case let .value(value):
 				downstream.receive(value)
@@ -19,7 +19,7 @@ extension Operators {
 			}
 		}
 
-		override func terminate(_ termination: Termination<Never>) {
+		func terminate(_ termination: Termination<Never>) {
 			switch termination {
 			case .completed:
 				downstream.terminate(.completed)
