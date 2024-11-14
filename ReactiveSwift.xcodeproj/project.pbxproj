@@ -273,6 +273,17 @@
 		A9B315C61B3940810001CB9C /* Bag.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C312BC19EF2A5800984962 /* Bag.swift */; };
 		A9B315C81B3940810001CB9C /* FoundationExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03B4A3C19F4C39A009E02AC /* FoundationExtensions.swift */; };
 		A9B315CA1B3940AB0001CB9C /* ReactiveSwift.h in Headers */ = {isa = PBXBuildFile; fileRef = D04725EF19E49ED7006002AA /* ReactiveSwift.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		A9F3C403273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C401273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift */; };
+		A9F3C404273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C401273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift */; };
+		A9F3C405273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C401273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift */; };
+		A9F3C406273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C401273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift */; };
+		A9F3C407273E43C5000F0E18 /* Signal+SwiftConcurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C402273E43C5000F0E18 /* Signal+SwiftConcurrency.swift */; };
+		A9F3C408273E43C5000F0E18 /* Signal+SwiftConcurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C402273E43C5000F0E18 /* Signal+SwiftConcurrency.swift */; };
+		A9F3C409273E43C5000F0E18 /* Signal+SwiftConcurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C402273E43C5000F0E18 /* Signal+SwiftConcurrency.swift */; };
+		A9F3C40A273E43C5000F0E18 /* Signal+SwiftConcurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C402273E43C5000F0E18 /* Signal+SwiftConcurrency.swift */; };
+		A9F3C40C273E43E9000F0E18 /* SwiftConcurrencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C40B273E43E9000F0E18 /* SwiftConcurrencyTests.swift */; };
+		A9F3C40D273E43E9000F0E18 /* SwiftConcurrencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C40B273E43E9000F0E18 /* SwiftConcurrencyTests.swift */; };
+		A9F3C40E273E43E9000F0E18 /* SwiftConcurrencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F3C40B273E43E9000F0E18 /* SwiftConcurrencyTests.swift */; };
 		A9F793341B60D0140026BCBA /* Optional.swift in Sources */ = {isa = PBXBuildFile; fileRef = D871D69E1B3B29A40070F16C /* Optional.swift */; };
 		B696FB811A7640C00075236D /* TestError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B696FB801A7640C00075236D /* TestError.swift */; };
 		B696FB821A7640C00075236D /* TestError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B696FB801A7640C00075236D /* TestError.swift */; };
@@ -464,6 +475,9 @@
 		A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-Framework.xcconfig"; sourceTree = "<group>"; };
 		A97451361B3A935E00F48E55 /* watchOS-StaticLibrary.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "watchOS-StaticLibrary.xcconfig"; sourceTree = "<group>"; };
 		A9B315541B3940610001CB9C /* ReactiveSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ReactiveSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A9F3C401273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "SignalProducer+SwiftConcurrency.swift"; sourceTree = "<group>"; };
+		A9F3C402273E43C5000F0E18 /* Signal+SwiftConcurrency.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Signal+SwiftConcurrency.swift"; sourceTree = "<group>"; };
+		A9F3C40B273E43E9000F0E18 /* SwiftConcurrencyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SwiftConcurrencyTests.swift; sourceTree = "<group>"; };
 		B696FB801A7640C00075236D /* TestError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestError.swift; sourceTree = "<group>"; };
 		BE9CF3941D751B6B003AE479 /* UnidirectionalBinding.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnidirectionalBinding.swift; sourceTree = "<group>"; };
 		BFA6B94A1A76044800C846D1 /* SignalProducerNimbleMatchers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalProducerNimbleMatchers.swift; sourceTree = "<group>"; };
@@ -626,6 +640,8 @@
 				9A9100DE1E0E6E620093E346 /* ValidatingProperty.swift */,
 				D08C54B11A69A2AC00AD8286 /* Signal.swift */,
 				D08C54B21A69A2AC00AD8286 /* SignalProducer.swift */,
+				A9F3C402273E43C5000F0E18 /* Signal+SwiftConcurrency.swift */,
+				A9F3C401273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift */,
 				BE9CF3941D751B6B003AE479 /* UnidirectionalBinding.swift */,
 				9A67963A1F6056B90058C5B4 /* UninhabitedTypeGuards.swift */,
 			);
@@ -723,6 +739,7 @@
 				0A0C8D68291BCFF000D1EAB7 /* TestSchedulerAsyncTestCase.swift */,
 				9A1D067C1D948A2200ACF44C /* UnidirectionalBindingSpec.swift */,
 				9A1A4F981E16961C006F3039 /* ValidatingPropertySpec.swift */,
+				A9F3C40B273E43E9000F0E18 /* SwiftConcurrencyTests.swift */,
 			);
 			name = ReactiveSwiftTests;
 			path = Tests/ReactiveSwiftTests;
@@ -1105,6 +1122,7 @@
 				9A2D5CE8259F852B005682ED /* CombinePrevious.swift in Sources */,
 				9A67963E1F6059440058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
 				9A2D5D06259F8C39005682ED /* Reduce.swift in Sources */,
+				A9F3C406273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift in Sources */,
 				9A2D5D56259FA000005682ED /* Throttle.swift in Sources */,
 				9A2D5D60259FA0DD005682ED /* Debounce.swift in Sources */,
 				9AFA491424E9A196003D263C /* Map.swift in Sources */,
@@ -1132,6 +1150,7 @@
 				4A0E11021D2A92720065D310 /* Lifetime.swift in Sources */,
 				9A2D5CB1259F8112005682ED /* TakeLast.swift in Sources */,
 				BE9CF3981D751B71003AE479 /* UnidirectionalBinding.swift in Sources */,
+				A9F3C40A273E43C5000F0E18 /* Signal+SwiftConcurrency.swift in Sources */,
 				9A2D5CCF259F8263005682ED /* SkipWhile.swift in Sources */,
 				9A2D5C84259F7E3E005682ED /* DematerializeResults.swift in Sources */,
 				9A2D5C52259F7B21005682ED /* MapError.swift in Sources */,
@@ -1208,6 +1227,7 @@
 				7DFBED281CDB8DE300EE435B /* PropertySpec.swift in Sources */,
 				0A0C8D6B291BCFF000D1EAB7 /* TestSchedulerAsyncTestCase.swift in Sources */,
 				7DFBED291CDB8DE300EE435B /* SchedulerSpec.swift in Sources */,
+				A9F3C40E273E43E9000F0E18 /* SwiftConcurrencyTests.swift in Sources */,
 				7DFBED2A1CDB8DE300EE435B /* SignalLifetimeSpec.swift in Sources */,
 				7DFBED2B1CDB8DE300EE435B /* SignalProducerSpec.swift in Sources */,
 				9A681AA01E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
@@ -1251,6 +1271,7 @@
 				9A67963D1F6059430058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
 				9A2D5D05259F8C39005682ED /* Reduce.swift in Sources */,
 				9AFA491324E9A196003D263C /* Map.swift in Sources */,
+				A9F3C405273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift in Sources */,
 				9A2D5CFB259F8634005682ED /* UniqueValues.swift in Sources */,
 				9A2D5C65259F7B47005682ED /* MaterializeAsResult.swift in Sources */,
 				5792972A26DE7623007A9F64 /* TakeUntil.swift in Sources */,
@@ -1278,6 +1299,7 @@
 				4A0E11011D2A92720065D310 /* Lifetime.swift in Sources */,
 				9A2D5CB0259F8112005682ED /* TakeLast.swift in Sources */,
 				BE9CF3971D751B71003AE479 /* UnidirectionalBinding.swift in Sources */,
+				A9F3C409273E43C5000F0E18 /* Signal+SwiftConcurrency.swift in Sources */,
 				9A2D5CCE259F8263005682ED /* SkipWhile.swift in Sources */,
 				9A2D5C83259F7E3E005682ED /* DematerializeResults.swift in Sources */,
 				9A2D5C51259F7B21005682ED /* MapError.swift in Sources */,
@@ -1309,6 +1331,7 @@
 				9A2D5CE5259F852B005682ED /* CombinePrevious.swift in Sources */,
 				9A67963B1F6056B90058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
 				9A2D5D03259F8C39005682ED /* Reduce.swift in Sources */,
+				A9F3C403273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift in Sources */,
 				9A2D5D53259FA000005682ED /* Throttle.swift in Sources */,
 				9A2D5D5D259FA0DD005682ED /* Debounce.swift in Sources */,
 				9AFA491124E9A196003D263C /* Map.swift in Sources */,
@@ -1336,6 +1359,7 @@
 				D08C54B81A69A9D000AD8286 /* SignalProducer.swift in Sources */,
 				9A2D5CAE259F8112005682ED /* TakeLast.swift in Sources */,
 				BE9CF3951D751B6B003AE479 /* UnidirectionalBinding.swift in Sources */,
+				A9F3C407273E43C5000F0E18 /* Signal+SwiftConcurrency.swift in Sources */,
 				9A2D5CCC259F8263005682ED /* SkipWhile.swift in Sources */,
 				9A2D5C81259F7E3E005682ED /* DematerializeResults.swift in Sources */,
 				9A2D5C4F259F7B21005682ED /* MapError.swift in Sources */,
@@ -1354,6 +1378,7 @@
 				D8170FC11B100EBC004192AD /* FoundationExtensionsSpec.swift in Sources */,
 				0A0C8D69291BCFF000D1EAB7 /* TestSchedulerAsyncTestCase.swift in Sources */,
 				C79B64741CD38B2B003F2376 /* TestLogger.swift in Sources */,
+				A9F3C40C273E43E9000F0E18 /* SwiftConcurrencyTests.swift in Sources */,
 				CA6F28501C52626B001879D2 /* FlattenSpec.swift in Sources */,
 				4A0E11041D2A95200065D310 /* LifetimeSpec.swift in Sources */,
 				9A681A9E1E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
@@ -1397,6 +1422,7 @@
 				9A67963C1F6059420058C5B4 /* UninhabitedTypeGuards.swift in Sources */,
 				9A2D5D04259F8C39005682ED /* Reduce.swift in Sources */,
 				9AFA491224E9A196003D263C /* Map.swift in Sources */,
+				A9F3C404273E43C5000F0E18 /* SignalProducer+SwiftConcurrency.swift in Sources */,
 				9A2D5CFA259F8634005682ED /* UniqueValues.swift in Sources */,
 				9A2D5C64259F7B47005682ED /* MaterializeAsResult.swift in Sources */,
 				5792972926DE7623007A9F64 /* TakeUntil.swift in Sources */,
@@ -1424,6 +1450,7 @@
 				D0D11ABA1A6AE87700C1F8B1 /* Action.swift in Sources */,
 				9A2D5CAF259F8112005682ED /* TakeLast.swift in Sources */,
 				BE9CF3961D751B70003AE479 /* UnidirectionalBinding.swift in Sources */,
+				A9F3C408273E43C5000F0E18 /* Signal+SwiftConcurrency.swift in Sources */,
 				9A2D5CCD259F8263005682ED /* SkipWhile.swift in Sources */,
 				9A2D5C82259F7E3E005682ED /* DematerializeResults.swift in Sources */,
 				9A2D5C50259F7B21005682ED /* MapError.swift in Sources */,
@@ -1442,6 +1469,7 @@
 				D8024DB31B2E1BB0005E6B9A /* SignalProducerLiftingSpec.swift in Sources */,
 				0A0C8D6A291BCFF000D1EAB7 /* TestSchedulerAsyncTestCase.swift in Sources */,
 				BFA6B94E1A7604D500C846D1 /* SignalProducerNimbleMatchers.swift in Sources */,
+				A9F3C40D273E43E9000F0E18 /* SwiftConcurrencyTests.swift in Sources */,
 				B696FB821A7640C00075236D /* TestError.swift in Sources */,
 				D8170FC21B100EBC004192AD /* FoundationExtensionsSpec.swift in Sources */,
 				9A681A9F1E5A241B00B097CF /* DeprecationSpec.swift in Sources */,
