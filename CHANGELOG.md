@@ -1,5 +1,10 @@
 # master
 *Please add new entries at the top.*
+1. Fix the Carthage build checks (kudos to @mluisbrown)
+1. Add dynamic library support for SPM (#886 kudos to @mluisbrown)
+
+# 7.2.0
+*Please add new entries at the top.*
 
 1. Change `QueueScheduler` to use unspecified QoS when QoS parameter is defaulted (#880, kudos to @jamieQ)
 1. Add support for visionOS (#875, kudos to @NachoSoto)

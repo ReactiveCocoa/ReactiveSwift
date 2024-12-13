@@ -8,6 +8,7 @@ let package = Package(
     ],
     products: [
         .library(name: "ReactiveSwift", targets: ["ReactiveSwift"]),
+        .library(name: "ReactiveSwift-Dynamic", type: .dynamic, targets: ["ReactiveSwift"])
     ],
     dependencies: [
         .package(url: "https://github.com/Quick/Quick.git", from: "7.0.0"),
