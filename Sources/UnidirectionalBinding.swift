@@ -10,17 +10,31 @@ precedencegroup BindingPrecedence {
 
 infix operator <~ : BindingPrecedence
 
+#if swift(>=5.7)
+/// Describes a source which can be bound.
+public protocol BindingSource<Value>: SignalProducerConvertible where Error == Never {}
+#else
 /// Describes a source which can be bound.
 public protocol BindingSource: SignalProducerConvertible where Error == Never {}
+#endif
 extension Signal: BindingSource where Error == Never {}
 extension SignalProducer: BindingSource where Error == Never {}
 
+#if swift(>=5.7)
+/// Describes an entity which be bond towards.
+public protocol BindingTargetProvider<Value> {
+	associatedtype Value
+	
+	var bindingTarget: BindingTarget<Value> { get }
+}
+#else
 /// Describes an entity which be bond towards.
 public protocol BindingTargetProvider {
 	associatedtype Value
 
 	var bindingTarget: BindingTarget<Value> { get }
 }
+#endif
 
 extension BindingTargetProvider {
 	/// Binds a source to a target, updating the target's value to the latest
