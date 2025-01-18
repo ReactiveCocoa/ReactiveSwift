@@ -1,5 +1,6 @@
 # master
 *Please add new entries at the top.*
+1. Add primary associated types to property and binding protocols (#888, kudos to @braker1nine)
 1. Fix the Carthage build checks (kudos to @mluisbrown)
 1. Add dynamic library support for SPM (#886 kudos to @mluisbrown)
 
