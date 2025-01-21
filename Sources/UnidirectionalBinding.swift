@@ -21,14 +21,14 @@ extension Signal: BindingSource where Error == Never {}
 extension SignalProducer: BindingSource where Error == Never {}
 
 #if swift(>=5.7)
-/// Describes an entity which be bond towards.
+/// Describes an entity which be bound towards.
 public protocol BindingTargetProvider<Value> {
 	associatedtype Value
 	
 	var bindingTarget: BindingTarget<Value> { get }
 }
 #else
-/// Describes an entity which be bond towards.
+/// Describes an entity which be bound towards.
 public protocol BindingTargetProvider {
 	associatedtype Value
 
@@ -60,7 +60,7 @@ extension BindingTargetProvider {
 	/// ````
 	///
 	/// - parameters:
-	///   - target: A target to be bond to.
+	///   - target: A target to be bound to.
 	///   - source: A source to bind.
 	///
 	/// - returns: A disposable that can be used to terminate binding before the
@@ -100,7 +100,7 @@ extension BindingTargetProvider {
 	/// ````
 	///
 	/// - parameters:
-	///   - target: A target to be bond to.
+	///   - target: A target to be bound to.
 	///   - source: A source to bind.
 	///
 	/// - returns: A disposable that can be used to terminate binding before the
@@ -125,7 +125,7 @@ extension Signal.Observer {
 	///         deinitialized, or when the source sends a `completed` event.
 	///
 	/// - parameters:
-	///   - target: A target to be bond to.
+	///   - target: A target to be bound to.
 	///   - source: A source to bind.
 	///
 	/// - returns: A disposable that can be used to terminate binding before the
