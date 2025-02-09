@@ -1,11 +1,10 @@
 # master
 *Please add new entries at the top.*
+1. Add primary associated types to property and binding protocols (#888, kudos to @braker1nine)
 1. Fix the Carthage build checks (kudos to @mluisbrown)
 1. Add dynamic library support for SPM (#886 kudos to @mluisbrown)
 
 # 7.2.0
-*Please add new entries at the top.*
-
 1. Change `QueueScheduler` to use unspecified QoS when QoS parameter is defaulted (#880, kudos to @jamieQ)
 1. Add support for visionOS (#875, kudos to @NachoSoto)
 1. Fix CI release git tag push trigger (#869, kudos to @p4checo)

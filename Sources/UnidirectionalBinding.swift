@@ -10,17 +10,31 @@ precedencegroup BindingPrecedence {
 
 infix operator <~ : BindingPrecedence
 
+#if swift(>=5.7)
+/// Describes a source which can be bound.
+public protocol BindingSource<Value>: SignalProducerConvertible where Error == Never {}
+#else
 /// Describes a source which can be bound.
 public protocol BindingSource: SignalProducerConvertible where Error == Never {}
+#endif
 extension Signal: BindingSource where Error == Never {}
 extension SignalProducer: BindingSource where Error == Never {}
 
-/// Describes an entity which be bond towards.
+#if swift(>=5.7)
+/// Describes an entity which be bound towards.
+public protocol BindingTargetProvider<Value> {
+	associatedtype Value
+	
+	var bindingTarget: BindingTarget<Value> { get }
+}
+#else
+/// Describes an entity which be bound towards.
 public protocol BindingTargetProvider {
 	associatedtype Value
 
 	var bindingTarget: BindingTarget<Value> { get }
 }
+#endif
 
 extension BindingTargetProvider {
 	/// Binds a source to a target, updating the target's value to the latest
@@ -46,7 +60,7 @@ extension BindingTargetProvider {
 	/// ````
 	///
 	/// - parameters:
-	///   - target: A target to be bond to.
+	///   - target: A target to be bound to.
 	///   - source: A source to bind.
 	///
 	/// - returns: A disposable that can be used to terminate binding before the
@@ -86,7 +100,7 @@ extension BindingTargetProvider {
 	/// ````
 	///
 	/// - parameters:
-	///   - target: A target to be bond to.
+	///   - target: A target to be bound to.
 	///   - source: A source to bind.
 	///
 	/// - returns: A disposable that can be used to terminate binding before the
@@ -111,7 +125,7 @@ extension Signal.Observer {
 	///         deinitialized, or when the source sends a `completed` event.
 	///
 	/// - parameters:
-	///   - target: A target to be bond to.
+	///   - target: A target to be bound to.
 	///   - source: A source to bind.
 	///
 	/// - returns: A disposable that can be used to terminate binding before the

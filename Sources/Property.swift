@@ -7,6 +7,35 @@ import Glibc
 // FIXME: The `Error == Never` constraint is retained for Swift 4.0.x
 //        compatibility, since `BindingSource` did not impose such constraint
 //        due to the absence of conditional conformance.
+#if swift(>=5.7)
+
+/// Represents a property that allows observation of its changes.
+///
+/// Only classes can conform to this protocol, because having a signal
+/// for changes over time implies the origin must have a unique identity.
+public protocol PropertyProtocol<Value>: AnyObject, BindingSource {
+	/// The current value of the property.
+	var value: Value { get }
+	
+	/// The values producer of the property.
+	///
+	/// It produces a signal that sends the property's current value,
+	/// followed by all changes over time. It completes when the property
+	/// has deinitialized, or has no further change.
+	///
+	/// - note: If `self` is a composed property, the producer would be
+	///         bound to the lifetime of its sources.
+	var producer: SignalProducer<Value, Never> { get }
+	
+	/// A signal that will send the property's changes over time. It
+	/// completes when the property has deinitialized, or has no further
+	/// change.
+	///
+	/// - note: If `self` is a composed property, the signal would be
+	///         bound to the lifetime of its sources.
+	var signal: Signal<Value, Never> { get }
+}
+#else
 
 /// Represents a property that allows observation of its changes.
 ///
@@ -34,7 +63,20 @@ public protocol PropertyProtocol: AnyObject, BindingSource {
 	///         bound to the lifetime of its sources.
 	var signal: Signal<Value, Never> { get }
 }
+#endif
 
+#if swift(>=5.7)
+/// Represents an observable property that can be mutated directly.
+public protocol MutablePropertyProtocol<Value>: PropertyProtocol, BindingTargetProvider {
+	associatedtype Value 
+	
+	/// The current value of the property.
+	var value: Value { get set }
+	
+	/// The lifetime of the property.
+	var lifetime: Lifetime { get }
+}
+#else
 /// Represents an observable property that can be mutated directly.
 public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProvider {
 	/// The current value of the property.
@@ -43,6 +85,7 @@ public protocol MutablePropertyProtocol: PropertyProtocol, BindingTargetProvider
 	/// The lifetime of the property.
 	var lifetime: Lifetime { get }
 }
+#endif
 
 /// Default implementation of `BindingTargetProvider` for mutable properties.
 extension MutablePropertyProtocol {
@@ -51,6 +94,29 @@ extension MutablePropertyProtocol {
 	}
 }
 
+#if swift(>=5.7)
+/// Represents a mutable property that can be safety composed by exposing its
+/// synchronization mechanic through the defined closure-based interface.
+public protocol ComposableMutablePropertyProtocol<Value>: MutablePropertyProtocol {
+	/// Atomically performs an arbitrary action using the current value of the
+	/// variable.
+	///
+	/// - parameters:
+	///   - action: A closure that accepts current property value.
+	///
+	/// - returns: the result of the action.
+	func withValue<Result>(_ action: (Value) throws -> Result) rethrows -> Result
+	
+	/// Atomically modifies the variable.
+	///
+	/// - parameters:
+	///   - action: A closure that accepts old property value and returns a new
+	///             property value.
+	///
+	/// - returns: The result of the action.
+	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
+}
+#else
 /// Represents a mutable property that can be safety composed by exposing its
 /// synchronization mechanic through the defined closure-based interface.
 public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
@@ -72,6 +138,7 @@ public protocol ComposableMutablePropertyProtocol: MutablePropertyProtocol {
 	/// - returns: The result of the action.
 	func modify<Result>(_ action: (inout Value) throws -> Result) rethrows -> Result
 }
+#endif
 
 // Property operators.
 //
