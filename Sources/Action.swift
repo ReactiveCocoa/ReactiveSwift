@@ -116,7 +116,8 @@ public final class Action<Input, Output, Error: Swift.Error> {
 		let isEnabled = MutableProperty(actionState.value.isEnabled)
 		self.isEnabled = Property(capturing: isEnabled)
 
-		func modifyActionState<Result>(_ action: (inout ActionState<State.Value>) throws -> Result) rethrows -> Result {
+		@Sendable
+		func modifyActionState<Result>(_ action: @Sendable (inout ActionState<State.Value>) throws -> Result) rethrows -> Result {
 			return try actionState.begin { storage in
 				let oldState = storage.value
 				defer {

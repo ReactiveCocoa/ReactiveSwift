@@ -1,4 +1,4 @@
-internal class UnaryAsyncOperator<InputValue, OutputValue, Error: Swift.Error>: Observer<InputValue, Error> {
+internal class UnaryAsyncOperator<InputValue, OutputValue, Error: Swift.Error>: Observer, @unchecked Sendable {
 	let downstreamLifetime: Lifetime
 	let target: Scheduler
 
@@ -9,11 +9,11 @@ internal class UnaryAsyncOperator<InputValue, OutputValue, Error: Swift.Error>: 
 	var isActive: Bool { state.is(.active) }
 
 	// Direct access is discouraged for subclasses by keeping this private.
-	private let downstream: Observer<OutputValue, Error>
+	private let downstream: any Observer<OutputValue, Error>
 	private let state: UnsafeAtomicState<AsyncOperatorState>
 
 	public init(
-		downstream: Observer<OutputValue, Error>,
+		downstream: some Observer<OutputValue, Error>,
 		downstreamLifetime: Lifetime,
 		target: Scheduler
 	) {
@@ -21,8 +21,6 @@ internal class UnaryAsyncOperator<InputValue, OutputValue, Error: Swift.Error>: 
 		self.downstreamLifetime = downstreamLifetime
 		self.target = target
 		self.state = UnsafeAtomicState(.active)
-
-		super.init()
 
 		downstreamLifetime.observeEnded {
 			if self.state.tryTransition(from: .active, to: .terminated) {
@@ -37,7 +35,7 @@ internal class UnaryAsyncOperator<InputValue, OutputValue, Error: Swift.Error>: 
 		state.deinitialize()
 	}
 
-	open override func receive(_ value: InputValue) { fatalError() }
+	open func receive(_ value: InputValue) { fatalError() }
 
 	/// Send a value to the downstream without any implicit scheduling on `target`.
 	///
@@ -59,7 +57,7 @@ internal class UnaryAsyncOperator<InputValue, OutputValue, Error: Swift.Error>: 
 		}
 	}
 
-	open override func terminate(_ termination: Termination<Error>) {
+	open func terminate(_ termination: Termination<Error>) {
 		// The atomic transition here must happen **after** we hop onto the target scheduler. This is to preserve the timing
 		// behaviour observed in previous versions of ReactiveSwift.
 

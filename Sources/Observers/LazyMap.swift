@@ -2,10 +2,10 @@ extension Operators {
 	internal final class LazyMap<Value, NewValue, Error: Swift.Error>: UnaryAsyncOperator<Value, NewValue, Error> {
 		let transform: (Value) -> NewValue
 		let box = Atomic<Value?>(nil)
-	  let valueDisposable = SerialDisposable()
+		let valueDisposable = SerialDisposable()
 
 		init(
-			downstream: Observer<NewValue, Error>,
+			downstream: some Observer<NewValue, Error>,
 			downstreamLifetime: Lifetime,
 			target: Scheduler,
 			transform: @escaping (Value) -> NewValue
