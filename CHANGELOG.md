@@ -3,6 +3,7 @@
 1. Add primary associated types to property and binding protocols (#888, kudos to @braker1nine)
 1. Fix the Carthage build checks (kudos to @mluisbrown)
 1. Add dynamic library support for SPM (#886 kudos to @mluisbrown)
+1. Fixed `BindingTarget.init` that uses a keypath to avoid source breaking change in SE-0481 (#890 kudos to @mluisbrown)
 
 # 7.2.0
 1. Change `QueueScheduler` to use unspecified QoS when QoS parameter is defaulted (#880, kudos to @jamieQ)
