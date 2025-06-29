@@ -185,7 +185,7 @@ public struct BindingTarget<Value>: BindingTargetProvider {
 	///   - lifetime: The expected lifetime of any bindings towards `self`.
 	///   - object: The object to consume values.
 	///   - keyPath: The key path of the object that consumes values.
-	public init<Object: AnyObject>(on scheduler: Scheduler = ImmediateScheduler(), lifetime: Lifetime, object: Object, keyPath: WritableKeyPath<Object, Value>) {
+	public init<Object: AnyObject>(on scheduler: Scheduler = ImmediateScheduler(), lifetime: Lifetime, object: Object, keyPath: ReferenceWritableKeyPath<Object, Value>) {
 		self.init(on: scheduler, lifetime: lifetime) { [weak object] in object?[keyPath: keyPath] = $0 }
 	}
 }
