@@ -1,12 +1,12 @@
 extension Operators {
-	internal final class Collect<Value, Error: Swift.Error>: Observer<Value, Error> {
-		let downstream: Observer<[Value], Error>
-		let modify: (_ collected: inout [Value], _ latest: Value) -> [Value]?
+	internal final class Collect<Value, Error: Swift.Error>: Observer, @unchecked Sendable {
+		let downstream: any Observer<[Value], Error>
+		let modify: @Sendable (_ collected: inout [Value], _ latest: Value) -> [Value]?
 
 		private var values: [Value] = []
 		private var hasReceivedValues = false
 
-		convenience init(downstream: Observer<[Value], Error>, shouldEmit: @escaping (_ collected: [Value], _ latest: Value) -> Bool) {
+		convenience init(downstream: some Observer<[Value], Error>, shouldEmit: @escaping (_ collected: [Value], _ latest: Value) -> Bool) {
 			self.init(downstream: downstream, modify: { collected, latest in
 				if shouldEmit(collected, latest) {
 					defer { collected = [latest] }
@@ -18,7 +18,7 @@ extension Operators {
 			})
 		}
 
-		convenience init(downstream: Observer<[Value], Error>, shouldEmit: @escaping (_ collected: [Value]) -> Bool) {
+		convenience init(downstream: some Observer<[Value], Error>, shouldEmit: @escaping (_ collected: [Value]) -> Bool) {
 			self.init(downstream: downstream, modify: { collected, latest in
 				collected.append(latest)
 
@@ -31,12 +31,12 @@ extension Operators {
 			})
 		}
 
-		private init(downstream: Observer<[Value], Error>, modify: @escaping (_ collected: inout [Value], _ latest: Value) -> [Value]?) {
+		private init(downstream: some Observer<[Value], Error>, modify: @escaping @Sendable (_ collected: inout [Value], _ latest: Value) -> [Value]?) {
 			self.downstream = downstream
 			self.modify = modify
 		}
 
-		override func receive(_ value: Value) {
+		func receive(_ value: Value) {
 			if let outgoing = modify(&values, value) {
 				downstream.receive(outgoing)
 			}
@@ -46,7 +46,7 @@ extension Operators {
 			}
 		}
 
-		override func terminate(_ termination: Termination<Error>) {
+		func terminate(_ termination: Termination<Error>) {
 			if case .completed = termination {
 				if !values.isEmpty {
 					downstream.receive(values)

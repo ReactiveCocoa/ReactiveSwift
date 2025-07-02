@@ -1,10 +1,10 @@
 extension Operators {
-	internal final class TakeLast<Value, Error: Swift.Error>: Observer<Value, Error> {
-		let downstream: Observer<Value, Error>
+	internal final class TakeLast<Value, Error: Swift.Error>: Observer, @unchecked Sendable {
+		let downstream: any Observer<Value, Error>
 		let count: Int
 		var buffer: [Value] = []
 
-		init(downstream: Observer<Value, Error>, count: Int) {
+		init(downstream: some Observer<Value, Error>, count: Int) {
 			precondition(count >= 1)
 
 			self.downstream = downstream
@@ -13,7 +13,7 @@ extension Operators {
 			buffer.reserveCapacity(count)
 		}
 
-		override func receive(_ value: Value) {
+		func receive(_ value: Value) {
 			// To avoid exceeding the reserved capacity of the buffer,
 			// we remove then add. Remove elements until we have room to
 			// add one more.
@@ -24,7 +24,7 @@ extension Operators {
 			buffer.append(value)
 		}
 
-		override func terminate(_ termination: Termination<Error>) {
+		func terminate(_ termination: Termination<Error>) {
 			if case .completed = termination {
 				buffer.forEach(downstream.receive)
 				buffer = []

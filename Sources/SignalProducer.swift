@@ -578,7 +578,7 @@ public protocol SignalProducerProtocol<Value, Error> {
 }
 #else
 /// A protocol for constraining associated types to `SignalProducer`.
-public protocol SignalProducerProtocol {
+public protocol SignalProducerProtocol<Value, Error> {
 	/// The type of values being sent by `self`.
 	associatedtype Value
 

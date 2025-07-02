@@ -10,7 +10,7 @@
 public struct Bag<Element> {
 	/// A uniquely identifying token for removing a value that was inserted into a
 	/// Bag.
-	public struct Token {
+	public struct Token: Sendable {
 		fileprivate let value: UInt64
 	}
 
@@ -129,3 +129,5 @@ extension Bag: RandomAccessCollection {
 		}
 	}
 }
+
+extension Bag: Sendable where Element: Sendable {}

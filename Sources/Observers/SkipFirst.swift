@@ -1,17 +1,17 @@
 extension Operators {
-	internal final class SkipFirst<Value, Error: Swift.Error>: Observer<Value, Error> {
-		let downstream: Observer<Value, Error>
+	internal final class SkipFirst<Value, Error: Swift.Error>: Observer, @unchecked Sendable {
+		let downstream: any Observer<Value, Error>
 		let count: Int
 		var skipped: Int = 0
 
-		init(downstream: Observer<Value, Error>, count: Int) {
+		init(downstream: some Observer<Value, Error>, count: Int) {
 			precondition(count >= 1)
 
 			self.downstream = downstream
 			self.count = count
 		}
 
-		override func receive(_ value: Value) {
+		func receive(_ value: Value) {
 			if skipped < count {
 				skipped += 1
 			} else {
@@ -19,7 +19,7 @@ extension Operators {
 			}
 		}
 
-		override func terminate(_ termination: Termination<Error>) {
+		func terminate(_ termination: Termination<Error>) {
 			downstream.terminate(termination)
 		}
 	}

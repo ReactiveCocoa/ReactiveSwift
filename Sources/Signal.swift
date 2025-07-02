@@ -17,7 +17,7 @@ import Dispatch
 /// A Signal is kept alive until either of the following happens:
 ///    1. its input observer receives a terminating event; or
 ///    2. it has no active observers, and is not being retained.
-public final class Signal<Value, Error: Swift.Error> {
+public final class Signal<Value, Error: Swift.Error>: Sendable {
 	/// The `Signal` core which manages the event stream.
 	///
 	/// A `Signal` is the externally retained shell of the `Signal` core. The separation
@@ -43,14 +43,9 @@ public final class Signal<Value, Error: Swift.Error> {
 	///            | Other observers |                                 | Other observers |
 	///            -------------------                                 -------------------
 	/// ```
-	private let core: CoreBase
+	private let core: any SignalCoreBase<Value, Error>
 
-	private class CoreBase {
-		func observe(_ observer: Observer) -> Disposable? { fatalError() }
-		func signalDidDeinitialize() { fatalError() }
-	}
-
-	private final class Core<SendLock: LockProtocol>: CoreBase {
+	private final class Core<SendLock: LockProtocol>: SignalCoreBase, @unchecked Sendable {
 		/// The disposable associated with the signal.
 		///
 		/// Disposing of `disposable` is assumed to remove the generator
@@ -67,14 +62,12 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// Used to ensure that events are serialized during delivery to observers.
 		private let sendLock: SendLock
 
-		fileprivate init(_ generator: (Observer, Lifetime) -> Void) {
+		fileprivate init(_ generator: @Sendable (Observer, Lifetime) -> Void) {
 			state = .alive(Bag(), hasDeinitialized: false)
 
 			stateLock = Lock.make()
 			sendLock = SendLock.make()
 			disposable = CompositeDisposable()
-
-			super.init()
 
 			// The generator observer retains the `Signal` core.
 			generator(Observer(action: self.send, interruptsOnDeinit: true), Lifetime(disposable))
@@ -82,6 +75,7 @@ public final class Signal<Value, Error: Swift.Error> {
 
 		@_specialize(kind: partial, where SendLock == Lock)
 		@_specialize(kind: partial, where SendLock == NoLock)
+		@Sendable
 		private func send(_ event: Event) {
 			if event.isTerminating {
 				// Recursive events are disallowed for `value` events, but are permitted
@@ -160,7 +154,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		///
 		/// - returns: A `Disposable` which can be used to disconnect the observer,
 		///            or `nil` if the signal has already terminated.
-		fileprivate override func observe(_ observer: Observer) -> Disposable? {
+		fileprivate func observe(_ observer: Observer) -> Disposable? {
 			var token: Bag<Observer>.Token?
 
 			stateLock.lock()
@@ -277,7 +271,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		}
 
 		/// Acknowledge the deinitialization of the `Signal`.
-		fileprivate override func signalDidDeinitialize() {
+		fileprivate func signalDidDeinitialize() {
 			stateLock.lock()
 
 			// Mark the `Signal` has now deinitialized.
@@ -294,7 +288,7 @@ public final class Signal<Value, Error: Swift.Error> {
 		}
 	}
 
-	private init(_ core: CoreBase) {
+	private init(_ core: any SignalCoreBase<Value, Error>) {
 		self.core = core
 	}
 
@@ -311,7 +305,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-	public convenience init(_ generator: (Observer, Lifetime) -> Void) {
+	public convenience init(_ generator: @Sendable (Observer, Lifetime) -> Void) {
 		self.init(Core<Lock>(generator))
 	}
 
@@ -332,7 +326,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-	public static func unserialized(_ generator: (Observer, Lifetime) -> Void) -> Signal {
+	public static func unserialized(_ generator: @Sendable (Observer, Lifetime) -> Void) -> Signal {
 		self.init(Core<NoLock>(generator))
 	}
 
@@ -357,12 +351,12 @@ public final class Signal<Value, Error: Swift.Error> {
 	/// - parameters:
 	///   - generator: A closure that accepts an implicitly created observer
 	///                that will act as an event emitter for the signal.
-	public static func reentrantUnserialized(_ generator: (Observer, Lifetime) -> Void) -> Signal {
+	public static func reentrantUnserialized(_ generator: @Sendable (Observer, Lifetime) -> Void) -> Signal {
 		self.init(Core<NoLock> { innerObserver, lifetime in
 			var eventQueue: [Event] = []
 			var isInLoop = false
 
-			let wrappedObserver = Observer { outerEvent in
+			let wrappedObserver = Observer { @Sendable outerEvent in
 				if !isInLoop {
 					isInLoop = true
 					innerObserver.send(outerEvent)
@@ -407,7 +401,7 @@ public final class Signal<Value, Error: Swift.Error> {
 	///
 	/// The Swift compiler has also an optimization for enums with payloads that are
 	/// all reference counted, and at most one no-payload case.
-	private enum State {
+	private enum State: Sendable {
 		// `TerminationKind` is constantly pointer-size large to keep `Signal.Core`
 		// allocation size independent of the actual `Value` and `Error` types.
 		enum TerminationKind {
@@ -453,6 +447,14 @@ public final class Signal<Value, Error: Swift.Error> {
 		/// The `Signal` has terminated.
 		case terminated
 	}
+}
+
+private protocol SignalCoreBase<Value, Error>: Sendable {
+	associatedtype Value
+	associatedtype Error: Swift.Error
+
+	func observe(_ observer: Signal<Value, Error>.Observer) -> Disposable?
+	func signalDidDeinitialize()
 }
 
 extension Signal {
@@ -522,7 +524,7 @@ extension Signal {
 	public static func unserializedPipe(disposable: Disposable? = nil) -> (output: Signal, input: Observer) {
 		var observer: Observer!
 
-		let signal = unserialized { innerObserver, lifetime in
+		let signal = unserialized { @Sendable innerObserver, lifetime in
 			observer = innerObserver
 			lifetime += disposable
 		}
@@ -566,7 +568,7 @@ extension Signal {
 	}
 }
 
-public protocol SignalProtocol: AnyObject {
+public protocol SignalProtocol<Value, Error>: AnyObject {
 	/// The type of values being sent by `self`.
 	associatedtype Value
 
@@ -705,7 +707,7 @@ extension Signal {
 	///                returns a new value.
 	///
 	/// - returns: A signal that will send new values.
-	public func map<U>(_ transform: @escaping (Value) -> U) -> Signal<U, Error> {
+	public func map<U>(_ transform: @escaping @Sendable (Value) -> U) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.map(transform))
 	}
 	
@@ -736,7 +738,7 @@ extension Signal {
 	///                a new type of error object.
 	///
 	/// - returns: A signal that will send new type of errors.
-	public func mapError<F>(_ transform: @escaping (Error) -> F) -> Signal<Value, F> {
+	public func mapError<F>(_ transform: @escaping @Sendable (Error) -> F) -> Signal<Value, F> {
 		return flatMapEvent(Signal.Event.mapError(transform))
 	}
 
@@ -766,7 +768,7 @@ extension Signal {
 	///                 included in the returned `Signal`.
 	///
 	/// - returns: A signal that forwards the values passing the given closure.
-	public func filter(_ isIncluded: @escaping (Value) -> Bool) -> Signal<Value, Error> {
+	public func filter(_ isIncluded: @escaping @Sendable (Value) -> Bool) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.filter(isIncluded))
 	}
 
@@ -776,7 +778,7 @@ extension Signal {
 	///                returns a new optional value.
 	///
 	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
-	public func compactMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
+	public func compactMap<U>(_ transform: @escaping @Sendable (Value) -> U?) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.compactMap(transform))
 	}
 
@@ -787,7 +789,7 @@ extension Signal {
 	///
 	/// - returns: A signal that will send new values, that are non `nil` after the transformation.
 	@available(*, deprecated, renamed: "compactMap")
-	public func filterMap<U>(_ transform: @escaping (Value) -> U?) -> Signal<U, Error> {
+	public func filterMap<U>(_ transform: @escaping @Sendable (Value) -> U?) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.compactMap(transform))
 	}
 }
@@ -1091,13 +1093,13 @@ extension Signal {
 	///
 	/// - returns: A signal with attached side-effects for given event cases.
 	public func on(
-		event: ((Event) -> Void)? = nil,
-		failed: ((Error) -> Void)? = nil,
-		completed: (() -> Void)? = nil,
-		interrupted: (() -> Void)? = nil,
-		terminated: (() -> Void)? = nil,
-		disposed: (() -> Void)? = nil,
-		value: ((Value) -> Void)? = nil
+		event: (@Sendable (Event) -> Void)? = nil,
+		failed: (@Sendable (Error) -> Void)? = nil,
+		completed: (@Sendable () -> Void)? = nil,
+		interrupted: (@Sendable () -> Void)? = nil,
+		terminated: (@Sendable () -> Void)? = nil,
+		disposed: (@Sendable () -> Void)? = nil,
+		value: (@Sendable (Value) -> Void)? = nil
 	) -> Signal<Value, Error> {
 		return Signal.unserialized { observer, lifetime in
 			if let action = disposed {
@@ -1486,7 +1488,7 @@ extension Signal {
 	///           next call of `next`.
 	///
 	/// - returns: A producer that sends the output that is computed from the accumuation.
-	public func scanMap<State, U>(_ initialState: State, _ next: @escaping (State, Value) -> (State, U)) -> Signal<U, Error> {
+	public func scanMap<State, U>(_ initialState: State, _ next: @escaping @Sendable (State, Value) -> (State, U)) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.scanMap(initialState, next))
 	}
 
@@ -1500,7 +1502,7 @@ extension Signal {
 	///           next call of `next`.
 	///
 	/// - returns: A producer that sends the output that is computed from the accumuation.
-	public func scanMap<State, U>(into initialState: State, _ next: @escaping (inout State, Value) -> U) -> Signal<U, Error> {
+	public func scanMap<State, U>(into initialState: State, _ next: @escaping @Sendable (inout State, Value) -> U) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.scanMap(into: initialState, next))
 	}
 }
@@ -1527,7 +1529,7 @@ extension Signal {
 	///   - isEquivalent: A closure to determine whether two values are equivalent.
 	///
 	/// - returns: A signal which conditionally forwards values from `self`.
-	public func skipRepeats(_ isEquivalent: @escaping (Value, Value) -> Bool) -> Signal<Value, Error> {
+	public func skipRepeats(_ isEquivalent: @escaping @Sendable (Value, Value) -> Bool) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.skipRepeats(isEquivalent))
 	}
 
@@ -1539,7 +1541,7 @@ extension Signal {
 	///   - shouldContinue: A closure to determine whether the skipping should continue.
 	///
 	/// - returns: A signal which conditionally forwards values from `self`.
-	public func skip(while shouldContinue: @escaping (Value) -> Bool) -> Signal<Value, Error> {
+	public func skip(while shouldContinue: @escaping @Sendable (Value) -> Bool) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.skip(while: shouldContinue))
 	}
 
@@ -2352,7 +2354,7 @@ extension Signal where Value == Bool {
 	///
 	/// - returns: A signal that emits the logical NOT results.
 	public func negate() -> Signal<Value, Error> {
-		return self.map(!)
+		return self.map { @Sendable in !$0 }
 	}
 
 	/// Create a signal that computes a logical AND between the latest values of `self`
@@ -2428,7 +2430,7 @@ extension Signal {
 	///
 	/// - returns: A signal which forwards the values from `self` until the given action
 	///            fails.
-	public func attempt(_ action: @escaping (Value) -> Result<(), Error>) -> Signal<Value, Error> {
+	public func attempt(_ action: @escaping @Sendable (Value) -> Result<(), Error>) -> Signal<Value, Error> {
 		return flatMapEvent(Signal.Event.attempt(action))
 	}
 
@@ -2441,7 +2443,7 @@ extension Signal {
 	///             error.
 	///
 	/// - returns: A signal which forwards the transformed values.
-	public func attemptMap<U>(_ transform: @escaping (Value) -> Result<U, Error>) -> Signal<U, Error> {
+	public func attemptMap<U>(_ transform: @escaping @Sendable (Value) -> Result<U, Error>) -> Signal<U, Error> {
 		return flatMapEvent(Signal.Event.attemptMap(transform))
 	}
 }

@@ -74,7 +74,7 @@ extension Reactive where Base: URLSession {
 				}
 			}
 
-			lifetime.observeEnded(task.cancel)
+			lifetime.observeEnded { @Sendable in task.cancel() }
 			task.resume()
 		}
 	}
