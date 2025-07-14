@@ -1,5 +1,6 @@
 # master
 *Please add new entries at the top.*
+1. Add Swift Concurrency extensions `asyncStream` and `asyncThrowingStream` to `Signal` and `SignalProducer` (#847)
 
 # 7.2.1
 1. Add primary associated types to property and binding protocols (#888, kudos to @braker1nine)
@@ -36,7 +37,6 @@
 
 # 6.7.0
 # 6.7.0-rc1
-
 1. New operator `SignalProducer.Type.interval(_:interval:on:)` for emitting elements from a given sequence regularly. (#810, kudos to @mluisbrown)
 
 1. `Signal` offers two special variants for advanced users: unserialized and reentrant-unserialized. (#797)
